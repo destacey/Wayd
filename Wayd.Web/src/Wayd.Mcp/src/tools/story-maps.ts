@@ -15,6 +15,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"includeArchived","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List story maps' },
   }],
 
   ['StoryMaps_GetStoryMap', {
@@ -26,6 +27,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get story map' },
   }],
 
   ['StoryMaps_CreateStoryMap', {
@@ -37,6 +39,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Create a story map', destructiveHint: false },
   }],
 
   ['StoryMaps_UpdateStoryMap', {
@@ -48,6 +51,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Update a story map' },
   }],
 
   ['StoryMaps_ChangeStoryMapOwner', {
@@ -59,6 +63,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Change story map owner' },
   }],
 
   ['StoryMaps_ArchiveStoryMap', {
@@ -70,6 +75,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Archive a story map' },
   }],
 
   ['StoryMaps_DeleteStoryMap', {
@@ -81,7 +87,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Delete a story map', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -97,6 +103,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a story map goal', destructiveHint: false },
   }],
 
   ['StoryMaps_RenameGoal', {
@@ -108,6 +115,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"goalId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Rename a story map goal' },
   }],
 
   ['StoryMaps_ReorderGoal', {
@@ -119,6 +127,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"goalId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Reorder a story map goal' },
   }],
 
   ['StoryMaps_DeleteGoal', {
@@ -130,7 +139,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"goalId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Delete a story map goal', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_SetGoalPersonas', {
@@ -142,6 +151,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"goalId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "Set a goal's personas" },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -157,6 +167,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a story map step', destructiveHint: false },
   }],
 
   ['StoryMaps_RenameStep', {
@@ -168,6 +179,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"stepId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Rename a story map step' },
   }],
 
   ['StoryMaps_ReorderStep', {
@@ -179,6 +191,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"stepId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Reorder a story map step' },
   }],
 
   ['StoryMaps_MoveStep', {
@@ -190,6 +203,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"stepId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Move a step to another goal' },
   }],
 
   ['StoryMaps_DeleteStep', {
@@ -201,7 +215,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"stepId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Delete a story map step', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_SetStepPersonas', {
@@ -213,6 +227,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"stepId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "Set a step's personas" },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -228,6 +243,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a story map task', destructiveHint: false },
   }],
 
   ['StoryMaps_UpdateTask', {
@@ -239,6 +255,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Update a story map task' },
   }],
 
   ['StoryMaps_MoveTask', {
@@ -250,6 +267,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Move a story map task' },
   }],
 
   ['StoryMaps_DeleteTask', {
@@ -261,7 +279,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Delete a story map task', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_SetTaskPersonas', {
@@ -273,6 +291,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "Set a task's personas" },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -288,6 +307,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a checklist item', destructiveHint: false },
   }],
 
   ['StoryMaps_RenameChecklistItem', {
@@ -299,6 +319,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"},{"name":"itemId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Rename a checklist item' },
   }],
 
   ['StoryMaps_SetChecklistItemChecked', {
@@ -310,6 +331,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"},{"name":"itemId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Check or uncheck a checklist item' },
   }],
 
   ['StoryMaps_RemoveChecklistItem', {
@@ -321,7 +343,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"},{"name":"itemId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Remove a checklist item', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_PromoteChecklistItem', {
@@ -333,6 +355,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"},{"name":"itemId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Promote a checklist item to a task' },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -348,6 +371,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Link a story map task to a work item' },
   }],
 
   ['StoryMaps_UnlinkWorkItem', {
@@ -359,7 +383,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Unlink a story map task from its work item', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -375,6 +399,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a swim lane', destructiveHint: false },
   }],
 
   ['StoryMaps_RenameSwimLane', {
@@ -386,6 +411,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"swimLaneId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Rename a swim lane' },
   }],
 
   ['StoryMaps_SetSwimLaneDates', {
@@ -397,6 +423,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"swimLaneId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Set swim lane dates' },
   }],
 
   ['StoryMaps_ReorderSwimLane', {
@@ -408,6 +435,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"swimLaneId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Reorder a swim lane' },
   }],
 
   ['StoryMaps_RemoveSwimLane', {
@@ -419,7 +447,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"swimLaneId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Remove a swim lane', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -435,6 +463,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a persona', destructiveHint: false },
   }],
 
   ['StoryMaps_UpdatePersona', {
@@ -446,6 +475,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"personaId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Update a persona' },
   }],
 
   ['StoryMaps_ReorderPersona', {
@@ -457,6 +487,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"personaId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Reorder a persona' },
   }],
 
   ['StoryMaps_DeletePersona', {
@@ -468,7 +499,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"personaId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Delete a persona', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
 ];

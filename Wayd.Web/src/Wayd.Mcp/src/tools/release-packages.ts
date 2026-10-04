@@ -19,6 +19,13 @@ const requiresConfirmation = {
   idempotentHint: false,
 } as const;
 
+/** Shared annotation: adds a record without changing or removing any, so clients need not warn. */
+const addsOnly = {
+  destructiveHint: false,
+  readOnlyHint: false,
+  idempotentHint: false,
+} as const;
+
 /** Shared annotation: reads only, safe to run without asking. */
 const readsOnly = {
   readOnlyHint: true,
@@ -91,7 +98,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Assemble a release package', ...requiresConfirmation },
+    annotations: { title: 'Assemble a release package', ...addsOnly },
   }],
 
   ['ReleasePackages_SetManifest', {

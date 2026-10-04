@@ -11,6 +11,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"status","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List portfolios' },
   }],
 
   ['Portfolios_GetPortfolio', {
@@ -22,6 +23,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get portfolio' },
   }],
 
   ['Portfolios_GetPortfolioOptions', {
@@ -33,6 +35,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List portfolio options' },
   }],
 
   ['Portfolios_GetPortfolioStatuses', {
@@ -44,6 +47,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List portfolio statuses' },
   }],
 
   ['Portfolios_GetPortfolioPrograms', {
@@ -55,6 +59,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "List a portfolio's programs" },
   }],
 
   ['Portfolios_GetPortfolioProjects', {
@@ -66,6 +71,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "List a portfolio's projects" },
   }],
 
   ['Portfolios_GetPortfolioStrategicInitiatives', {
@@ -77,6 +83,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "List a portfolio's strategic initiatives" },
   }],
 
 ];

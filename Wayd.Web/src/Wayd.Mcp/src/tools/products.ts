@@ -18,6 +18,13 @@ const requiresConfirmation = {
   idempotentHint: false,
 } as const;
 
+/** Shared annotation: adds a record without changing or removing any, so clients need not warn. */
+const addsOnly = {
+  destructiveHint: false,
+  readOnlyHint: false,
+  idempotentHint: false,
+} as const;
+
 /** Shared annotation: reads only, safe to run without asking. */
 const readsOnly = {
   readOnlyHint: true,
@@ -99,7 +106,7 @@ The external identifier is the node's id in whatever system owns it: a repositor
     executionParameters: [],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Create a product', ...requiresConfirmation },
+    annotations: { title: 'Create a product', ...addsOnly },
   }],
 
   ['Products_Update', {
@@ -239,7 +246,7 @@ A product holds at most one open dependency on another product, and a later one 
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Add a product dependency', ...requiresConfirmation },
+    annotations: { title: 'Add a product dependency', ...addsOnly },
   }],
 
   ['Products_UpdateDependency', {

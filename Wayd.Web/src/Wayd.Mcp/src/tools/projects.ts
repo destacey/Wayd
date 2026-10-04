@@ -11,6 +11,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"status","in":"query"},{"name":"portfolioId","in":"query"},{"name":"role","in":"query"},{"name":"employeeId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List projects' },
   }],
 
   ['Projects_GetMyProjectsSummary', {
@@ -22,6 +23,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"status","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get my project involvement summary' },
   }],
 
   ['Projects_GetMyProjectsTaskMetrics', {
@@ -33,6 +35,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"status","in":"query"},{"name":"role","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get my project task metrics' },
   }],
 
   ['Projects_GetTaskMetrics', {
@@ -44,6 +47,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"status","in":"query"},{"name":"role","in":"query"},{"name":"employeeId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "Get an employee's project task metrics" },
   }],
 
   ['Projects_GetProject', {
@@ -55,6 +59,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project' },
   }],
 
   ['Projects_GetStatusHistory', {
@@ -66,6 +71,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project status history' },
   }],
 
   ['Projects_GetStatuses', {
@@ -77,6 +83,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List project statuses' },
   }],
 
   ['Projects_GetWorkItems', {
@@ -88,6 +95,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "List a project's work items" },
   }],
 
   ['Projects_GetForecast', {
@@ -111,6 +119,7 @@ export const definitions: [string, McpToolDefinition][] = [
     ],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Forecast project completion' },
   }],
 
   ['Projects_GetProjectTeam', {
@@ -122,6 +131,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project team' },
   }],
 
   ['Projects_GetProjectStages', {
@@ -133,6 +143,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List project stages' },
   }],
 
   ['Projects_GetProjectStage', {
@@ -144,6 +155,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"stageId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project stage' },
   }],
 
   ['Projects_GetProjectPlanTree', {
@@ -155,6 +167,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project plan tree' },
   }],
 
   ['Projects_GetProjectPlanSummary', {
@@ -166,6 +179,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"employeeId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project plan summary' },
   }],
 
   ['Projects_GetProjectsPlanSummaries', {
@@ -177,6 +191,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectId","in":"query"},{"name":"role","in":"query"},{"name":"employeeId","in":"query"},{"name":"allTasks","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get plan summaries for several projects' },
   }],
 
 ];

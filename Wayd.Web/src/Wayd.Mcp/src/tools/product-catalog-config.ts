@@ -19,6 +19,13 @@ const requiresConfirmation = {
   idempotentHint: false,
 } as const;
 
+/** Shared annotation: adds a record without changing or removing any, so clients need not warn. */
+const addsOnly = {
+  destructiveHint: false,
+  readOnlyHint: false,
+  idempotentHint: false,
+} as const;
+
 /** Shared annotation: reads only, safe to run without asking. */
 const readsOnly = {
   readOnlyHint: true,
@@ -72,7 +79,7 @@ Only active tags in active categories can be applied.`,
     executionParameters: [],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Create a product type', ...requiresConfirmation },
+    annotations: { title: 'Create a product type', ...addsOnly },
   }],
 
   ['ProductTypes_Update', {
@@ -124,7 +131,7 @@ Unlike editing, this **is** allowed on a seeded system type: an organization tha
     executionParameters: [],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Create a tag category', ...requiresConfirmation },
+    annotations: { title: 'Create a tag category', ...addsOnly },
   }],
 
   ['ProductTagCategories_Update', {
@@ -186,7 +193,7 @@ As with product types, this **is** allowed on a seeded system category, unlike e
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Add a tag', ...requiresConfirmation },
+    annotations: { title: 'Add a tag', ...addsOnly },
   }],
 
   ['ProductTagCategories_RenameTag', {

@@ -25,6 +25,7 @@ export const definitions: [string, McpToolDefinition][] = [
     ],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Forecast work item completion' },
   }],
 
 ];

@@ -11,6 +11,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List task types' },
   }],
 
   ['Tasks_GetTaskStatuses', {
@@ -22,6 +23,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List task statuses' },
   }],
 
   ['Tasks_GetTaskPriorities', {
@@ -33,6 +35,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List task priorities' },
   }],
 
   ['Tasks_GetProjectTasks', {
@@ -44,6 +47,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"status","in":"query"},{"name":"parentId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List project tasks' },
   }],
 
   ['Tasks_GetProjectTask', {
@@ -55,6 +59,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"taskIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project task' },
   }],
 
   ['Tasks_GetCriticalPath', {
@@ -66,6 +71,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project critical path' },
   }],
 
   ['Tasks_CreateProjectTask', {
@@ -77,6 +83,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Create a project task', destructiveHint: false },
   }],
 
   ['Tasks_UpdateProjectTask', {
@@ -88,6 +95,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"id","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Update a project task' },
   }],
 
   ['Tasks_DeleteProjectTask', {
@@ -99,7 +107,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Delete a project task', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['Tasks_AddTaskDependency', {
@@ -111,6 +119,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"id","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a task dependency', destructiveHint: false },
   }],
 
   ['Tasks_RemoveTaskDependency', {
@@ -122,7 +131,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"id","in":"path"},{"name":"successorId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Remove a task dependency', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
 ];

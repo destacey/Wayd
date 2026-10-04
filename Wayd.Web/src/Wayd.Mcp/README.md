@@ -162,12 +162,12 @@ Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-deliver
 
 ## Confirmation before status changes
 
-Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something and those that import, stop, resume, or retry an import run. Clients that honour the annotation prompt for confirmation before running them.
+Every tool that writes is advertised to clients with the MCP `destructiveHint` annotation unless it only adds a record — creating one, adding a child such as a task, goal or dependency, logging a health check, recording a KPI measurement, or checking an import file. Adding destroys nothing and is undone by deleting what was added. Everything else carries it: every status change (activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status), every update and delete, and importing, stopping, resuming, or retrying an import run. Clients that honour the annotation prompt for confirmation before running them.
 
 Two caveats worth knowing:
 
 - The hint is **advisory**. It tells a client to ask; it cannot force one to. Authorization is still enforced server-side, and PPM mutations additionally require delivery leadership (Owner or Manager on the record or an ancestor) regardless of what any client does.
-- A tool with no annotation is treated as read-only **only** when its underlying request is a GET. Any new write tool must opt in explicitly, so it can never be silently advertised as safe.
+- Annotations default from the underlying request: only a GET is read-only, and every other method starts out destructive. A new write tool therefore asks for confirmation unless its definition opts out explicitly, so it can never be silently advertised as safe.
 
 ### Updates overwrite the whole record
 

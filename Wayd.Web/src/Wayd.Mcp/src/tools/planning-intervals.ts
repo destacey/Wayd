@@ -11,6 +11,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List planning intervals' },
   }],
 
   ['PlanningIntervals_GetPlanningInterval', {
@@ -22,6 +23,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get planning interval' },
   }],
 
   ['PlanningIntervals_GetCalendar', {
@@ -33,6 +35,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI calendar' },
   }],
 
   ['PlanningIntervals_GetPredictability', {
@@ -44,6 +47,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI predictability' },
   }],
 
   ['PlanningIntervals_GetTeams', {
@@ -55,6 +59,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List PI teams' },
   }],
 
   ['PlanningIntervals_GetTeamPredictability', {
@@ -66,6 +71,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"teamId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "Get a team's PI predictability" },
   }],
 
   ['PlanningIntervals_GetIterations', {
@@ -77,6 +83,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List PI iterations' },
   }],
 
   ['PlanningIntervals_GetIteration', {
@@ -88,6 +95,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"iterationIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI iteration' },
   }],
 
   ['PlanningIntervals_GetIterationCategories', {
@@ -99,6 +107,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List iteration categories' },
   }],
 
   ['PlanningIntervals_GetIterationSprints', {
@@ -110,6 +119,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"iterationId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List PI iteration sprint mappings' },
   }],
 
   ['PlanningIntervals_GetIterationMetrics', {
@@ -121,6 +131,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"iterationIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI iteration metrics' },
   }],
 
   ['PlanningIntervals_GetIterationBacklog', {
@@ -132,6 +143,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"iterationIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI iteration backlog' },
   }],
 
   ['PlanningIntervals_GetObjectives', {
@@ -143,6 +155,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"teamId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List PI objectives' },
   }],
 
   ['PlanningIntervals_GetObjective', {
@@ -154,6 +167,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"objectiveIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI objective' },
   }],
 
   ['PlanningIntervals_GetObjectiveStatuses', {
@@ -165,6 +179,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List PI objective statuses' },
   }],
 
   ['PlanningIntervals_GetObjectivesHealthReport', {
@@ -176,6 +191,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"teamId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI objectives health report' },
   }],
 
   ['PlanningIntervals_GetObjectiveWorkItems', {
@@ -187,6 +203,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"objectiveIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "List a PI objective's work items" },
   }],
 
   ['PlanningIntervals_GetObjectiveWorkItemMetrics', {
@@ -198,6 +215,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"objectiveIdOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get PI objective work item metrics' },
   }],
 
   ['PlanningIntervals_GetObjectiveForecast', {
@@ -223,6 +241,7 @@ export const definitions: [string, McpToolDefinition][] = [
     ],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Forecast PI objective completion' },
   }],
 
   ['PlanningIntervals_GetRisks', {
@@ -234,6 +253,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"includeClosed","in":"query"},{"name":"teamId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List PI risks' },
   }],
 
 ];

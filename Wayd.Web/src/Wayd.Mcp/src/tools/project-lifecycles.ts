@@ -11,6 +11,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"state","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List project lifecycles' },
   }],
 
   ['ProjectLifecycles_GetProjectLifecycle', {
@@ -22,6 +23,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get project lifecycle' },
   }],
 
 ];

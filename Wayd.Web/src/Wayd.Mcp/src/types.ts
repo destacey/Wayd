@@ -77,5 +77,9 @@ export interface McpToolDefinition {
     localHandler?: (args: JsonObject) => CallToolResult;
     requestBodyContentType?: string;
     securityRequirements: any[];
-    annotations?: McpToolAnnotations;
+    /**
+     * Overrides the defaults its HTTP method implies (see `annotationsFor`). The title is
+     * required: clients show it in place of the tool name.
+     */
+    annotations: McpToolAnnotations & { title: string };
 }

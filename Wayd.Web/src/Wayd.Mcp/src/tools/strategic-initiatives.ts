@@ -11,6 +11,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"status","in":"query"},{"name":"portfolioId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List strategic initiatives' },
   }],
 
   ['StrategicInitiatives_GetStrategicInitiative', {
@@ -22,6 +23,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get strategic initiative' },
   }],
 
   ['StrategicInitiatives_GetStatuses', {
@@ -33,6 +35,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List strategic initiative statuses' },
   }],
 
   ['StrategicInitiatives_GetProjects', {
@@ -44,6 +47,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"idOrKey","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "List a strategic initiative's projects" },
   }],
 
   ['StrategicInitiatives_GetKpis', {
@@ -55,6 +59,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: "List a strategic initiative's KPIs" },
   }],
 
   ['StrategicInitiatives_GetKpi', {
@@ -66,6 +71,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"kpiId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get KPI' },
   }],
 
   ['StrategicInitiatives_GetKpiCheckpoints', {
@@ -77,6 +83,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"kpiId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List KPI checkpoints' },
   }],
 
   ['StrategicInitiatives_GetKpiCheckpointPlan', {
@@ -88,6 +95,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"kpiId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get KPI checkpoint plan' },
   }],
 
   ['StrategicInitiatives_GetKpiMeasurements', {
@@ -99,6 +107,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"kpiId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'List KPI measurements' },
   }],
 
   ['StrategicInitiatives_AddKpiMeasurement', {
@@ -110,6 +119,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"kpiId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Record a KPI measurement', destructiveHint: false },
   }],
 
   ['StrategicInitiatives_RemoveKpiMeasurement', {
@@ -121,7 +131,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"kpiId","in":"path"},{"name":"measurementId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
+    annotations: { title: 'Remove a KPI measurement', destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
 ];

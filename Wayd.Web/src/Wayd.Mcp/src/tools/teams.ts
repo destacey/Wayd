@@ -12,6 +12,7 @@ export const definitions: [string, McpToolDefinition][] = [
       executionParameters: [{ name: 'includeInactive', in: 'query' }],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'List teams' },
     },
   ],
 
@@ -30,6 +31,7 @@ export const definitions: [string, McpToolDefinition][] = [
       executionParameters: [{ name: 'id', in: 'path' }],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'Get team' },
     },
   ],
 
@@ -177,6 +179,7 @@ export const definitions: [string, McpToolDefinition][] = [
       ],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'Grade team backlog health' },
     },
   ],
 
@@ -222,6 +225,7 @@ export const definitions: [string, McpToolDefinition][] = [
       ],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'Forecast team throughput' },
     },
   ],
 
@@ -287,6 +291,7 @@ export const definitions: [string, McpToolDefinition][] = [
       ],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'Report team allocation' },
     },
   ],
 
@@ -309,6 +314,7 @@ export const definitions: [string, McpToolDefinition][] = [
       executionParameters: [{ name: 'includeInactive', in: 'query' }],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'List teams of teams' },
     },
   ],
 
@@ -371,6 +377,7 @@ export const definitions: [string, McpToolDefinition][] = [
       ],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'Report team of teams allocation' },
     },
   ],
 ];

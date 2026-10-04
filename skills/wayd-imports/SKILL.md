@@ -7,7 +7,7 @@ description: Guides agents importing CSV data into Wayd via the Wayd MCP server 
 
 ## When to use
 
-- Loading records into Wayd from a spreadsheet or another system — employees, teams, portfolios, programs, projects, tasks, planning intervals, objectives, risks, products, product dependencies, versions, packages, releases, environments, deployments
+- Loading records into Wayd from a spreadsheet or another system — `Imports_GetDefinitions` lists every kind of import
 - Checking whether a file would import cleanly, and why rows would be refused
 - Following a run that was still going when it was submitted
 - Finding out what became of an import someone submitted from Settings → Imports
@@ -34,9 +34,9 @@ A preflight is **advice, not a promise**. Each row is checked again when it is a
 3. **Write the CSV.** Start from the `header` string. Every column must be present even when no row fills it, or the whole file is refused with `Header with name 'X' was not found`.
 4. **`Imports_Preflight`** with `importType`, the CSV text in `file`, and a second file where the format lists one (`manifestFile`, `contentsFile`, `kpiFile`).
 5. **Wait for it.** The answer is the run. If `isTerminal` is false, poll `Imports_GetById` until it is true.
-6. **`Imports_GetRows`** with `status: Failed` — each refused row's `importId` and `error`. Rows with a `warning` would be imported but record something worth telling the user.
+6. **`Imports_GetRows`** with `status: Failed` — each refused row's `importId` and `error`. Rows with a `warning` would be imported but record something worth telling the user. A page holds at most 500 rows: page until `totalCount` is covered before telling the user every row passed.
 7. **Fix and check again**, or present the result. Fix the file, or the data a row depends on, then run a new preflight. A preflight cannot be resumed or retried.
-8. **`Imports_Apply`** with the preflight's `id`, once the user agrees. It answers with a **new** run; follow it as in step 5 and read its rows the same way.
+8. **`Imports_Apply`** with the preflight's `id`, once the user agrees. First check the preflight's `appliedImportProcessId` (from `Imports_GetById`): if it is set, the rows went in once already, and applying again refuses them as duplicates where the import has a natural key but **creates them a second time** where it has none. Apply answers with a **new** run; follow it as in step 5 and read its rows as in step 6.
 
 A file refused outright — a missing header, a cell that is the wrong type, too many rows, an empty file — comes back as an HTTP 400 or 422 and **becomes no run**. The error lists each problem by column and names the row, usually by its `ImportId`.
 
@@ -56,11 +56,15 @@ A file refused outright — a missing header, a cell that is the wrong type, too
 
 `atomicity` decides what a rejected row costs:
 
-- **Atomic** — one rejected row means **nothing is written**. A run can report "0 of 40 applied" and be working correctly. The Organization team imports and the Planning imports are atomic. A preflight of an atomic import still reports every rejection at once, rather than stopping at the first step that finds one, and says Failed while any row is refused.
-- **PerRow** — each row stands alone, so a run can be PartiallySucceeded. Employees and deployments import this way. Deployments have no natural key, so after a partial run resubmit **only the rejected rows** — posting the whole file again records every deployment that already went in a second time.
-- **PerGroup** — rows sharing a group apply together or not at all, and the other groups are kept, so a run can be PartiallySucceeded. The definition's `groupNoun` names the group. Product dependencies group by `ProductId`, so every dependency of one product saves together. **Every PPM import is PerGroup too**: portfolios, programs, projects and strategic initiatives group by the record the row creates, while tasks and stages group by the **project** — so one bad task keeps out that project's whole breakdown and leaves every other project alone. PPM finalize groups by the program or portfolio the row closes. **The other Product Management imports are PerGroup as well**: products group by the **tree** (the top-level product a row's parent chain ends at), so one bad product keeps out its whole tree, siblings included; versions group by `ProductId`; release packages, releases and environments by the record the row creates, with a package's manifest and a release's contents riding on its row. Products are additive like deployments — after a partial run resubmit only the rejected trees. A row kept out only because another in its group was rejected says so — `Not applied: another row for the same product was rejected (import id '…')` — so fix the named row, not that one.
+- **Atomic** — one rejected row means **nothing is written**. A run can report "0 of 40 applied" and be working correctly. A preflight still reports every rejection at once, and says Failed while any row is refused. Get the preflight to zero rejections before applying.
+- **PerRow** — each row stands alone, so a run can be PartiallySucceeded.
+- **PerGroup** — rows sharing a group (named by the definition's `groupNoun`) apply together or not at all, and the other groups are kept, so a run can be PartiallySucceeded. Read the rejections group by group.
 
-For an atomic import, get the preflight to zero rejections before applying. For a PerGroup import, read the rejections group by group.
+What the definitions do not say:
+
+- **Deployments and products have no natural key.** After a partial run, resubmit **only the rejected rows** (for products, the rejected trees); the whole file again records everything that already went in a second time.
+- **Project tasks and project stages group by the project**, not the row: one bad task keeps out that project's whole breakdown and leaves every other project alone.
+- **A row refused with `Not applied: …` was not wrong itself.** It was kept out by another row in its group, which the message names by import id — fix that row.
 
 ---
 
@@ -81,13 +85,6 @@ To show files as one batch in Settings → Imports, pass the same `submissionGro
 
 - **Rows per file**: `maxRows`, and `preflightMaxRows` for a preflight. They differ where a run saves chunk by chunk but a check cannot: employees take up to 50,000 rows for real and 10,000 for a check. Read both off the definition rather than assuming. Split a larger file, and group the parts with a `submissionGroupId`.
 - **Row data is kept for 30 days** after a run finishes. After that a preflight can no longer be applied and a run can no longer be resumed or retried; submit the file again.
-- **Row and run listings return at most 500 per page.** Page through `Imports_GetRows` before telling the user every row succeeded.
-
----
-
-## Applying twice duplicates
-
-`Imports_Apply` stays available after a preflight has been applied, because the import may have failed for a reason since fixed. Check the preflight's `appliedImportProcessId` first. If it is set, the rows went in once already: applying again refuses them as duplicates where the import has a natural key, and **creates them a second time** where it does not, as with deployments.
 
 ---
 

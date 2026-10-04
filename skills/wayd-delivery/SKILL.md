@@ -33,7 +33,7 @@ wrong one of these.
 
 It reads as one sentence with no word doing double duty:
 
-> **Release** 2026.09 shipped **package** WAYD-2026.09.1, containing Wayd API **version** 4.10.0,
+> **Release** 2026.09 shipped **package** WAYD-2026.09.1, containing Wayd API **version** 4.12.0,
 > **deployed** to Production.
 
 **Which one am I looking at?** If a customer would recognise the name, it is a *release*. If it names
@@ -44,29 +44,39 @@ one artifact and a version number, it is a *version*. If it is what the pipeline
 > `4.12.0` names one artifact, so it is a **version** — use `Versions_Plan`. Conversely, "we announced
 > 2026.09 last Tuesday" is a **release**, not a version, even though it has a version-looking label.
 
+### Tool map
+
+| Record | Read | Lifecycle |
+| --- | --- | --- |
+| Version | `Versions_GetVersions`, `Versions_GetVersion`, `Versions_GetStatusHistory`, `Versions_GetActivities` | `Versions_Plan`, `Versions_Update`, `Versions_Cut`, `Versions_MarkReleased`, `Versions_Withdraw`, `Versions_Revert`, `Versions_CorrectDates`, `Versions_MoveTargetDate`, `Versions_Delete` |
+| Release package | `ReleasePackages_GetReleasePackages`, `ReleasePackages_GetReleasePackage`, `ReleasePackages_GetStatusHistory`, `ReleasePackages_GetActivities` | `ReleasePackages_Assemble`, `ReleasePackages_SetManifest`, `ReleasePackages_MarkReleased`, `ReleasePackages_Withdraw`, `ReleasePackages_CorrectDates`, `ReleasePackages_Delete` |
+| Release | `Releases_GetReleases`, `Releases_GetRelease`, `Releases_GetStatusHistory`, `Releases_GetActivities` | `Releases_Plan`, `Releases_Update`, `Releases_SetContents`, `Releases_MarkReleased`, `Releases_Withdraw`, `Releases_Revert`, `Releases_CorrectDates`, `Releases_MoveTargetDate`, `Releases_Delete` |
+| Deployment | `Deployments_GetDeployments`, `Deployments_GetDeployment`, `Deployments_GetStatusHistory`, `Deployments_GetActivities` | `Deployments_Start`, `Deployments_Succeed`, `Deployments_Fail`, `Deployments_RollBack`, `Deployments_Delete` |
+
+Environments, rollout and delivery measures belong to the **wayd-products** skill.
+
 ---
 
-## What can be changed via MCP
+## Ending a record versus deleting it
 
-Everything in delivery supports create and update, and every lifecycle move is available. A version
-is *withdrawn*; `Versions_Delete` removes it with every deployment of it, and is refused while a
-release lists it or a package manifest names it. A release is *withdrawn* too; `Releases_Delete` removes it and
-its contents list (never the versions and packages it named), for a release created by mistake or
-when the user wants that history gone. A package is *withdrawn* too; `ReleasePackages_Delete` exists
-but takes every deployment of it along, and is refused while any release lists the package, so use it
-only when the user explicitly wants that history gone — a package in an announced release can only be
-freed by deleting that release. An environment is *retired*;
-`DeploymentEnvironments_Delete` exists but takes every deployment into it along, so use it only when
-the user explicitly wants that history gone, and say how many deployments will go first.
+Every record has a normal way to end that keeps its history. Delete only a record created by mistake,
+or when the user explicitly wants that history gone — and say what goes with it before confirming.
 
-`Deployments_Delete` permanently removes a deployment and its status history, and the measures stop
-counting it. Use it only for a deployment recorded by mistake, or when the user asks to purge a
-retired product's history. A deployment that really failed or was rolled back is recorded with
-`Deployments_Fail` or `Deployments_RollBack`, never deleted — deleting it would hide a change failure.
+| Record | Normal end | Delete tool | Delete refused while | Delete also removes |
+| --- | --- | --- | --- | --- |
+| Version | `Versions_Withdraw` | `Versions_Delete` | A release lists it, or a package manifest names it | Its status history and every deployment of it |
+| Release | `Releases_Withdraw` | `Releases_Delete` | Never — any state | Its contents list and status history; the versions and packages it named are kept |
+| Release package | `ReleasePackages_Withdraw` | `ReleasePackages_Delete` | Any release lists it | Its manifest, status history and every deployment of it; the versions it names are kept |
+| Deployment | Its outcome — `Deployments_Fail` or `Deployments_RollBack` for one that went wrong | `Deployments_Delete` | Never — any state | Its status history; the measures stop counting it |
+| Environment | Retired — `DeploymentEnvironments_SetActive` with `isActive: false` | `DeploymentEnvironments_Delete` | Never | Every deployment into it — state its `deploymentCount` first |
 
-Every mutating tool is annotated so your client asks before running it. Treat that as a genuine
-checkpoint rather than a formality: announcing a release is a statement to customers, and withdrawing
-one retracts a statement already made.
+An announced or withdrawn release's contents are frozen, so a package it lists can only be freed by
+deleting that release. Never delete a deployment that really failed or was rolled back: it would hide
+a change failure.
+
+Every tool that changes or removes a record is annotated so your client asks before running it. Treat
+that as a genuine checkpoint rather than a formality: announcing a release is a statement to
+customers, and withdrawing one retracts a statement already made.
 
 ---
 
@@ -83,33 +93,40 @@ A release reaches its contents two ways, and may use both:
 **A version shipping inside one of the release's packages cannot also be carried directly.** Otherwise
 one release announces the same shipment twice, and "what did 2026.09 contain" has two answers.
 
-The rule is judged against what the release *ends up* containing, not what it contained before — so
-moving a version out of the direct list and into a package that ships it works, provided both changes
-go in the same `Releases_SetContents` call. A manifest line that names no version record covers
-nothing and never conflicts.
+The rule is judged against what the release *ends up* containing — so moving a version out of the
+direct list and into a package that ships it works, provided both changes go in the same
+`Releases_SetContents` call. A manifest line that names no version record covers nothing and never
+conflicts.
 
 ### A release cannot be announced while its contents have not shipped
 
 `Releases_MarkReleased` is refused while any version or package the release carries has not shipped.
-Telling customers `2026.09` is out while a version inside it has not gone anywhere is the one claim a
-release can make that its own contents contradict.
+An **empty release announces normally** — a repackaging or a pricing change is announced with nothing
+deployed, and emptiness is never the blocker.
 
-**Before announcing:** call `Releases_GetRelease` and check each contents entry's `releasedAt`. Release
-the outstanding ones, or remove them from the release. An **empty release announces normally** — a
-repackaging or a pricing change is announced with nothing deployed, and emptiness is never the blocker.
+To announce:
+
+1. `Releases_GetRelease` — read the contents.
+2. List every contents entry without a `releasedAt`.
+3. For each, either release it (`Versions_MarkReleased` or `ReleasePackages_MarkReleased`, or a
+   production deployment that succeeds) or remove it with `Releases_SetContents`.
+4. Call `Releases_GetRelease` again. Repeat from step 2 until no entry lacks a `releasedAt`.
+5. Confirm the announcement and its `releasedDate` with the user.
+6. `Releases_MarkReleased`.
 
 ---
 
-## Whole-set replacements
+## Overwrite, not patch
 
-Three tools replace a whole collection rather than adding to one. Sending only what you want to add
-silently deletes everything else.
+These tools replace what they cover rather than adding to it. Sending only what you want to change
+silently clears or removes everything else.
 
-| Tool | Replaces | Sending an empty set |
+| Tool | Replaces | Omitted or empty |
 | --- | --- | --- |
-| `Releases_SetContents` | Both routes at once — packages **and** directly-carried versions | Clears the release |
-| `ReleasePackages_SetManifest` | Every manifest line | Refused: a package ships at least one component |
-| `Releases_Update` / `Versions_Update` | Every descriptive field | An omitted field is cleared |
+| `Releases_SetContents` | Both routes at once — packages **and** directly-carried versions | Removed; two empty lists clear the release |
+| `ReleasePackages_SetManifest` | Every manifest line | Removed; an empty manifest is refused |
+| `Releases_Update`, `Versions_Update` | Every descriptive field | Cleared |
+| `Versions_CorrectDates`, `Releases_CorrectDates`, `ReleasePackages_CorrectDates` | Every date on the record | An omitted target date (and a version's cut moment) is cleared |
 
 **Always read the record first** and send back the full intended result. For `Releases_SetContents`
 that means calling `Releases_GetRelease`, taking the existing `versions` and `packages`, applying your
@@ -124,7 +141,7 @@ just labels; Wayd never sorts or compares them. Ordering comes from released mom
 `sequence` override for the case where chronology misleads — a backport shipping after the version
 that superseded it.
 
-Do not attempt to infer precedence from a version string, and do not sort results by it.
+Do not infer precedence from a version string, and do not sort results by it.
 
 ---
 
@@ -134,6 +151,7 @@ Both end an assertion, and choosing wrongly writes a history that misleads whoev
 
 | | Withdraw | Revert |
 | --- | --- | --- |
+| Tools | `Versions_Withdraw`, `Releases_Withdraw`, `ReleasePackages_Withdraw` | `Versions_Revert`, `Releases_Revert` — a package has no revert |
 | What happened | It really shipped or was announced, then was pulled | It never shipped or was announced; the record was wrong |
 | Resulting status | Terminal | Back to a live status |
 | The released date or moment | Kept — it did happen | Cleared — it did not |
@@ -142,11 +160,16 @@ Both end an assertion, and choosing wrongly writes a history that misleads whoev
 Recording a mistake as a withdrawal leaves the append-only history asserting that somebody pulled
 something nobody ever shipped, and a later reader has no way to tell.
 
-**Correcting dates is a third thing.** `Releases_CorrectDates`, `Versions_CorrectDates` and
+**Correcting dates is a third thing.** `Versions_CorrectDates`, `Releases_CorrectDates` and
 `ReleasePackages_CorrectDates` say a date was written down wrongly. The status does not move and the
-history is untouched — which is why they exist separately from the actions that assert a record moved.
-A package's released moment can only be corrected once it has been released; it cannot be added through
-a correction, because the released moment is what closes the manifest.
+status history is untouched. A package's released moment can only be corrected once it has been
+released — the released moment is what closes the manifest, so it is set by
+`ReleasePackages_MarkReleased`.
+
+**Moving a target is a fourth.** `Versions_MoveTargetDate` and `Releases_MoveTargetDate` record that
+the plan changed; omitting the date records that the record is no longer targeted. Both are refused
+`Versions_MoveTargetDate` is refused on a released or withdrawn version, and
+`Releases_MoveTargetDate` on a release in a terminal status.
 
 **What happened is an instant; what is planned is a date.**
 
@@ -158,15 +181,15 @@ a correction, because the released moment is what closes the manifest.
 | Deployment | `startedAt`, `completedAt` | — |
 
 Send an instant exactly as the CI/CD system reports it, with its offset (`2026-09-18T02:30:00Z`) — **never
-convert it to a local date first**; a bare date is refused. Records released before these were instants
-were converted at 12:00 UTC on their original date; correct one whose real moment matters.
+convert it to a local date first**; a bare date is refused. A released moment of exactly 12:00 UTC may
+be a converted calendar date; correct it with `Versions_CorrectDates` or `ReleasePackages_CorrectDates`
+if the real moment matters.
 
-A release's dates are still calendar dates with no time and no offset. When deriving its released date
-from a timestamp, convert it to the organization's local date: a late-evening US announcement lands after
+A release's dates are calendar dates with no time and no offset. When deriving its released date from
+a timestamp, convert it to the organization's local date: a late-evening US announcement lands after
 midnight UTC and would otherwise be recorded a day late.
 
-`DeliveryOverview_GetDeliveryOverview` counts versions by the day they shipped, so pass the reader's IANA
-`timeZone` — the same release is a different day in Chicago and in UTC. Without it the days are UTC days.
+For time zones when reading delivery measures, see the **wayd-products** skill.
 
 ---
 
@@ -183,16 +206,16 @@ A version that shipped inside a package has **no deployment of its own**. Lookin
 returns nothing; find the package whose manifest names it. This is the most common source of "why is
 this empty?".
 
-Outcomes are one-way: a deployment that has started is only ever completed, and once `Succeed`, `Fail`
-or `RollBack` is recorded, none can be called again. Note that **failure and rollback are different**:
-a failure never arrived, while a rollback arrived and had to be undone. Change failure rate counts the
-second kind.
+Outcomes are one-way: once `Deployments_Succeed`, `Deployments_Fail` or `Deployments_RollBack` is
+recorded, none can be called again. **Failure and rollback are different**: a failure never arrived,
+while a rollback arrived and had to be undone. Change failure rate counts the second kind.
 
 **A production success releases what it shipped.** Succeeding a production deployment, or importing one
 that succeeded or was rolled back, marks an unreleased version — or a package and the versions that
 changed in it — Released at the deployment's completion. So where deployments are recorded, you do not
-also need `Versions_MarkReleased` or `ReleasePackages_MarkReleased`. A released moment already set is never
-replaced; import history oldest first, or use `CorrectDates` afterwards.
+also need `Versions_MarkReleased` or `ReleasePackages_MarkReleased`. A released moment already set is
+never replaced: import history oldest first, or fix it afterwards with `Versions_CorrectDates` or
+`ReleasePackages_CorrectDates`.
 
 ---
 
@@ -201,14 +224,16 @@ replaced; import history oldest first, or use `CorrectDates` afterwards.
 ### Recording what shipped, end to end
 
 1. `Versions_Plan` — the artifact that was built, against a **releasable** product.
-2. `Versions_Cut`, then `Versions_MarkReleased` — or supply both moments later via
-   `Versions_CorrectDates` if you are entering history after the fact.
+2. `Versions_Cut`, then `Versions_MarkReleased`. For history entered after the fact, pass the past
+   moments as `cutAt` and `releasedAt`; cutting is optional, and `Versions_MarkReleased` works on a
+   version never cut. Use `Versions_CorrectDates` only to fix a moment already recorded wrongly — it
+   moves no status, and it clears any date you do not resend.
 3. `ReleasePackages_Assemble` — where several components shipped together. Name the **version record**
    on each manifest line, not just the version string, or the release will not know the version is
    already inside a package.
 4. `Releases_Plan` — the announcement. Usually under a product **line**, or no product at all.
 5. `Releases_SetContents` — the packages and any directly-carried versions, both lists complete.
-6. `Releases_MarkReleased` — once everything inside has shipped.
+6. `Releases_MarkReleased` — through the announcing checklist above.
 7. `Deployments_Start` then an outcome — for each unit that reached an environment.
 
 ### Answering "what did we announce in X?"
@@ -229,16 +254,16 @@ replaced; import history oldest first, or use `CorrectDates` afterwards.
 ### Answering "what shipped lately?"
 
 `DeliveryOverview_GetRecentDeliveryEvents` — one entry per version or package at its latest status
-change, newest first. Reason on `alias` rather than the organization's status names. Scoping it to a
-product drops packages. For cadence over a window, `DeliveryOverview_GetDeliveryOverview`.
+change, newest first. For cadence over a window, `DeliveryOverview_GetDeliveryOverview`. Both are
+covered in the **wayd-products** skill.
 
 ### Answering "what changed on this, and who changed it?"
 
-`Releases_GetActivities`, `Versions_GetActivities`, `ReleasePackages_GetActivities` and
-`Deployments_GetActivities` return a record's changes newest first. They cover more than the status history:
-contents and manifest changes, date corrections and target moves. Each entry's `payload` is a JSON
-string carrying both the old and new value, so a moved target date shows where it moved from. Check
-`hasNextPage` before concluding something never happened.
+The `*_GetStatusHistory` tools cover status moves only. `Releases_GetActivities`,
+`Versions_GetActivities`, `ReleasePackages_GetActivities` and `Deployments_GetActivities` cover
+everything recorded on the record — contents and manifest changes, date corrections and target moves
+included. Each entry's `payload` is a JSON string carrying both the old and new value, so a moved
+target date shows where it moved from. Check `hasNextPage` before concluding something never happened.
 
 ### Answering "what is cut but not yet shipped?"
 
@@ -256,6 +281,6 @@ A **version** can only be cut against a product whose type is *releasable*. A **
 restriction and is usually announced under a product line, which is typically not releasable — that
 gate asks whether an artifact can be cut, which is a different question.
 
-A release may name **no product at all** when it spans product lines. Note that filtering releases by
-product deliberately excludes those: belonging to no single product, listing one under a product would
+A release may name **no product at all** when it spans product lines. Filtering releases by product
+deliberately excludes those: belonging to no single product, listing one under a product would
 misstate what that product announced.

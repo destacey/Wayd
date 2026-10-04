@@ -294,6 +294,57 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithExistingWorkItem_UpdatesEachEstimate()
+    {
+        // Arrange - the update path; the fake drops rows added by the create path
+        var workspaceId = Guid.NewGuid();
+        var workProcessId = Guid.NewGuid();
+
+        var workProcess = CreateWorkProcessWithSchemes("User Story", "New");
+
+        var workspace = _workspaceFaker
+            .AsExternal()
+            .WithId(workspaceId)
+            .WithWorkProcessId(workProcessId)
+            .Generate();
+
+        var existingWorkItem = new WorkItemFaker()
+            .WithWorkspace(workspace)
+            .WithType(workProcess.Schemes.Single().WorkType)
+            .WithExternalId(101)
+            .Generate();
+
+        var externalWorkItem = _externalWorkItemFaker
+            .WithId(101)
+            .WithWorkType("User Story")
+            .WithWorkStatus("New")
+            .WithStoryPoints(null)
+            .WithEffort(8)
+            .WithSize(5)
+            .Generate();
+
+        var updatedWorkProcess = _workProcessFaker
+            .WithId(workProcessId)
+            .WithSchemes([.. workProcess.Schemes])
+            .Generate();
+
+        _fakeWorkDbContext.AddWorkspace(workspace);
+        _fakeWorkDbContext.AddWorkProcess(updatedWorkProcess);
+        _fakeWorkDbContext.AddWorkItems([existingWorkItem]);
+
+        var command = CreateCommand(workspaceId, [externalWorkItem]);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        existingWorkItem.StoryPoints.Should().BeNull();
+        existingWorkItem.Effort.Should().Be(8);
+        existingWorkItem.Size.Should().Be(5);
+    }
+
+    [Fact]
     public async Task Handle_WithNoTags_CreatesWorkItemSuccessfully()
     {
         // Arrange

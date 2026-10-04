@@ -23,5 +23,7 @@ public class ExternalTestWorkItem : IExternalWorkItem
     public Guid? TeamId { get; set; }
     public int? IterationId { get; set; }
     public double? StoryPoints { get; set; }
+    public double? Effort { get; set; }
+    public double? Size { get; set; }
     public IReadOnlyCollection<string> Tags { get; set; } = [];
 }

@@ -68,5 +68,17 @@ public sealed class IExternalWorkItemValidator : CustomValidator<IExternalWorkIt
             RuleFor(c => c.StoryPoints)
                 .GreaterThanOrEqualTo(0);
         });
+
+        When(c => c.Effort.HasValue, () =>
+        {
+            RuleFor(c => c.Effort)
+                .GreaterThanOrEqualTo(0);
+        });
+
+        When(c => c.Size.HasValue, () =>
+        {
+            RuleFor(c => c.Size)
+                .GreaterThanOrEqualTo(0);
+        });
     }
 }

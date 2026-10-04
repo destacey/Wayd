@@ -61,6 +61,8 @@ public class WorkItemFaker : PrivateConstructorFaker<WorkItem>
         RuleFor(x => x.Priority, f => f.Random.Int(1, 4));
         RuleFor(x => x.StackRank, f => f.Random.Double(1000, 100000));
         RuleFor(x => x.StoryPoints, f => f.Random.Double(0, 20));
+        RuleFor(x => x.Effort, f => null);
+        RuleFor(x => x.Size, f => null);
 
         RuleFor(x => x.ProjectId, f => null);
         RuleFor(x => x.ParentProjectId, f => null);

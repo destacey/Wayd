@@ -44,6 +44,14 @@ const WorkItemFacts = ({ workItem }: WorkItemFactsProps) => {
           </LabeledContent>
         )}
 
+        {workItem.effort != null && (
+          <LabeledContent label="Effort">{workItem.effort}</LabeledContent>
+        )}
+
+        {workItem.size != null && (
+          <LabeledContent label="Size">{workItem.size}</LabeledContent>
+        )}
+
         {workItem.tags && workItem.tags.length > 0 && (
           <LabeledContent label="Tags">
             <Space wrap size={[4, 4]}>

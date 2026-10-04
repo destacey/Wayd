@@ -31,6 +31,8 @@ public class ExternalWorkItemFaker : Faker<ExternalTestWorkItem>
         RuleFor(x => x.TeamId, f => null);
         RuleFor(x => x.IterationId, f => null);
         RuleFor(x => x.StoryPoints, f => null);
+        RuleFor(x => x.Effort, f => null);
+        RuleFor(x => x.Size, f => null);
     }
 }
 
@@ -163,6 +165,18 @@ public static class ExternalWorkItemFakerExtensions
     public static ExternalWorkItemFaker WithStoryPoints(this ExternalWorkItemFaker faker, int? storyPoints)
     {
         faker.RuleFor(x => x.StoryPoints, storyPoints);
+        return faker;
+    }
+
+    public static ExternalWorkItemFaker WithEffort(this ExternalWorkItemFaker faker, double? effort)
+    {
+        faker.RuleFor(x => x.Effort, effort);
+        return faker;
+    }
+
+    public static ExternalWorkItemFaker WithSize(this ExternalWorkItemFaker faker, double? size)
+    {
+        faker.RuleFor(x => x.Size, size);
         return faker;
     }
 

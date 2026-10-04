@@ -21,7 +21,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
 
     private WorkItem() { }
 
-    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
+    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
     {
         Key = key;
         Title = title;
@@ -39,6 +39,8 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         Priority = priority;
         StackRank = stackRank;
         StoryPoints = storyPoints;
+        Effort = effort;
+        Size = size;
         IterationId = iterationId;
         if (tags != null) _tags.AddRange(tags.Distinct());
 
@@ -123,7 +125,21 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     // TODO: other systems will use different types.  How to handle this?
     public double StackRank { get; private set; }
 
+    /// <summary>
+    /// The relative estimate a team typically sizes in sprint planning; null when unestimated.
+    /// </summary>
     public double? StoryPoints { get; private set; }
+
+    /// <summary>
+    /// The level-of-effort estimate, often used for longer-term planning; null when unestimated.
+    /// Scrum's sprint-level estimate is also kept here, since that is the field Scrum uses for it.
+    /// </summary>
+    public double? Effort { get; private set; }
+
+    /// <summary>
+    /// The size estimate, the field the CMMI process uses for requirements; null when unestimated.
+    /// </summary>
+    public double? Size { get; private set; }
 
     /// <summary>
     /// The overriding project id of the work item.  It is used to override the project id coming from the parent work item.
@@ -187,12 +203,14 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     /// <param name="priority"></param>
     /// <param name="stackRank"></param>
     /// <param name="storyPoints"></param>
+    /// <param name="effort"></param>
+    /// <param name="size"></param>
     /// <param name="iterationId"></param>
     /// <param name="activatedTimestamp"></param>
     /// <param name="doneTimestamp"></param>
     /// <param name="extendedProps"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    public void Update(string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
+    public void Update(string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
     {
         if (extendedProps != null && Id != extendedProps.Id)
         {
@@ -213,6 +231,8 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         Priority = priority;
         StackRank = stackRank;
         StoryPoints = storyPoints;
+        Effort = effort;
+        Size = size;
         IterationId = iterationId;
         _tags.Clear();
         if (tags != null) _tags.AddRange(tags.Distinct());
@@ -377,7 +397,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         return Result.Success();
     }
 
-    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
+    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
     {
         Guard.Against.Null(workspace, nameof(workspace));
         Guard.Against.Null(workType, nameof(workType));
@@ -388,7 +408,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         }
 
         var key = new WorkItemKey(workspace.Key, externalId);
-        return new WorkItem(key, title, workspace.Id, externalId, workType, statusId, statusCategory, parentInfo, teamId, created, createdById, lastModified, lastModifiedById, assignedToId, priority, stackRank, storyPoints, iterationId, activatedTimestamp, doneTimestamp, extendedProps, tags);
+        return new WorkItem(key, title, workspace.Id, externalId, workType, statusId, statusCategory, parentInfo, teamId, created, createdById, lastModified, lastModifiedById, assignedToId, priority, stackRank, storyPoints, effort, size, iterationId, activatedTimestamp, doneTimestamp, extendedProps, tags);
 
         //var result = workspace.AddWorkItem(workItem);  // this is handled in the handler for performance reasons
     }

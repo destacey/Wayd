@@ -59,7 +59,11 @@ Every work item has:
 - **[Status Category](./work-configuration.mdx#work-status-categories)** — Normalized grouping (Proposed, Active, Done, Removed)
 - **Priority** — Relative importance
 - **Stack Rank** — Ordering value for backlog prioritization
-- **Story Points** — Optional effort estimate
+- **Story Points** — Optional relative estimate, typically set in sprint planning
+- **Effort** — Optional level-of-effort estimate, often set on features and epics for longer-term planning. Scrum also uses it as the sprint-level estimate.
+- **Size** — Optional size estimate, used by the CMMI process for requirements
+
+  The three estimates are kept separately: an item can carry more than one, and each is synced from its own Azure DevOps field.
 - **Assignee** — The person responsible for the work
 - **[Team](../organizations/index.mdx#teams)** — The team responsible for delivery
 - **Parent** — Optional hierarchical link to a parent work item. See [Hierarchy Rules](#work-item-hierarchy-rules).
@@ -82,7 +86,7 @@ Work items support:
 The work item detail page has multiple tabs that adapt based on the work item's type and status:
 
 **Details Tab:**
-- All core properties: Key, [Type](./work-configuration.mdx#work-types), [Status](./work-configuration.mdx#work-statuses), [Status Category](./work-configuration.mdx#work-status-categories), Priority, Story Points, [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link, shows "Backlog" if unassigned), Parent (link), [Project](../ppm/projects.mdx) (link), Assigned To, Created By, Last Modified By
+- All core properties: Key, [Type](./work-configuration.mdx#work-types), [Status](./work-configuration.mdx#work-statuses), [Status Category](./work-configuration.mdx#work-status-categories), Priority, Story Points, Effort and Size (each shown only when set), [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link, shows "Backlog" if unassigned), Parent (link), [Project](../ppm/projects.mdx) (link), Assigned To, Created By, Last Modified By
 - **Progress Steps** — Visual lifecycle indicator showing Proposed → Active → Done/Removed with timestamps for each transition
 - Timestamps: Created, Activated, Done (formatted with date and time)
 

@@ -29,9 +29,6 @@ internal static class WorkItemResponseExtensions
         Instant? activated = workItem.Fields.ActivatedDate.HasValue ? Instant.FromDateTimeUtc(workItem.Fields.ActivatedDate.Value) : null;
         Instant? closed = workItem.Fields.ClosedDate.HasValue ? Instant.FromDateTimeUtc(workItem.Fields.ClosedDate.Value) : null;
 
-        var storyPoints = workItem.Fields.StoryPoints;
-        if (storyPoints.HasValue && storyPoints < 0)
-            storyPoints = 0;
 
         return new AzdoWorkItem()
         {
@@ -56,12 +53,17 @@ internal static class WorkItemResponseExtensions
             TeamId = iteration?.TeamId,
             ExternalTeamIdentifier = iteration?.Identifier.ToString(),
             IterationId = iteration is not null ? workItem.Fields.IterationId : null,
-            StoryPoints = storyPoints,
+            StoryPoints = ClampEstimate(workItem.Fields.StoryPoints),
+            Effort = ClampEstimate(workItem.Fields.Effort),
+            Size = ClampEstimate(workItem.Fields.Size),
             Tags = string.IsNullOrWhiteSpace(workItem.Fields.Tags)
                 ? []
                 : [.. workItem.Fields.Tags.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)],
         };
     }
+
+    /// <summary>An estimate with negative values clamped to 0, which Wayd rejects.</summary>
+    private static double? ClampEstimate(double? value) => value < 0 ? 0 : value;
 
     public static List<IExternalWorkItem> ToIExternalWorkItems(this List<WorkItemResponse> workItems, List<IterationDto> iterations, ILogger logger)
     {

@@ -19,6 +19,14 @@ public interface IExternalWorkItem
     public Guid? TeamId { get; set; }
     string? ExternalTeamIdentifier { get; }
     int? IterationId { get; }
+    /// <summary>The story points estimate; null when the item has none.</summary>
     double? StoryPoints { get; }
+
+    /// <summary>The effort estimate; null when the item has none.</summary>
+    double? Effort { get; }
+
+    /// <summary>The size estimate; null when the item has none.</summary>
+    double? Size { get; }
+
     IReadOnlyCollection<string> Tags { get; }
 }

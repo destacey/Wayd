@@ -43,6 +43,12 @@ internal class WorkItemFieldsResponse
     [JsonPropertyName("Microsoft.VSTS.Scheduling.StoryPoints")]
     public double? StoryPoints { get; set; }
 
+    [JsonPropertyName("Microsoft.VSTS.Scheduling.Effort")]
+    public double? Effort { get; set; }
+
+    [JsonPropertyName("Microsoft.VSTS.Scheduling.Size")]
+    public double? Size { get; set; }
+
     [JsonPropertyName("Microsoft.VSTS.Common.ActivatedDate")]
     public DateTime? ActivatedDate { get; set; }
 

@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
 using Wayd.Tests.Shared;
 using Wayd.Work.Domain.Interfaces;
+using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
 
 namespace Wayd.Work.Domain.Tests.Sut.Models;
@@ -384,6 +385,44 @@ public class WorkItemTests
     }
 
     #endregion UpdateParent
+
+    #region Estimates
+
+    [Fact]
+    public void CreateExternal_WithEstimates_KeepsEachEstimateSeparately()
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker().AsExternal().Generate();
+        var workType = _workTypeFaker.AsStory().Generate();
+        var now = _dateTimeProvider.Now;
+
+        // Act
+        var workItem = WorkItem.CreateExternal(workspace, 1, "Title", workType, 1, WorkStatusCategory.Proposed, null, null,
+            now, null, now, null, null, null, 0, storyPoints: 3, effort: 8, size: 5, null, null, null, null);
+
+        // Assert
+        workItem.StoryPoints.Should().Be(3);
+        workItem.Effort.Should().Be(8);
+        workItem.Size.Should().Be(5);
+    }
+
+    [Fact]
+    public void Update_WithEstimates_ReplacesEachEstimate()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+
+        // Act
+        workItem.Update(workItem.Title, workItem.Type, workItem.Status.Id, workItem.StatusCategory, null, null,
+            _dateTimeProvider.Now, null, null, null, 0, storyPoints: null, effort: 13, size: 2, null, null, null, null);
+
+        // Assert
+        workItem.StoryPoints.Should().BeNull();
+        workItem.Effort.Should().Be(13);
+        workItem.Size.Should().Be(2);
+    }
+
+    #endregion Estimates
 
     public sealed record TestParentInfo(Guid Id, int? ExternalId, WorkTypeTier Tier, int LevelOrder, Guid? ProjectId = null) : IWorkItemParentInfo;
 }

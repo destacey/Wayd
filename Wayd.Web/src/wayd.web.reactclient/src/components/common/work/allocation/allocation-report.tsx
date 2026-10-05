@@ -162,7 +162,7 @@ const SummaryCards: FC<{
             : '—',
           summary &&
             `${summary.estimatedItems} of ${summary.itemsInPointSizedTeams} items in point-sized teams`,
-          'Items with an estimate above zero, among teams that size in story points.',
+          'Items with story points, among teams that size in story points. An estimate of 0 counts as estimated.',
         )}
         {card(
           'Teams Included',

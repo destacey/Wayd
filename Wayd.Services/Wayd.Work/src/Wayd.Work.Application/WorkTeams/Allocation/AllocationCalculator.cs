@@ -7,7 +7,7 @@ using Wayd.Work.Application.WorkTeams.Dtos;
 namespace Wayd.Work.Application.WorkTeams.Allocation;
 
 /// <param name="ProjectId">The item's own project, or the one inherited from its parent.</param>
-public sealed record AllocationWorkItem(Guid Id, Guid TeamId, string WorkTypeName, LocalDate DoneOn, Guid? ProjectId, double? StoryPoints);
+public sealed record AllocationWorkItem(Guid Id, Guid TeamId, string WorkTypeName, LocalDate DoneOn, Guid? ProjectId, double? StoryPoints, double? Effort, double? Size);
 
 /// <summary>
 /// Groups completed work items by one dimension in one measure. Pure: everything it needs is passed in.
@@ -43,9 +43,12 @@ public static class AllocationCalculator
                 continue;
 
             // A team with no operating model on the day is treated as count-sized.
-            var usesPoints = sizing[item.TeamId].FirstOrDefault(p => p.IncludesDate(item.DoneOn))?.SizingMethod == SizingMethod.StoryPoints;
+            var sizingMethod = sizing[item.TeamId].FirstOrDefault(p => p.IncludesDate(item.DoneOn))?.SizingMethod ?? SizingMethod.Count;
+            var estimate = sizingMethod == SizingMethod.Count
+                ? null
+                : WorkItemEstimate.Of(sizingMethod, item.StoryPoints, item.Effort, item.Size);
             var project = item.ProjectId is { } projectId && projects.TryGetValue(projectId, out var found) ? found : null;
-            placed.Add(new PlacedItem(item, path, usesPoints, item.StoryPoints is > 0 ? item.StoryPoints : null, project));
+            placed.Add(new PlacedItem(item, path, sizingMethod, estimate, project));
         }
 
         Measure(placed, options);
@@ -95,7 +98,7 @@ public static class AllocationCalculator
                 EstimatedItems = placed.Count(p => p.UsesPoints && p.Estimate is not null),
                 StoryPoints = placed.Where(p => p.UsesPoints).Sum(p => p.Estimate ?? 0),
                 FilledItems = placed.Count(p => p.Filled is not null),
-                FilledStoryPoints = placed.Sum(p => p.Filled ?? 0),
+                FilledStoryPoints = placed.Where(p => p.UsesPoints).Sum(p => p.Filled ?? 0),
                 TeamsIncluded = placed.Select(p => p.Item.TeamId).Distinct().Count(),
                 ExcludedTeams = [.. teamRows
                     .Where(r => r.Excluded && !r.IsTeamOfTeams)
@@ -129,30 +132,32 @@ public static class AllocationCalculator
 
     private static void Measure(List<PlacedItem> placed, AllocationOptions options)
     {
-        var fillByTeamAndType = new Dictionary<(Guid, string), double>();
-        var fillByTeam = new Dictionary<Guid, double>();
+        var fillByTeamAndType = new Dictionary<(Guid, SizingMethod, string), double>();
+        var fillByTeam = new Dictionary<(Guid, SizingMethod), double>();
         if (options.Unestimated == UnestimatedHandling.TeamAverage)
         {
-            var estimated = placed.Where(p => p.UsesPoints && p.Estimate is not null).ToList();
+            var estimated = placed.Where(p => p.SizingMethod != SizingMethod.Count && p.Estimate is not null).ToList();
             fillByTeamAndType = estimated
-                .GroupBy(p => (p.Item.TeamId, TypeKey(p.Item.WorkTypeName)))
+                .GroupBy(p => (p.Item.TeamId, p.SizingMethod, TypeKey(p.Item.WorkTypeName)))
                 .ToDictionary(g => g.Key, g => g.Average(p => p.Estimate!.Value));
             fillByTeam = estimated
-                .GroupBy(p => p.Item.TeamId)
+                .GroupBy(p => (p.Item.TeamId, p.SizingMethod))
                 .ToDictionary(g => g.Key, g => g.Average(p => p.Estimate!.Value));
         }
 
-        double? Points(PlacedItem p)
+        // The item's estimate in its team's sizing method on the day, or the fill; null under Count.
+        double? Estimated(PlacedItem p)
         {
-            if (!p.UsesPoints)
+            if (p.SizingMethod == SizingMethod.Count)
                 return null;
             if (p.Estimate is { } estimate)
                 return estimate;
 
-            // Averages are per team because points are relative within a team, and per work type because
-            // bugs and tasks are often left unpointed and a story average would inflate them.
-            if (fillByTeamAndType.TryGetValue((p.Item.TeamId, TypeKey(p.Item.WorkTypeName)), out var fill)
-                || fillByTeam.TryGetValue(p.Item.TeamId, out fill))
+            // Averages are per team and sizing method because an estimate is relative within a team's own unit,
+            // and per work type because bugs and tasks are often left unestimated and a story average would
+            // inflate them.
+            if (fillByTeamAndType.TryGetValue((p.Item.TeamId, p.SizingMethod, TypeKey(p.Item.WorkTypeName)), out var fill)
+                || fillByTeam.TryGetValue((p.Item.TeamId, p.SizingMethod), out fill))
             {
                 p.Filled = fill;
                 return fill;
@@ -170,16 +175,19 @@ public static class AllocationCalculator
 
             case AllocationMeasure.StoryPoints:
                 foreach (var p in placed)
-                    p.Value = Points(p);
+                    p.Value = p.UsesPoints ? Estimated(p) : null;
                 break;
 
+            // A team's split is measured in each sizing method it used in the window, then weighed by that
+            // unit's share of completed items: estimates are never added across units, not even one team's
+            // before and after it changed how it sizes.
             case AllocationMeasure.TeamEffort:
-                foreach (var teamItems in placed.GroupBy(p => p.Item.TeamId))
+                foreach (var teamItems in placed.GroupBy(p => (p.Item.TeamId, p.SizingMethod)))
                 {
-                    var own = teamItems.Select(p => (Item: p, Value: p.UsesPoints ? Points(p) : 1)).ToList();
+                    var own = teamItems.Select(p => (Item: p, Value: p.SizingMethod == SizingMethod.Count ? 1 : Estimated(p))).ToList();
                     var sum = own.Sum(x => x.Value ?? 0);
 
-                    // A point-sized team with nothing estimated still did the work; its items weigh equally.
+                    // A team with nothing estimated in its unit still did the work; its items weigh equally.
                     if (sum <= 0)
                     {
                         own = [.. teamItems.Select(p => (Item: p, Value: (double?)1))];
@@ -272,7 +280,7 @@ public static class AllocationCalculator
                 ParentId = next.ParentId,
                 Level = next.Level,
                 Excluded = excluded,
-                ExcludedReason = excluded ? "Sizes by count, so its work has no story points." : null,
+                ExcludedReason = excluded ? "Does not size in story points, so its work has none to count." : null,
                 Items = row.Items,
                 StoryPoints = row.StoryPoints,
                 Value = row.Value,
@@ -340,18 +348,26 @@ public static class AllocationCalculator
         return value;
     }
 
-    private sealed class PlacedItem(AllocationWorkItem item, List<Guid> path, bool usesPoints, double? estimate, ProjectClassification? project)
+    private sealed class PlacedItem(AllocationWorkItem item, List<Guid> path, SizingMethod sizingMethod, double? estimate, ProjectClassification? project)
     {
         public AllocationWorkItem Item { get; } = item;
 
         /// <summary>The item's team, then each parent up to the root, as of the day it was done.</summary>
         public List<Guid> Path { get; } = path;
 
-        public bool UsesPoints { get; } = usesPoints;
+        /// <summary>The team's sizing method on the day the item was done.</summary>
+        public SizingMethod SizingMethod { get; } = sizingMethod;
+
+        public bool UsesPoints => SizingMethod == SizingMethod.StoryPoints;
+
+        /// <summary>The item's estimate in <see cref="SizingMethod"/>; null when it has none, or under Count.</summary>
         public double? Estimate { get; } = estimate;
         public ProjectClassification? Project { get; } = project;
 
-        /// <summary>Points filled in from the team average; null when the item was estimated or not filled.</summary>
+        /// <summary>
+        /// The estimate filled in from the team's average in its sizing method; null when the item was estimated
+        /// or not filled.
+        /// </summary>
         public double? Filled { get; set; }
 
         /// <summary>Null when the measure leaves the item out.</summary>

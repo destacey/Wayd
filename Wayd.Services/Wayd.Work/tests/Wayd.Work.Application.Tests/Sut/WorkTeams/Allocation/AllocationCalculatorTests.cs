@@ -65,8 +65,8 @@ public sealed class AllocationCalculatorTests
         return project;
     }
 
-    private static AllocationWorkItem Item(TeamStructureTeam team, ProjectClassification? project = null, double? points = null, LocalDate? doneOn = null, string type = "User Story") =>
-        new(Guid.NewGuid(), team.Id, type, doneOn ?? Early, project?.ProjectId, points);
+    private static AllocationWorkItem Item(TeamStructureTeam team, ProjectClassification? project = null, double? points = null, LocalDate? doneOn = null, string type = "User Story", double? effort = null) =>
+        new(Guid.NewGuid(), team.Id, type, doneOn ?? Early, project?.ProjectId, points, effort, null);
 
     private TeamAllocationDto Calculate(IReadOnlyList<AllocationWorkItem> items, AllocationOptions? options = null, TeamStructure? structure = null) =>
         AllocationCalculator.Calculate(RootNavigation, From, To, structure ?? Structure(), items, _projects, options ?? ItemsByPortfolio);
@@ -301,6 +301,109 @@ public sealed class AllocationCalculatorTests
         // Assert
         result.Groups.Select(g => (g.Name, g.Share)).Should().Equal((PortfolioB.Name, 87.5), (PortfolioA.Name, 12.5));
         result.Summary.ExcludedTeams.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Calculate_StoryPoints_CountsZeroAsAnEstimateAndDoesNotFillIt()
+    {
+        // Arrange
+        var project = Project("ONE", PortfolioA);
+        List<AllocationWorkItem> items = [Item(Payments, project, 0), Item(Payments, project, 4)];
+        var options = ItemsByPortfolio with { Measure = AllocationMeasure.StoryPoints, Unestimated = UnestimatedHandling.TeamAverage };
+
+        // Act
+        var result = Calculate(items, options);
+
+        // Assert
+        result.Summary.EstimatedItems.Should().Be(2);
+        result.Summary.FilledItems.Should().Be(0);
+        result.Groups.Single().Value.Should().Be(4);
+    }
+
+    [Fact]
+    public void Calculate_StoryPoints_LeavesOutTeamsSizingInEffortEvenWithStoryPoints()
+    {
+        // Arrange
+        var project = Project("ONE", PortfolioA);
+        var structure = Structure() with
+        {
+            SizingPeriods =
+            [
+                new(Payments.Id, From.PlusYears(-1), null, SizingMethod.StoryPoints),
+                new(Mobile.Id, From.PlusYears(-1), null, SizingMethod.Effort),
+            ],
+        };
+        List<AllocationWorkItem> items = [Item(Payments, project, 5), Item(Mobile, project, 8, effort: 20)];
+        var options = ItemsByPortfolio with { Measure = AllocationMeasure.StoryPoints };
+
+        // Act
+        var result = Calculate(items, options, structure);
+
+        // Assert
+        result.Groups.Single().Value.Should().Be(5);
+        result.Summary.ExcludedTeams.Select(t => t.Id).Should().Equal(Mobile.Id);
+    }
+
+    [Fact]
+    public void Calculate_TeamEffort_MeasuresEachTeamInItsOwnSizingMethod()
+    {
+        // Arrange
+        var x = Project("X", PortfolioA);
+        var y = Project("Y", PortfolioB);
+        var structure = Structure() with
+        {
+            SizingPeriods =
+            [
+                new(Payments.Id, From.PlusYears(-1), null, SizingMethod.StoryPoints),
+                new(Mobile.Id, From.PlusYears(-1), null, SizingMethod.Effort),
+            ],
+        };
+        List<AllocationWorkItem> items =
+        [
+            Item(Payments, x, 1),
+            Item(Payments, y, 1),
+            Item(Mobile, x, 9, effort: 30),
+            Item(Mobile, y, 1, effort: 10),
+        ];
+        var options = ItemsByPortfolio with { Measure = AllocationMeasure.TeamEffort };
+
+        // Act
+        var result = Calculate(items, options, structure);
+
+        // Assert: Payments splits evenly by points (25 + 25), Mobile 3:1 by effort, not its points (37.5 + 12.5).
+        result.Groups.Select(g => (g.Name, g.Share)).Should().Equal((PortfolioA.Name, 62.5), (PortfolioB.Name, 37.5));
+    }
+
+    [Fact]
+    public void Calculate_TeamEffort_TeamThatChangedSizingMethod_NeverAddsItsUnitsTogether()
+    {
+        // Arrange
+        var x = Project("X", PortfolioA);
+        var y = Project("Y", PortfolioB);
+        var switchedToEffort = new LocalDate(2026, 8, 1);
+        var structure = Structure() with
+        {
+            SizingPeriods =
+            [
+                new(Payments.Id, From.PlusYears(-1), switchedToEffort.PlusDays(-1), SizingMethod.StoryPoints),
+                new(Payments.Id, switchedToEffort, null, SizingMethod.Effort),
+            ],
+        };
+        List<AllocationWorkItem> items =
+        [
+            Item(Payments, x, 1, doneOn: Early),
+            Item(Payments, y, 3, doneOn: Early),
+            Item(Payments, x, doneOn: Late, effort: 30),
+            Item(Payments, y, doneOn: Late, effort: 10),
+        ];
+        var options = ItemsByPortfolio with { Measure = AllocationMeasure.TeamEffort };
+
+        // Act
+        var result = Calculate(items, options, structure);
+
+        // Assert: each unit carries half the items, so x = 50 × 1/4 + 50 × 30/40, and y the rest. Adding the
+        // raw values (1 + 30 of 44) would give x about 70%.
+        result.Groups.Select(g => (g.Name, g.Share)).Should().Equal((PortfolioA.Name, 50.0), (PortfolioB.Name, 50.0));
     }
 
     [Fact]

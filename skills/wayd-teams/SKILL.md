@@ -75,8 +75,8 @@ Requirement-tier work items (e.g. User Stories, Bugs) whose status category beca
 ### Parameters
 
 - **`dimension`** — `Portfolio` (default), `Program`, `Project`, `StrategicTheme`, or `WorkType`. Use the default for both a team and a team of teams unless the user asks for another grouping.
-- **`measure`** — `Count` (default; each item counts as 1) or `StoryPoints` (point-sized teams only). A team of teams also offers `TeamEffort`, which measures each team's split in its own sizing and combines teams by share of completed items. **For a team of teams, default to `TeamEffort`**: adding story points across teams mixes estimation scales that do not compare.
-- **`unestimated`** — with `StoryPoints`: `Exclude` (default) leaves unestimated items out; `TeamAverage` fills them from the team's average for that work type.
+- **`measure`** — `Count` (default; each item counts as 1) or `StoryPoints` (point-sized teams only). A team of teams also offers `TeamEffort`, which measures each team's split in its own sizing method (Story Points, Effort, Size or Count, as it sized on the day the work was done) and combines teams by share of completed items. **For a team of teams, default to `TeamEffort`**: adding story points across teams mixes estimation scales that do not compare.
+- **`unestimated`** — with `StoryPoints` or `TeamEffort`: `Exclude` (default) leaves unestimated items out; `TeamAverage` fills them from the team's average for that work type in the same unit. An estimate of 0 is an estimate and is never filled.
 - **`themeCounting`** — with `StrategicTheme`: `SplitEvenly` (default) divides a multi-theme project's work so shares total 100%; `CountFully` credits all of it to each theme, so shares exceed 100%.
 
 ### Reading the report

@@ -407,11 +407,12 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
           )}
           {measure === AllocationMeasure.TeamEffort && (
             <Text type="secondary" style={{ fontSize: 12 }}>
-              Each team&apos;s split is measured in its own sizing — story
-              points, or items for teams that size by count — then teams are
-              combined by their share of completed items, so the percentages
-              never add one team&apos;s story points to another&apos;s. Story
-              point totals are still plain sums across teams.
+              Each team&apos;s split is measured in its own sizing method —
+              story points, effort, size, or items for teams that size by count,
+              as each sized on the day the work was done — then combined by
+              share of completed items, so the percentages never add estimates
+              in different units. Story point totals are still plain sums across
+              teams.
             </Text>
           )}
         </>

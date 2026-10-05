@@ -84,11 +84,13 @@ public sealed class GetTeamAllocationQueryHandler(IWorkDbContext workDbContext, 
                 DoneTimestamp = w.DoneTimestamp!.Value,
                 ProjectId = w.ProjectId ?? w.ParentProjectId,
                 w.StoryPoints,
+                w.Effort,
+                w.Size,
             })
             .ToListAsync(cancellationToken);
 
         var workItems = completions
-            .Select(c => new AllocationWorkItem(c.Id, c.TeamId, c.TypeName, c.DoneTimestamp.InUtc().Date, c.ProjectId, c.StoryPoints))
+            .Select(c => new AllocationWorkItem(c.Id, c.TeamId, c.TypeName, c.DoneTimestamp.InUtc().Date, c.ProjectId, c.StoryPoints, c.Effort, c.Size))
             .ToList();
 
         var projectIds = workItems.Where(w => w.ProjectId.HasValue).Select(w => w.ProjectId!.Value).Distinct().ToList();

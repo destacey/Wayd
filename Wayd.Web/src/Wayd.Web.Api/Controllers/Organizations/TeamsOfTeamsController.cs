@@ -74,7 +74,7 @@ public class TeamsOfTeamsController : ControllerBase
 
     [HttpGet("{idOrCode}/allocation")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Report where the completed work of a team of teams, and every team beneath it, went.", "Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.")]
+    [OpenApiOperation("Report where the completed work of a team of teams, and every team beneath it, went.", "Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

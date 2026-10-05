@@ -61958,13 +61958,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -63793,13 +63793,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -66330,13 +66330,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -66994,13 +66994,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))

@@ -35420,7 +35420,7 @@ export class TeamsClient {
      * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
      * @param dimension (optional) What to group work by (default Portfolio).
      * @param measure (optional) How to weigh each work item (default Count).
-     * @param unestimated (optional) Story points only: what to do with unestimated items (default Exclude).
+     * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
      * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
      */
     getTeamAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {
@@ -37391,7 +37391,7 @@ export class TeamsOfTeamsClient {
      * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
      * @param dimension (optional) What to group work by (default Portfolio).
      * @param measure (optional) How to weigh each work item (default Count).
-     * @param unestimated (optional) Story points only: what to do with unestimated items (default Exclude).
+     * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
      * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
      */
     getAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {

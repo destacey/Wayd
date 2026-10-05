@@ -347,13 +347,13 @@ export const definitions: [string, McpToolDefinition][] = [
             type: 'string',
             enum: ['Count', 'StoryPoints', 'TeamEffort'],
             description:
-              "How each completed work item is weighed (default Count). TeamEffort measures each team's split in its own sizing and combines them by share of completed items, avoiding mixing scales across teams.",
+              "How each completed work item is weighed (default Count). TeamEffort measures each team's split in its own sizing method (story points, effort, size or count, as it sized on the day the work was done) and combines them by share of completed items, avoiding mixing scales across teams or units.",
           },
           unestimated: {
             type: 'string',
             enum: ['Exclude', 'TeamAverage'],
             description:
-              'Story points only: what to do with unestimated items (default Exclude). TeamAverage uses the team average for that work type in the window.',
+              "StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude). TeamAverage uses the team's average for that work type in the same unit in the window. An estimate of 0 is never filled.",
           },
           themeCounting: {
             type: 'string',

@@ -1,6 +1,6 @@
 {
   "name": "@wayd/mcp",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "MCP server for the Wayd work management API",
   "type": "module",
   "main": "build/index.js",

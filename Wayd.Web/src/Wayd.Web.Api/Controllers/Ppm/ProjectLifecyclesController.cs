@@ -18,6 +18,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectLifecycles)]
     [OpenApiOperation("Get a list of project lifecycles.", "")]
+    [McpTool("ProjectLifecycles_GetProjectLifecycles", "List project lifecycles")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectLifecycleListDto>>> GetProjectLifecycles([FromQuery] ProjectLifecycleState? state, CancellationToken cancellationToken)
@@ -30,6 +31,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectLifecycles)]
     [OpenApiOperation("Get project lifecycle details.", "")]
+    [McpTool("ProjectLifecycles_GetProjectLifecycle", "Get project lifecycle")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectLifecycleDetailsDto>> GetProjectLifecycle(string idOrKey, CancellationToken cancellationToken)

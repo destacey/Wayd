@@ -41,8 +41,9 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Get a list of release packages.",
-        "containingProductId matches any manifest line for that product; containingVersionId matches only the packages naming that exact release, which is what a release's own page needs.")]
+        "List release packages — coordinated shipments such as `WAYD-2026.09.1`.",
+        "Unreleased first, then the most recently released. Use `containingVersionId` to answer \"what did this version ship in?\": a version carries no pointer back to its package, so membership is read from the manifest side rather than duplicated.")]
+    [McpTool("ReleasePackages_GetReleasePackages", "List release packages")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ReleasePackageDto>>> GetReleasePackages(
@@ -60,7 +61,10 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get release package details.", "Accepts the package's id or its short key.")]
+    [OpenApiOperation(
+        "Get one package in full, including its complete manifest — every component version it shipped, and whether each changed or was carried forward.",
+        "Accepts the package's UUID or its short key.")]
+    [McpTool("ReleasePackages_GetReleasePackage", "Get release package")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ReleasePackageDto>> GetReleasePackage(string idOrKey, CancellationToken cancellationToken)
@@ -74,7 +78,10 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get activity history for the release package.", "")]
+    [OpenApiOperation(
+        "Get a release package's activity history, newest first: its assembly, manifest amendments and status.",
+        "Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
+    [McpTool("ReleasePackages_GetActivities", "Get release package activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -89,8 +96,9 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpGet("{idOrKey}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Get a release package's status change history.",
-        "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+        "Get a package's status change history, newest first.",
+        "Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+    [McpTool("ReleasePackages_GetStatusHistory", "Get package status history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -110,8 +118,9 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Assemble a release package.",
-        "A package is what moved through environments together, and it ships at least one component, so the manifest is authored here rather than added afterwards. A component may appear only once. Each line may name the version record it came from, which is what lets a release know that version is already inside a package; a carried-forward line naming a version never cut here holds its version as text instead.")]
+        "Assemble a package and its manifest together.",
+        "**A package ships at least one component**, so the manifest is authored here rather than added afterwards — an empty one is refused. The package is versioned in its own right, separately from anything inside it. A component may appear only once in a manifest, though the same component version may appear in several different packages.")]
+    [McpTool("ReleasePackages_Assemble", "Assemble a release package", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Assemble(
         [FromBody] AssembleReleasePackageRequest request, CancellationToken cancellationToken)
@@ -228,7 +237,10 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
 
     [HttpPut("{id}/manifest")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
-    [OpenApiOperation("Replace a package's manifest.", "Whole-manifest replacement, never incremental.")]
+    [OpenApiOperation(
+        "Replace a package's manifest as a whole.",
+        "**This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.")]
+    [McpTool("ReleasePackages_SetManifest", "Replace a package manifest", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -245,8 +257,9 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpPost("{id}/release")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Record that a package shipped.",
-        "Closes the manifest: what was in the box cannot be rewritten after the box shipped. A package with an empty manifest cannot be released.")]
+        "Record that a package shipped, and close its manifest.",
+        "**A package with an empty manifest cannot be released.** This is not announcing anything to customers — that is Releases_MarkReleased on a release that carries this package.")]
+    [McpTool("ReleasePackages_MarkReleased", "Mark a package released")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MarkReleased(
@@ -266,8 +279,9 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Correct a package's recorded target date and released moment.",
-        "Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.")]
+        "Fix a package's target date or released moment that was recorded wrongly.",
+        "The status does not move and the status history is left untouched — that is the point of having this separate from ReleasePackages_MarkReleased, which asserts the package shipped and refuses to run twice. **Both values are sent, so an omitted target date is cleared.** The released moment can be changed on a released package but **cannot be cleared**, and **cannot be added to a package that has not been released** — use ReleasePackages_MarkReleased for that. The target date is a calendar date; the released moment is an instant, so send the CI/CD timestamp with its offset as-is — no conversion to a local date. Refused on a withdrawn package.")]
+    [McpTool("ReleasePackages_CorrectDates", "Correct package dates", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
@@ -287,7 +301,10 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Delivery)]
-    [OpenApiOperation("Delete a release package.", "Permanent: also deletes its manifest, status history and every deployment of it. Refused while any release lists it. The versions it names are kept.")]
+    [OpenApiOperation(
+        "Permanently delete a package with its manifest, its status history and **every deployment of it**.",
+        "**Refused while any release lists it** — remove it with `Releases_SetContents` first; a released or withdrawn release's contents cannot change, so that release has to be deleted instead with `Releases_Delete`. The versions it names are separate records and are kept. The delivery measures and rollout stop counting those deployments. For a package assembled by mistake or when the user asks to purge history; otherwise withdraw it. Needs the delivery Delete permission.")]
+    [McpTool("ReleasePackages_Delete", "Delete a package", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -301,7 +318,10 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
 
     [HttpPost("{id}/withdraw")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
-    [OpenApiOperation("Withdraw a package.", "The package is kept: deployments may reference it.")]
+    [OpenApiOperation(
+        "Pull a package.",
+        "Terminal, and it closes the manifest. A released package can still be withdrawn; a withdrawn one cannot be released. Withdrawing keeps the package and every deployment of it — prefer it to `ReleasePackages_Delete`.")]
+    [McpTool("ReleasePackages_Withdraw", "Withdraw a package")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Withdraw(

@@ -43,6 +43,7 @@ public class TeamsController(
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [OpenApiOperation("Get a list of teams.", "")]
+    [McpTool("Teams_GetTeams", "List teams")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TeamListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
@@ -53,7 +54,8 @@ public class TeamsController(
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [OpenApiOperation("Get team details using the key.", "")]
+    [OpenApiOperation("Get team details.", "")]
+    [McpTool("Teams_GetTeam", "Get team")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDetailsDto>> GetById(int id)
@@ -67,7 +69,10 @@ public class TeamsController(
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [OpenApiOperation("Get activity history for the team.", "")]
+    [OpenApiOperation(
+        "Get a team's activity history, newest first: the team's creation, detail changes, activation and deactivation, members joining, leaving or changing roles (by employee and role id), its membership in a team of teams being added, re-dated or removed, and operating models being set, corrected or removed.",
+        "Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
+    [McpTool("Teams_GetActivities", "Get team activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -355,7 +360,10 @@ public class TeamsController(
 
     [HttpGet("{idOrCode}/backlog-health")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Grade a team's backlog health.", "Checks the team's open backlog for runway, net flow, WIP load, staleness, aging work, readiness gaps, carry-over, closed parents and rank inversions. Every threshold is optional and falls back to its default; the response states the thresholds used.")]
+    [OpenApiOperation(
+        "Grade a team's open backlog.",
+        "Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.")]
+    [McpTool("Teams_GetBacklogHealth", "Grade team backlog health")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -376,7 +384,10 @@ public class TeamsController(
 
     [HttpGet("{idOrCode}/allocation")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Report where a team's completed work went.", "Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.")]
+    [OpenApiOperation(
+        "Report where a team's completed work went.",
+        "Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.")]
+    [McpTool("Teams_GetTeamAllocation", "Report team allocation")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -401,7 +412,10 @@ public class TeamsController(
     [HttpGet("{idOrCode}/throughput-forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Forecast how many backlog work items a team will finish by a date.", "A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90); startedWorkFirst (default true) counts active backlog items ahead of proposed ones when naming the item each confidence level reaches.")]
+    [OpenApiOperation(
+        "Forecast how many of a team's open backlog work items it will finish from today through `targetDate`, by Monte Carlo simulation of its recent daily throughput.",
+        "Returns an `outcome` (Forecast, or Not Enough History when the team finished fewer than 10 backlog work items in the window), `backlogWorkItems` open today, `percentiles` — at each `confidence` the `workItems` count finished at least that often and `throughWorkItem`, the backlog work item that count reaches (active items first unless `startedWorkFirst` is false, then rank order) — and a `histogram` of trials by work items finished. Requires the delivery-forecasting feature flag; returns 404 when it is off.")]
+    [McpTool("Teams_GetThroughputForecast", "Forecast team throughput")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

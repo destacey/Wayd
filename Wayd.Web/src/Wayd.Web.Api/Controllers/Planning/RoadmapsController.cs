@@ -38,6 +38,7 @@ public class RoadmapsController : ControllerBase
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [OpenApiOperation("Get a list of roadmaps.", "")]
+    [McpTool("Roadmaps_GetRoadmaps", "List roadmaps")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RoadmapListDto>>> GetRoadmaps([FromQuery] RoadmapState[]? state, CancellationToken cancellationToken)
@@ -49,6 +50,7 @@ public class RoadmapsController : ControllerBase
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [OpenApiOperation("Get roadmap details.", "")]
+    [McpTool("Roadmaps_GetRoadmap", "Get roadmap")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RoadmapDetailsDto>> GetRoadmap(string idOrKey, CancellationToken cancellationToken)
@@ -168,7 +170,8 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("{idOrKey}/items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get roadmap items", "")]
+    [OpenApiOperation("Get all items (activities, timeboxes, milestones) for a roadmap.", "")]
+    [McpTool("Roadmaps_GetItems", "List roadmap items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RoadmapItemListDto>>> GetItems(string idOrKey, CancellationToken cancellationToken)
@@ -179,7 +182,8 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("{idOrKey}/items/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get roadmap activities", "")]
+    [OpenApiOperation("Get roadmap activities.", "")]
+    [McpTool("Roadmaps_GetActivities", "List roadmap activities")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RoadmapActivityListDto>>> GetActivities(string idOrKey, CancellationToken cancellationToken)
@@ -190,7 +194,8 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("{roadmapIdOrKey}/items/{itemId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get roadmap item details", "")]
+    [OpenApiOperation("Get roadmap item details.", "")]
+    [McpTool("Roadmaps_GetItem", "Get roadmap item")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<RoadmapItemDetailsDto>> GetItem(string roadmapIdOrKey, Guid itemId, CancellationToken cancellationToken)
@@ -390,7 +395,8 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("visibility-options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get a list of all visibility.", "")]
+    [OpenApiOperation("Get a list of all roadmap visibility options.", "")]
+    [McpTool("Roadmaps_GetVisibilityOptions", "List roadmap visibility options")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<VisibilityDto>>> GetVisibilityOptions(CancellationToken cancellationToken)

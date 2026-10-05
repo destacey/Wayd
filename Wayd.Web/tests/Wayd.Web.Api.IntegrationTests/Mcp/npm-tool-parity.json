@@ -1,0 +1,4596 @@
+{
+  "instructions": "Wayd tools read and change live delivery data that other people rely on. Updates are whole-record overwrites, not patches: read the record first and pass back every field that should stay, because an omitted field is cleared. Role lists (sponsorIds, ownerIds, managerIds, memberIds) replace that role's membership, and an omitted or empty list removes everyone in it. A parameter named idOrKey (or xxxIdOrKey) accepts a UUID or a key; any other id parameter takes a UUID only unless its description says it accepts a key, so look the UUID up with a read tool first. Status changes, deletes and other destructive tools must have the user's explicit confirmation before you call them.",
+  "tools": [
+    {
+      "name": "DeliveryMetrics_GetDeliveryMetrics",
+      "title": "Get delivery metrics",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "from",
+        "productId",
+        "to"
+      ],
+      "required": []
+    },
+    {
+      "name": "DeliveryOverview_GetDeliveryOverview",
+      "title": "Get delivery overview",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "from",
+        "productId",
+        "timeZone",
+        "to"
+      ],
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    {
+      "name": "DeliveryOverview_GetRecentDeliveryEvents",
+      "title": "Get recent delivery events",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "productId",
+        "take"
+      ],
+      "required": []
+    },
+    {
+      "name": "DeploymentEnvironments_Create",
+      "title": "Create a deployment environment",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "DeploymentEnvironments_Delete",
+      "title": "Delete a deployment environment",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "DeploymentEnvironments_GetDeploymentEnvironments",
+      "title": "List deployment environments",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "category",
+        "isActive"
+      ],
+      "required": []
+    },
+    {
+      "name": "DeploymentEnvironments_GetRollout",
+      "title": "Get environment rollout",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "includeInactive"
+      ],
+      "required": []
+    },
+    {
+      "name": "DeploymentEnvironments_SetActive",
+      "title": "Retire or reinstate an environment",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "DeploymentEnvironments_Update",
+      "title": "Update a deployment environment",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Deployments_Delete",
+      "title": "Delete a deployment",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Deployments_Fail",
+      "title": "Record deployment failure",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Deployments_GetActivities",
+      "title": "Get deployment activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Deployments_GetDeployment",
+      "title": "Get deployment",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Deployments_GetDeployments",
+      "title": "List deployments",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "environmentCategory",
+        "environmentId",
+        "packageId",
+        "startedOnOrAfter",
+        "versionId"
+      ],
+      "required": []
+    },
+    {
+      "name": "Deployments_GetStatusHistory",
+      "title": "Get deployment status history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Deployments_RollBack",
+      "title": "Record deployment rollback",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Deployments_Start",
+      "title": "Start a deployment",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Deployments_Succeed",
+      "title": "Record deployment success",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ExpenditureCategories_GetOptions",
+      "title": "List expenditure category options",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "includeArchived"
+      ],
+      "required": []
+    },
+    {
+      "name": "Imports_Apply",
+      "title": "Import a checked file",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "submissionGroupId"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Imports_Cancel",
+      "title": "Stop import run",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Imports_GetById",
+      "title": "Get import run",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Imports_GetDefinitions",
+      "title": "List import types",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Imports_GetFileFormat",
+      "title": "Get import file format",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "importType"
+      ],
+      "required": [
+        "importType"
+      ]
+    },
+    {
+      "name": "Imports_GetList",
+      "title": "List import runs",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "importType",
+        "pageNumber",
+        "pageSize",
+        "status",
+        "submissionGroupId",
+        "submittedByUserId"
+      ],
+      "required": []
+    },
+    {
+      "name": "Imports_GetRows",
+      "title": "Get import run rows",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "pageNumber",
+        "pageSize",
+        "status"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Imports_Preflight",
+      "title": "Check an import file",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "contentsFile",
+        "file",
+        "importType",
+        "kpiFile",
+        "manifestFile",
+        "submissionGroupId"
+      ],
+      "required": [
+        "file",
+        "importType"
+      ]
+    },
+    {
+      "name": "Imports_Resume",
+      "title": "Resume import run",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Imports_RetryFailed",
+      "title": "Retry rejected import rows",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_CreateObjectiveHealthCheck",
+      "title": "Log a PI objective health check",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "objectiveId",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "objectiveId",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetActivities",
+      "title": "Get planning interval activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetCalendar",
+      "title": "Get PI calendar",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetIteration",
+      "title": "Get PI iteration",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "iterationIdOrKey"
+      ],
+      "required": [
+        "idOrKey",
+        "iterationIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetIterationBacklog",
+      "title": "Get PI iteration backlog",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "iterationIdOrKey"
+      ],
+      "required": [
+        "idOrKey",
+        "iterationIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetIterationCategories",
+      "title": "List iteration categories",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "PlanningIntervals_GetIterationMetrics",
+      "title": "Get PI iteration metrics",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "iterationIdOrKey"
+      ],
+      "required": [
+        "idOrKey",
+        "iterationIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetIterationSprints",
+      "title": "List PI iteration sprint mappings",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "iterationId"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetIterations",
+      "title": "List PI iterations",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetList",
+      "title": "List planning intervals",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "PlanningIntervals_GetObjective",
+      "title": "Get PI objective",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ],
+      "required": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectiveActivities",
+      "title": "Get planning interval objective activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "objectiveIdOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectiveForecast",
+      "title": "Forecast PI objective completion",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "ignoreDependencies",
+        "lookbackDays",
+        "objectiveIdOrKey",
+        "startedWorkFirst",
+        "targetDate"
+      ],
+      "required": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectiveHealthCheck",
+      "title": "Get PI objective health check",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "healthCheckId",
+        "id",
+        "objectiveId"
+      ],
+      "required": [
+        "healthCheckId",
+        "id",
+        "objectiveId"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectiveHealthChecks",
+      "title": "List PI objective health checks",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "objectiveId"
+      ],
+      "required": [
+        "id",
+        "objectiveId"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectiveStatuses",
+      "title": "List PI objective statuses",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "PlanningIntervals_GetObjectiveWorkItemMetrics",
+      "title": "Get PI objective work item metrics",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ],
+      "required": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectiveWorkItems",
+      "title": "List a PI objective's work items",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ],
+      "required": [
+        "idOrKey",
+        "objectiveIdOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectives",
+      "title": "List PI objectives",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "teamId"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetObjectivesHealthReport",
+      "title": "Get PI objectives health report",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "teamId"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetPlanningInterval",
+      "title": "Get planning interval",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetPredictability",
+      "title": "Get PI predictability",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetRisks",
+      "title": "List PI risks",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "includeClosed",
+        "teamId"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetTeamPredictability",
+      "title": "Get a team's PI predictability",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "teamId"
+      ],
+      "required": [
+        "idOrKey",
+        "teamId"
+      ]
+    },
+    {
+      "name": "PlanningIntervals_GetTeams",
+      "title": "List PI teams",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Portfolios_Activate",
+      "title": "Activate portfolio",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Portfolios_Archive",
+      "title": "Archive portfolio",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Portfolios_Close",
+      "title": "Close portfolio",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Portfolios_Create",
+      "title": "Create portfolio",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Portfolios_GetActivities",
+      "title": "Get portfolio activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Portfolios_GetPortfolio",
+      "title": "Get portfolio",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Portfolios_GetPortfolioOptions",
+      "title": "List portfolio options",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Portfolios_GetPortfolioPrograms",
+      "title": "List a portfolio's programs",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "status"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Portfolios_GetPortfolioProjects",
+      "title": "List a portfolio's projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "status"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Portfolios_GetPortfolioStatuses",
+      "title": "List portfolio statuses",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Portfolios_GetPortfolioStrategicInitiatives",
+      "title": "List a portfolio's strategic initiatives",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "status"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Portfolios_GetPortfolios",
+      "title": "List portfolios",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "status"
+      ],
+      "required": []
+    },
+    {
+      "name": "Portfolios_GetRankingScoreboard",
+      "title": "Get portfolio ranking scoreboard",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Portfolios_Update",
+      "title": "Update portfolio",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_AddTag",
+      "title": "Add a tag",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_Create",
+      "title": "Create a tag category",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_Delete",
+      "title": "Delete a tag category",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_DeleteTag",
+      "title": "Delete a tag",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "tagId"
+      ],
+      "required": [
+        "id",
+        "tagId"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_GetProductTagCategories",
+      "title": "List product tag categories",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "ProductTagCategories_RenameTag",
+      "title": "Rename a tag",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody",
+        "tagId"
+      ],
+      "required": [
+        "id",
+        "requestBody",
+        "tagId"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_Reorder",
+      "title": "Reorder tag categories",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_SetActive",
+      "title": "Activate or deactivate a tag category",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_SetTagActive",
+      "title": "Activate or deactivate a tag",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody",
+        "tagId"
+      ],
+      "required": [
+        "id",
+        "requestBody",
+        "tagId"
+      ]
+    },
+    {
+      "name": "ProductTagCategories_Update",
+      "title": "Update a tag category",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTypes_Create",
+      "title": "Create a product type",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTypes_Delete",
+      "title": "Delete a product type",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "ProductTypes_GetProductTypes",
+      "title": "List product types",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "ProductTypes_SetActive",
+      "title": "Activate or deactivate a product type",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProductTypes_Update",
+      "title": "Update a product type",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_AddDependency",
+      "title": "Add a product dependency",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_ChangeDependencyTerms",
+      "title": "Change a product dependency terms",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_ChangeStatus",
+      "title": "Change a product's status",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_Create",
+      "title": "Create a product",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_Delete",
+      "title": "Delete a product",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Products_EndDependency",
+      "title": "End a product dependency",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_GetActivities",
+      "title": "Get product activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Products_GetDependencies",
+      "title": "Get product dependencies",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "includeEnded"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Products_GetProduct",
+      "title": "Get product",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Products_GetProducts",
+      "title": "List products",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "parentId",
+        "productTypeId",
+        "statusCategory",
+        "tagId"
+      ],
+      "required": []
+    },
+    {
+      "name": "Products_GetStatusHistory",
+      "title": "Get product status history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Products_GetStatusOptions",
+      "title": "Get product status options",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Products_LinkExternally",
+      "title": "Link a product externally",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_RemoveDependency",
+      "title": "Remove a product dependency",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_Reparent",
+      "title": "Move a product",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_Retype",
+      "title": "Change a product's type",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_Tag",
+      "title": "Tag a product",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "tagId"
+      ],
+      "required": [
+        "id",
+        "tagId"
+      ]
+    },
+    {
+      "name": "Products_Untag",
+      "title": "Remove a tag from a product",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "tagId"
+      ],
+      "required": [
+        "id",
+        "tagId"
+      ]
+    },
+    {
+      "name": "Products_Update",
+      "title": "Update a product",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Products_UpdateDependency",
+      "title": "Update a product dependency",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "dependencyId",
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Programs_Activate",
+      "title": "Activate program",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Programs_Cancel",
+      "title": "Cancel program",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Programs_Complete",
+      "title": "Complete program",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Programs_Create",
+      "title": "Create program",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Programs_GetActivities",
+      "title": "Get program activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Programs_GetProgram",
+      "title": "Get program",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Programs_GetProgramProjects",
+      "title": "List a program's projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "status"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Programs_GetProgramStatuses",
+      "title": "List program statuses",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Programs_GetPrograms",
+      "title": "List programs",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "portfolioId",
+        "status"
+      ],
+      "required": []
+    },
+    {
+      "name": "Programs_Update",
+      "title": "Update program",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ProjectLifecycles_GetProjectLifecycle",
+      "title": "Get project lifecycle",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "ProjectLifecycles_GetProjectLifecycles",
+      "title": "List project lifecycles",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "state"
+      ],
+      "required": []
+    },
+    {
+      "name": "Projects_Activate",
+      "title": "Activate project",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_Approve",
+      "title": "Approve project",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_Cancel",
+      "title": "Cancel project",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_ChangeKey",
+      "title": "Change project key",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Projects_ChangeProgram",
+      "title": "Change project program",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Projects_Complete",
+      "title": "Complete project",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_Create",
+      "title": "Create project",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Projects_CreateProjectHealthCheck",
+      "title": "Log a project health check",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Projects_DeleteProjectHealthCheck",
+      "title": "Delete project health check",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "healthCheckId",
+        "id"
+      ],
+      "required": [
+        "healthCheckId",
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_GetActivities",
+      "title": "Get project activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Projects_GetForecast",
+      "title": "Forecast project completion",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "ignoreDependencies",
+        "lookbackDays",
+        "startedWorkFirst",
+        "targetDate"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Projects_GetMyProjectsSummary",
+      "title": "Get my project involvement summary",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "status"
+      ],
+      "required": []
+    },
+    {
+      "name": "Projects_GetMyProjectsTaskMetrics",
+      "title": "Get my project task metrics",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "role",
+        "status"
+      ],
+      "required": []
+    },
+    {
+      "name": "Projects_GetProject",
+      "title": "Get project",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Projects_GetProjectHealthCheck",
+      "title": "Get project health check",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "healthCheckId",
+        "id"
+      ],
+      "required": [
+        "healthCheckId",
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_GetProjectHealthChecks",
+      "title": "List project health checks",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_GetProjectPlanSummary",
+      "title": "Get project plan summary",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "employeeId",
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Projects_GetProjectPlanTree",
+      "title": "Get project plan tree",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Projects_GetProjectStage",
+      "title": "Get project stage",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "stageId"
+      ],
+      "required": [
+        "id",
+        "stageId"
+      ]
+    },
+    {
+      "name": "Projects_GetProjectStages",
+      "title": "List project stages",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_GetProjectTeam",
+      "title": "Get project team",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Projects_GetProjects",
+      "title": "List projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "employeeId",
+        "portfolioId",
+        "role",
+        "status"
+      ],
+      "required": []
+    },
+    {
+      "name": "Projects_GetProjectsPlanSummaries",
+      "title": "Get plan summaries for several projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "allTasks",
+        "employeeId",
+        "projectId",
+        "role"
+      ],
+      "required": [
+        "projectId"
+      ]
+    },
+    {
+      "name": "Projects_GetScore",
+      "title": "Get project score",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "scoreId"
+      ],
+      "required": [
+        "id",
+        "scoreId"
+      ]
+    },
+    {
+      "name": "Projects_GetScores",
+      "title": "List project scores",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_GetScoringContext",
+      "title": "Get project scoring context",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_GetStatusHistory",
+      "title": "Get project status history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_GetStatuses",
+      "title": "List project statuses",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Projects_GetTaskMetrics",
+      "title": "Get an employee's project task metrics",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "employeeId",
+        "role",
+        "status"
+      ],
+      "required": []
+    },
+    {
+      "name": "Projects_GetWorkItems",
+      "title": "List a project's work items",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Projects_RevertStatus",
+      "title": "Revert project status",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Projects_Update",
+      "title": "Update project",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Projects_UpdateProjectHealthCheck",
+      "title": "Update project health check",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "healthCheckId",
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "healthCheckId",
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ReleasePackages_Assemble",
+      "title": "Assemble a release package",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ReleasePackages_CorrectDates",
+      "title": "Correct package dates",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ReleasePackages_Delete",
+      "title": "Delete a package",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "ReleasePackages_GetActivities",
+      "title": "Get release package activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "ReleasePackages_GetReleasePackage",
+      "title": "Get release package",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "ReleasePackages_GetReleasePackages",
+      "title": "List release packages",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "containingProductId",
+        "containingVersionId",
+        "statusCategory"
+      ],
+      "required": []
+    },
+    {
+      "name": "ReleasePackages_GetStatusHistory",
+      "title": "Get package status history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "ReleasePackages_MarkReleased",
+      "title": "Mark a package released",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ReleasePackages_SetManifest",
+      "title": "Replace a package manifest",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "ReleasePackages_Withdraw",
+      "title": "Withdraw a package",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_CorrectDates",
+      "title": "Correct release dates",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_Delete",
+      "title": "Delete a release",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Releases_GetActivities",
+      "title": "Get release activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Releases_GetRelease",
+      "title": "Get release",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Releases_GetReleases",
+      "title": "List releases",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "containingVersionId",
+        "productId",
+        "statusCategory"
+      ],
+      "required": []
+    },
+    {
+      "name": "Releases_GetStatusHistory",
+      "title": "Get release status history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Releases_MarkReleased",
+      "title": "Announce a release",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_MoveTargetDate",
+      "title": "Move a release target date",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_Plan",
+      "title": "Plan a release",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_Revert",
+      "title": "Revert a release",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_SetContents",
+      "title": "Set what a release announces",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_Update",
+      "title": "Update a release",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Releases_Withdraw",
+      "title": "Withdraw a release",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Roadmaps_GetActivities",
+      "title": "List roadmap activities",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Roadmaps_GetItem",
+      "title": "Get roadmap item",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "itemId",
+        "roadmapIdOrKey"
+      ],
+      "required": [
+        "itemId",
+        "roadmapIdOrKey"
+      ]
+    },
+    {
+      "name": "Roadmaps_GetItems",
+      "title": "List roadmap items",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Roadmaps_GetRoadmap",
+      "title": "Get roadmap",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Roadmaps_GetRoadmaps",
+      "title": "List roadmaps",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Roadmaps_GetVisibilityOptions",
+      "title": "List roadmap visibility options",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "StoryMaps_AddChecklistItem",
+      "title": "Add a checklist item",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_AddGoal",
+      "title": "Add a story map goal",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_AddPersona",
+      "title": "Add a persona",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_AddStep",
+      "title": "Add a story map step",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_AddSwimLane",
+      "title": "Add a swim lane",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_AddTask",
+      "title": "Add a story map task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_ArchiveStoryMap",
+      "title": "Archive a story map",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "StoryMaps_ChangeStoryMapOwner",
+      "title": "Change story map owner",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "StoryMaps_CreateStoryMap",
+      "title": "Create a story map",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "StoryMaps_DeleteGoal",
+      "title": "Delete a story map goal",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "goalId",
+        "storyMapId"
+      ],
+      "required": [
+        "goalId",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_DeletePersona",
+      "title": "Delete a persona",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "personaId",
+        "storyMapId"
+      ],
+      "required": [
+        "personaId",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_DeleteStep",
+      "title": "Delete a story map step",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "stepId",
+        "storyMapId"
+      ],
+      "required": [
+        "stepId",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_DeleteStoryMap",
+      "title": "Delete a story map",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "StoryMaps_DeleteTask",
+      "title": "Delete a story map task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_GetStoryMap",
+      "title": "Get story map",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "StoryMaps_GetStoryMaps",
+      "title": "List story maps",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "includeArchived"
+      ],
+      "required": []
+    },
+    {
+      "name": "StoryMaps_LinkWorkItem",
+      "title": "Link a story map task to a work item",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_MoveStep",
+      "title": "Move a step to another goal",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_MoveTask",
+      "title": "Move a story map task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_PromoteChecklistItem",
+      "title": "Promote a checklist item to a task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "itemId",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "itemId",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_RemoveChecklistItem",
+      "title": "Remove a checklist item",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "itemId",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "itemId",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_RemoveSwimLane",
+      "title": "Remove a swim lane",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "storyMapId",
+        "swimLaneId"
+      ],
+      "required": [
+        "storyMapId",
+        "swimLaneId"
+      ]
+    },
+    {
+      "name": "StoryMaps_RenameChecklistItem",
+      "title": "Rename a checklist item",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "itemId",
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "itemId",
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_RenameGoal",
+      "title": "Rename a story map goal",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "goalId",
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "goalId",
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_RenameStep",
+      "title": "Rename a story map step",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_RenameSwimLane",
+      "title": "Rename a swim lane",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "swimLaneId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "swimLaneId"
+      ]
+    },
+    {
+      "name": "StoryMaps_ReorderGoal",
+      "title": "Reorder a story map goal",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "goalId",
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "goalId",
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_ReorderPersona",
+      "title": "Reorder a persona",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "personaId",
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "personaId",
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_ReorderStep",
+      "title": "Reorder a story map step",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_ReorderSwimLane",
+      "title": "Reorder a swim lane",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "swimLaneId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "swimLaneId"
+      ]
+    },
+    {
+      "name": "StoryMaps_SetChecklistItemChecked",
+      "title": "Check or uncheck a checklist item",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "itemId",
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "itemId",
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_SetGoalPersonas",
+      "title": "Set a goal's personas",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "goalId",
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "goalId",
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_SetStepPersonas",
+      "title": "Set a step's personas",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ],
+      "required": [
+        "requestBody",
+        "stepId",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_SetSwimLaneDates",
+      "title": "Set swim lane dates",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "swimLaneId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "swimLaneId"
+      ]
+    },
+    {
+      "name": "StoryMaps_SetTaskPersonas",
+      "title": "Set a task's personas",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_UnlinkWorkItem",
+      "title": "Unlink a story map task from its work item",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StoryMaps_UpdatePersona",
+      "title": "Update a persona",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "personaId",
+        "requestBody",
+        "storyMapId"
+      ],
+      "required": [
+        "personaId",
+        "requestBody",
+        "storyMapId"
+      ]
+    },
+    {
+      "name": "StoryMaps_UpdateStoryMap",
+      "title": "Update a story map",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "StoryMaps_UpdateTask",
+      "title": "Update a story map task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ],
+      "required": [
+        "requestBody",
+        "storyMapId",
+        "taskId"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_Activate",
+      "title": "Activate strategic initiative",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_AddKpiMeasurement",
+      "title": "Record a KPI measurement",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "kpiId",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "kpiId",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_Approve",
+      "title": "Approve strategic initiative",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_Cancel",
+      "title": "Cancel strategic initiative",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_Complete",
+      "title": "Complete strategic initiative",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetActivities",
+      "title": "Get strategic initiative activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetKpi",
+      "title": "Get KPI",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "kpiId"
+      ],
+      "required": [
+        "id",
+        "kpiId"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetKpiCheckpointPlan",
+      "title": "Get KPI checkpoint plan",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "kpiId"
+      ],
+      "required": [
+        "id",
+        "kpiId"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetKpiCheckpoints",
+      "title": "List KPI checkpoints",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "kpiId"
+      ],
+      "required": [
+        "id",
+        "kpiId"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetKpiMeasurements",
+      "title": "List KPI measurements",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "kpiId"
+      ],
+      "required": [
+        "id",
+        "kpiId"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetKpis",
+      "title": "List a strategic initiative's KPIs",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetProjects",
+      "title": "List a strategic initiative's projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetStatuses",
+      "title": "List strategic initiative statuses",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "StrategicInitiatives_GetStrategicInitiative",
+      "title": "Get strategic initiative",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "StrategicInitiatives_GetStrategicInitiatives",
+      "title": "List strategic initiatives",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "portfolioId",
+        "status"
+      ],
+      "required": []
+    },
+    {
+      "name": "StrategicInitiatives_RemoveKpiMeasurement",
+      "title": "Remove a KPI measurement",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "kpiId",
+        "measurementId"
+      ],
+      "required": [
+        "id",
+        "kpiId",
+        "measurementId"
+      ]
+    },
+    {
+      "name": "Tasks_AddTaskDependency",
+      "title": "Add a task dependency",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "projectIdOrKey",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "projectIdOrKey",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Tasks_CreateProjectTask",
+      "title": "Create a project task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "projectIdOrKey",
+        "requestBody"
+      ],
+      "required": [
+        "projectIdOrKey",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Tasks_DeleteProjectTask",
+      "title": "Delete a project task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "projectIdOrKey"
+      ],
+      "required": [
+        "id",
+        "projectIdOrKey"
+      ]
+    },
+    {
+      "name": "Tasks_GetCriticalPath",
+      "title": "Get project critical path",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "projectIdOrKey"
+      ],
+      "required": [
+        "projectIdOrKey"
+      ]
+    },
+    {
+      "name": "Tasks_GetProjectTask",
+      "title": "Get project task",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "projectIdOrKey",
+        "taskIdOrKey"
+      ],
+      "required": [
+        "projectIdOrKey",
+        "taskIdOrKey"
+      ]
+    },
+    {
+      "name": "Tasks_GetProjectTasks",
+      "title": "List project tasks",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "parentId",
+        "projectIdOrKey",
+        "status"
+      ],
+      "required": [
+        "projectIdOrKey"
+      ]
+    },
+    {
+      "name": "Tasks_GetTaskPriorities",
+      "title": "List task priorities",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Tasks_GetTaskStatuses",
+      "title": "List task statuses",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Tasks_GetTaskTypes",
+      "title": "List task types",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Tasks_RemoveTaskDependency",
+      "title": "Remove a task dependency",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "projectIdOrKey",
+        "successorId"
+      ],
+      "required": [
+        "id",
+        "projectIdOrKey",
+        "successorId"
+      ]
+    },
+    {
+      "name": "Tasks_UpdateProjectTask",
+      "title": "Update a project task",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "projectIdOrKey",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "projectIdOrKey",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "TeamsOfTeams_GetAllocation",
+      "title": "Report team of teams allocation",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "dimension",
+        "from",
+        "idOrCode",
+        "measure",
+        "themeCounting",
+        "to",
+        "unestimated"
+      ],
+      "required": [
+        "from",
+        "idOrCode",
+        "to"
+      ]
+    },
+    {
+      "name": "TeamsOfTeams_GetList",
+      "title": "List teams of teams",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "includeInactive"
+      ],
+      "required": []
+    },
+    {
+      "name": "Teams_GetActivities",
+      "title": "Get team activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Teams_GetBacklogHealth",
+      "title": "Grade team backlog health",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "agingWipPercentile",
+        "atRiskPercent",
+        "idOrCode",
+        "lookbackDays",
+        "netFlowAtRisk",
+        "netFlowUnhealthy",
+        "oldProposedDays",
+        "oversizedPercentile",
+        "readinessFallbackItems",
+        "readinessWindowWeeks",
+        "runwayAtRiskWeeks",
+        "runwayTooLongWeeks",
+        "runwayUnhealthyWeeks",
+        "staleDays",
+        "unhealthyPercent",
+        "wipLoadAtRisk",
+        "wipLoadUnhealthy"
+      ],
+      "required": [
+        "idOrCode"
+      ]
+    },
+    {
+      "name": "Teams_GetTeam",
+      "title": "Get team",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Teams_GetTeamAllocation",
+      "title": "Report team allocation",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "dimension",
+        "from",
+        "idOrCode",
+        "measure",
+        "themeCounting",
+        "to",
+        "unestimated"
+      ],
+      "required": [
+        "from",
+        "idOrCode",
+        "to"
+      ]
+    },
+    {
+      "name": "Teams_GetTeams",
+      "title": "List teams",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "includeInactive"
+      ],
+      "required": []
+    },
+    {
+      "name": "Teams_GetThroughputForecast",
+      "title": "Forecast team throughput",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrCode",
+        "lookbackDays",
+        "startedWorkFirst",
+        "targetDate"
+      ],
+      "required": [
+        "idOrCode",
+        "targetDate"
+      ]
+    },
+    {
+      "name": "Users_GetUser",
+      "title": "Get user",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Users_GetUsers",
+      "title": "List users",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [],
+      "required": []
+    },
+    {
+      "name": "Versions_CorrectDates",
+      "title": "Correct version dates",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Versions_Cut",
+      "title": "Cut a version",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Versions_Delete",
+      "title": "Delete a version",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "Versions_GetActivities",
+      "title": "Get version activity history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "page",
+        "pageSize"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Versions_GetStatusHistory",
+      "title": "Get version status history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Versions_GetVersion",
+      "title": "Get version",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey"
+      ],
+      "required": [
+        "idOrKey"
+      ]
+    },
+    {
+      "name": "Versions_GetVersions",
+      "title": "List versions",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "productId",
+        "statusCategory"
+      ],
+      "required": []
+    },
+    {
+      "name": "Versions_MarkReleased",
+      "title": "Mark a version released",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Versions_MoveTargetDate",
+      "title": "Move a version target date",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Versions_Plan",
+      "title": "Plan a version",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Versions_Revert",
+      "title": "Revert a version",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Versions_Update",
+      "title": "Update a version",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Versions_Withdraw",
+      "title": "Withdraw a version",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "Workspaces_GetWorkItemForecast",
+      "title": "Forecast work item completion",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "idOrKey",
+        "ignoreDependencies",
+        "lookbackDays",
+        "startedWorkFirst",
+        "targetDate",
+        "workItemKey"
+      ],
+      "required": [
+        "idOrKey",
+        "workItemKey"
+      ]
+    }
+  ]
+}

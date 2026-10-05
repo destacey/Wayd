@@ -39,7 +39,7 @@ export const definitions: [string, McpToolDefinition][] = [
     'Teams_GetBacklogHealth',
     {
       name: 'Teams_GetBacklogHealth',
-      description: `Grade a team's open backlog. Returns \`checks\` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Story Points, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an \`outcome\` (Assessed, Not Enough History, Not Applicable), a \`grade\` (Healthy, At Risk, Unhealthy; absent when not assessed), and a \`value\` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). \`workItems\` lists every open backlog work item in rank order with the \`flags\` that apply to it, and \`thresholds\` states the values it was graded with. Every threshold is optional and falls back to its default.`,
+      description: `Grade a team's open backlog. Returns \`checks\` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an \`outcome\` (Assessed, Not Enough History, Not Applicable), a \`grade\` (Healthy, At Risk, Unhealthy; absent when not assessed), and a \`value\` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). \`workItems\` lists every open backlog work item in rank order with the \`flags\` that apply to it, and \`thresholds\` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (\`totalEstimate\`, \`oversizedEstimate\`, each work item's \`estimate\`) are in the team's current \`sizingMethod\` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -233,7 +233,7 @@ export const definitions: [string, McpToolDefinition][] = [
     'Teams_GetTeamAllocation',
     {
       name: 'Teams_GetTeamAllocation',
-      description: `Report where a team's completed work went. Groups the Requirement-tier work items the team completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average). Work with no project is its own group.`,
+      description: `Report where a team's completed work went. Groups the Requirement-tier work items the team completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -322,7 +322,7 @@ export const definitions: [string, McpToolDefinition][] = [
     'TeamsOfTeams_GetAllocation',
     {
       name: 'TeamsOfTeams_GetAllocation',
-      description: `Report where the completed work of a team of teams, and every team beneath it, went. Groups the Requirement-tier work items completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only), or TeamEffort (normalizes scales across teams; recommended for teams of teams). Work with no project is its own group.`,
+      description: `Report where the completed work of a team of teams, and every team beneath it, went. Groups the Requirement-tier work items completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.`,
       inputSchema: {
         type: 'object',
         properties: {

@@ -6817,7 +6817,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get list of all users.
+        /// Get a list of all users.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserDetailsDto>> GetUsersAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -7093,7 +7093,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get list of all users.
+        /// Get a list of all users.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserDetailsDto>> GetUsersAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -11954,10 +11954,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the delivery measures over a window.
+        /// Get the delivery measures over a window, computed from deployment records.
         /// </summary>
         /// <remarks>
-        /// Deployment frequency and change failure rate. Lead time and time to restore are reported as unavailable.
+        /// Returns **deployment frequency** and **change failure rate**, plus an `unavailable` list naming the measures this module cannot compute yet and why — read that list rather than treating a missing measure as zero.
+        /// <br/>
+        /// <br/>Two caveats worth carrying into any answer. **Production-scoped measures depend on environment categories**, not names, so a deployment into an environment whose category is not Production does not count toward deployment frequency. And **change failure rate is a proxy**: a pipeline run that failed before reaching production is a failure that was *prevented*, while a real change failure is a deployment that succeeded and then broke something — which the pipeline has no way to know. Report it as approximate rather than as the metric.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<DeliveryMetricsDto> GetDeliveryMetricsAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -12014,10 +12016,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the delivery measures over a window.
+        /// Get the delivery measures over a window, computed from deployment records.
         /// </summary>
         /// <remarks>
-        /// Deployment frequency and change failure rate. Lead time and time to restore are reported as unavailable.
+        /// Returns **deployment frequency** and **change failure rate**, plus an `unavailable` list naming the measures this module cannot compute yet and why — read that list rather than treating a missing measure as zero.
+        /// <br/>
+        /// <br/>Two caveats worth carrying into any answer. **Production-scoped measures depend on environment categories**, not names, so a deployment into an environment whose category is not Production does not count toward deployment frequency. And **change failure rate is a proxy**: a pipeline run that failed before reaching production is a failure that was *prevented*, while a real change failure is a deployment that succeeded and then broke something — which the pipeline has no way to know. Report it as approximate rather than as the metric.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<DeliveryMetricsDto> GetDeliveryMetricsAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -12257,10 +12261,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get version activity over a window.
+        /// Get version activity over a window — what was **cut and shipped**, measured from versions rather than deployments.
         /// </summary>
         /// <remarks>
-        /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency. Versions are released at moments, so the window and the daily buckets are days in timeZone (default UTC).
+        /// Separate from `DeliveryMetrics_GetDeliveryMetrics`, which measures deployments: a product that ships continuously has a healthy cadence here whether or not its pipeline is recorded in Wayd.
+        /// <br/>
+        /// <br/>Scoping to a product covers **that node and everything beneath it**, so a product line rolls up its children. Omit `productId` for the whole catalog.
+        /// <br/>
+        /// <br/>Returns:
+        /// <br/>- `scope` — the selected product (null for the whole catalog) and `releasableNodeCount`, the denominator for judging the rest: three releases a week means something different across four products than across forty.
+        /// <br/>- `frequency` — `count`, `windowDays`, `perWeek`, and `previousPerWeek` for the equal window just before. **A null previous value means nothing shipped then** — the change is unknowable, so do not report it as a rise from zero.
+        /// <br/>- `cutToReleased` — `averageDays`, the elapsed time from cut to release in (fractional) days, with `measuredCount` of `releasedCount` and `previousAverageDays`. Versions released without ever being cut (imports and backfills do this) carry no latency and are excluded rather than counted as zero, so say how much of the window the average speaks for.
+        /// <br/>- `activity` — the subtree depth-first, one row per node with `depth` and `isReleasable`. Groupings appear so the hierarchy reads but never release anything themselves. Every releasable node in scope is listed even if it shipped nothing — that is part of the answer. `days` lists only days with a release: `released`, and `withdrawn` (how many of that day's versions have since been withdrawn — a count, not a rate).
         /// </remarks>
         /// <param name="from">Any instant on the window's first day, read as a day in timeZone. An instant
         /// <br/>rather than a date because the generated client types every date parameter as a JavaScript
@@ -12274,10 +12286,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what has happened to versions and packages lately.
+        /// Get what has happened to versions and packages lately, most recent first — a feed answering "what shipped recently?".
         /// </summary>
         /// <remarks>
-        /// Read from status transitions rather than the records' own moments, which say the state a record is in rather than when it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
+        /// **One entry per record**, at its latest status change, not one per transition; the record's own status history has the rest.
+        /// <br/>
+        /// <br/>Each entry has `kind` (Version or ReleasePackage), `recordId`/`recordKey`, `label` (the version number or the package's own version, free text), `product` (null for a package, which spans several), `statusName` as the organization named it, `alias` (its well-known meaning — 10 Ready, 11 Released, 12 Withdrawn — which is what to reason on, since names are per-organization), `changedOn` (an instant), `releasedAt` (an instant) where the record has shipped (so a withdrawal says what it pulled), and `componentCount` for a package.
+        /// <br/>
+        /// <br/>Read from status transitions rather than the records' own dates, which carry no time of day. **Scoping to a product covers its subtree and leaves packages out entirely.**
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecentDeliveryEventDto>> GetRecentDeliveryEventsAsync(int? take = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -12334,10 +12350,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get version activity over a window.
+        /// Get version activity over a window — what was **cut and shipped**, measured from versions rather than deployments.
         /// </summary>
         /// <remarks>
-        /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency. Versions are released at moments, so the window and the daily buckets are days in timeZone (default UTC).
+        /// Separate from `DeliveryMetrics_GetDeliveryMetrics`, which measures deployments: a product that ships continuously has a healthy cadence here whether or not its pipeline is recorded in Wayd.
+        /// <br/>
+        /// <br/>Scoping to a product covers **that node and everything beneath it**, so a product line rolls up its children. Omit `productId` for the whole catalog.
+        /// <br/>
+        /// <br/>Returns:
+        /// <br/>- `scope` — the selected product (null for the whole catalog) and `releasableNodeCount`, the denominator for judging the rest: three releases a week means something different across four products than across forty.
+        /// <br/>- `frequency` — `count`, `windowDays`, `perWeek`, and `previousPerWeek` for the equal window just before. **A null previous value means nothing shipped then** — the change is unknowable, so do not report it as a rise from zero.
+        /// <br/>- `cutToReleased` — `averageDays`, the elapsed time from cut to release in (fractional) days, with `measuredCount` of `releasedCount` and `previousAverageDays`. Versions released without ever being cut (imports and backfills do this) carry no latency and are excluded rather than counted as zero, so say how much of the window the average speaks for.
+        /// <br/>- `activity` — the subtree depth-first, one row per node with `depth` and `isReleasable`. Groupings appear so the hierarchy reads but never release anything themselves. Every releasable node in scope is listed even if it shipped nothing — that is part of the answer. `days` lists only days with a release: `released`, and `withdrawn` (how many of that day's versions have since been withdrawn — a count, not a rate).
         /// </remarks>
         /// <param name="from">Any instant on the window's first day, read as a day in timeZone. An instant
         /// <br/>rather than a date because the generated client types every date parameter as a JavaScript
@@ -12445,10 +12469,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what has happened to versions and packages lately.
+        /// Get what has happened to versions and packages lately, most recent first — a feed answering "what shipped recently?".
         /// </summary>
         /// <remarks>
-        /// Read from status transitions rather than the records' own moments, which say the state a record is in rather than when it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
+        /// **One entry per record**, at its latest status change, not one per transition; the record's own status history has the rest.
+        /// <br/>
+        /// <br/>Each entry has `kind` (Version or ReleasePackage), `recordId`/`recordKey`, `label` (the version number or the package's own version, free text), `product` (null for a package, which spans several), `statusName` as the organization named it, `alias` (its well-known meaning — 10 Ready, 11 Released, 12 Withdrawn — which is what to reason on, since names are per-organization), `changedOn` (an instant), `releasedAt` (an instant) where the record has shipped (so a withdrawal says what it pulled), and `componentCount` for a package.
+        /// <br/>
+        /// <br/>Read from status transitions rather than the records' own dates, which carry no time of day. **Scoping to a product covers its subtree and leaves packages out entirely.**
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecentDeliveryEventDto>> GetRecentDeliveryEventsAsync(int? take = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -12674,24 +12702,34 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of deployment environments.
+        /// List the deployment environments defined for the organization.
         /// </summary>
+        /// <remarks>
+        /// Environments are defined once and any product can deploy into any of them. Each carries a **category** and a **ring order**, so progressive rollout is representable. Filter by category rather than matching on names, which are free text.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentEnvironmentDto>> GetDeploymentEnvironmentsAsync(bool? isActive = null, EnvironmentCategory? category = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a deployment environment.
+        /// Define a deployment environment.
         /// </summary>
+        /// <remarks>
+        /// The **category** is what every production-scoped measure counts on, so set it deliberately rather than relying on the name. **Ring order** places the environment in a progressive rollout sequence — lower rings are reached first.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateDeploymentEnvironmentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what is running in each environment, in rollout order.
+        /// Get what is running in each environment right now, in rollout order (lowest ring first).
         /// </summary>
         /// <remarks>
-        /// Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. Keyed on the product: a package deployment is expanded into its manifest, and each component takes its own product's slot.
+        /// Answers "what version of X is in production?" and "how far has this got?" in one call.
+        /// <br/>
+        /// <br/>Each environment lists `running`: **one entry per product**, never per package. A package deployment is expanded into its manifest and each component takes its own product's slot, so two successive bundles carrying the same component do not both show as running. Each entry is the **latest deployment that succeeded and was not rolled back** — a failed attempt leaves its predecessor running, and a rollback takes its own deployment out and leaves the one before it in. So "what is here" and "what happened last" differ: check `hasFailedAttemptSince`, true when a later deployment touching that product failed or was rolled back there.
+        /// <br/>
+        /// <br/>Each entry carries `versionLabel` (always set, free text), `version` (null for a packaged component never cut as a version in Wayd), `package` (set when it arrived inside one), `artifactId`, `deployedAt`, and the `deploymentId`/`deploymentKey` it was read from. An empty `running` list means nothing has ever succeeded into that environment — a complete answer, not missing data.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EnvironmentRolloutDto>> GetRolloutAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -12708,28 +12746,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a deployment environment.
+        /// Update an environment's name, category or ring order.
         /// </summary>
         /// <remarks>
-        /// Changing the category changes what past deployments to it count toward.
+        /// **This is a whole-record overwrite — send every field, including ones you are not changing.**
+        /// <br/>
+        /// <br/>Changing the category is not an ordinary edit: each deployment **froze** the category of the environment it went into, so reclassifying changes where *future* deployments count and leaves past ones exactly as they were. A staging environment promoted to production does not retroactively inflate deployment frequency. Refused on a retired environment.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateDeploymentEnvironmentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a deployment environment.
+        /// Permanently delete an environment **and every deployment into it**, with their status history.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes every deployment into it and their status history, and the delivery measures stop counting them. Retiring keeps them.
+        /// The delivery measures and rollout stop counting those deployments. For an environment defined by mistake, or when the user asks to purge history — otherwise retire it with `DeploymentEnvironments_SetActive`, which keeps them. The `deploymentCount` from `DeploymentEnvironments_GetDeploymentEnvironments` says how many would go; state it before confirming. Needs the environment Delete permission, and — when the environment has any deployments — the delivery Delete permission as well.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a deployment environment.
+        /// Retire an environment or reinstate one.
         /// </summary>
+        /// <remarks>
+        /// **Retire rather than delete** unless the user explicitly wants the history gone: deleting an environment takes every deployment into it with it, while retiring keeps them.
+        /// <br/>
+        /// <br/>A retired environment is no longer offered as a deployment target, but it and every deployment recorded against it are kept, and those deployments keep counting toward the measures they already count toward. Editing and reclassifying are refused on a retired environment, so reinstate it first if you need to change it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetActiveAsync(System.Guid id, SetDeploymentEnvironmentActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -12785,8 +12830,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of deployment environments.
+        /// List the deployment environments defined for the organization.
         /// </summary>
+        /// <remarks>
+        /// Environments are defined once and any product can deploy into any of them. Each carries a **category** and a **ring order**, so progressive rollout is representable. Filter by category rather than matching on names, which are free text.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentEnvironmentDto>> GetDeploymentEnvironmentsAsync(bool? isActive = null, EnvironmentCategory? category = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -12878,8 +12926,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a deployment environment.
+        /// Define a deployment environment.
         /// </summary>
+        /// <remarks>
+        /// The **category** is what every production-scoped measure counts on, so set it deliberately rather than relying on the name. **Ring order** places the environment in a progressive rollout sequence — lower rings are reached first.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateDeploymentEnvironmentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -12968,10 +13019,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what is running in each environment, in rollout order.
+        /// Get what is running in each environment right now, in rollout order (lowest ring first).
         /// </summary>
         /// <remarks>
-        /// Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. Keyed on the product: a package deployment is expanded into its manifest, and each component takes its own product's slot.
+        /// Answers "what version of X is in production?" and "how far has this got?" in one call.
+        /// <br/>
+        /// <br/>Each environment lists `running`: **one entry per product**, never per package. A package deployment is expanded into its manifest and each component takes its own product's slot, so two successive bundles carrying the same component do not both show as running. Each entry is the **latest deployment that succeeded and was not rolled back** — a failed attempt leaves its predecessor running, and a rollback takes its own deployment out and leaves the one before it in. So "what is here" and "what happened last" differ: check `hasFailedAttemptSince`, true when a later deployment touching that product failed or was rolled back there.
+        /// <br/>
+        /// <br/>Each entry carries `versionLabel` (always set, free text), `version` (null for a packaged component never cut as a version in Wayd), `package` (set when it arrived inside one), `artifactId`, `deployedAt`, and the `deploymentId`/`deploymentKey` it was read from. An empty `running` list means nothing has ever succeeded into that environment — a complete answer, not missing data.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EnvironmentRolloutDto>> GetRolloutAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -13191,10 +13246,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a deployment environment.
+        /// Update an environment's name, category or ring order.
         /// </summary>
         /// <remarks>
-        /// Changing the category changes what past deployments to it count toward.
+        /// **This is a whole-record overwrite — send every field, including ones you are not changing.**
+        /// <br/>
+        /// <br/>Changing the category is not an ordinary edit: each deployment **froze** the category of the environment it went into, so reclassifying changes where *future* deployments count and leaves past ones exactly as they were. A staging environment promoted to production does not retroactively inflate deployment frequency. Refused on a retired environment.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateDeploymentEnvironmentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -13292,10 +13349,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a deployment environment.
+        /// Permanently delete an environment **and every deployment into it**, with their status history.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes every deployment into it and their status history, and the delivery measures stop counting them. Retiring keeps them.
+        /// The delivery measures and rollout stop counting those deployments. For an environment defined by mistake, or when the user asks to purge history — otherwise retire it with `DeploymentEnvironments_SetActive`, which keeps them. The `deploymentCount` from `DeploymentEnvironments_GetDeploymentEnvironments` says how many would go; state it before confirming. Needs the environment Delete permission, and — when the environment has any deployments — the delivery Delete permission as well.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -13376,8 +13433,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a deployment environment.
+        /// Retire an environment or reinstate one.
         /// </summary>
+        /// <remarks>
+        /// **Retire rather than delete** unless the user explicitly wants the history gone: deleting an environment takes every deployment into it with it, while retiring keeps them.
+        /// <br/>
+        /// <br/>A retired environment is no longer offered as a deployment target, but it and every deployment recorded against it are kept, and those deployments keep counting toward the measures they already count toward. Editing and reclassifying are refused on a retired environment, so reinstate it first if you need to change it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetActiveAsync(System.Guid id, SetDeploymentEnvironmentActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -13598,47 +13660,52 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of deployments.
+        /// List deployments, most recently started first.
         /// </summary>
         /// <remarks>
-        /// Most recently started first.
+        /// Each carries either a version or a package, never both. Filtering by environment category is how to scope to production, because environment *names* are free text and endlessly varied (`prod`, `Production`, `prd`, `live`) while the category is fixed.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentDto>> GetDeploymentsAsync(System.Guid? versionId = null, System.Guid? packageId = null, System.Guid? environmentId = null, EnvironmentCategory? environmentCategory = null, System.DateTimeOffset? startedOnOrAfter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Start a deployment.
+        /// Record a deployment beginning.
         /// </summary>
         /// <remarks>
-        /// Carries either a version or a package, never both and never neither. Where a package exists it is the unit that shipped, so one pipeline run counts once rather than once per component. Only an active environment is accepted, and leaving the start time empty records it as starting now.
+        /// **Supply exactly one of versionId or packageId — never both, never neither.** The request is refused otherwise. Where a package exists it is the unit that shipped, so deploy the package rather than each component version: one pipeline run counts once, not once per service.
+        /// <br/>
+        /// <br/>Only an **active** environment is accepted. Leaving `startedAt` empty records the deployment as starting now, which is what a pipeline reporting in real time would do. The artifact identifier is the build that actually shipped — `4.8.2.008` where the version number is `4.8.2` — and two builds of one version are two deployments.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> StartAsync(StartDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get deployment details.
+        /// Get one deployment in full — what it carried, the environment it reached, its frozen environment category, its artifact identifier and its outcome.
         /// </summary>
         /// <remarks>
-        /// Accepts the deployment's id or its short key.
+        /// Accepts the deployment's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<DeploymentDto> GetDeploymentAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the deployment.
+        /// Get a deployment's activity history, newest first: when it started and its outcome — succeeded, failed or rolled back.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a deployment's status change history.
+        /// Get a deployment's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -13657,6 +13724,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Record that a deployment reached its environment.
         /// </summary>
+        /// <remarks>
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SucceedAsync(System.Guid id, SucceedDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -13665,27 +13735,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment did not reach its environment.
         /// </summary>
         /// <remarks>
-        /// Counts toward change failure rate only in production.
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task FailAsync(System.Guid id, FailDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a deployment.
+        /// Permanently delete a deployment and its status history.
         /// </summary>
         /// <remarks>
-        /// Permanent: removes the deployment and its status history, and the delivery measures stop counting it.
+        /// Allowed in any state. **The delivery measures and rollout stop counting it**, so this is for a deployment recorded by mistake or for purging a retired product's history — a deployment that really failed or was rolled back must be recorded with `Deployments_Fail` or `Deployments_RollBack` instead. Needs the delivery Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that a deployment was reverted.
+        /// Record that a deployment reached its environment and was then reverted.
         /// </summary>
         /// <remarks>
-        /// Permitted only from a succeeded deployment.
+        /// Offered only for a deployment that succeeded: one still in flight, failed, or already rolled back is refused. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RollBackAsync(System.Guid id, RollBackDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -13742,10 +13812,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of deployments.
+        /// List deployments, most recently started first.
         /// </summary>
         /// <remarks>
-        /// Most recently started first.
+        /// Each carries either a version or a package, never both. Filtering by environment category is how to scope to production, because environment *names* are free text and endlessly varied (`prod`, `Production`, `prd`, `live`) while the category is fixed.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentDto>> GetDeploymentsAsync(System.Guid? versionId = null, System.Guid? packageId = null, System.Guid? environmentId = null, EnvironmentCategory? environmentCategory = null, System.DateTimeOffset? startedOnOrAfter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -13850,10 +13920,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Start a deployment.
+        /// Record a deployment beginning.
         /// </summary>
         /// <remarks>
-        /// Carries either a version or a package, never both and never neither. Where a package exists it is the unit that shipped, so one pipeline run counts once rather than once per component. Only an active environment is accepted, and leaving the start time empty records it as starting now.
+        /// **Supply exactly one of versionId or packageId — never both, never neither.** The request is refused otherwise. Where a package exists it is the unit that shipped, so deploy the package rather than each component version: one pipeline run counts once, not once per service.
+        /// <br/>
+        /// <br/>Only an **active** environment is accepted. Leaving `startedAt` empty records the deployment as starting now, which is what a pipeline reporting in real time would do. The artifact identifier is the build that actually shipped — `4.8.2.008` where the version number is `4.8.2` — and two builds of one version are two deployments.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> StartAsync(StartDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -13943,10 +14015,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get deployment details.
+        /// Get one deployment in full — what it carried, the environment it reached, its frozen environment category, its artifact identifier and its outcome.
         /// </summary>
         /// <remarks>
-        /// Accepts the deployment's id or its short key.
+        /// Accepts the deployment's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<DeploymentDto> GetDeploymentAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -14033,8 +14105,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the deployment.
+        /// Get a deployment's activity history, newest first: when it started and its outcome — succeeded, failed or rolled back.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -14131,10 +14206,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a deployment's status change history.
+        /// Get a deployment's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -14365,6 +14440,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Record that a deployment reached its environment.
         /// </summary>
+        /// <remarks>
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SucceedAsync(System.Guid id, SucceedDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -14455,7 +14533,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment did not reach its environment.
         /// </summary>
         /// <remarks>
-        /// Counts toward change failure rate only in production.
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task FailAsync(System.Guid id, FailDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -14544,10 +14622,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a deployment.
+        /// Permanently delete a deployment and its status history.
         /// </summary>
         /// <remarks>
-        /// Permanent: removes the deployment and its status history, and the delivery measures stop counting it.
+        /// Allowed in any state. **The delivery measures and rollout stop counting it**, so this is for a deployment recorded by mistake or for purging a retired product's history — a deployment that really failed or was rolled back must be recorded with `Deployments_Fail` or `Deployments_RollBack` instead. Needs the delivery Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -14628,10 +14706,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that a deployment was reverted.
+        /// Record that a deployment reached its environment and was then reverted.
         /// </summary>
         /// <remarks>
-        /// Permitted only from a succeeded deployment.
+        /// Offered only for a deployment that succeeded: one still in flight, failed, or already rolled back is refused. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RollBackAsync(System.Guid id, RollBackDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -14853,51 +14931,66 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of products.
+        /// List products from the catalog, ordered by name.
         /// </summary>
+        /// <remarks>
+        /// Returns a **flat list, not a tree** — each product carries its parent as a reference, so build the hierarchy client-side.
+        /// <br/>
+        /// <br/>Two filter behaviours worth knowing. `parentId` matches **direct children only**, not a whole subtree, and there is no way to ask for root nodes: omitting it returns everything rather than only roots. `tagId` is repeatable and combines as **AND, not OR** — passing a Platform tag and a Compliance tag returns products carrying both.
+        /// <br/>
+        /// <br/>Each product reports `isReleasable`, flattened from its type, which is what decides whether versions can be cut against it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductDto>> GetProductsAsync(System.Guid? parentId = null, System.Guid? productTypeId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Collections.Generic.IEnumerable<System.Guid>? tagId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a product.
+        /// Add a product to the catalog.
         /// </summary>
+        /// <remarks>
+        /// The **type** decides what the node can do — most consequentially whether versions can be cut against it — and must be an active type. Omit the parent to create a root node.
+        /// <br/>
+        /// <br/>The external identifier is the node's id in whatever system owns it: a repository, a pipeline, a registry package. Capturing it now makes reconciling against a later automated feed a matching problem rather than a re-authoring one.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get product details.
+        /// Get one product in full — its type, parent, status, tags, external identifier, and whether its type allows versions to be cut against it.
         /// </summary>
         /// <remarks>
-        /// Accepts the product's id or its short key.
+        /// Accepts the product's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProductDto> GetProductAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the product.
+        /// Get a product's activity history, newest first: every change recorded on the product — details, type, parent, status, tags and external link — plus a child product moving in or out, listed as a related entry raised on that child.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a product's status change history.
+        /// Get a product's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the statuses a product can be moved to.
+        /// Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.
         /// </summary>
         /// <remarks>
-        /// From the workflow governing products, in the order an administrator laid it out.
+        /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused. The same list serves every product, so one call covers them all.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -14918,29 +15011,53 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a product.
+        /// Update a product's name and description.
         /// </summary>
+        /// <remarks>
+        /// **This is a whole-record overwrite of those two fields: an omitted description is cleared.**
+        /// <br/>
+        /// <br/>Only the name and description. Type, parent, status, tags and the external link each have their own tool, because each carries a rule this one does not — and keeping the external link out means a rename cannot silently clear it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a product.
+        /// Permanently delete a product.
         /// </summary>
+        /// <remarks>
+        /// **This is a hard delete, not a retirement.** Consider changing the status instead if the product merely stopped being current. It takes its status history with it; its activity history is kept.
+        /// <br/>
+        /// <br/>Refused while anything depends on it, each with its own reason: it has **child products** (move or remove them first), it has **versions**, it appears in a **release package manifest**, or it is named on **either end of a product dependency**. The manifest check is separate from versions because a carried-forward manifest line often names a product with no version row at all. The dependency check counts **ended** dependencies too — deleting the product would erase the record of what relied on it.
+        /// <br/>
+        /// <br/>Tag assignments are removed with the product. Status does not block deletion.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Link a product to the record that owns it in another system.
+        /// Set or clear a product's identifier in the system that owns it — a repository, a pipeline, a registry package.
         /// </summary>
+        /// <remarks>
+        /// Omitting the value unlinks; there is no separate unlink tool. Free text, max 256 characters, and **not required to be unique**: two products may carry the same identifier.
+        /// <br/>
+        /// <br/>This is separate from the ordinary update because it answers a different question — not what the product is called, but which external record it corresponds to — and keeping it apart stops a rename from silently clearing it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task LinkExternallyAsync(System.Guid id, LinkProductExternallyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Move a product to a different parent.
+        /// Move a product to a different parent, or to the root by omitting the parent.
         /// </summary>
+        /// <remarks>
+        /// **Refused if the new parent is the product itself or one of its own descendants** — that would make a cycle. Any type may parent any other; there are no allowed-parent rules.
+        /// <br/>
+        /// <br/>**Also refused when the move would put two products with an open dependency between them above and below one another** — that relationship is composition, which the tree already records. End the dependency first (`Products_EndDependency`).
+        /// <br/>
+        /// <br/>The move is listed in the activity history of the product and of both its old and new parent.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ReparentAsync(System.Guid id, ReparentProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -14948,6 +15065,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change a product's type.
         /// </summary>
+        /// <remarks>
+        /// **Refused if the product has versions and the new type is not releasable** — the versions already cut against it would be left hanging off a node that cannot carry them. The target type must be active, unless it is the type the product already has.
+        /// <br/>
+        /// <br/>Note this is gated on *versions*, not releases: releasability asks whether an artifact can be cut against a node, and a release is an announcement that may sit under any node.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RetypeAsync(System.Guid id, RetypeProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -14955,13 +15077,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Move a product to a different status.
         /// </summary>
+        /// <remarks>
+        /// **Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.
+        /// <br/>
+        /// <br/>Any status in the product workflow is reachable from any other; there is no transition graph. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ChangeStatusAsync(System.Guid id, ChangeProductStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Tag a product.
+        /// Apply a tag to a product.
         /// </summary>
+        /// <remarks>
+        /// Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.
+        /// <br/>
+        /// <br/>**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.
+        /// <br/>
+        /// <br/>Both the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task TagAsync(System.Guid id, System.Guid tagId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -14969,15 +15103,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Remove a tag from a product.
         /// </summary>
+        /// <remarks>
+        /// Succeeds whether or not the product carried it, and an inactive tag can still be removed.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UntagAsync(System.Guid id, System.Guid tagId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what a product depends on and what depends on it.
+        /// Get what a product depends on (`dependsOn`) and what depends on it (`usedBy`).
         /// </summary>
         /// <remarks>
-        /// Rolled up across everything beneath the product: a link from a child to an outside product appears under Depends on, and a link inside the product's own subtree appears in neither list. Ended dependencies are left out unless requested.
+        /// Accepts the product's UUID or its short key.
+        /// <br/>
+        /// <br/>**Rolled up across everything beneath the product.** A link from one of its children to an outside product appears under `dependsOn`, and a link with both ends inside the product's own subtree appears in **neither** list — from outside, that is the product depending on itself. So reading a product line answers "what does this line rely on from elsewhere", and reading a leaf service answers it for that service alone.
+        /// <br/>
+        /// <br/>Each entry carries both ends whichever list it is in — `product` (the one with the dependency) and `dependsOnProduct` — so a rolled-up row says which descendant it starts or lands on. `productPath` and `dependsOnProductPath` give each end's full ancestry, root first, down to its parent. Also `strength` (1 Hard: stops working without it; 2 Soft: degrades but keeps working), `description`, `startsOn`, and `endsOn` (null while it still holds).
+        /// <br/>
+        /// <br/>`interactionStyles` lists how the product reaches the one it depends on — `Synchronous`, `Asynchronous`, or both. It refines `strength`: a Hard **synchronous** dependency caps the consumer's availability at the provider's, while a Hard **asynchronous** one turns the provider's downtime into a backlog the consumer works through afterwards. **`null` means nobody has recorded them, not that there are none** — do not read it as evidence either way.
+        /// <br/>
+        /// <br/>Ended dependencies are left out unless `includeEnded` is true. An empty answer means no dependency has been recorded, not that none exists — they are entered by hand or by import.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProductDependenciesDto> GetDependenciesAsync(string idOrKey, bool? includeEnded = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -14987,17 +15132,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a product depends on another.
         /// </summary>
         /// <remarks>
-        /// Returns the new dependency's id. A product can hold one open dependency on another product, and a later one on the same product cannot overlap an earlier one.
+        /// Returns the new dependency's id.
+        /// <br/>
+        /// <br/>Record the **most specific product known** — the service that makes the call, not the platform it belongs to — since the read side rolls links up to every ancestor anyway. A product cannot depend on itself, nor on anything above or below it in the tree: that is composition, which the tree already records.
+        /// <br/>
+        /// <br/>**Strength has no default and must be chosen deliberately**: 1 Hard if the product stops working without it, 2 Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
+        /// <br/>
+        /// <br/>`interactionStyles` says how the product reaches it — `Synchronous`, `Asynchronous`, or both, since a pair commonly calls for what it needs now and subscribes for what it needs eventually. Unlike strength it has no requirement to be set, but leaving it out records nothing rather than recording that there are none, so supply it when the person has said.
+        /// <br/>
+        /// <br/>A product holds at most one open dependency on another product, and a later one on the same pair cannot overlap an earlier one. `startsOn` defaults to today, may be backdated, and cannot be in the future.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Guid> AddDependencyAsync(System.Guid id, AddProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Reword what a product's dependency is for.
+        /// Reword what a product's dependency is for, and record its interaction styles where none have been recorded.
         /// </summary>
         /// <remarks>
-        /// Allowed on an ended dependency.
+        /// Terms and dates each have their own tool. Allowed on an ended dependency, since both describe the dependency rather than asserting anything about when it held.
+        /// <br/>
+        /// <br/>**An omitted description is cleared, but omitted `interactionStyles` are left alone.** The asymmetry is deliberate: a description is prose somebody may want emptied, whereas styles are read when downtime is attributed, and omitting the field would otherwise erase them.
+        /// <br/>
+        /// <br/>**This tool only fills a blank.** Changing styles already recorded is refused — that is a change of terms, which has to be dated, so use `Products_ChangeDependencyTerms`.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateDependencyAsync(System.Guid id, System.Guid dependencyId, UpdateProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -15007,27 +15164,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a product stopped depending on another.
         /// </summary>
         /// <remarks>
-        /// The dependency is kept and still counts for the period it held. Use remove only for a dependency that was never true.
+        /// **The dependency is kept** and still counts for the period it held — this is the right tool when a dependency was true and no longer is. Use `Products_RemoveDependency` only for one that was never true.
+        /// <br/>
+        /// <br/>`endsOn` is the last day it held: defaults to today, may be the day it started, and cannot be in the future.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task EndDependencyAsync(System.Guid id, System.Guid dependencyId, EndProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change the terms a product's dependency holds on.
+        /// Change the terms a product's dependency holds on — its strength, how the product reaches it, or both.
         /// </summary>
         /// <remarks>
-        /// Ends the dependency and records a new one on the new terms, and returns the id of the dependency now open. Unchanged when the terms already match. Recording interaction styles on a dependency that had none fills them in place and returns the same id.
+        /// **This ends the current dependency and records a new one** on the new terms, so the history keeps when each set of terms held — and the response is the id of the dependency **now open**, which replaces the one you passed. Unchanged when the terms already match.
+        /// <br/>
+        /// <br/>**`strength` is required and is the whole record's strength, not a delta.** Passing only `interactionStyles` still needs the current strength repeated, or you will silently change it.
+        /// <br/>
+        /// <br/>**Omitted `interactionStyles` carry the recorded ones onto the new dependency** rather than clearing them.
+        /// <br/>
+        /// <br/>Recording styles on a dependency that had none is the exception: nothing about the dependency changed, somebody finally wrote down how it had always worked, so it fills them in place, returns the **same** id, and `changedOn` is ignored. Dating that would split the period on a day nothing happened.
+        /// <br/>
+        /// <br/>`changedOn` is the first day the new terms hold; the current dependency ends the day before. Defaults to today, must be after the day the dependency started, and cannot be in the future.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Guid> ChangeDependencyTermsAsync(System.Guid id, System.Guid dependencyId, ChangeProductDependencyTermsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a dependency recorded by mistake.
+        /// **Delete** a dependency that was recorded by mistake.
         /// </summary>
         /// <remarks>
-        /// Requires a reason. Not for a dependency that stopped — end it instead, which keeps the history of when it held.
+        /// Requires a reason saying why it was never true. Not for a dependency that stopped — `Products_EndDependency` keeps the history of when it held, and this erases it.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RemoveDependencyAsync(System.Guid id, System.Guid dependencyId, RemoveProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -15084,8 +15251,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of products.
+        /// List products from the catalog, ordered by name.
         /// </summary>
+        /// <remarks>
+        /// Returns a **flat list, not a tree** — each product carries its parent as a reference, so build the hierarchy client-side.
+        /// <br/>
+        /// <br/>Two filter behaviours worth knowing. `parentId` matches **direct children only**, not a whole subtree, and there is no way to ask for root nodes: omitting it returns everything rather than only roots. `tagId` is repeatable and combines as **AND, not OR** — passing a Platform tag and a Compliance tag returns products carrying both.
+        /// <br/>
+        /// <br/>Each product reports `isReleasable`, flattened from its type, which is what decides whether versions can be cut against it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductDto>> GetProductsAsync(System.Guid? parentId = null, System.Guid? productTypeId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Collections.Generic.IEnumerable<System.Guid>? tagId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -15185,8 +15359,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a product.
+        /// Add a product to the catalog.
         /// </summary>
+        /// <remarks>
+        /// The **type** decides what the node can do — most consequentially whether versions can be cut against it — and must be an active type. Omit the parent to create a root node.
+        /// <br/>
+        /// <br/>The external identifier is the node's id in whatever system owns it: a repository, a pipeline, a registry package. Capturing it now makes reconciling against a later automated feed a matching problem rather than a re-authoring one.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -15275,10 +15454,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get product details.
+        /// Get one product in full — its type, parent, status, tags, external identifier, and whether its type allows versions to be cut against it.
         /// </summary>
         /// <remarks>
-        /// Accepts the product's id or its short key.
+        /// Accepts the product's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProductDto> GetProductAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -15365,8 +15544,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the product.
+        /// Get a product's activity history, newest first: every change recorded on the product — details, type, parent, status, tags and external link — plus a child product moving in or out, listed as a related entry raised on that child.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -15463,10 +15645,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a product's status change history.
+        /// Get a product's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -15564,10 +15746,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the statuses a product can be moved to.
+        /// Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.
         /// </summary>
         /// <remarks>
-        /// From the workflow governing products, in the order an administrator laid it out.
+        /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused. The same list serves every product, so one call covers them all.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -15896,8 +16078,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a product.
+        /// Update a product's name and description.
         /// </summary>
+        /// <remarks>
+        /// **This is a whole-record overwrite of those two fields: an omitted description is cleared.**
+        /// <br/>
+        /// <br/>Only the name and description. Type, parent, status, tags and the external link each have their own tool, because each carries a rule this one does not — and keeping the external link out means a rename cannot silently clear it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -15994,8 +16181,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a product.
+        /// Permanently delete a product.
         /// </summary>
+        /// <remarks>
+        /// **This is a hard delete, not a retirement.** Consider changing the status instead if the product merely stopped being current. It takes its status history with it; its activity history is kept.
+        /// <br/>
+        /// <br/>Refused while anything depends on it, each with its own reason: it has **child products** (move or remove them first), it has **versions**, it appears in a **release package manifest**, or it is named on **either end of a product dependency**. The manifest check is separate from versions because a carried-forward manifest line often names a product with no version row at all. The dependency check counts **ended** dependencies too — deleting the product would erase the record of what relied on it.
+        /// <br/>
+        /// <br/>Tag assignments are removed with the product. Status does not block deletion.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16075,8 +16269,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Link a product to the record that owns it in another system.
+        /// Set or clear a product's identifier in the system that owns it — a repository, a pipeline, a registry package.
         /// </summary>
+        /// <remarks>
+        /// Omitting the value unlinks; there is no separate unlink tool. Free text, max 256 characters, and **not required to be unique**: two products may carry the same identifier.
+        /// <br/>
+        /// <br/>This is separate from the ordinary update because it answers a different question — not what the product is called, but which external record it corresponds to — and keeping it apart stops a rename from silently clearing it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task LinkExternallyAsync(System.Guid id, LinkProductExternallyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16174,8 +16373,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Move a product to a different parent.
+        /// Move a product to a different parent, or to the root by omitting the parent.
         /// </summary>
+        /// <remarks>
+        /// **Refused if the new parent is the product itself or one of its own descendants** — that would make a cycle. Any type may parent any other; there are no allowed-parent rules.
+        /// <br/>
+        /// <br/>**Also refused when the move would put two products with an open dependency between them above and below one another** — that relationship is composition, which the tree already records. End the dependency first (`Products_EndDependency`).
+        /// <br/>
+        /// <br/>The move is listed in the activity history of the product and of both its old and new parent.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ReparentAsync(System.Guid id, ReparentProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16275,6 +16481,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change a product's type.
         /// </summary>
+        /// <remarks>
+        /// **Refused if the product has versions and the new type is not releasable** — the versions already cut against it would be left hanging off a node that cannot carry them. The target type must be active, unless it is the type the product already has.
+        /// <br/>
+        /// <br/>Note this is gated on *versions*, not releases: releasability asks whether an artifact can be cut against a node, and a release is an announcement that may sit under any node.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RetypeAsync(System.Guid id, RetypeProductRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16374,6 +16585,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Move a product to a different status.
         /// </summary>
+        /// <remarks>
+        /// **Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.
+        /// <br/>
+        /// <br/>Any status in the product workflow is reachable from any other; there is no transition graph. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ChangeStatusAsync(System.Guid id, ChangeProductStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16471,8 +16687,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Tag a product.
+        /// Apply a tag to a product.
         /// </summary>
+        /// <remarks>
+        /// Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.
+        /// <br/>
+        /// <br/>**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.
+        /// <br/>
+        /// <br/>Both the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task TagAsync(System.Guid id, System.Guid tagId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16560,6 +16783,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Remove a tag from a product.
         /// </summary>
+        /// <remarks>
+        /// Succeeds whether or not the product carried it, and an inactive tag can still be removed.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UntagAsync(System.Guid id, System.Guid tagId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16644,10 +16870,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what a product depends on and what depends on it.
+        /// Get what a product depends on (`dependsOn`) and what depends on it (`usedBy`).
         /// </summary>
         /// <remarks>
-        /// Rolled up across everything beneath the product: a link from a child to an outside product appears under Depends on, and a link inside the product's own subtree appears in neither list. Ended dependencies are left out unless requested.
+        /// Accepts the product's UUID or its short key.
+        /// <br/>
+        /// <br/>**Rolled up across everything beneath the product.** A link from one of its children to an outside product appears under `dependsOn`, and a link with both ends inside the product's own subtree appears in **neither** list — from outside, that is the product depending on itself. So reading a product line answers "what does this line rely on from elsewhere", and reading a leaf service answers it for that service alone.
+        /// <br/>
+        /// <br/>Each entry carries both ends whichever list it is in — `product` (the one with the dependency) and `dependsOnProduct` — so a rolled-up row says which descendant it starts or lands on. `productPath` and `dependsOnProductPath` give each end's full ancestry, root first, down to its parent. Also `strength` (1 Hard: stops working without it; 2 Soft: degrades but keeps working), `description`, `startsOn`, and `endsOn` (null while it still holds).
+        /// <br/>
+        /// <br/>`interactionStyles` lists how the product reaches the one it depends on — `Synchronous`, `Asynchronous`, or both. It refines `strength`: a Hard **synchronous** dependency caps the consumer's availability at the provider's, while a Hard **asynchronous** one turns the provider's downtime into a backlog the consumer works through afterwards. **`null` means nobody has recorded them, not that there are none** — do not read it as evidence either way.
+        /// <br/>
+        /// <br/>Ended dependencies are left out unless `includeEnded` is true. An empty answer means no dependency has been recorded, not that none exists — they are entered by hand or by import.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProductDependenciesDto> GetDependenciesAsync(string idOrKey, bool? includeEnded = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -16744,7 +16978,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a product depends on another.
         /// </summary>
         /// <remarks>
-        /// Returns the new dependency's id. A product can hold one open dependency on another product, and a later one on the same product cannot overlap an earlier one.
+        /// Returns the new dependency's id.
+        /// <br/>
+        /// <br/>Record the **most specific product known** — the service that makes the call, not the platform it belongs to — since the read side rolls links up to every ancestor anyway. A product cannot depend on itself, nor on anything above or below it in the tree: that is composition, which the tree already records.
+        /// <br/>
+        /// <br/>**Strength has no default and must be chosen deliberately**: 1 Hard if the product stops working without it, 2 Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
+        /// <br/>
+        /// <br/>`interactionStyles` says how the product reaches it — `Synchronous`, `Asynchronous`, or both, since a pair commonly calls for what it needs now and subscribes for what it needs eventually. Unlike strength it has no requirement to be set, but leaving it out records nothing rather than recording that there are none, so supply it when the person has said.
+        /// <br/>
+        /// <br/>A product holds at most one open dependency on another product, and a later one on the same pair cannot overlap an earlier one. `startsOn` defaults to today, may be backdated, and cannot be in the future.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Guid> AddDependencyAsync(System.Guid id, AddProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -16849,10 +17091,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Reword what a product's dependency is for.
+        /// Reword what a product's dependency is for, and record its interaction styles where none have been recorded.
         /// </summary>
         /// <remarks>
-        /// Allowed on an ended dependency.
+        /// Terms and dates each have their own tool. Allowed on an ended dependency, since both describe the dependency rather than asserting anything about when it held.
+        /// <br/>
+        /// <br/>**An omitted description is cleared, but omitted `interactionStyles` are left alone.** The asymmetry is deliberate: a description is prose somebody may want emptied, whereas styles are read when downtime is attributed, and omitting the field would otherwise erase them.
+        /// <br/>
+        /// <br/>**This tool only fills a blank.** Changing styles already recorded is refused — that is a change of terms, which has to be dated, so use `Products_ChangeDependencyTerms`.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateDependencyAsync(System.Guid id, System.Guid dependencyId, UpdateProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -16958,7 +17204,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a product stopped depending on another.
         /// </summary>
         /// <remarks>
-        /// The dependency is kept and still counts for the period it held. Use remove only for a dependency that was never true.
+        /// **The dependency is kept** and still counts for the period it held — this is the right tool when a dependency was true and no longer is. Use `Products_RemoveDependency` only for one that was never true.
+        /// <br/>
+        /// <br/>`endsOn` is the last day it held: defaults to today, may be the day it started, and cannot be in the future.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task EndDependencyAsync(System.Guid id, System.Guid dependencyId, EndProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -17052,10 +17300,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change the terms a product's dependency holds on.
+        /// Change the terms a product's dependency holds on — its strength, how the product reaches it, or both.
         /// </summary>
         /// <remarks>
-        /// Ends the dependency and records a new one on the new terms, and returns the id of the dependency now open. Unchanged when the terms already match. Recording interaction styles on a dependency that had none fills them in place and returns the same id.
+        /// **This ends the current dependency and records a new one** on the new terms, so the history keeps when each set of terms held — and the response is the id of the dependency **now open**, which replaces the one you passed. Unchanged when the terms already match.
+        /// <br/>
+        /// <br/>**`strength` is required and is the whole record's strength, not a delta.** Passing only `interactionStyles` still needs the current strength repeated, or you will silently change it.
+        /// <br/>
+        /// <br/>**Omitted `interactionStyles` carry the recorded ones onto the new dependency** rather than clearing them.
+        /// <br/>
+        /// <br/>Recording styles on a dependency that had none is the exception: nothing about the dependency changed, somebody finally wrote down how it had always worked, so it fills them in place, returns the **same** id, and `changedOn` is ignored. Dating that would split the period on a day nothing happened.
+        /// <br/>
+        /// <br/>`changedOn` is the first day the new terms hold; the current dependency ends the day before. Defaults to today, must be after the day the dependency started, and cannot be in the future.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Guid> ChangeDependencyTermsAsync(System.Guid id, System.Guid dependencyId, ChangeProductDependencyTermsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -17165,10 +17421,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a dependency recorded by mistake.
+        /// **Delete** a dependency that was recorded by mistake.
         /// </summary>
         /// <remarks>
-        /// Requires a reason. Not for a dependency that stopped — end it instead, which keeps the history of when it held.
+        /// Requires a reason saying why it was never true. Not for a dependency that stopped — `Products_EndDependency` keeps the history of when it held, and this erases it.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RemoveDependencyAsync(System.Guid id, System.Guid dependencyId, RemoveProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -17405,39 +17661,57 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of tag categories and their tags.
+        /// List the tag categories and the tags in each.
         /// </summary>
+        /// <remarks>
+        /// **Call this before Products_Tag**, which needs a tag UUID.
+        /// <br/>
+        /// <br/>A category is an axis — Platform, Tech Stack, Compliance — and its `allowsMany` flag decides how tagging behaves. On an axis where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.
+        /// <br/>
+        /// <br/>Only active tags in active categories can be applied.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTagCategoryDto>> GetProductTagCategoriesAsync(bool? isActive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a tag category.
+        /// Create a tag category — an axis such as Platform, Tech Stack or Compliance.
         /// </summary>
+        /// <remarks>
+        /// **`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags on this axis, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProductTagCategoryRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a tag category.
+        /// Rename a tag category or change its description.
         /// </summary>
+        /// <remarks>
+        /// **An omitted description is cleared.** `allowsMany` is not here and cannot be changed after creation. Refused on a seeded system category. Names must stay unique.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProductTagCategoryRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an unused tag category.
+        /// Delete a tag category and its tags.
         /// </summary>
         /// <remarks>
-        /// An axis products are tagged along must be deactivated instead.
+        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged along it, so this only removes an axis created by mistake and never applied.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a tag category.
+        /// Take a tag category out of use, or put it back.
         /// </summary>
+        /// <remarks>
+        /// Tags on an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.
+        /// <br/>
+        /// <br/>As with product types, this **is** allowed on a seeded system category, unlike editing.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetActiveAsync(System.Guid id, SetProductTagCategoryActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -17446,7 +17720,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Put the tag categories in a given order.
         /// </summary>
         /// <remarks>
-        /// Takes the whole set, not a subset.
+        /// **The list must name every category exactly once** — a partial list is refused, so read them all first and send the complete sequence. Ordering is presentation only.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ReorderAsync(ReorderProductTagCategoriesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -17455,33 +17729,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Add a tag to a category.
         /// </summary>
+        /// <remarks>
+        /// Tag names must be unique within their axis, though the same name may appear on different axes. Refused on a seeded system category.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Guid> AddTagAsync(System.Guid id, AddProductTagRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Rename a tag.
+        /// Rename a tag or change its description.
         /// </summary>
         /// <remarks>
-        /// Safe on a tag in use: products reference it by id.
+        /// **An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the axis. Refused on a seeded system category.
+        /// <br/>
+        /// <br/>Renaming does not rewrite history: a product carrying the tag simply reports the new name.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RenameTagAsync(System.Guid id, System.Guid tagId, RenameProductTagRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an unused tag.
+        /// Permanently delete a tag.
         /// </summary>
         /// <remarks>
-        /// A tag products carry must be deactivated instead.
+        /// The tag must belong to the category named in the path. Refused on a seeded system category, and refused while any product carries the tag — deactivate it with `ProductTagCategories_SetTagActive` instead, which stops new use without stripping it from the products that have it. The `productCount` on each tag from `ProductTagCategories_GetProductTagCategories` says whether it is in use.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteTagAsync(System.Guid id, System.Guid tagId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a tag.
+        /// Take a tag out of use, or put it back.
         /// </summary>
+        /// <remarks>
+        /// An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.
+        /// <br/>
+        /// <br/>**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole axis with `ProductTagCategories_SetActive` if it should stop being used.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetTagActiveAsync(System.Guid id, System.Guid tagId, SetProductTagActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -17537,8 +17821,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of tag categories and their tags.
+        /// List the tag categories and the tags in each.
         /// </summary>
+        /// <remarks>
+        /// **Call this before Products_Tag**, which needs a tag UUID.
+        /// <br/>
+        /// <br/>A category is an axis — Platform, Tech Stack, Compliance — and its `allowsMany` flag decides how tagging behaves. On an axis where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.
+        /// <br/>
+        /// <br/>Only active tags in active categories can be applied.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTagCategoryDto>> GetProductTagCategoriesAsync(bool? isActive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -17626,8 +17917,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a tag category.
+        /// Create a tag category — an axis such as Platform, Tech Stack or Compliance.
         /// </summary>
+        /// <remarks>
+        /// **`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags on this axis, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProductTagCategoryRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -17716,8 +18010,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a tag category.
+        /// Rename a tag category or change its description.
         /// </summary>
+        /// <remarks>
+        /// **An omitted description is cleared.** `allowsMany` is not here and cannot be changed after creation. Refused on a seeded system category. Names must stay unique.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProductTagCategoryRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -17814,10 +18111,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an unused tag category.
+        /// Delete a tag category and its tags.
         /// </summary>
         /// <remarks>
-        /// An axis products are tagged along must be deactivated instead.
+        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged along it, so this only removes an axis created by mistake and never applied.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -17898,8 +18195,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a tag category.
+        /// Take a tag category out of use, or put it back.
         /// </summary>
+        /// <remarks>
+        /// Tags on an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.
+        /// <br/>
+        /// <br/>As with product types, this **is** allowed on a seeded system category, unlike editing.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetActiveAsync(System.Guid id, SetProductTagCategoryActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -18000,7 +18302,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Put the tag categories in a given order.
         /// </summary>
         /// <remarks>
-        /// Takes the whole set, not a subset.
+        /// **The list must name every category exactly once** — a partial list is refused, so read them all first and send the complete sequence. Ordering is presentation only.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ReorderAsync(ReorderProductTagCategoriesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -18096,6 +18398,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Add a tag to a category.
         /// </summary>
+        /// <remarks>
+        /// Tag names must be unique within their axis, though the same name may appear on different axes. Refused on a seeded system category.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Guid> AddTagAsync(System.Guid id, AddProductTagRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -18199,10 +18504,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Rename a tag.
+        /// Rename a tag or change its description.
         /// </summary>
         /// <remarks>
-        /// Safe on a tag in use: products reference it by id.
+        /// **An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the axis. Refused on a seeded system category.
+        /// <br/>
+        /// <br/>Renaming does not rewrite history: a product carrying the tag simply reports the new name.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RenameTagAsync(System.Guid id, System.Guid tagId, RenameProductTagRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -18305,10 +18612,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an unused tag.
+        /// Permanently delete a tag.
         /// </summary>
         /// <remarks>
-        /// A tag products carry must be deactivated instead.
+        /// The tag must belong to the category named in the path. Refused on a seeded system category, and refused while any product carries the tag — deactivate it with `ProductTagCategories_SetTagActive` instead, which stops new use without stripping it from the products that have it. The `productCount` on each tag from `ProductTagCategories_GetProductTagCategories` says whether it is in use.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteTagAsync(System.Guid id, System.Guid tagId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -18394,8 +18701,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a tag.
+        /// Take a tag out of use, or put it back.
         /// </summary>
+        /// <remarks>
+        /// An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.
+        /// <br/>
+        /// <br/>**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole axis with `ProductTagCategories_SetActive` if it should stop being used.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetTagActiveAsync(System.Guid id, System.Guid tagId, SetProductTagActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -18621,15 +18933,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of product types.
+        /// List the product types an organization recognises, in the order an administrator arranged them.
         /// </summary>
+        /// <remarks>
+        /// **Call this before Products_Create or Products_Retype**, which both need a type UUID.
+        /// <br/>
+        /// <br/>The flag that matters is `isReleasable`: it decides whether versions can be cut against products of this type. A product line or a platform is typically not releasable; a service, application or library is. It also gates retyping — a product with versions cannot be moved to a type that is not releasable.
+        /// <br/>
+        /// <br/>Inactive types cannot be assigned to a product, though a product already carrying one keeps it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTypeDto>> GetProductTypesAsync(bool? isActive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a product type.
+        /// Define a product type.
         /// </summary>
+        /// <remarks>
+        /// **`isReleasable` is the consequential field** — it decides whether versions can be cut against products of this type, and it is what a product line or platform sets to false. Names must be unique. `order` is presentation only and implies no hierarchy.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProductTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -18637,23 +18959,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a product type.
         /// </summary>
+        /// <remarks>
+        /// **This is a whole-record overwrite, and `isReleasable` is required — so renaming a type means resending its current releasability, and sending the wrong value silently changes whether versions can be cut against every product of this type.** Read the type first.
+        /// <br/>
+        /// <br/>Refused on a seeded system type. Names must stay unique.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProductTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an unused product type.
+        /// Delete a product type.
         /// </summary>
         /// <remarks>
-        /// A type in use must be deactivated instead.
+        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A type is "in use" when any product carries it, so in practice this only removes a type created by mistake and never assigned.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a product type.
+        /// Take a product type out of use, or put it back.
         /// </summary>
+        /// <remarks>
+        /// A deactivated type cannot be assigned to a product, but products already using it keep resolving it — which is why this is deactivation rather than deletion.
+        /// <br/>
+        /// <br/>Unlike editing, this **is** allowed on a seeded system type: an organization that does not ship libraries should be able to hide that type without the seeder recreating it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetActiveAsync(System.Guid id, SetProductTypeActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -18709,8 +19041,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of product types.
+        /// List the product types an organization recognises, in the order an administrator arranged them.
         /// </summary>
+        /// <remarks>
+        /// **Call this before Products_Create or Products_Retype**, which both need a type UUID.
+        /// <br/>
+        /// <br/>The flag that matters is `isReleasable`: it decides whether versions can be cut against products of this type. A product line or a platform is typically not releasable; a service, application or library is. It also gates retyping — a product with versions cannot be moved to a type that is not releasable.
+        /// <br/>
+        /// <br/>Inactive types cannot be assigned to a product, though a product already carrying one keeps it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTypeDto>> GetProductTypesAsync(bool? isActive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -18798,8 +19137,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a product type.
+        /// Define a product type.
         /// </summary>
+        /// <remarks>
+        /// **`isReleasable` is the consequential field** — it decides whether versions can be cut against products of this type, and it is what a product line or platform sets to false. Names must be unique. `order` is presentation only and implies no hierarchy.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProductTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -18890,6 +19232,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a product type.
         /// </summary>
+        /// <remarks>
+        /// **This is a whole-record overwrite, and `isReleasable` is required — so renaming a type means resending its current releasability, and sending the wrong value silently changes whether versions can be cut against every product of this type.** Read the type first.
+        /// <br/>
+        /// <br/>Refused on a seeded system type. Names must stay unique.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProductTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -18986,10 +19333,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an unused product type.
+        /// Delete a product type.
         /// </summary>
         /// <remarks>
-        /// A type in use must be deactivated instead.
+        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A type is "in use" when any product carries it, so in practice this only removes a type created by mistake and never assigned.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -19070,8 +19417,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate or deactivate a product type.
+        /// Take a product type out of use, or put it back.
         /// </summary>
+        /// <remarks>
+        /// A deactivated type cannot be assigned to a product, but products already using it keep resolving it — which is why this is deactivation rather than deletion.
+        /// <br/>
+        /// <br/>Unlike editing, this **is** allowed on a seeded system type: an organization that does not ship libraries should be able to hide that type without the seeder recreating it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetActiveAsync(System.Guid id, SetProductTypeActiveRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -19302,47 +19654,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of release packages.
+        /// List release packages — coordinated shipments such as `WAYD-2026.09.1`.
         /// </summary>
         /// <remarks>
-        /// containingProductId matches any manifest line for that product; containingVersionId matches only the packages naming that exact release, which is what a release's own page needs.
+        /// Unreleased first, then the most recently released. Use `containingVersionId` to answer "what did this version ship in?": a version carries no pointer back to its package, so membership is read from the manifest side rather than duplicated.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Assemble a release package.
+        /// Assemble a package and its manifest together.
         /// </summary>
         /// <remarks>
-        /// A package is what moved through environments together, and it ships at least one component, so the manifest is authored here rather than added afterwards. A component may appear only once. Each line may name the version record it came from, which is what lets a release know that version is already inside a package; a carried-forward line naming a version never cut here holds its version as text instead.
+        /// **A package ships at least one component**, so the manifest is authored here rather than added afterwards — an empty one is refused. The package is versioned in its own right, separately from anything inside it. A component may appear only once in a manifest, though the same component version may appear in several different packages.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> AssembleAsync(AssembleReleasePackageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get release package details.
+        /// Get one package in full, including its complete manifest — every component version it shipped, and whether each changed or was carried forward.
         /// </summary>
         /// <remarks>
-        /// Accepts the package's id or its short key.
+        /// Accepts the package's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ReleasePackageDto> GetReleasePackageAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the release package.
+        /// Get a release package's activity history, newest first: its assembly, manifest amendments and status.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a release package's status change history.
+        /// Get a package's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -19359,50 +19714,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Replace a package's manifest.
+        /// Replace a package's manifest as a whole.
         /// </summary>
         /// <remarks>
-        /// Whole-manifest replacement, never incremental.
+        /// **This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetManifestAsync(System.Guid id, SetReleasePackageManifestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that a package shipped.
+        /// Record that a package shipped, and close its manifest.
         /// </summary>
         /// <remarks>
-        /// Closes the manifest: what was in the box cannot be rewritten after the box shipped. A package with an empty manifest cannot be released.
+        /// **A package with an empty manifest cannot be released.** This is not announcing anything to customers — that is Releases_MarkReleased on a release that carries this package.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkReleasePackageReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a package's recorded target date and released moment.
+        /// Fix a package's target date or released moment that was recorded wrongly.
         /// </summary>
         /// <remarks>
-        /// Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.
+        /// The status does not move and the status history is left untouched — that is the point of having this separate from ReleasePackages_MarkReleased, which asserts the package shipped and refuses to run twice. **Both values are sent, so an omitted target date is cleared.** The released moment can be changed on a released package but **cannot be cleared**, and **cannot be added to a package that has not been released** — use ReleasePackages_MarkReleased for that. The target date is a calendar date; the released moment is an instant, so send the CI/CD timestamp with its offset as-is — no conversion to a local date. Refused on a withdrawn package.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleasePackageDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a release package.
+        /// Permanently delete a package with its manifest, its status history and **every deployment of it**.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes its manifest, status history and every deployment of it. Refused while any release lists it. The versions it names are kept.
+        /// **Refused while any release lists it** — remove it with `Releases_SetContents` first; a released or withdrawn release's contents cannot change, so that release has to be deleted instead with `Releases_Delete`. The versions it names are separate records and are kept. The delivery measures and rollout stop counting those deployments. For a package assembled by mistake or when the user asks to purge history; otherwise withdraw it. Needs the delivery Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Withdraw a package.
+        /// Pull a package.
         /// </summary>
         /// <remarks>
-        /// The package is kept: deployments may reference it.
+        /// Terminal, and it closes the manifest. A released package can still be withdrawn; a withdrawn one cannot be released. Withdrawing keeps the package and every deployment of it — prefer it to `ReleasePackages_Delete`.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task WithdrawAsync(System.Guid id, WithdrawReleasePackageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -19459,10 +19814,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of release packages.
+        /// List release packages — coordinated shipments such as `WAYD-2026.09.1`.
         /// </summary>
         /// <remarks>
-        /// containingProductId matches any manifest line for that product; containingVersionId matches only the packages naming that exact release, which is what a release's own page needs.
+        /// Unreleased first, then the most recently released. Use `containingVersionId` to answer "what did this version ship in?": a version carries no pointer back to its package, so membership is read from the manifest side rather than duplicated.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -19559,10 +19914,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Assemble a release package.
+        /// Assemble a package and its manifest together.
         /// </summary>
         /// <remarks>
-        /// A package is what moved through environments together, and it ships at least one component, so the manifest is authored here rather than added afterwards. A component may appear only once. Each line may name the version record it came from, which is what lets a release know that version is already inside a package; a carried-forward line naming a version never cut here holds its version as text instead.
+        /// **A package ships at least one component**, so the manifest is authored here rather than added afterwards — an empty one is refused. The package is versioned in its own right, separately from anything inside it. A component may appear only once in a manifest, though the same component version may appear in several different packages.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> AssembleAsync(AssembleReleasePackageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -19652,10 +20007,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get release package details.
+        /// Get one package in full, including its complete manifest — every component version it shipped, and whether each changed or was carried forward.
         /// </summary>
         /// <remarks>
-        /// Accepts the package's id or its short key.
+        /// Accepts the package's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ReleasePackageDto> GetReleasePackageAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -19742,8 +20097,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the release package.
+        /// Get a release package's activity history, newest first: its assembly, manifest amendments and status.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -19840,10 +20198,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a release package's status change history.
+        /// Get a package's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20082,10 +20440,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Replace a package's manifest.
+        /// Replace a package's manifest as a whole.
         /// </summary>
         /// <remarks>
-        /// Whole-manifest replacement, never incremental.
+        /// **This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetManifestAsync(System.Guid id, SetReleasePackageManifestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20184,10 +20542,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that a package shipped.
+        /// Record that a package shipped, and close its manifest.
         /// </summary>
         /// <remarks>
-        /// Closes the manifest: what was in the box cannot be rewritten after the box shipped. A package with an empty manifest cannot be released.
+        /// **A package with an empty manifest cannot be released.** This is not announcing anything to customers — that is Releases_MarkReleased on a release that carries this package.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkReleasePackageReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20276,10 +20634,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a package's recorded target date and released moment.
+        /// Fix a package's target date or released moment that was recorded wrongly.
         /// </summary>
         /// <remarks>
-        /// Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.
+        /// The status does not move and the status history is left untouched — that is the point of having this separate from ReleasePackages_MarkReleased, which asserts the package shipped and refuses to run twice. **Both values are sent, so an omitted target date is cleared.** The released moment can be changed on a released package but **cannot be cleared**, and **cannot be added to a package that has not been released** — use ReleasePackages_MarkReleased for that. The target date is a calendar date; the released moment is an instant, so send the CI/CD timestamp with its offset as-is — no conversion to a local date. Refused on a withdrawn package.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleasePackageDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20368,10 +20726,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a release package.
+        /// Permanently delete a package with its manifest, its status history and **every deployment of it**.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes its manifest, status history and every deployment of it. Refused while any release lists it. The versions it names are kept.
+        /// **Refused while any release lists it** — remove it with `Releases_SetContents` first; a released or withdrawn release's contents cannot change, so that release has to be deleted instead with `Releases_Delete`. The versions it names are separate records and are kept. The delivery measures and rollout stop counting those deployments. For a package assembled by mistake or when the user asks to purge history; otherwise withdraw it. Needs the delivery Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20452,10 +20810,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Withdraw a package.
+        /// Pull a package.
         /// </summary>
         /// <remarks>
-        /// The package is kept: deployments may reference it.
+        /// Terminal, and it closes the manifest. A released package can still be withdrawn; a withdrawn one cannot be released. Withdrawing keeps the package and every deployment of it — prefer it to `ReleasePackages_Delete`.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task WithdrawAsync(System.Guid id, WithdrawReleasePackageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20677,47 +21035,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of releases.
+        /// List product releases — the announcements made to customers, such as `Wayd 2026.09`.
         /// </summary>
         /// <remarks>
-        /// Ordered by released date then sequence — never by the version label, which is free text.
+        /// A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Unannounced releases come first, then the most recently announced. Never ordered by the version label, which is free text and never parsed. Filtering by product deliberately excludes releases that name no product: one spanning product lines belongs to no single product, so listing it under one would misstate what that product announced.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Plan a release.
+        /// Draft a release — the announcement, before it carries anything.
         /// </summary>
         /// <remarks>
-        /// Contents are attached afterwards — an announcement is commonly drafted before anyone knows which versions will make it.
+        /// A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Contents are attached afterwards with Releases_SetContents, because an announcement is commonly drafted before anyone knows which versions will make it. The product is optional and usually names a product *line* rather than a leaf; leave it empty for a release spanning product lines. Unlike a version, a release is not restricted to releasable product types.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> PlanAsync(PlanReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get release details.
+        /// Get one release in full, including everything it announces: the packages it shipped and the versions it carries directly.
         /// </summary>
         /// <remarks>
-        /// Accepts the release's id or its short key.
+        /// Each contents entry reports its own shipped date, which is what tells you whether the release can be announced yet. A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Accepts the release's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ReleaseDto> GetReleaseAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the release.
+        /// Get a release's activity history, newest first: every change recorded on the release — details, contents, dates and status.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a release's status change history.
+        /// Get a release's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past. Correcting a date leaves this untouched — that is the point of having a separate action for it.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -20734,27 +21095,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a release.
+        /// Update a release's descriptive fields.
         /// </summary>
+        /// <remarks>
+        /// **This is a whole-record overwrite: an omitted field is cleared.** Send every value the release should end up with, including ones you are not changing — omitting the product makes the release span product lines, and omitting the notes deletes them. The dates and the contents are not here; each has its own tool because each carries a rule this one does not.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a release.
+        /// Permanently delete a release in any state, with its list of contents and its status history.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes its contents list and status history. The versions and packages it listed are kept.
+        /// **The versions and packages it listed are kept** — only the release and its links to them go. For a release created by mistake, or when the user asks to purge history; a real announcement that was retracted is `Releases_Withdraw`. Deleting an announced release is also how a package it lists becomes deletable, since its contents cannot otherwise change. Needs the release Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Set what a release announces.
+        /// Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.
         /// </summary>
         /// <remarks>
-        /// Whole-set replacement of both routes at once: anything left out is removed, and both lists empty clears the release. A version shipping inside one of the supplied packages cannot also be carried directly, so that one shipment is announced once.
+        /// **This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.
+        /// <br/>
+        /// <br/>Contents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).
+        /// <br/>
+        /// <br/>**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.
+        /// <br/>
+        /// <br/>An empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetContentsAsync(System.Guid id, SetReleaseContentsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -20763,45 +21133,48 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Move or clear a release's target date.
         /// </summary>
+        /// <remarks>
+        /// Omitting the date records that the release is no longer targeted, which is a different statement from never having set one. Refused on a release in a terminal status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MoveTargetDateAsync(System.Guid id, MoveReleaseTargetDateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a release's recorded target and released dates.
+        /// Fix a release's target or announced date that was recorded wrongly.
         /// </summary>
         /// <remarks>
-        /// Fixes dates entered wrongly without changing the release's status. Both are sent, so an omitted target date is cleared. The released date cannot be cleared — revert the release instead. There is no cut date: a release is never cut.
+        /// The status does not move and the status history is left untouched — that is the point of having this separate from Releases_MarkReleased, which asserts the release moved and refuses to run twice. **Both dates are sent, so an omitted target date is cleared.** The announced date cannot be cleared once set: an announced release with no announced date contradicts its own status — revert it instead. There is no cut date to correct; a release is never cut.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleaseDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that a release was announced.
+        /// Record that a release was announced to customers.
         /// </summary>
         /// <remarks>
-        /// Refused while the release carries a version or package that has not shipped — telling customers a release shipped while something inside it has not is the one claim a release can make that its own contents contradict.
+        /// **Refused while the release carries a version or package that has not shipped** — telling customers a release is out while something inside it has not gone anywhere is the one claim a release can make that its own contents contradict. Call Releases_GetRelease first and check each contents entry's shipped date; release the outstanding ones, or remove them from this release. An empty release announces normally. Shipping and announcing are separate acts, so this date is commonly later than the date the contents shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkReleaseReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Retract a release.
+        /// Retract a release after it was announced.
         /// </summary>
         /// <remarks>
-        /// Says nothing about the versions it carried: an artifact that shipped has shipped whatever the market was later told, so each version is withdrawn separately where it too was pulled.
+        /// Terminal, and it says **nothing about the versions it carried** — an artifact that shipped has shipped whatever the market was later told, so a version that was itself pulled is withdrawn on its own record. Use this only when a real announcement was retracted; if the release was marked announced by mistake and never actually went out, use Releases_Revert instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task WithdrawAsync(System.Guid id, WithdrawReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Revert a release announced in error.
+        /// Record that a release marked as announced was **not in fact announced** — the wrong record was updated, and it never went out.
         /// </summary>
         /// <remarks>
-        /// For a release marked announced by mistake. Moves it back to Ready and clears the released date. Not a withdrawal — that retracts an announcement which really went out.
+        /// Returns the release to a live status and clears its announced date. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts, so the record has to say why. Do not use this for a release that really was announced and then retracted — that is Releases_Withdraw.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -20858,10 +21231,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of releases.
+        /// List product releases — the announcements made to customers, such as `Wayd 2026.09`.
         /// </summary>
         /// <remarks>
-        /// Ordered by released date then sequence — never by the version label, which is free text.
+        /// A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Unannounced releases come first, then the most recently announced. Never ordered by the version label, which is free text and never parsed. Filtering by product deliberately excludes releases that name no product: one spanning product lines belongs to no single product, so listing it under one would misstate what that product announced.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20958,10 +21331,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Plan a release.
+        /// Draft a release — the announcement, before it carries anything.
         /// </summary>
         /// <remarks>
-        /// Contents are attached afterwards — an announcement is commonly drafted before anyone knows which versions will make it.
+        /// A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Contents are attached afterwards with Releases_SetContents, because an announcement is commonly drafted before anyone knows which versions will make it. The product is optional and usually names a product *line* rather than a leaf; leave it empty for a release spanning product lines. Unlike a version, a release is not restricted to releasable product types.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> PlanAsync(PlanReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -21051,10 +21424,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get release details.
+        /// Get one release in full, including everything it announces: the packages it shipped and the versions it carries directly.
         /// </summary>
         /// <remarks>
-        /// Accepts the release's id or its short key.
+        /// Each contents entry reports its own shipped date, which is what tells you whether the release can be announced yet. A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Accepts the release's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ReleaseDto> GetReleaseAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -21141,8 +21514,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the release.
+        /// Get a release's activity history, newest first: every change recorded on the release — details, contents, dates and status.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -21239,10 +21615,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a release's status change history.
+        /// Get a release's status change history, newest first.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past. Correcting a date leaves this untouched — that is the point of having a separate action for it.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -21479,8 +21855,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a release.
+        /// Update a release's descriptive fields.
         /// </summary>
+        /// <remarks>
+        /// **This is a whole-record overwrite: an omitted field is cleared.** Send every value the release should end up with, including ones you are not changing — omitting the product makes the release span product lines, and omitting the notes deletes them. The dates and the contents are not here; each has its own tool because each carries a rule this one does not.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -21577,10 +21956,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a release.
+        /// Permanently delete a release in any state, with its list of contents and its status history.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes its contents list and status history. The versions and packages it listed are kept.
+        /// **The versions and packages it listed are kept** — only the release and its links to them go. For a release created by mistake, or when the user asks to purge history; a real announcement that was retracted is `Releases_Withdraw`. Deleting an announced release is also how a package it lists becomes deletable, since its contents cannot otherwise change. Needs the release Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -21661,10 +22040,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Set what a release announces.
+        /// Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.
         /// </summary>
         /// <remarks>
-        /// Whole-set replacement of both routes at once: anything left out is removed, and both lists empty clears the release. A version shipping inside one of the supplied packages cannot also be carried directly, so that one shipment is announced once.
+        /// **This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.
+        /// <br/>
+        /// <br/>Contents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).
+        /// <br/>
+        /// <br/>**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.
+        /// <br/>
+        /// <br/>An empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetContentsAsync(System.Guid id, SetReleaseContentsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -21755,6 +22140,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Move or clear a release's target date.
         /// </summary>
+        /// <remarks>
+        /// Omitting the date records that the release is no longer targeted, which is a different statement from never having set one. Refused on a release in a terminal status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task MoveTargetDateAsync(System.Guid id, MoveReleaseTargetDateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -21842,10 +22230,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a release's recorded target and released dates.
+        /// Fix a release's target or announced date that was recorded wrongly.
         /// </summary>
         /// <remarks>
-        /// Fixes dates entered wrongly without changing the release's status. Both are sent, so an omitted target date is cleared. The released date cannot be cleared — revert the release instead. There is no cut date: a release is never cut.
+        /// The status does not move and the status history is left untouched — that is the point of having this separate from Releases_MarkReleased, which asserts the release moved and refuses to run twice. **Both dates are sent, so an omitted target date is cleared.** The announced date cannot be cleared once set: an announced release with no announced date contradicts its own status — revert it instead. There is no cut date to correct; a release is never cut.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleaseDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -21934,10 +22322,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that a release was announced.
+        /// Record that a release was announced to customers.
         /// </summary>
         /// <remarks>
-        /// Refused while the release carries a version or package that has not shipped — telling customers a release shipped while something inside it has not is the one claim a release can make that its own contents contradict.
+        /// **Refused while the release carries a version or package that has not shipped** — telling customers a release is out while something inside it has not gone anywhere is the one claim a release can make that its own contents contradict. Call Releases_GetRelease first and check each contents entry's shipped date; release the outstanding ones, or remove them from this release. An empty release announces normally. Shipping and announcing are separate acts, so this date is commonly later than the date the contents shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkReleaseReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22026,10 +22414,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Retract a release.
+        /// Retract a release after it was announced.
         /// </summary>
         /// <remarks>
-        /// Says nothing about the versions it carried: an artifact that shipped has shipped whatever the market was later told, so each version is withdrawn separately where it too was pulled.
+        /// Terminal, and it says **nothing about the versions it carried** — an artifact that shipped has shipped whatever the market was later told, so a version that was itself pulled is withdrawn on its own record. Use this only when a real announcement was retracted; if the release was marked announced by mistake and never actually went out, use Releases_Revert instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task WithdrawAsync(System.Guid id, WithdrawReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22118,10 +22506,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Revert a release announced in error.
+        /// Record that a release marked as announced was **not in fact announced** — the wrong record was updated, and it never went out.
         /// </summary>
         /// <remarks>
-        /// For a release marked announced by mistake. Moves it back to Ready and clears the released date. Not a withdrawal — that retracts an announcement which really went out.
+        /// Returns the release to a live status and clears its announced date. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts, so the record has to say why. Do not use this for a release that really was announced and then retracted — that is Releases_Withdraw.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22353,47 +22741,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of versions.
+        /// List versions — the artifacts that were built, such as `Wayd API 4.12.0`.
         /// </summary>
         /// <remarks>
-        /// Ordered by released moment then sequence — never by version, which is free text.
+        /// A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. Everything not yet shipped comes first, then what has shipped, newest first: what is still coming is usually what you are looking for. Never ordered by the version number, which is free text and never parsed — `4.8.2` and `2026.04` are both just labels. There is no package filter here: a version carries no pointer to the package it shipped in, so ask that question from the packages side with ReleasePackages_GetReleasePackages.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Plan a version.
+        /// Record a version against a product.
         /// </summary>
         /// <remarks>
-        /// A version is a cut of one artifact — Wayd API 4.12.0 — and is what was built. To record what was announced to customers, plan a release instead. Only a product whose type is releasable can carry a version.
+        /// A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. The product is required and **must be of a releasable type** — a version is a cut of something that ships, so the API refuses a product line or other non-releasable node. Only the target date is set here; cutting and releasing are their own actions, because each records something that happened and each carries its own rule.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> PlanAsync(PlanVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get version details.
+        /// Get one version in full — its product, version number, and its target date and its cut and released moments.
         /// </summary>
         /// <remarks>
-        /// Accepts the version's id or its short key.
+        /// A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. Accepts the version's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<VersionDto> GetVersionAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the version.
+        /// Get a version's activity history, newest first: every change recorded on the version — details, dates and status.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a version's status change history.
+        /// Get a version's status change history, newest first — when it was cut, how long it sat ready before shipping, who moved it.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past. Correcting a date leaves this untouched.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22410,20 +22801,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a version.
+        /// Update a version's descriptive fields.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates and moments are not here — each carries a rule of its own, so they move through their own actions.
+        /// **This is a whole-record overwrite: an omitted field is cleared.** Send every value the version should end up with, including ones you are not changing. The dates are not here — each carries a rule the aggregate enforces, and folding them into a blanket save would hide which rule refused.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a version.
+        /// Permanently delete a version with its status history and **every deployment of it**.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes its status history and every deployment of it. Refused while a release lists it or a package manifest names it.
+        /// The delivery measures and rollout stop counting those deployments. **Refused while a release lists it or a package manifest names it** — remove it with `Releases_SetContents` or `ReleasePackages_SetManifest` first, or delete that release or package (an announced release or released package cannot change, so deleting it is the only way). For a version recorded by mistake or when the user asks to purge history; a real version that was pulled is `Versions_Withdraw`. Needs the delivery Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22432,25 +22823,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Move or clear a version's target date.
         /// </summary>
+        /// <remarks>
+        /// Omitting the date records that the version is no longer targeted, which is a different statement from never having set one. Refused on a released or withdrawn version.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MoveTargetDateAsync(System.Guid id, MoveVersionTargetDateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a version's recorded target date and cut and released moments.
+        /// Fix a version's target date or cut or released moment that was recorded wrongly.
         /// </summary>
         /// <remarks>
-        /// Fixes values entered wrongly without changing the version's status. All three are sent, so an omitted value is cleared. The released moment cannot be cleared — revert the version instead.
+        /// The status does not move and the status history is left untouched — that is the point of having this separate from Versions_Cut and Versions_MarkReleased, which assert the version moved and refuse to run twice. **All three are sent, so an omitted target date or cut moment is cleared.** The released moment cannot be cleared once set: a released record with no released moment contradicts its own status — revert it instead. A version cannot be released before it was cut. The target date is a calendar date; the cut and released moments are instants, sent with their offset exactly as the CI/CD system reports them. Refused on a withdrawn version.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectVersionDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Cut a version.
+        /// Record that a version was cut — scope is frozen and it is ready to ship.
         /// </summary>
         /// <remarks>
-        /// Freezes scope and marks it ready to ship. One-way.
+        /// **One-way: a version cannot be cut twice**, and a released or withdrawn version refuses it. Cutting is not a prerequisite for releasing: a version imported after the fact can be marked released without ever having been cut, which is why this is a separate action rather than a step.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CutAsync(System.Guid id, CutVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22460,27 +22854,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a version shipped.
         /// </summary>
         /// <remarks>
-        /// Marking a version released is not the same as announcing it to customers — that is a release. Cutting is not a prerequisite: a version imported after the fact can be marked released without ever having been cut.
+        /// **This is not announcing it to customers** — that is Releases_MarkReleased on a release. A version can be marked released without ever having been cut, which is what makes importing historical versions possible; where it was cut, it cannot be released before it was cut. Refused on a withdrawn version.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkVersionReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Withdraw a version.
+        /// Pull a version.
         /// </summary>
         /// <remarks>
-        /// The version is kept: deployments may reference it.
+        /// Terminal. **A released version can still be withdrawn** — pulling something after it shipped is exactly the case this exists for — but a withdrawn one cannot be released. Use this only when a real version was pulled; if it was marked released by mistake and never actually shipped, use Versions_Revert instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task WithdrawAsync(System.Guid id, WithdrawVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Revert a version recorded as shipped.
+        /// Record that a version marked as shipped did **not in fact ship** — the wrong record was updated.
         /// </summary>
         /// <remarks>
-        /// For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released moment. Not a withdrawal — that pulls a version which really shipped.
+        /// Returns it to Ready, or to the initial status where it was never cut, and clears the released moment. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts. Do not use this for a version that really shipped and was then pulled — that is Versions_Withdraw.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertVersionReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22537,10 +22931,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of versions.
+        /// List versions — the artifacts that were built, such as `Wayd API 4.12.0`.
         /// </summary>
         /// <remarks>
-        /// Ordered by released moment then sequence — never by version, which is free text.
+        /// A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. Everything not yet shipped comes first, then what has shipped, newest first: what is still coming is usually what you are looking for. Never ordered by the version number, which is free text and never parsed — `4.8.2` and `2026.04` are both just labels. There is no package filter here: a version carries no pointer to the package it shipped in, so ask that question from the packages side with ReleasePackages_GetReleasePackages.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22633,10 +23027,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Plan a version.
+        /// Record a version against a product.
         /// </summary>
         /// <remarks>
-        /// A version is a cut of one artifact — Wayd API 4.12.0 — and is what was built. To record what was announced to customers, plan a release instead. Only a product whose type is releasable can carry a version.
+        /// A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. The product is required and **must be of a releasable type** — a version is a cut of something that ships, so the API refuses a product line or other non-releasable node. Only the target date is set here; cutting and releasing are their own actions, because each records something that happened and each carries its own rule.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> PlanAsync(PlanVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22726,10 +23120,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get version details.
+        /// Get one version in full — its product, version number, and its target date and its cut and released moments.
         /// </summary>
         /// <remarks>
-        /// Accepts the version's id or its short key.
+        /// A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. Accepts the version's UUID or its short key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<VersionDto> GetVersionAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22816,8 +23210,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the version.
+        /// Get a version's activity history, newest first: every change recorded on the version — details, dates and status.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -22914,10 +23311,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a version's status change history.
+        /// Get a version's status change history, newest first — when it was cut, how long it sat ready before shipping, who moved it.
         /// </summary>
         /// <remarks>
-        /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
+        /// Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past. Correcting a date leaves this untouched.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23146,10 +23543,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a version.
+        /// Update a version's descriptive fields.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates and moments are not here — each carries a rule of its own, so they move through their own actions.
+        /// **This is a whole-record overwrite: an omitted field is cleared.** Send every value the version should end up with, including ones you are not changing. The dates are not here — each carries a rule the aggregate enforces, and folding them into a blanket save would hide which rule refused.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23247,10 +23644,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a version.
+        /// Permanently delete a version with its status history and **every deployment of it**.
         /// </summary>
         /// <remarks>
-        /// Permanent: also deletes its status history and every deployment of it. Refused while a release lists it or a package manifest names it.
+        /// The delivery measures and rollout stop counting those deployments. **Refused while a release lists it or a package manifest names it** — remove it with `Releases_SetContents` or `ReleasePackages_SetManifest` first, or delete that release or package (an announced release or released package cannot change, so deleting it is the only way). For a version recorded by mistake or when the user asks to purge history; a real version that was pulled is `Versions_Withdraw`. Needs the delivery Delete permission.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23333,6 +23730,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Move or clear a version's target date.
         /// </summary>
+        /// <remarks>
+        /// Omitting the date records that the version is no longer targeted, which is a different statement from never having set one. Refused on a released or withdrawn version.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task MoveTargetDateAsync(System.Guid id, MoveVersionTargetDateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -23420,10 +23820,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a version's recorded target date and cut and released moments.
+        /// Fix a version's target date or cut or released moment that was recorded wrongly.
         /// </summary>
         /// <remarks>
-        /// Fixes values entered wrongly without changing the version's status. All three are sent, so an omitted value is cleared. The released moment cannot be cleared — revert the version instead.
+        /// The status does not move and the status history is left untouched — that is the point of having this separate from Versions_Cut and Versions_MarkReleased, which assert the version moved and refuse to run twice. **All three are sent, so an omitted target date or cut moment is cleared.** The released moment cannot be cleared once set: a released record with no released moment contradicts its own status — revert it instead. A version cannot be released before it was cut. The target date is a calendar date; the cut and released moments are instants, sent with their offset exactly as the CI/CD system reports them. Refused on a withdrawn version.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectVersionDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23512,10 +23912,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Cut a version.
+        /// Record that a version was cut — scope is frozen and it is ready to ship.
         /// </summary>
         /// <remarks>
-        /// Freezes scope and marks it ready to ship. One-way.
+        /// **One-way: a version cannot be cut twice**, and a released or withdrawn version refuses it. Cutting is not a prerequisite for releasing: a version imported after the fact can be marked released without ever having been cut, which is why this is a separate action rather than a step.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CutAsync(System.Guid id, CutVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23607,7 +24007,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a version shipped.
         /// </summary>
         /// <remarks>
-        /// Marking a version released is not the same as announcing it to customers — that is a release. Cutting is not a prerequisite: a version imported after the fact can be marked released without ever having been cut.
+        /// **This is not announcing it to customers** — that is Releases_MarkReleased on a release. A version can be marked released without ever having been cut, which is what makes importing historical versions possible; where it was cut, it cannot be released before it was cut. Refused on a withdrawn version.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkVersionReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23696,10 +24096,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Withdraw a version.
+        /// Pull a version.
         /// </summary>
         /// <remarks>
-        /// The version is kept: deployments may reference it.
+        /// Terminal. **A released version can still be withdrawn** — pulling something after it shipped is exactly the case this exists for — but a withdrawn one cannot be released. Use this only when a real version was pulled; if it was marked released by mistake and never actually shipped, use Versions_Revert instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task WithdrawAsync(System.Guid id, WithdrawVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23788,10 +24188,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Revert a version recorded as shipped.
+        /// Record that a version marked as shipped did **not in fact ship** — the wrong record was updated.
         /// </summary>
         /// <remarks>
-        /// For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released moment. Not a withdrawal — that pulls a version which really shipped.
+        /// Returns it to Ready, or to the initial status where it was never cut, and clears the released moment. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts. Do not use this for a version that really shipped and was then pulled — that is Versions_Withdraw.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertVersionReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -24072,8 +24472,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of expenditure categories options.
+        /// Get a lightweight list of expenditure category options for lookups.
         /// </summary>
+        /// <remarks>
+        /// Use this to resolve the expenditureCategoryId required when creating or updating a project.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ExpenditureCategoryOptionDto>> GetExpenditureCategoryOptionsAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -24754,8 +25157,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of expenditure categories options.
+        /// Get a lightweight list of expenditure category options for lookups.
         /// </summary>
+        /// <remarks>
+        /// Use this to resolve the expenditureCategoryId required when creating or updating a project.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ExpenditureCategoryOptionDto>> GetExpenditureCategoryOptionsAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -24985,6 +25391,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Create a portfolio.
         /// </summary>
+        /// <remarks>
+        /// It starts in Proposed status — use Portfolios_Activate to make it active, which also stamps its start date. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreatePortfolioRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -24997,8 +25406,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the portfolio.
+        /// Get a portfolio's activity history, newest first: every change recorded on the portfolio itself — details, roles, scoring model, status.
         /// </summary>
+        /// <remarks>
+        /// Its programs and projects keep their own histories. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -25021,8 +25433,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a portfolio.
+        /// Update a portfolio's name, description, and role assignments.
         /// </summary>
+        /// <remarks>
+        /// This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdatePortfolioRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -25035,22 +25450,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a project portfolio.
+        /// Activate a proposed portfolio.
         /// </summary>
+        /// <remarks>
+        /// **This also sets the portfolio's start date to today, and the date cannot be backdated or changed by this call** — do not use it to fix up a portfolio that actually started earlier. Only proposed portfolios can be activated. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Close a project portfolio.
+        /// Close an active or on-hold portfolio.
         /// </summary>
+        /// <remarks>
+        /// **This also sets the portfolio's end date to today, and the date cannot be backdated by this call.** Only active or on-hold portfolios can be closed. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CloseAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Archive a project portfolio.
+        /// Archive a closed portfolio, removing it from active use.
         /// </summary>
+        /// <remarks>
+        /// Only closed portfolios can be archived — close it first. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ArchiveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -25084,29 +25508,41 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the per-project score breakdown for the portfolio's ranking board.
+        /// Get the per-project score breakdown behind a portfolio's ranking board: the portfolio's current scoring model definition, plus each project's criterion ratings and output values.
         /// </summary>
+        /// <remarks>
+        /// A project's ratings and outputs are empty when it is unscored or its latest score came from a different or older model. Returns the score breakdown only — it does not include project names or rank positions, so pair it with Portfolios_GetPortfolioProjects and join on project ID.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PortfolioRankingScoreboardDto> GetRankingScoreboardAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of programs for the portfolio.
+        /// Get a list of programs for a portfolio.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of projects for the portfolio.
+        /// Get a list of projects for a portfolio.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of strategic initiatives for the portfolio.
+        /// Get a list of strategic initiatives for a portfolio.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(string idOrKey, System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -25119,7 +25555,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of project portfolio options.
+        /// Get a lightweight list of project portfolio options (id and name) for use in lookups.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPortfolioOptionDto>> GetPortfolioOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -25267,6 +25703,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Create a portfolio.
         /// </summary>
+        /// <remarks>
+        /// It starts in Proposed status — use Portfolios_Activate to make it active, which also stamps its start date. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreatePortfolioRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -25442,8 +25881,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the portfolio.
+        /// Get a portfolio's activity history, newest first: every change recorded on the portfolio itself — details, roles, scoring model, status.
         /// </summary>
+        /// <remarks>
+        /// Its programs and projects keep their own histories. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -25799,8 +26241,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a portfolio.
+        /// Update a portfolio's name, description, and role assignments.
         /// </summary>
+        /// <remarks>
+        /// This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdatePortfolioRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -25978,8 +26423,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a project portfolio.
+        /// Activate a proposed portfolio.
         /// </summary>
+        /// <remarks>
+        /// **This also sets the portfolio's start date to today, and the date cannot be backdated or changed by this call** — do not use it to fix up a portfolio that actually started earlier. Only proposed portfolios can be activated. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -26071,8 +26519,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Close a project portfolio.
+        /// Close an active or on-hold portfolio.
         /// </summary>
+        /// <remarks>
+        /// **This also sets the portfolio's end date to today, and the date cannot be backdated by this call.** Only active or on-hold portfolios can be closed. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CloseAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -26164,8 +26615,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Archive a project portfolio.
+        /// Archive a closed portfolio, removing it from active use.
         /// </summary>
+        /// <remarks>
+        /// Only closed portfolios can be archived — close it first. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ArchiveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -26620,8 +27074,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the per-project score breakdown for the portfolio's ranking board.
+        /// Get the per-project score breakdown behind a portfolio's ranking board: the portfolio's current scoring model definition, plus each project's criterion ratings and output values.
         /// </summary>
+        /// <remarks>
+        /// A project's ratings and outputs are empty when it is unscored or its latest score came from a different or older model. Returns the score breakdown only — it does not include project names or rank positions, so pair it with Portfolios_GetPortfolioProjects and join on project ID.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PortfolioRankingScoreboardDto> GetRankingScoreboardAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -26708,8 +27165,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of programs for the portfolio.
+        /// Get a list of programs for a portfolio.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -26812,8 +27272,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of projects for the portfolio.
+        /// Get a list of projects for a portfolio.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -26916,8 +27379,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of strategic initiatives for the portfolio.
+        /// Get a list of strategic initiatives for a portfolio.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(string idOrKey, System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -27093,7 +27559,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of project portfolio options.
+        /// Get a lightweight list of project portfolio options (id and name) for use in lookups.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPortfolioOptionDto>> GetPortfolioOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -27311,13 +27777,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of programs.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status and/or portfolioId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a program.
+        /// Create a program inside a portfolio.
         /// </summary>
+        /// <remarks>
+        /// It starts in Proposed status — use Programs_Activate to make it active, which requires a start and end date. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProgramRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -27330,8 +27802,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the program.
+        /// Get a program's activity history, newest first: every change recorded on the program itself — details, roles, timeline, strategic themes, status.
         /// </summary>
+        /// <remarks>
+        /// Its projects keep their own histories. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -27344,8 +27819,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a program.
+        /// Update a program's name, description, dates, roles, and strategic themes.
         /// </summary>
+        /// <remarks>
+        /// A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProgramRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -27358,15 +27836,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a program.
+        /// Activate a proposed program.
         /// </summary>
+        /// <remarks>
+        /// The program must already have a start and end date. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Complete a program.
+        /// Complete an active program.
         /// </summary>
+        /// <remarks>
+        /// **Every project in the program must already be completed or canceled**, and the program must have a start and end date — otherwise the call is rejected. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -27374,6 +27858,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Cancel a program.
         /// </summary>
+        /// <remarks>
+        /// A proposed program can be canceled directly; cancelling an **active** program requires every project in it to already be completed or canceled. A completed or canceled program cannot be canceled again. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -27386,8 +27873,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of projects.
+        /// Get a list of projects for a program.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -27445,6 +27935,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of programs.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status and/or portfolioId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -27546,8 +28039,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a program.
+        /// Create a program inside a portfolio.
         /// </summary>
+        /// <remarks>
+        /// It starts in Proposed status — use Programs_Activate to make it active, which requires a start and end date. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProgramRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -27723,8 +28219,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the program.
+        /// Get a program's activity history, newest first: every change recorded on the program itself — details, roles, timeline, strategic themes, status.
         /// </summary>
+        /// <remarks>
+        /// Its projects keep their own histories. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -27949,8 +28448,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a program.
+        /// Update a program's name, description, dates, roles, and strategic themes.
         /// </summary>
+        /// <remarks>
+        /// A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProgramRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -28128,8 +28630,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a program.
+        /// Activate a proposed program.
         /// </summary>
+        /// <remarks>
+        /// The program must already have a start and end date. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -28221,8 +28726,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Complete a program.
+        /// Complete an active program.
         /// </summary>
+        /// <remarks>
+        /// **Every project in the program must already be completed or canceled**, and the program must have a start and end date — otherwise the call is rejected. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -28316,6 +28824,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Cancel a program.
         /// </summary>
+        /// <remarks>
+        /// A proposed program can be canceled directly; cancelling an **active** program requires every project in it to already be completed or canceled. A completed or canceled program cannot be canceled again. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -28490,8 +29001,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of projects.
+        /// Get a list of projects for a program.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -28727,36 +29241,45 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get all health checks for a project.
+        /// Get the full health check history for a project, ordered newest first.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectHealthCheckDetailsDto>> GetHealthChecksAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a health check for a project.
+        /// Log a new health check on a project.
         /// </summary>
+        /// <remarks>
+        /// Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Caller must be the project, parent portfolio, or parent program owner or manager.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Guid> CreateHealthCheckAsync(System.Guid id, CreateProjectHealthCheckRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a specific health check for a project.
+        /// Get a single project health check by ID.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProjectHealthCheckDetailsDto> GetHealthCheckAsync(System.Guid id, System.Guid healthCheckId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a health check for a project.
+        /// Correct an existing health check's status, expiration, or note.
         /// </summary>
+        /// <remarks>
+        /// This rewrites what was reported for that point in time — to report a *new* assessment, use Projects_CreateProjectHealthCheck instead, which preserves the history. Every field is overwritten from the request body, so read the check first and echo back anything that should stay the same. Caller must be the project, parent portfolio, or parent program owner or manager.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProjectHealthCheckDetailsDto> UpdateHealthCheckAsync(System.Guid id, System.Guid healthCheckId, UpdateProjectHealthCheckRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a health check from a project.
+        /// Delete a health check from a project, permanently removing it from the project's health history.
         /// </summary>
+        /// <remarks>
+        /// Deleting the active check leaves the project with no current health status. Prefer logging a new check over deleting an old one — deletion rewrites the record of what was reported when.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteHealthCheckAsync(System.Guid id, System.Guid healthCheckId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -28812,7 +29335,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get all health checks for a project.
+        /// Get the full health check history for a project, ordered newest first.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectHealthCheckDetailsDto>> GetHealthChecksAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -28900,8 +29423,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a health check for a project.
+        /// Log a new health check on a project.
         /// </summary>
+        /// <remarks>
+        /// Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Caller must be the project, parent portfolio, or parent program owner or manager.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Guid> CreateHealthCheckAsync(System.Guid id, CreateProjectHealthCheckRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -29005,7 +29531,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a specific health check for a project.
+        /// Get a single project health check by ID.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProjectHealthCheckDetailsDto> GetHealthCheckAsync(System.Guid id, System.Guid healthCheckId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -29097,8 +29623,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a health check for a project.
+        /// Correct an existing health check's status, expiration, or note.
         /// </summary>
+        /// <remarks>
+        /// This rewrites what was reported for that point in time — to report a *new* assessment, use Projects_CreateProjectHealthCheck instead, which preserves the history. Every field is overwritten from the request body, so read the check first and echo back anything that should stay the same. Caller must be the project, parent portfolio, or parent program owner or manager.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProjectHealthCheckDetailsDto> UpdateHealthCheckAsync(System.Guid id, System.Guid healthCheckId, UpdateProjectHealthCheckRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -29206,8 +29735,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a health check from a project.
+        /// Delete a health check from a project, permanently removing it from the project's health history.
         /// </summary>
+        /// <remarks>
+        /// Deleting the active check leaves the project with no current health status. Prefer logging a new check over deleting an old one — deletion rewrites the record of what was reported when.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteHealthCheckAsync(System.Guid id, System.Guid healthCheckId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -30702,38 +31234,47 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of projects.
         /// </summary>
         /// <remarks>
-        /// A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.
+        /// A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a project.
+        /// Create a project in a portfolio, optionally inside a program.
         /// </summary>
+        /// <remarks>
+        /// It starts in Proposed status. Approving it later requires an assigned lifecycle, and activating it requires a start and end date. Resolve expenditureCategoryId with ExpenditureCategories_GetOptions. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProjectRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a summary of the current user's project involvement.
+        /// Get a summary of the current user's project involvement, as counts per role (total, sponsor, owner, manager, member, assignee).
         /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<MyProjectsSummaryDto> GetMyProjectsSummaryAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get aggregated task metrics across the current user's projects.
+        /// Get aggregated open-task counts across the current user's projects: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
         /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get aggregated task metrics across the projects an employee is involved in.
+        /// Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
         /// </summary>
         /// <remarks>
-        /// Defaults to the current user when no employee is given.
+        /// Pass employeeId for another person; omit it for the caller. On a project where the employee holds a leadership role (Sponsor, Owner or Manager) every task counts, otherwise only the tasks assigned to them.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -30749,13 +31290,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get the project's status change history.
         /// </summary>
+        /// <remarks>
+        /// Each entry records the status moved out of (null for the project's initial state), the status moved into, who made the change, when, and an optional reason. Entries are flagged as recorded live or reconstructed from the audit trail.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectStatusHistoryDto>> GetStatusHistoryAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the project.
+        /// Get a project's activity history, newest first: every change recorded on the project itself — details, key, program, lifecycle, timeline, roles, strategic themes, status, health checks and scores.
         /// </summary>
+        /// <remarks>
+        /// Tasks and stages are not included. Prefer this over `Projects_GetStatusHistory` when asking what changed beyond status. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -30788,8 +31335,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a project.
+        /// Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.
         /// </summary>
+        /// <remarks>
+        /// The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProjectRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -30802,8 +31352,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change a project's program.
+        /// Move a project into a different program, or out of its program entirely by passing a null programId.
         /// </summary>
+        /// <remarks>
+        /// The target program must belong to the project's portfolio. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ChangeProgramAsync(System.Guid id, ChangeProjectProgramRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -30811,43 +31364,58 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change a project's key.
         /// </summary>
+        /// <remarks>
+        /// **The key is the project's human-facing identifier** — it appears in task keys and in links people have saved, so changing it invalidates existing references. Only do this when the user has explicitly asked for a rekey. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ChangeKeyAsync(System.Guid id, ChangeProjectKeyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Approve a project.
+        /// Approve a proposed project.
         /// </summary>
+        /// <remarks>
+        /// A lifecycle must be assigned to the project first, and only proposed projects can be approved. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ApproveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a project.
+        /// Activate a proposed or approved project.
         /// </summary>
+        /// <remarks>
+        /// The project must already have a start and end date. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Complete a project.
+        /// Complete an active project.
         /// </summary>
+        /// <remarks>
+        /// The project must have a start and end date, and only active projects can be completed. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Cancel a project.
+        /// Cancel a project that is not already completed or canceled.
         /// </summary>
+        /// <remarks>
+        /// Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Revert a project to an earlier status.
+        /// Move a project **backwards** to an earlier status — for example reopening a completed or canceled project, or returning an active one to approved.
         /// </summary>
         /// <remarks>
-        /// Moves the project back to an earlier status in its lifecycle, recording the required reason in its status history. The caller must be an Owner or Manager of the project, its program, or its portfolio.
+        /// **Read `backwardStatusTargets` on Projects_GetProject and offer only what it contains** rather than assuming: a status carries the same entry requirements whichever direction it is reached from, so reverting to approved needs a lifecycle assigned and reverting to active needs a start and end date. A project cancelled straight from proposed may therefore only allow proposed. **A reason is required** and is kept in the project's status history. The call is rejected if the project's program or portfolio is closed — reopen the parent first. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RevertStatusAsync(System.Guid id, RevertProjectStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -30875,10 +31443,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast when a project's work items will be done.
+        /// Forecast when a project's work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
+        /// Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining); on Forecast, completion `percentiles` (a `date` per `confidence`) and `chanceOfFinishingByTargetDate` (0 to 1) against `targetDate` when given, else the project's planned end. `excludedWorkItems` could not be forecast (see `issues`), which makes the dates a lower bound; `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -30908,6 +31476,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a unified plan tree with stages as top-level nodes and tasks nested within.
         /// </summary>
+        /// <remarks>
+        /// Returns both stage nodes and task nodes with WBS codes.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPlanNodeDto>> GetProjectPlanTreeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -30915,13 +31486,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get summary metrics for a project's plan, computed from leaf tasks.
         /// </summary>
+        /// <remarks>
+        /// Includes overdue, due this week, upcoming, and total task counts.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProjectPlanSummaryDto> GetProjectPlanSummaryAsync(string idOrKey, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get plan summary metrics for multiple projects in a single request.
+        /// Get plan summary metrics for multiple projects in one request, keyed by project ID.
         /// </summary>
+        /// <remarks>
+        /// Prefer this over calling Projects_GetProjectPlanSummary once per project when surveying several projects. Counts the tasks the caller can see (every task where they lead the project, otherwise their own), or another employee's with employeeId, or every task on the projects with allTasks.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -31001,7 +31578,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of projects.
         /// </summary>
         /// <remarks>
-        /// A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.
+        /// A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -31112,8 +31689,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a project.
+        /// Create a project in a portfolio, optionally inside a program.
         /// </summary>
+        /// <remarks>
+        /// It starts in Proposed status. Approving it later requires an assigned lifecycle, and activating it requires a start and end date. Resolve expenditureCategoryId with ExpenditureCategories_GetOptions. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateProjectRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -31202,8 +31782,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a summary of the current user's project involvement.
+        /// Get a summary of the current user's project involvement, as counts per role (total, sponsor, owner, manager, member, assignee).
         /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<MyProjectsSummaryDto> GetMyProjectsSummaryAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -31281,8 +31864,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get aggregated task metrics across the current user's projects.
+        /// Get aggregated open-task counts across the current user's projects: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
         /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -31364,10 +31950,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get aggregated task metrics across the projects an employee is involved in.
+        /// Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
         /// </summary>
         /// <remarks>
-        /// Defaults to the current user when no employee is given.
+        /// Pass employeeId for another person; omit it for the caller. On a project where the employee holds a leadership role (Sponsor, Owner or Manager) every task counts, otherwise only the tasks assigned to them.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -31543,6 +32129,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get the project's status change history.
         /// </summary>
+        /// <remarks>
+        /// Each entry records the status moved out of (null for the project's initial state), the status moved into, who made the change, when, and an optional reason. Entries are flagged as recorded live or reconstructed from the audit trail.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectStatusHistoryDto>> GetStatusHistoryAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -31619,8 +32208,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the project.
+        /// Get a project's activity history, newest first: every change recorded on the project itself — details, key, program, lifecycle, timeline, roles, strategic themes, status, health checks and scores.
         /// </summary>
+        /// <remarks>
+        /// Tasks and stages are not included. Prefer this over `Projects_GetStatusHistory` when asking what changed beyond status. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32107,8 +32699,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a project.
+        /// Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.
         /// </summary>
+        /// <remarks>
+        /// The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProjectRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32286,8 +32881,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change a project's program.
+        /// Move a project into a different program, or out of its program entirely by passing a null programId.
         /// </summary>
+        /// <remarks>
+        /// The target program must belong to the project's portfolio. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ChangeProgramAsync(System.Guid id, ChangeProjectProgramRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32387,6 +32985,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change a project's key.
         /// </summary>
+        /// <remarks>
+        /// **The key is the project's human-facing identifier** — it appears in task keys and in links people have saved, so changing it invalidates existing references. Only do this when the user has explicitly asked for a rekey. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ChangeKeyAsync(System.Guid id, ChangeProjectKeyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32484,8 +33085,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Approve a project.
+        /// Approve a proposed project.
         /// </summary>
+        /// <remarks>
+        /// A lifecycle must be assigned to the project first, and only proposed projects can be approved. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ApproveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32577,8 +33181,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a project.
+        /// Activate a proposed or approved project.
         /// </summary>
+        /// <remarks>
+        /// The project must already have a start and end date. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32670,8 +33277,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Complete a project.
+        /// Complete an active project.
         /// </summary>
+        /// <remarks>
+        /// The project must have a start and end date, and only active projects can be completed. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32763,8 +33373,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Cancel a project.
+        /// Cancel a project that is not already completed or canceled.
         /// </summary>
+        /// <remarks>
+        /// Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -32856,10 +33469,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Revert a project to an earlier status.
+        /// Move a project **backwards** to an earlier status — for example reopening a completed or canceled project, or returning an active one to approved.
         /// </summary>
         /// <remarks>
-        /// Moves the project back to an earlier status in its lifecycle, recording the required reason in its status history. The caller must be an Owner or Manager of the project, its program, or its portfolio.
+        /// **Read `backwardStatusTargets` on Projects_GetProject and offer only what it contains** rather than assuming: a status carries the same entry requirements whichever direction it is reached from, so reverting to approved needs a lifecycle assigned and reverting to active needs a start and end date. A project cancelled straight from proposed may therefore only allow proposed. **A reason is required** and is kept in the project's status history. The call is rejected if the project's program or portfolio is closed — reopen the parent first. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RevertStatusAsync(System.Guid id, RevertProjectStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -33227,10 +33840,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast when a project's work items will be done.
+        /// Forecast when a project's work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
+        /// Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining); on Forecast, completion `percentiles` (a `date` per `confidence`) and `chanceOfFinishingByTargetDate` (0 to 1) against `targetDate` when given, else the project's planned end. `excludedWorkItems` could not be forecast (see `issues`), which makes the dates a lower bound; `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -33624,6 +34237,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a unified plan tree with stages as top-level nodes and tasks nested within.
         /// </summary>
+        /// <remarks>
+        /// Returns both stage nodes and task nodes with WBS codes.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPlanNodeDto>> GetProjectPlanTreeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -33712,6 +34328,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get summary metrics for a project's plan, computed from leaf tasks.
         /// </summary>
+        /// <remarks>
+        /// Includes overdue, due this week, upcoming, and total task counts.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProjectPlanSummaryDto> GetProjectPlanSummaryAsync(string idOrKey, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -33804,8 +34423,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get plan summary metrics for multiple projects in a single request.
+        /// Get plan summary metrics for multiple projects in one request, keyed by project ID.
         /// </summary>
+        /// <remarks>
+        /// Prefer this over calling Projects_GetProjectPlanSummary once per project when surveying several projects. Counts the tasks the caller can see (every task where they lead the project, otherwise their own), or another employee's with employeeId, or every task on the projects with allTasks.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -34326,15 +34948,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the scoring context for a project (assigned model, current score, and whether the user can score).
+        /// Get the scoring context for a project: the scoring model assigned to its portfolio (criteria, scales, and outputs), whether that model has been archived, and the project's current score.
         /// </summary>
+        /// <remarks>
+        /// The scoring model is null when the project's portfolio has no model assigned, which means the project cannot be scored.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProjectScoringContextDto> GetScoringContextAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the scoring history for a project.
+        /// Get the scoring history for a project — every score ever recorded, each with its headline value, the model used, who scored it, and when.
         /// </summary>
+        /// <remarks>
+        /// Returns headline values only; use Projects_GetScore for a single score's full per-criterion rating breakdown.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectScoreSummaryDto>> GetScoresAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -34347,8 +34975,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a specific recorded score for a project.
+        /// Get one recorded project score in full.
         /// </summary>
+        /// <remarks>
+        /// Returns the frozen snapshot as it was at scoring time — every criterion rating and computed output value, plus the model name and version used. Because the snapshot is frozen, an old score reflects the model as it was then, not the model as it is now.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ProjectScoreDetailsDto> GetScoreAsync(System.Guid id, System.Guid scoreId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -34404,8 +35035,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the scoring context for a project (assigned model, current score, and whether the user can score).
+        /// Get the scoring context for a project: the scoring model assigned to its portfolio (criteria, scales, and outputs), whether that model has been archived, and the project's current score.
         /// </summary>
+        /// <remarks>
+        /// The scoring model is null when the project's portfolio has no model assigned, which means the project cannot be scored.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProjectScoringContextDto> GetScoringContextAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -34492,8 +35126,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the scoring history for a project.
+        /// Get the scoring history for a project — every score ever recorded, each with its headline value, the model used, who scored it, and when.
         /// </summary>
+        /// <remarks>
+        /// Returns headline values only; use Projects_GetScore for a single score's full per-criterion rating breakdown.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectScoreSummaryDto>> GetScoresAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -34675,8 +35312,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a specific recorded score for a project.
+        /// Get one recorded project score in full.
         /// </summary>
+        /// <remarks>
+        /// Returns the frozen snapshot as it was at scoring time — every criterion rating and computed output value, plus the model name and version used. Because the snapshot is frozen, an old score reflects the model as it was then, not the model as it is now.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ProjectScoreDetailsDto> GetScoreAsync(System.Guid id, System.Guid scoreId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -36443,6 +37083,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of strategic initiatives.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status and/or portfolioId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -36455,15 +37098,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get strategic initiative details.
+        /// Get strategic initiative details, including its portfolio, date range, sponsors, and owners.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StrategicInitiativeDetailsDto> GetStrategicInitiativeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the strategic initiative.
+        /// Get a strategic initiative's activity history, newest first: every change recorded on the initiative — details, roles, timeline, status, linked projects, and its KPIs with their targets, checkpoint plans and measurements.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -36493,22 +37139,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Approve a strategic initiative.
+        /// Approve a proposed strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ApproveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a strategic initiative.
+        /// Activate an approved strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Complete a strategic initiative.
+        /// Complete an active or on-hold strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// **Completing closes the initiative**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -36516,6 +37171,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Cancel a strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// **Cancelling closes the initiative**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -36523,13 +37181,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of all strategic initiative statuses.
         /// </summary>
+        /// <remarks>
+        /// Call this to resolve the integer enum values used by the status filter.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeStatusDto>> GetStrategicInitiativeStatusesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of KPIs for a strategic initiative.
+        /// Get the KPIs for a strategic initiative — the measures that define whether it succeeded.
         /// </summary>
+        /// <remarks>
+        /// Each KPI carries a starting (baseline) value, a target value, the latest actual value, and a computed progress percentage toward the target. targetDirection is Increase or Decrease; for a Decrease KPI a falling value is improvement, so never assume a lower number is worse.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiListDto>> GetKpisAsync(string id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -36542,7 +37206,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a KPI for a strategic initiative.
+        /// Get a single KPI for a strategic initiative.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StrategicInitiativeKpiDetailsDto> GetKpiAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -36570,15 +37234,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the checkpoints for a strategic initiative KPI.
+        /// Get the checkpoints for a KPI — the dated milestones a KPI is expected to hit, each with its own target value and optional at-risk threshold.
         /// </summary>
+        /// <remarks>
+        /// Returns the checkpoint definitions only, without the measurements taken against them; use StrategicInitiatives_GetKpiCheckpointPlan for both together.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiCheckpointDto>> GetKpiCheckpointsAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the checkpoint plan for a strategic initiative KPI. The checkpoint plan provides the checkpoints and their corresponding measurements.
+        /// Get the checkpoint plan for a KPI: every checkpoint paired with the measurement recorded against it, plus a computed health and trend per checkpoint.
         /// </summary>
+        /// <remarks>
+        /// This is the best single call for assessing whether a KPI is on track over time. A checkpoint with no measurement has a null measurement, health, and trend.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiCheckpointDetailsDto>> GetKpiCheckpointPlanAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -36591,28 +37261,34 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the measurements for a strategic initiative KPI.
+        /// Get every measurement recorded against a KPI, each with its actual value, the date it was taken, who took it, and an optional note.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiMeasurementDto>> GetKpiMeasurementsAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a measurement to the strategic initiative KPI.
+        /// Record a measurement against a KPI — the actual observed value at a point in time.
         /// </summary>
+        /// <remarks>
+        /// Measurements accumulate as a history rather than overwriting; the KPI's headline actual value is the measurement with the latest measurementDate. Measurement dates must be unique within a KPI, so re-submitting an existing date is rejected rather than treated as an update. strategicInitiativeId and kpiId in the body must match the path parameters. Unlike the KPI read tools, this takes UUIDs only, not keys.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task AddKpiMeasurementAsync(System.Guid id, System.Guid kpiId, AddStrategicInitiativeKpiMeasurementRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a measurement from the strategic initiative KPI.
+        /// Remove a measurement from a KPI.
         /// </summary>
+        /// <remarks>
+        /// This deletes the recorded history entry and changes the KPI's derived actual value and progress. To record a new observation, add a measurement instead — deletion is only for correcting a wrong entry, or for freeing up a date so it can be re-recorded.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RemoveKpiMeasurementAsync(System.Guid id, System.Guid kpiId, System.Guid measurementId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of projects for the strategic initiative.
+        /// Get the projects linked to a strategic initiative — the delivery work carried out to achieve it.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -36678,6 +37354,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of strategic initiatives.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by status and/or portfolioId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -36859,7 +37538,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get strategic initiative details.
+        /// Get strategic initiative details, including its portfolio, date range, sponsors, and owners.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StrategicInitiativeDetailsDto> GetStrategicInitiativeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -36946,8 +37625,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the strategic initiative.
+        /// Get a strategic initiative's activity history, newest first: every change recorded on the initiative — details, roles, timeline, status, linked projects, and its KPIs with their targets, checkpoint plans and measurements.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -37362,8 +38044,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Approve a strategic initiative.
+        /// Approve a proposed strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ApproveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -37455,8 +38140,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Activate a strategic initiative.
+        /// Activate an approved strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -37548,8 +38236,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Complete a strategic initiative.
+        /// Complete an active or on-hold strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// **Completing closes the initiative**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -37643,6 +38334,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Cancel a strategic initiative.
         /// </summary>
+        /// <remarks>
+        /// **Cancelling closes the initiative**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -37736,6 +38430,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of all strategic initiative statuses.
         /// </summary>
+        /// <remarks>
+        /// Call this to resolve the integer enum values used by the status filter.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeStatusDto>> GetStrategicInitiativeStatusesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -37817,8 +38514,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of KPIs for a strategic initiative.
+        /// Get the KPIs for a strategic initiative — the measures that define whether it succeeded.
         /// </summary>
+        /// <remarks>
+        /// Each KPI carries a starting (baseline) value, a target value, the latest actual value, and a computed progress percentage toward the target. targetDirection is Increase or Decrease; for a Decrease KPI a falling value is improvement, so never assume a lower number is worse.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiListDto>> GetKpisAsync(string id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -38000,7 +38700,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a KPI for a strategic initiative.
+        /// Get a single KPI for a strategic initiative.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StrategicInitiativeKpiDetailsDto> GetKpiAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -38390,8 +39090,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the checkpoints for a strategic initiative KPI.
+        /// Get the checkpoints for a KPI — the dated milestones a KPI is expected to hit, each with its own target value and optional at-risk threshold.
         /// </summary>
+        /// <remarks>
+        /// Returns the checkpoint definitions only, without the measurements taken against them; use StrategicInitiatives_GetKpiCheckpointPlan for both together.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiCheckpointDto>> GetKpiCheckpointsAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -38483,8 +39186,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the checkpoint plan for a strategic initiative KPI. The checkpoint plan provides the checkpoints and their corresponding measurements.
+        /// Get the checkpoint plan for a KPI: every checkpoint paired with the measurement recorded against it, plus a computed health and trend per checkpoint.
         /// </summary>
+        /// <remarks>
+        /// This is the best single call for assessing whether a KPI is on track over time. A checkpoint with no measurement has a null measurement, health, and trend.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiCheckpointDetailsDto>> GetKpiCheckpointPlanAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -38680,7 +39386,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the measurements for a strategic initiative KPI.
+        /// Get every measurement recorded against a KPI, each with its actual value, the date it was taken, who took it, and an optional note.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeKpiMeasurementDto>> GetKpiMeasurementsAsync(string id, string kpiId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -38773,8 +39479,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a measurement to the strategic initiative KPI.
+        /// Record a measurement against a KPI — the actual observed value at a point in time.
         /// </summary>
+        /// <remarks>
+        /// Measurements accumulate as a history rather than overwriting; the KPI's headline actual value is the measurement with the latest measurementDate. Measurement dates must be unique within a KPI, so re-submitting an existing date is rejected rather than treated as an update. strategicInitiativeId and kpiId in the body must match the path parameters. Unlike the KPI read tools, this takes UUIDs only, not keys.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task AddKpiMeasurementAsync(System.Guid id, System.Guid kpiId, AddStrategicInitiativeKpiMeasurementRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -38877,8 +39586,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a measurement from the strategic initiative KPI.
+        /// Remove a measurement from a KPI.
         /// </summary>
+        /// <remarks>
+        /// This deletes the recorded history entry and changes the KPI's derived actual value and progress. To record a new observation, add a measurement instead — deletion is only for correcting a wrong entry, or for freeing up a date so it can be re-recorded.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RemoveKpiMeasurementAsync(System.Guid id, System.Guid kpiId, System.Guid measurementId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -38978,7 +39690,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of projects for the strategic initiative.
+        /// Get the projects linked to a strategic initiative — the delivery work carried out to achieve it.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -40088,8 +40800,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the planning interval.
+        /// Get a planning interval's activity history, newest first: every change recorded on the interval itself — details, dates, teams, iterations, sprint mappings, and objectives being locked or unlocked.
         /// </summary>
+        /// <remarks>
+        /// Each objective keeps its own history (`PlanningIntervals_GetObjectiveActivities`). Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -40126,14 +40841,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of planning interval teams.
+        /// Get a list of teams participating in a planning interval.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalTeamResponse>> GetTeamsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the PI predictability for a team.
+        /// Get the PI predictability for a specific team.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<double?> GetTeamPredictabilityAsync(string idOrKey, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -40154,7 +40869,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of planning interval iterations.
+        /// Get a list of iterations for a planning interval.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalIterationListDto>> GetIterationsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -40178,7 +40893,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get iteration sprint mappings for a Planning Interval.
         /// </summary>
         /// <remarks>
-        /// Retrieves all sprint-to-iteration mappings, with optional filtering by iteration.
+        /// Optionally filter by iterationId.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalIterationSprintsDto>> GetIterationSprintsAsync(string idOrKey, System.Guid? iterationId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -40204,6 +40919,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get metrics for a PI iteration aggregated across all mapped sprints.
         /// </summary>
+        /// <remarks>
+        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PlanningIntervalIterationMetricsResponse> GetIterationMetricsAsync(string idOrKey, string iterationIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -40223,8 +40941,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of planning interval teams.
+        /// Get a list of planning interval objectives.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by teamId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalObjectiveListDto>> GetObjectivesAsync(string idOrKey, System.Guid? teamId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -40237,8 +40958,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the planning interval objective.
+        /// Get a planning interval objective's activity history, newest first: every change recorded on the objective — details, status, progress, order, stretch, timeline and health checks.
         /// </summary>
+        /// <remarks>
+        /// The objective must belong to the planning interval named alongside it, or the call returns 404. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetObjectiveActivitiesAsync(string idOrKey, string objectiveIdOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -40274,29 +40998,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a health report for planning interval objectives.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by teamId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalObjectiveHealthCheckDto>> GetObjectivesHealthReportAsync(string idOrKey, System.Guid? teamId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get work items for an objective.
+        /// Get work items linked to a planning interval objective.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<WorkItemsSummaryDto> GetObjectiveWorkItemsAsync(string idOrKey, string objectiveIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast when an objective's work items will be done.
+        /// Forecast when a planning interval objective's linked work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
+        /// Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining); on Forecast, completion `percentiles` (a `date` per `confidence`) and `chanceOfFinishingByTargetDate` (0 to 1) against `targetDate` when given, else the objective's target date, else the planning interval's end. `excludedWorkItems` could not be forecast (see `issues`), which makes the dates a lower bound; `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get metrics for the work items linked to an objective.
+        /// Get daily metrics for work items linked to a planning interval objective.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemProgressDailyRollupDto>> GetObjectiveWorkItemMetricsAsync(string idOrKey, string objectiveIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -40327,21 +41054,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the health check history for a planning interval objective.
+        /// Get the full health check history for a planning interval objective, ordered newest first.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalObjectiveHealthCheckDetailsDto>> GetObjectiveHealthChecksAsync(System.Guid id, System.Guid objectiveId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a planning interval objective health check.
+        /// Log a new health check on a planning interval objective.
         /// </summary>
+        /// <remarks>
+        /// Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Note: the API requires planningIntervalObjectiveId in the body in addition to the objectiveId path parameter — they must match.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Guid> CreateObjectiveHealthCheckAsync(System.Guid id, System.Guid objectiveId, CreatePlanningIntervalObjectiveHealthCheckRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a planning interval objective health check by id.
+        /// Get a single planning interval objective health check by ID.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PlanningIntervalObjectiveHealthCheckDetailsDto> GetObjectiveHealthCheckAsync(System.Guid id, System.Guid objectiveId, System.Guid healthCheckId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -40364,6 +41094,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get planning interval risks. The default value for includeClosed is false.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by teamId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RiskListDto>> GetRisksAsync(string idOrKey, bool? includeClosed = null, System.Guid? teamId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -40679,8 +41412,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the planning interval.
+        /// Get a planning interval's activity history, newest first: every change recorded on the interval itself — details, dates, teams, iterations, sprint mappings, and objectives being locked or unlocked.
         /// </summary>
+        /// <remarks>
+        /// Each objective keeps its own history (`PlanningIntervals_GetObjectiveActivities`). Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -41202,7 +41938,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of planning interval teams.
+        /// Get a list of teams participating in a planning interval.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalTeamResponse>> GetTeamsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -41290,7 +42026,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the PI predictability for a team.
+        /// Get the PI predictability for a specific team.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<double?> GetTeamPredictabilityAsync(string idOrKey, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -41557,7 +42293,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of planning interval iterations.
+        /// Get a list of iterations for a planning interval.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalIterationListDto>> GetIterationsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -41843,7 +42579,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get iteration sprint mappings for a Planning Interval.
         /// </summary>
         /// <remarks>
-        /// Retrieves all sprint-to-iteration mappings, with optional filtering by iteration.
+        /// Optionally filter by iterationId.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalIterationSprintsDto>> GetIterationSprintsAsync(string idOrKey, System.Guid? iterationId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -42154,6 +42890,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get metrics for a PI iteration aggregated across all mapped sprints.
         /// </summary>
+        /// <remarks>
+        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PlanningIntervalIterationMetricsResponse> GetIterationMetricsAsync(string idOrKey, string iterationIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -42456,8 +43195,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of planning interval teams.
+        /// Get a list of planning interval objectives.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by teamId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalObjectiveListDto>> GetObjectivesAsync(string idOrKey, System.Guid? teamId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -42652,8 +43394,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the planning interval objective.
+        /// Get a planning interval objective's activity history, newest first: every change recorded on the objective — details, status, progress, order, stretch, timeline and health checks.
         /// </summary>
+        /// <remarks>
+        /// The objective must belong to the planning interval named alongside it, or the call returns 404. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetObjectiveActivitiesAsync(string idOrKey, string objectiveIdOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -43180,6 +43925,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a health report for planning interval objectives.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by teamId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalObjectiveHealthCheckDto>> GetObjectivesHealthReportAsync(string idOrKey, System.Guid? teamId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -43272,7 +44020,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get work items for an objective.
+        /// Get work items linked to a planning interval objective.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<WorkItemsSummaryDto> GetObjectiveWorkItemsAsync(string idOrKey, string objectiveIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -43375,10 +44123,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast when an objective's work items will be done.
+        /// Forecast when a planning interval objective's linked work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
+        /// Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining); on Forecast, completion `percentiles` (a `date` per `confidence`) and `chanceOfFinishingByTargetDate` (0 to 1) against `targetDate` when given, else the objective's target date, else the planning interval's end. `excludedWorkItems` could not be forecast (see `issues`), which makes the dates a lower bound; `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -43499,7 +44247,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get metrics for the work items linked to an objective.
+        /// Get daily metrics for work items linked to a planning interval objective.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemProgressDailyRollupDto>> GetObjectiveWorkItemMetricsAsync(string idOrKey, string objectiveIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -43930,7 +44678,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the health check history for a planning interval objective.
+        /// Get the full health check history for a planning interval objective, ordered newest first.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PlanningIntervalObjectiveHealthCheckDetailsDto>> GetObjectiveHealthChecksAsync(System.Guid id, System.Guid objectiveId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -44023,8 +44771,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a planning interval objective health check.
+        /// Log a new health check on a planning interval objective.
         /// </summary>
+        /// <remarks>
+        /// Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Note: the API requires planningIntervalObjectiveId in the body in addition to the objectiveId path parameter — they must match.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Guid> CreateObjectiveHealthCheckAsync(System.Guid id, System.Guid objectiveId, CreatePlanningIntervalObjectiveHealthCheckRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -44123,7 +44874,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a planning interval objective health check by id.
+        /// Get a single planning interval objective health check by ID.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PlanningIntervalObjectiveHealthCheckDetailsDto> GetObjectiveHealthCheckAsync(System.Guid id, System.Guid objectiveId, System.Guid healthCheckId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -44437,6 +45188,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get planning interval risks. The default value for includeClosed is false.
         /// </summary>
+        /// <remarks>
+        /// Optionally filter by teamId.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RiskListDto>> GetRisksAsync(string idOrKey, bool? includeClosed = null, System.Guid? teamId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -47429,21 +48183,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get roadmap items
+        /// Get all items (activities, timeboxes, milestones) for a roadmap.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapItemListDto>> GetItemsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get roadmap activities
+        /// Get roadmap activities.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapActivityListDto>> GetActivitiesAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get roadmap item details
+        /// Get roadmap item details.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<RoadmapItemDetailsDto> GetItemAsync(string roadmapIdOrKey, System.Guid itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -47495,7 +48249,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of all visibility.
+        /// Get a list of all roadmap visibility options.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VisibilityDto>> GetVisibilityOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -48359,7 +49113,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get roadmap items
+        /// Get all items (activities, timeboxes, milestones) for a roadmap.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapItemListDto>> GetItemsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -48447,7 +49201,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get roadmap activities
+        /// Get roadmap activities.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapActivityListDto>> GetActivitiesAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -48535,7 +49289,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get roadmap item details
+        /// Get roadmap item details.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<RoadmapItemDetailsDto> GetItemAsync(string roadmapIdOrKey, System.Guid itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -49225,7 +49979,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of all visibility.
+        /// Get a list of all roadmap visibility options.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VisibilityDto>> GetVisibilityOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -49524,7 +50278,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of story maps.
+        /// Get a list of story maps (id, key, name, description, status, owner).
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StoryMapListDto>> GetListAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -49533,12 +50287,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Create a story map.
         /// </summary>
+        /// <remarks>
+        /// Returns the new map's ID and key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateStoryMapRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a story map in full using the Id or key.
+        /// Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StoryMapDetailsDto> GetAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -49552,8 +50309,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a story map.
+        /// Delete a story map and everything on it.
         /// </summary>
+        /// <remarks>
+        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49573,8 +50333,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a goal to a story map. It comes with one step already created.
+        /// Add a goal to a story map.
         /// </summary>
+        /// <remarks>
+        /// The goal is created with one step already in it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StoryMapGoalDto> AddGoalAsync(System.Guid storyMapId, AddGoalRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49594,7 +50357,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Reorder a goal.
+        /// Reorder a goal within the map.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ReorderGoalAsync(System.Guid storyMapId, System.Guid goalId, ReorderGoalRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -49636,8 +50399,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a task to a step. Without a swim lane, it lands in the default swim lane.
+        /// Add a task (story card) to a step.
         /// </summary>
+        /// <remarks>
+        /// Without a swimLaneId, it lands in the default swim lane.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StoryMapTaskDto> AddTaskAsync(System.Guid storyMapId, AddTaskRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49686,6 +50452,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Set the personas tagged on a task.
         /// </summary>
+        /// <remarks>
+        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetTaskPersonasAsync(System.Guid storyMapId, System.Guid taskId, SetTaskPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49693,6 +50462,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Add a checklist item to a task.
         /// </summary>
+        /// <remarks>
+        /// Returns the updated task.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StoryMapTaskDto> AddChecklistItemAsync(System.Guid storyMapId, System.Guid taskId, AddChecklistItemRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49705,7 +50477,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a checklist item.
+        /// Remove a checklist item from a task.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RemoveChecklistItemAsync(System.Guid storyMapId, System.Guid taskId, System.Guid itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -49719,8 +50491,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Promote a checklist item into a task in the same step.
+        /// Promote a checklist item into its own task in the same step.
         /// </summary>
+        /// <remarks>
+        /// Returns the new task.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StoryMapTaskDto> PromoteChecklistItemAsync(System.Guid storyMapId, System.Guid taskId, System.Guid itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49754,15 +50529,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a swim lane. Its tasks return to the default swim lane; the response is the number moved.
+        /// Remove a swim lane.
         /// </summary>
+        /// <remarks>
+        /// Its tasks return to the default swim lane; the response is the number of tasks moved.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<int> RemoveSwimLaneAsync(System.Guid storyMapId, System.Guid swimLaneId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Set a swim lane's descriptive dates.
+        /// Set a swim lane's descriptive start and end dates.
         /// </summary>
+        /// <remarks>
+        /// Pass null to clear a date.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetSwimLaneDatesAsync(System.Guid storyMapId, System.Guid swimLaneId, SetSwimLaneDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49782,15 +50563,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a persona.
+        /// Update a persona's name, description, and color.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdatePersonaAsync(System.Guid storyMapId, System.Guid personaId, UpdatePersonaRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a persona and strip its tag from every node. The response is the number of nodes untagged.
+        /// Delete a persona and strip its tag from every goal, step, and task.
         /// </summary>
+        /// <remarks>
+        /// The response is the number of nodes untagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<int> DeletePersonaAsync(System.Guid storyMapId, System.Guid personaId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49805,6 +50589,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Set the personas tagged on a goal.
         /// </summary>
+        /// <remarks>
+        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetGoalPersonasAsync(System.Guid storyMapId, System.Guid goalId, SetGoalPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49812,6 +50599,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Set the personas tagged on a step.
         /// </summary>
+        /// <remarks>
+        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetStepPersonasAsync(System.Guid storyMapId, System.Guid stepId, SetStepPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -49867,7 +50657,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of story maps.
+        /// Get a list of story maps (id, key, name, description, status, owner).
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StoryMapListDto>> GetListAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -49958,6 +50748,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Create a story map.
         /// </summary>
+        /// <remarks>
+        /// Returns the new map's ID and key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateStoryMapRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -50046,7 +50839,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a story map in full using the Id or key.
+        /// Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StoryMapDetailsDto> GetAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -50221,8 +51014,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a story map.
+        /// Delete a story map and everything on it.
         /// </summary>
+        /// <remarks>
+        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -50474,8 +51270,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a goal to a story map. It comes with one step already created.
+        /// Add a goal to a story map.
         /// </summary>
+        /// <remarks>
+        /// The goal is created with one step already in it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StoryMapGoalDto> AddGoalAsync(System.Guid storyMapId, AddGoalRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -50748,7 +51547,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Reorder a goal.
+        /// Reorder a goal within the map.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ReorderGoalAsync(System.Guid storyMapId, System.Guid goalId, ReorderGoalRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -51304,8 +52103,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a task to a step. Without a swim lane, it lands in the default swim lane.
+        /// Add a task (story card) to a step.
         /// </summary>
+        /// <remarks>
+        /// Without a swimLaneId, it lands in the default swim lane.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StoryMapTaskDto> AddTaskAsync(System.Guid storyMapId, AddTaskRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -51868,6 +52670,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Set the personas tagged on a task.
         /// </summary>
+        /// <remarks>
+        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetTaskPersonasAsync(System.Guid storyMapId, System.Guid taskId, SetTaskPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -51962,6 +52767,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Add a checklist item to a task.
         /// </summary>
+        /// <remarks>
+        /// Returns the updated task.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StoryMapTaskDto> AddChecklistItemAsync(System.Guid storyMapId, System.Guid taskId, AddChecklistItemRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -52158,7 +52966,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a checklist item.
+        /// Remove a checklist item from a task.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RemoveChecklistItemAsync(System.Guid storyMapId, System.Guid taskId, System.Guid itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -52348,8 +53156,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Promote a checklist item into a task in the same step.
+        /// Promote a checklist item into its own task in the same step.
         /// </summary>
+        /// <remarks>
+        /// Returns the new task.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StoryMapTaskDto> PromoteChecklistItemAsync(System.Guid storyMapId, System.Guid taskId, System.Guid itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -52816,8 +53627,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a swim lane. Its tasks return to the default swim lane; the response is the number moved.
+        /// Remove a swim lane.
         /// </summary>
+        /// <remarks>
+        /// Its tasks return to the default swim lane; the response is the number of tasks moved.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<int> RemoveSwimLaneAsync(System.Guid storyMapId, System.Guid swimLaneId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -52908,8 +53722,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Set a swim lane's descriptive dates.
+        /// Set a swim lane's descriptive start and end dates.
         /// </summary>
+        /// <remarks>
+        /// Pass null to clear a date.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetSwimLaneDatesAsync(System.Guid storyMapId, System.Guid swimLaneId, SetSwimLaneDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -53191,7 +54008,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a persona.
+        /// Update a persona's name, description, and color.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdatePersonaAsync(System.Guid storyMapId, System.Guid personaId, UpdatePersonaRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -53284,8 +54101,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete a persona and strip its tag from every node. The response is the number of nodes untagged.
+        /// Delete a persona and strip its tag from every goal, step, and task.
         /// </summary>
+        /// <remarks>
+        /// The response is the number of nodes untagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<int> DeletePersonaAsync(System.Guid storyMapId, System.Guid personaId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -53472,6 +54292,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Set the personas tagged on a goal.
         /// </summary>
+        /// <remarks>
+        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetGoalPersonasAsync(System.Guid storyMapId, System.Guid goalId, SetGoalPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -53566,6 +54389,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Set the personas tagged on a step.
         /// </summary>
+        /// <remarks>
+        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetStepPersonasAsync(System.Guid storyMapId, System.Guid stepId, SetStepPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -56060,10 +56886,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast when a work item will be done.
+        /// Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
+        /// A portfolio work item (an Epic or Feature, say) is forecast from its open backlog descendants. Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining), `backlogPosition`, and on Forecast completion `percentiles` (a `date` per `confidence`), plus `chanceOfFinishingByTargetDate` (0 to 1) when `targetDate` is given. `issues` explain what could not be forecast (No Team, Not a Backlog Item, Not Enough History); `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -56992,10 +57818,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast when a work item will be done.
+        /// Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
+        /// A portfolio work item (an Epic or Feature, say) is forecast from its open backlog descendants. Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining), `backlogPosition`, and on Forecast completion `percentiles` (a `date` per `confidence`), plus `chanceOfFinishingByTargetDate` (0 to 1) when `targetDate` is given. `issues` explain what could not be forecast (No Team, Not a Backlog Item, Not Enough History); `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -61845,7 +62671,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get team details using the key.
+        /// Get team details.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamDetailsDto> GetByIdAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -61859,8 +62685,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the team.
+        /// Get a team's activity history, newest first: the team's creation, detail changes, activation and deactivation, members joining, leaving or changing roles (by employee and role id), its membership in a team of teams being added, re-dated or removed, and operating models being set, corrected or removed.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -61929,10 +62758,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Grade a team's backlog health.
+        /// Grade a team's open backlog.
         /// </summary>
         /// <remarks>
-        /// Checks the team's open backlog for runway, net flow, WIP load, staleness, aging work, readiness gaps, carry-over, closed parents and rank inversions. Every threshold is optional and falls back to its default; the response states the thresholds used.
+        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.
         /// </remarks>
         /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
@@ -61958,7 +62787,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
@@ -61971,10 +62800,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast how many backlog work items a team will finish by a date.
+        /// Forecast how many of a team's open backlog work items it will finish from today through `targetDate`, by Monte Carlo simulation of its recent daily throughput.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90); startedWorkFirst (default true) counts active backlog items ahead of proposed ones when naming the item each confidence level reaches.
+        /// Returns an `outcome` (Forecast, or Not Enough History when the team finished fewer than 10 backlog work items in the window), `backlogWorkItems` open today, `percentiles` — at each `confidence` the `workItems` count finished at least that often and `throughWorkItem`, the backlog work item that count reaches (active items first unless `startedWorkFirst` is false, then rank order) — and a `histogram` of trials by work items finished. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -62367,7 +63196,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get team details using the key.
+        /// Get team details.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamDetailsDto> GetByIdAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -62552,8 +63381,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get activity history for the team.
+        /// Get a team's activity history, newest first: the team's creation, detail changes, activation and deactivation, members joining, leaving or changing roles (by employee and role id), its membership in a team of teams being added, re-dated or removed, and operating models being set, corrected or removed.
         /// </summary>
+        /// <remarks>
+        /// Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -63597,10 +64429,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Grade a team's backlog health.
+        /// Grade a team's open backlog.
         /// </summary>
         /// <remarks>
-        /// Checks the team's open backlog for runway, net flow, WIP load, staleness, aging work, readiness gaps, carry-over, closed parents and rank inversions. Every threshold is optional and falls back to its default; the response states the thresholds used.
+        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.
         /// </remarks>
         /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
@@ -63793,7 +64625,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
@@ -63933,10 +64765,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Forecast how many backlog work items a team will finish by a date.
+        /// Forecast how many of a team's open backlog work items it will finish from today through `targetDate`, by Monte Carlo simulation of its recent daily throughput.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90); startedWorkFirst (default true) counts active backlog items ahead of proposed ones when naming the item each confidence level reaches.
+        /// Returns an `outcome` (Forecast, or Not Enough History when the team finished fewer than 10 backlog work items in the window), `backlogWorkItems` open today, `percentiles` — at each `confidence` the `workItems` count finished at least that often and `throughWorkItem`, the backlog work item that count reaches (active items first unless `startedWorkFirst` is false, then rank order) — and a `histogram` of trials by work items finished. Requires the delivery-forecasting feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -66292,7 +67124,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of team of teams.
+        /// Get a list of teams of teams in the organization.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TeamOfTeamsListDto>> GetListAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -66330,7 +67162,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
@@ -66529,7 +67361,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of team of teams.
+        /// Get a list of teams of teams in the organization.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TeamOfTeamsListDto>> GetListAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -66994,7 +67826,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (teams that size in story points only; unestimated items excluded or filled from the team average) or TeamEffort (each team's split in its own sizing method, combined by share of completed items). Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
@@ -69771,57 +70603,81 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a page of import runs, newest first.
+        /// List import runs, newest first, as `processes` with a `totalCount`.
         /// </summary>
+        /// <remarks>
+        /// Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the import types the caller may see, each flagged with whether they may submit it.
+        /// List the kinds of import you may see.
         /// </summary>
+        /// <remarks>
+        /// Each has its `key` (what `Imports_GetList` filters on), `displayName`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), `maxRows` and `preflightMaxRows` (the most rows one file may hold for each), and `canSubmit`, whether you may submit that kind of file and act on its runs.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ImportDefinitionDto>> GetDefinitionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the status and counts of an import.
+        /// Get one import run's status and counts.
         /// </summary>
+        /// <remarks>
+        /// Poll this until `isTerminal` is true to follow a run that was still going when it was submitted. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it. `error` explains a run that could not continue; a rejected row's reason is on the row, from `Imports_GetRows`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ImportProcessDto> GetByIdAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a page of row outcomes for an import.
+        /// Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
         /// </summary>
+        /// <remarks>
+        /// Each row has its `importId` (the file's ImportId column, or its position when the file had none), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ImportProcessRowPageDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Stop an import that is still running.
+        /// Stop an import run that is still going.
         /// </summary>
+        /// <remarks>
+        /// A request, not an undo: the worker stops at its next batch boundary, and rows already applied stay applied. The rest can be picked up later with `Imports_Resume`. Refused for a run that has already finished.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Queue an import again to apply the rows it never reached.
+        /// Queue a finished import run again to apply the rows it never reached — after it was stopped, or failed partway.
         /// </summary>
+        /// <remarks>
+        /// Rows that succeeded are never reapplied, and rejected rows stay rejected (use `Imports_RetryFailed` for those). Answers with `queuedRowCount` and `skippedRowCount`, the rows whose data the 30-day retention window already discarded. Refused for a run still going, and for a preflight, which is imported with `Imports_Apply` instead.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ResumedImport> ResumeAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.
+        /// Import, for real, the rows a finished preflight checked — without sending the file again.
         /// </summary>
+        /// <remarks>
+        /// Every row is submitted, including ones the preflight rejected, and each is checked again against the data as it is now, so the import may still refuse a row the preflight passed. Applying the same preflight twice rejects the records the first import created as duplicates, or, for an import with no natural key such as deployments, creates them a second time; check `appliedImportProcessId` on the preflight first. Refused once the preflight's rows pass the 30-day retention window. Answers with the new run once it has finished, or while it is still queued or running if it takes longer than a few seconds — check `isTerminal`, and poll `Imports_GetById` until it is true.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ImportProcessDto> ApplyAsync(System.Guid id, System.Guid? submissionGroupId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Queue an import again, this time also reattempting the rows it rejected.
+        /// Queue a finished import run again, reattempting its rejected rows as well as any it never reached.
         /// </summary>
+        /// <remarks>
+        /// Fix whatever the rows were rejected for first — the rows are resubmitted exactly as they were, so a problem in the file itself needs a corrected file instead. Rows that succeeded are never reapplied. Answers with `queuedRowCount` and `skippedRowCount`. Refused for a run still going, and for a preflight.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ResumedImport> RetryFailedAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -69877,8 +70733,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a page of import runs, newest first.
+        /// List import runs, newest first, as `processes` with a `totalCount`.
         /// </summary>
+        /// <remarks>
+        /// Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -69986,8 +70845,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the import types the caller may see, each flagged with whether they may submit it.
+        /// List the kinds of import you may see.
         /// </summary>
+        /// <remarks>
+        /// Each has its `key` (what `Imports_GetList` filters on), `displayName`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), `maxRows` and `preflightMaxRows` (the most rows one file may hold for each), and `canSubmit`, whether you may submit that kind of file and act on its runs.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ImportDefinitionDto>> GetDefinitionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -70059,8 +70921,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the status and counts of an import.
+        /// Get one import run's status and counts.
         /// </summary>
+        /// <remarks>
+        /// Poll this until `isTerminal` is true to follow a run that was still going when it was submitted. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it. `error` explains a run that could not continue; a rejected row's reason is on the row, from `Imports_GetRows`.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ImportProcessDto> GetByIdAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -70146,8 +71011,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a page of row outcomes for an import.
+        /// Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
         /// </summary>
+        /// <remarks>
+        /// Each row has its `importId` (the file's ImportId column, or its position when the file had none), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ImportProcessRowPageDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -70248,8 +71116,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Stop an import that is still running.
+        /// Stop an import run that is still going.
         /// </summary>
+        /// <remarks>
+        /// A request, not an undo: the worker stops at its next batch boundary, and rows already applied stay applied. The rest can be picked up later with `Imports_Resume`. Refused for a run that has already finished.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CancelAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -70331,8 +71202,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Queue an import again to apply the rows it never reached.
+        /// Queue a finished import run again to apply the rows it never reached — after it was stopped, or failed partway.
         /// </summary>
+        /// <remarks>
+        /// Rows that succeeded are never reapplied, and rejected rows stay rejected (use `Imports_RetryFailed` for those). Answers with `queuedRowCount` and `skippedRowCount`, the rows whose data the 30-day retention window already discarded. Refused for a run still going, and for a preflight, which is imported with `Imports_Apply` instead.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ResumedImport> ResumeAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -70420,8 +71294,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.
+        /// Import, for real, the rows a finished preflight checked — without sending the file again.
         /// </summary>
+        /// <remarks>
+        /// Every row is submitted, including ones the preflight rejected, and each is checked again against the data as it is now, so the import may still refuse a row the preflight passed. Applying the same preflight twice rejects the records the first import created as duplicates, or, for an import with no natural key such as deployments, creates them a second time; check `appliedImportProcessId` on the preflight first. Refused once the preflight's rows pass the 30-day retention window. Answers with the new run once it has finished, or while it is still queued or running if it takes longer than a few seconds — check `isTerminal`, and poll `Imports_GetById` until it is true.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ImportProcessDto> ApplyAsync(System.Guid id, System.Guid? submissionGroupId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -70525,8 +71402,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Queue an import again, this time also reattempting the rows it rejected.
+        /// Queue a finished import run again, reattempting its rejected rows as well as any it never reached.
         /// </summary>
+        /// <remarks>
+        /// Fix whatever the rows were rejected for first — the rows are resubmitted exactly as they were, so a problem in the file itself needs a corrected file instead. Rows that succeeded are never reapplied. Answers with `queuedRowCount` and `skippedRowCount`. Refused for a run still going, and for a preflight.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ResumedImport> RetryFailedAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {

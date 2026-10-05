@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Domain.Interfaces;
 using OneOf;
 
@@ -8,7 +9,14 @@ public class IdOrKey : OneOfBase<Guid, int>
 {
     public IdOrKey(OneOf<Guid, int> value) : base(value) { }
 
-    public IdOrKey(string value) : base(Guid.TryParse(value, out var guid) ? guid : int.Parse(value)) { }
+    /// <summary>Reads a route or query value as a Guid id or an integer key.</summary>
+    /// <exception cref="NotFoundException">The value is neither, so it can name no record.</exception>
+    public IdOrKey(string value) : base(Parse(value)) { }
+
+    private static OneOf<Guid, int> Parse(string value) =>
+        Guid.TryParse(value, out var guid) ? guid
+        : int.TryParse(value, out var key) ? key
+        : throw new NotFoundException($"No record has the id or key '{value}'.");
 
     /// <summary>
     /// Gets the value as a Guid if it is a Guid; otherwise, null.

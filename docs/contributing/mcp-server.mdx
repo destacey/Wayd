@@ -1,15 +1,36 @@
 ---
 title: MCP Server
-description: Changing and releasing the @wayd/mcp package.
+description: The hosted MCP endpoint, and changing and releasing the @wayd/mcp package.
 sidebar_position: 7.8
 audience: [developer, agent]
 ---
 
 # MCP Server
 
+Wayd exposes its API as agent tools in two ways: the hosted endpoint at `/mcp`, served by `Wayd.Web.Api`, and the `@wayd/mcp` npm package, which is being retired once the hosted endpoint has replaced it.
+
+## The hosted endpoint
+
+`/mcp` serves MCP over Streamable HTTP, statelessly, with the official C# SDK (`ModelContextProtocol.AspNetCore`). It is behind the `mcp-server` feature flag and requires an authenticated caller: a personal access token in `x-api-key`, or the Wayd JWT. The code lives in `Wayd.Web.Api/Mcp/`.
+
+**A tool is a controller action marked `[McpTool]`.** The API is the only definition of each tool:
+
+- **Name and title** come from the attribute: `[McpTool("Projects_GetProject", "Get project")]`. A tool name is a contract with the skills and prompts that already call it, so never rename one.
+- **Description** is the action's `[OpenApiOperation]` summary followed by its description. Write it for an agent choosing between tools; it is also the endpoint's published documentation.
+- **Input schema** comes from the action's operation in the runtime OpenAPI document: one argument per path, query or header parameter, plus `requestBody` for a JSON body. Parameter and property descriptions are the `<param>` and `///` documentation that NSwag already publishes, and closed sets arrive as enum codes.
+- **Annotations** default from the HTTP method, as the npm package's did: only GET is read-only, every write starts destructive, PUT and DELETE are idempotent, and every tool is `openWorldHint: false`. Set `ReadOnly`, `Destructive` or `Idempotent` on the attribute only to depart from that. A write is advertised as safe (`Destructive = false`) only when it purely adds a record.
+
+**A call runs through the endpoint itself.** `ApiPipeline` sends the arguments as an HTTP request through the API's own middleware pipeline, in process, carrying the caller's credentials. Authentication, `[MustHavePermission]`, feature gates, model validation, the controller's own checks and the domain's delivery-leadership rules all apply exactly as they do to the same HTTP request, and a refusal comes back as a tool error naming the status and the reason.
+
+The two import tools, `Imports_GetFileFormat` and `Imports_Preflight`, front every import endpoint at once, so they are written by hand in `ImportTools`.
+
+While the npm package is still published, the hosted endpoint must offer exactly its tools. `Wayd.Web.Api.IntegrationTests/Mcp/npm-tool-parity.json` records each npm tool's name, title, annotations and arguments, plus the server instructions. The package's `tests/hosted-parity.test.ts` keeps it current (`UPDATE_PARITY_SNAPSHOT=1` rewrites it), and `McpToolCatalogTests` holds the API to it. A tool added to one must be added to the other.
+
+## The npm package
+
 The `@wayd/mcp` package in `Wayd.Web/src/Wayd.Mcp` exposes the Wayd API as agent tools. It is published to npm separately from the application, so a deployed API and the MCP clients that call it can drift apart. For connecting a client to it, see [MCP Server](../getting-started/mcp-server.mdx).
 
-## Every shipped change needs a changeset
+### Every shipped change needs a changeset
 
 The package is released with [changesets](https://github.com/changesets/changesets). A change merged to `main` without a changeset is **never released**: the release PR only picks up pending changesets. Nothing else fails, so a renamed or newly added tool can sit unreleased while the API it calls moves on. Clients on the published version then send fields the API no longer reads, or miss fields it now needs.
 
@@ -29,7 +50,7 @@ npx changeset --empty  # the change ships nothing worth releasing, on purpose
 
 The package is pre-1.0, so a breaking change to a tool's inputs (a renamed or removed field) is a `minor` bump, and fixes are `patch`. Write the summary for the people calling the tools: name the tools and fields that changed, and what a caller sends now.
 
-## How it is enforced
+### How it is enforced
 
 `.github/scripts/mcp-changeset-check.sh` fails when a branch changes any of the above without adding a changeset. A spec change counts only when regenerating the import formats from it changes them, so most API changes are unaffected.
 
@@ -42,7 +63,7 @@ Run it by hand against any base:
 bash .github/scripts/mcp-changeset-check.sh origin/main
 ```
 
-## Release flow
+### Release flow
 
 1. A pull request merges to `main` with its changeset.
 2. The MCP workflow opens or updates the release PR, which bumps the version and writes `CHANGELOG.md`.

@@ -1,5 +1,14 @@
 # @wayd/mcp
 
+## 0.16.2
+
+### Patch Changes
+
+- 891dd41: `TeamsOfTeams_GetAllocation` describes `TeamEffort` as measuring each team in its own sizing method — story points, effort, size or count, as it sized on the day the work was done — and `unestimated` as applying to `TeamEffort` too, matching the API.
+- 459cb06: `Teams_GetBacklogHealth` describes `oversizedPercentile` as a percentile of estimates in the team's sizing method rather than of story points, matching the API, which now reads backlog health in the team's Story Points, Effort or Size and reports it as `totalEstimate`, `oversizedEstimate` and `sizingMethod`.
+- 5b011b5: Correct the deployment outcome tool descriptions: they said no outcome tool can be called once an outcome is recorded, but `Deployments_RollBack` is offered only for a deployment that succeeded. `Deployments_Succeed` and `Deployments_Fail` now say a success can still be rolled back, and `Deployments_RollBack` says it refuses a deployment still in flight, failed or already rolled back.
+- `PlanningIntervals_GetIterationMetrics` explains that each sprint is measured in its team's sizing method and that the iteration's estimate totals are null when its sprints size differently. `Teams_GetBacklogHealth` names the Missing Estimate check and the `sizingMethod` its estimates are in, and the allocation tools say which teams each measure counts, matching the API's descriptions of the same tools.
+
 ## 0.16.1
 
 ### Patch Changes

@@ -375,6 +375,31 @@ public sealed class AllocationCalculatorTests
     }
 
     [Fact]
+    public void Calculate_TeamEffort_EffortFilledFromTheTeamAverage_IsNotReportedAsStoryPoints()
+    {
+        // Arrange
+        var project = Project("ONE", PortfolioA);
+        var structure = Structure() with
+        {
+            SizingPeriods =
+            [
+                new(Payments.Id, From.PlusYears(-1), null, SizingMethod.StoryPoints),
+                new(Mobile.Id, From.PlusYears(-1), null, SizingMethod.Effort),
+            ],
+        };
+        List<AllocationWorkItem> items = [Item(Mobile, project, effort: 10), Item(Mobile, project)];
+        var options = ItemsByPortfolio with { Measure = AllocationMeasure.TeamEffort, Unestimated = UnestimatedHandling.TeamAverage };
+
+        // Act
+        var result = Calculate(items, options, structure);
+
+        // Assert
+        result.Summary.FilledItems.Should().Be(1);
+        result.Summary.FilledStoryPoints.Should().Be(0);
+        result.Groups.Single().FilledStoryPoints.Should().Be(0);
+    }
+
+    [Fact]
     public void Calculate_TeamEffort_TeamThatChangedSizingMethod_NeverAddsItsUnitsTogether()
     {
         // Arrange

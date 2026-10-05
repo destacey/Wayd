@@ -440,7 +440,8 @@ public static class AllocationCalculator
             Items += weight;
             if (p.UsesPoints && p.Estimate is { } estimate)
                 StoryPoints += weight * estimate;
-            FilledStoryPoints += weight * (p.Filled ?? 0);
+            if (p.UsesPoints && p.Filled is { } filled)
+                FilledStoryPoints += weight * filled;
             Value += weight * value;
             if (p.Project is null)
                 NoProjectValue += weight * value;

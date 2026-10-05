@@ -17,8 +17,6 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     private readonly List<WorkItemReference> _referenceLinks = [];
     private readonly List<WorkItemTag> _tags = [];
 
-    //private readonly List<WorkItemRevision> _history = [];
-
     private WorkItem() { }
 
     private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
@@ -182,11 +180,6 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     public IReadOnlyCollection<WorkItemHierarchy> InboundHierarchies => _inboundHierarchyHistory.AsReadOnly();
 
     public IReadOnlyCollection<WorkItemReference> ReferenceLinks => _referenceLinks.AsReadOnly();
-
-    /// <summary>
-    /// The collection of revisions for the life of the work item.
-    /// </summary>
-    //public IReadOnlyCollection<WorkItemRevision> History => _history.AsReadOnly();
 
     /// <summary>
     /// Updates the work item properties.

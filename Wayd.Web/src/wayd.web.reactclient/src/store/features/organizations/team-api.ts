@@ -74,6 +74,20 @@ export interface GetTeamAllocationRequest {
 const asOfDateParam = (asOfDate?: CalendarDate): Date | undefined =>
   asOfDate ? new Date(`${asOfDate}T00:00:00Z`) : undefined
 
+/**
+ * What a team's operating model changes besides itself: the team's details
+ * show its sizing method, and the server measures sprint and iteration
+ * metrics, backlog health and allocation in it. Invalidated by type, since a
+ * sprint, iteration or team of teams is cached under its own key, not the
+ * team's.
+ */
+const operatingModelDependentTags = [
+  QueryTags.Team,
+  QueryTags.TeamBacklog,
+  QueryTags.SprintMetrics,
+  QueryTags.PlanningIntervalIterationMetrics,
+] as const
+
 export const teamApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTeams: builder.query<TeamListItem[], boolean>({
@@ -770,6 +784,7 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-scrum` },
         { type: QueryTags.ActivityLog, id: teamId },
+        ...operatingModelDependentTags,
       ],
     }),
 
@@ -799,6 +814,7 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-scrum` },
         { type: QueryTags.ActivityLog, id: teamId },
+        ...operatingModelDependentTags,
       ],
     }),
 
@@ -823,6 +839,7 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-scrum` },
         { type: QueryTags.ActivityLog, id: teamId },
+        ...operatingModelDependentTags,
       ],
     }),
 

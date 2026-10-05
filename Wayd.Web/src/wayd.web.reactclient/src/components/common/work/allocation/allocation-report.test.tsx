@@ -156,7 +156,47 @@ describe('AllocationReportView', () => {
     expect(screen.queryByText('Share of Team Effort')).not.toBeInTheDocument()
   })
 
-  it('asks about unestimated items only when measuring story points', () => {
+  it('names the teams that do not size in points under story points', () => {
+    // Arrange
+    const allocation = createAllocation()
+    allocation.summary.excludedTeams = [
+      { id: 'j', code: 'JUICE', name: 'Team Juice' },
+    ]
+
+    // Act
+    render(
+      <AllocationReportView
+        allocation={allocation}
+        isLoading={false}
+        settings={{ ...settings, measure: AllocationMeasure.StoryPoints }}
+        onSettingsChange={jest.fn()}
+        isTeamOfTeams
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText("Team Juice doesn't size in points"),
+    ).toBeInTheDocument()
+  })
+
+  it('asks about unestimated items under share of team effort too', () => {
+    // Act
+    render(
+      <AllocationReportView
+        allocation={createAllocation()}
+        isLoading={false}
+        settings={{ ...settings, measure: AllocationMeasure.TeamEffort }}
+        onSettingsChange={jest.fn()}
+        isTeamOfTeams
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('Unestimated items')).toBeInTheDocument()
+  })
+
+  it('asks about unestimated items only when measuring estimates', () => {
     const { rerender } = render(
       <AllocationReportView
         allocation={createAllocation()}

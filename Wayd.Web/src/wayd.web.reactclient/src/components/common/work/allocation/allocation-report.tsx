@@ -170,7 +170,7 @@ const SummaryCards: FC<{
             ? `${summary.teamsIncluded - excluded.length} of ${summary.teamsIncluded}`
             : '',
           excluded.length > 0
-            ? `${excluded.map((t) => t.name).join(', ')} ${excluded.length === 1 ? 'sizes' : 'size'} by count`
+            ? `${excluded.map((t) => t.name).join(', ')} ${excluded.length === 1 ? "doesn't" : "don't"} size in points`
             : summary && 'Every team sizes in points',
         )}
         {linked}
@@ -328,7 +328,7 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
             }))}
           />
         </Space>
-        {measure === AllocationMeasure.StoryPoints && (
+        {measure !== AllocationMeasure.Count && (
           <Space>
             <Text type="secondary">Unestimated items</Text>
             <Segmented<UnestimatedHandling>

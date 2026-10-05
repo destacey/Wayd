@@ -10,6 +10,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/project-lifecycles")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Ppm)]
 public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ProjectLifecyclesController> _logger = logger;

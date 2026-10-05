@@ -8,6 +8,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/projects")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Ppm)]
 public class ProjectScoresController(ILogger<ProjectScoresController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ProjectScoresController> _logger = logger;

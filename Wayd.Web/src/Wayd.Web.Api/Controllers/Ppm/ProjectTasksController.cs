@@ -14,6 +14,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/projects/{projectIdOrKey}/tasks")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Ppm)]
 public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDispatcher dispatcher, IValidator<UpdateProjectTaskRequest> updateProjectTaskValidator) : ControllerBase
 {
     private readonly ILogger<ProjectTasksController> _logger = logger;

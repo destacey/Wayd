@@ -9,6 +9,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/expenditure-categories")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Ppm)]
 public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ExpenditureCategoriesController> _logger = logger;

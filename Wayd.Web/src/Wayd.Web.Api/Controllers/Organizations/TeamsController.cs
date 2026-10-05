@@ -31,6 +31,7 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/teams")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Teams)]
 public class TeamsController(
     ILogger<TeamsController> logger,
     IDispatcher dispatcher,

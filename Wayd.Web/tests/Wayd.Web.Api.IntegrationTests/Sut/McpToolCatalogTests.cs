@@ -120,6 +120,40 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         Assert.Empty(undescribed);
     }
 
+    [Fact]
+    public async Task GetToolsets_PutsToolsInEveryToolset()
+    {
+        // Act
+        var tools = await GetCatalog().GetToolsets();
+
+        // Assert
+        Assert.Equal(Enum.GetValues<McpToolset>(), tools.Select(t => t.Toolset).Distinct().Order());
+    }
+
+    [Fact]
+    public async Task GetTools_OffersOnlyTheChosenToolsetsReadOnlyTools()
+    {
+        // Arrange
+        var all = await GetCatalog().GetToolsets();
+        var filter = new McpToolFilter(new HashSet<McpToolset> { McpToolset.Ppm }, true);
+
+        // Act
+        var tools = await GetCatalog().GetTools(filter);
+
+        // Assert
+        var expected = all
+            .Where(t => t.Toolset == McpToolset.Ppm && t.Tool.ProtocolTool.Annotations?.ReadOnlyHint == true)
+            .Select(t => t.Tool.ProtocolTool.Name);
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected, tools.Select(t => t.ProtocolTool.Name));
+    }
+
+    private McpToolCatalog GetCatalog()
+    {
+        _ = _factory.CreateClient();
+        return _factory.Services.GetRequiredService<McpToolCatalog>();
+    }
+
     private async Task<IReadOnlyList<ModelContextProtocol.Server.McpServerTool>> GetTools()
     {
         _ = _factory.CreateClient();

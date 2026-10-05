@@ -1,4 +1,5 @@
 ﻿using NodaTime;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Domain.Models;
@@ -81,15 +82,16 @@ public sealed class SprintWorkItemMetricsDtoTests
     {
         var sprintId = Guid.NewGuid();
 
-        var result = SprintWorkItemMetricsDto.FromWorkItems(sprintId, []);
+        var result = SprintWorkItemMetricsDto.FromWorkItems(sprintId, SizingMethod.StoryPoints, []);
 
         Assert.Equal(sprintId, result.SprintId);
+        Assert.Equal(SizingMethod.StoryPoints, result.SizingMethod);
         Assert.Equal(0, result.TotalWorkItems);
-        Assert.Equal(0d, result.TotalStoryPoints);
+        Assert.Equal(0d, result.TotalEstimate);
         Assert.Equal(0, result.CompletedWorkItems);
         Assert.Equal(0, result.InProgressWorkItems);
         Assert.Equal(0, result.NotStartedWorkItems);
-        Assert.Equal(0, result.MissingStoryPointsCount);
+        Assert.Equal(0, result.UnestimatedWorkItems);
         Assert.Equal(0, result.CycleTime.WorkItemsCount);
         Assert.Equal(0d, result.CycleTime.TotalCycleTimeDays);
         Assert.Null(result.CycleTime.AverageCycleTimeDays);
@@ -107,7 +109,7 @@ public sealed class SprintWorkItemMetricsDtoTests
             RemovedItem(storyPoints: 1),
         };
 
-        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), items);
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.StoryPoints, items);
 
         Assert.Equal(5, result.TotalWorkItems);
         Assert.Equal(1, result.NotStartedWorkItems);
@@ -128,29 +130,94 @@ public sealed class SprintWorkItemMetricsDtoTests
             RemovedItem(storyPoints: 1),
         };
 
-        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), items);
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.StoryPoints, items);
 
-        Assert.Equal(3 + 5 + 2 + 8 + 1, result.TotalStoryPoints);
-        Assert.Equal(3, result.NotStartedStoryPoints);
-        Assert.Equal(5 + 2, result.InProgressStoryPoints);
-        Assert.Equal(8 + 1, result.CompletedStoryPoints);
+        Assert.Equal(3 + 5 + 2 + 8 + 1, result.TotalEstimate);
+        Assert.Equal(3, result.NotStartedEstimate);
+        Assert.Equal(5 + 2, result.InProgressEstimate);
+        Assert.Equal(8 + 1, result.CompletedEstimate);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(0d)]
-    public void FromWorkItems_TreatsNullOrZeroStoryPointsAsMissing(double? sp)
+    [Fact]
+    public void FromWorkItems_TreatsNullStoryPointsAsUnestimated()
     {
         var items = new List<WorkItem>
         {
-            ProposedItem(storyPoints: sp),
-            ActiveItem(storyPoints: 5), // not missing
-            DoneItem(cycleTimeDays: 1, storyPoints: sp),
+            ProposedItem(storyPoints: null),
+            ActiveItem(storyPoints: 5),
+            DoneItem(cycleTimeDays: 1, storyPoints: null),
         };
 
-        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), items);
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.StoryPoints, items);
 
-        Assert.Equal(2, result.MissingStoryPointsCount);
+        Assert.Equal(2, result.UnestimatedWorkItems);
+    }
+
+    [Fact]
+    public void FromWorkItems_CountsZeroAsAnEstimate()
+    {
+        var items = new List<WorkItem>
+        {
+            ProposedItem(storyPoints: 0),
+            ActiveItem(storyPoints: 5),
+        };
+
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.StoryPoints, items);
+
+        Assert.Equal(0, result.UnestimatedWorkItems);
+        Assert.Equal(5d, result.TotalEstimate);
+    }
+
+    [Fact]
+    public void FromWorkItems_UnderEffort_SumsEffortAndIgnoresStoryPoints()
+    {
+        var items = new List<WorkItem>
+        {
+            new WorkItemFaker().WithProposedState().WithStoryPoints(3).WithEffort(8).Generate(),
+            new WorkItemFaker().WithActiveState().WithStoryPoints(5).Generate(),
+        };
+
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.Effort, items);
+
+        Assert.Equal(SizingMethod.Effort, result.SizingMethod);
+        Assert.Equal(8d, result.TotalEstimate);
+        Assert.Equal(8d, result.NotStartedEstimate);
+        Assert.Equal(0d, result.InProgressEstimate);
+        Assert.Equal(1, result.UnestimatedWorkItems);
+    }
+
+    [Fact]
+    public void FromWorkItems_UnderSize_SumsSize()
+    {
+        var items = new List<WorkItem>
+        {
+            new WorkItemFaker().WithActiveState().WithSize(20).WithStoryPoints(2).Generate(),
+            new WorkItemFaker().WithActiveState().WithSize(13).Generate(),
+        };
+
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.Size, items);
+
+        Assert.Equal(33d, result.InProgressEstimate);
+        Assert.Equal(0, result.UnestimatedWorkItems);
+    }
+
+    [Fact]
+    public void FromWorkItems_UnderCount_EstimatesEqualCountsWithNothingUnestimated()
+    {
+        var items = new List<WorkItem>
+        {
+            ProposedItem(storyPoints: null),
+            ActiveItem(storyPoints: 5),
+            DoneItem(cycleTimeDays: 1, storyPoints: 8),
+        };
+
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.Count, items);
+
+        Assert.Equal(3d, result.TotalEstimate);
+        Assert.Equal(1d, result.NotStartedEstimate);
+        Assert.Equal(1d, result.InProgressEstimate);
+        Assert.Equal(1d, result.CompletedEstimate);
+        Assert.Equal(0, result.UnestimatedWorkItems);
     }
 
     [Fact]
@@ -166,7 +233,7 @@ public sealed class SprintWorkItemMetricsDtoTests
             DoneItem(cycleTimeDays: 4),
         };
 
-        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), items);
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.Count, items);
 
         Assert.Equal(1, result.CycleTime.WorkItemsCount);
         Assert.Equal(4d, result.CycleTime.TotalCycleTimeDays, precision: 10);
@@ -183,7 +250,7 @@ public sealed class SprintWorkItemMetricsDtoTests
             DoneItem(cycleTimeDays: 5),
         };
 
-        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), items);
+        var result = SprintWorkItemMetricsDto.FromWorkItems(Guid.NewGuid(), SizingMethod.Count, items);
 
         Assert.Equal(3, result.CycleTime.WorkItemsCount);
         Assert.Equal(8d, result.CycleTime.TotalCycleTimeDays, precision: 10);
@@ -196,7 +263,7 @@ public sealed class SprintWorkItemMetricsDtoTests
     {
         var sprintId = Guid.NewGuid();
 
-        var result = SprintWorkItemMetricsDto.FromWorkItems(sprintId, [DoneItem(1)]);
+        var result = SprintWorkItemMetricsDto.FromWorkItems(sprintId, SizingMethod.Count, [DoneItem(1)]);
 
         Assert.Equal(sprintId, result.SprintId);
     }

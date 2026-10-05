@@ -65,6 +65,6 @@ public sealed class GetTeamStructureQueryHandlerTests(SqlServerDbContextFixture 
         result.Memberships.Should().ContainSingle()
             .Which.Should().Be(new TeamStructureMembership(teamId, artId, ActiveDate, null));
         result.SizingPeriods.Should().ContainSingle()
-            .Which.Should().Match<TeamSizingPeriod>(p => p.TeamId == teamId && p.UsesStoryPoints);
+            .Which.Should().Match<TeamSizingPeriod>(p => p.TeamId == teamId && p.SizingMethod == SizingMethod.StoryPoints);
     }
 }

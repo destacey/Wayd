@@ -28,7 +28,7 @@ The cards at the top of the report measure the backlog as a whole.
 
 | Measure | What It Shows | Default Grading |
 |---------|---------------|-----------------|
-| **Backlog** | Open work items, split into Proposed and Active, with their total story points | Not graded |
+| **Backlog** | Open work items, split into Proposed and Active, with their total estimate in the team's sizing method | Not graded |
 | **Runway** | Weeks the backlog lasts at the team's throughput over the history window | Unhealthy below 2 weeks; At Risk below 4 or above 26 weeks |
 | **Net Flow** | Work items created for every work item completed in the history window | At Risk above 1.2, Unhealthy above 1.5 |
 | **WIP Load** | Active work items per team member | At Risk above 1.5, Unhealthy above 2 |
@@ -42,8 +42,8 @@ A runway that is too long is At Risk because refining work far ahead of when it 
 | **Stale** | It has not been modified for 90 days or more |
 | **Old Proposed** | It is Proposed and was created 180 or more days ago |
 | **Aging WIP** | It is Active and has been active longer than the team's 85th percentile cycle time |
-| **Missing Story Points** | It is in the readiness window and has no estimate |
-| **Oversized** | It is in the readiness window and is estimated above the 85th percentile of the story points on work the team completed |
+| **Missing Estimate** | It is in the readiness window and has no estimate in the team's sizing method |
+| **Oversized** | It is in the readiness window and is estimated above the 85th percentile of the estimates on work the team completed |
 | **No Parent** | It is in the readiness window and has no parent |
 | **No Project** | It is in the readiness window and is not linked to a project |
 | **Unassigned Active** | It is Active and no one is assigned |
@@ -52,6 +52,8 @@ A runway that is too long is At Risk because refining work far ahead of when it 
 | **Rank Inversion** | It is ranked above a work item it depends on, in the same team's backlog |
 
 The **readiness window** is the top of the backlog: the work items the team is expected to reach in the next 4 weeks at its recent throughput. Without enough history to size it, the window is the top 20 work items.
+
+**Estimates are read in the team's sizing method.** The report uses the [sizing method](../organizations/index.mdx#operating-model) of the team's current operating model — Story Points, Effort or Size — for open work and completed work alike, and the work item grid's estimate column is headed with it. A work item with no value in that estimate is missing one, even when it has a different estimate; an estimate of 0 counts as an estimate. A team that sizes by count has no estimates, so **Missing Estimate** and **Oversized** are not checked for it.
 
 **Aging WIP** and **Oversized** compare work against the team's own completed work, so they need at least 10 completed work items in the history window. **No Project** is checked only for teams that link their work to projects.
 
@@ -83,7 +85,7 @@ Thresholds are for exploring scenarios, not a team setting:
 | Stale after | 90 days |
 | Old proposed after | 180 days |
 | Aging WIP beyond | 85th percentile cycle time |
-| Oversized above | 85th percentile story points |
+| Oversized above | 85th percentile estimate |
 | Readiness window | 4 weeks |
 | Readiness window without history | 20 work items |
 | At Risk / Unhealthy at | 10% / 25% flagged |

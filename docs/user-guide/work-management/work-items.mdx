@@ -43,6 +43,7 @@ The workspace detail page has two tabs:
 **Work Items Tab:**
 - Sortable, filterable grid of all work items in the workspace
 - Columns: Key, Title, Type, Status, Status Category, Story Points, [Team](../organizations/index.mdx#teams), [Sprint](./sprints.mdx), Parent, Assigned To, [Project](../ppm/projects.mdx)
+- Effort and Size are available from **Choose Columns** (see [Estimate columns](#estimate-columns))
 - Click a work item to navigate to its detail page
 
 Actions: Set External URLs (for managed workspaces)
@@ -62,6 +63,10 @@ Every work item has:
 - **Story Points** — Optional relative estimate, typically set in sprint planning
 - **Effort** — Optional level-of-effort estimate, often set on features and epics for longer-term planning. Scrum also uses it as the sprint-level estimate.
 - **Size** — Optional size estimate, used by the CMMI process for requirements
+
+### Estimate columns
+
+Work item grids — a workspace's work items, a team's backlog, a sprint's backlog, a PI iteration's backlog and a project's work items — offer all three estimates as columns. The one that shows at first is the team's [sizing method](../organizations/index.mdx#operating-model): a team that sizes in Effort sees Effort, a CMMI team sizing in Size sees Size. The others start hidden and can be added from **Choose Columns**. A sprint's backlog follows the sizing method in effect on the sprint's planned start. Where there is no single team to follow — a workspace's or project's work items, a PI iteration whose teams size differently — or the team sizes by count, Story Points shows. Once you show or hide an estimate column yourself, your choice is kept; **Reset Columns** returns to the team's default.
 
   The three estimates are kept separately: an item can carry more than one, and each is synced from its own Azure DevOps field.
 - **Assignee** — The person responsible for the work

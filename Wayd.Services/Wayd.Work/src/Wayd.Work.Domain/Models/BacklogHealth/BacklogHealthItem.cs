@@ -18,7 +18,10 @@ public sealed record BacklogHealthItem
 
     public required WorkStatusCategory StatusCategory { get; init; }
 
-    public double? StoryPoints { get; init; }
+    /// <summary>
+    /// The item's estimate in the team's sizing method; null when it has none, or when the team sizes by count.
+    /// </summary>
+    public double? Estimate { get; init; }
 
     public required Instant Created { get; init; }
 

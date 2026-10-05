@@ -284,7 +284,12 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       case TeamTabs.Overview:
         return <TeamOverview team={team!} onNavigateToSection={goToSection} />
       case TeamTabs.Backlog:
-        return <TeamBacklog teamId={team!.id!} />
+        return (
+          <TeamBacklog
+            teamId={team!.id!}
+            sizingMethod={team!.operatingModel?.sizingMethod}
+          />
+        )
       case TeamTabs.Sprints:
         return <TeamSprints teamId={team!.id!} />
       case TeamTabs.DependencyManagement:

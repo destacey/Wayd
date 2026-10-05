@@ -30,7 +30,7 @@ public class GetTeamScheduleQueryHandlerTests : IDisposable
     {
         var team = _teamFaker.Generate();
         team.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.Effort, "America/Chicago", 2, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
         _dbContext.AddTeam(team);
         return team;
     }
@@ -45,7 +45,7 @@ public class GetTeamScheduleQueryHandlerTests : IDisposable
         var result = await _handler.Handle(new GetTeamScheduleQuery(team.Id, MoveDate.PlusDays(-1)), TestContext.Current.CancellationToken);
 
         // Assert
-        result.Should().Be(new TeamScheduleDto("America/New_York", 1));
+        result.Should().Be(new TeamScheduleDto("America/New_York", 1, SizingMethod.StoryPoints));
     }
 
     [Fact]
@@ -59,8 +59,8 @@ public class GetTeamScheduleQueryHandlerTests : IDisposable
         var later = await _handler.Handle(new GetTeamScheduleQuery(team.Id, MoveDate.PlusYears(1)), TestContext.Current.CancellationToken);
 
         // Assert
-        onMove.Should().Be(new TeamScheduleDto("America/Chicago", 2));
-        later.Should().Be(new TeamScheduleDto("America/Chicago", 2));
+        onMove.Should().Be(new TeamScheduleDto("America/Chicago", 2, SizingMethod.Effort));
+        later.Should().Be(new TeamScheduleDto("America/Chicago", 2, SizingMethod.Effort));
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class GetTeamScheduleQueryHandlerTests : IDisposable
         var result = await _handler.Handle(new GetTeamScheduleQuery(team.Id, FirstStart), TestContext.Current.CancellationToken);
 
         // Assert
-        result.Should().Be(new TeamScheduleDto("America/Denver", 1));
+        result.Should().Be(new TeamScheduleDto("America/Denver", 1, SizingMethod.StoryPoints));
     }
 
     [Fact]

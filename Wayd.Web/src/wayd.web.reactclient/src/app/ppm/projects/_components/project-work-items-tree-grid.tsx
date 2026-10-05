@@ -117,6 +117,28 @@ const getColumns = (
       exportHeader: 'Story Points',
     } satisfies WaydGridColumnMeta,
   },
+  // A project's work spans teams that size differently, so Story Points stays the default and the other
+  // estimates are offered in Choose Columns.
+  {
+    id: 'effort',
+    accessorFn: (row) => row.effort ?? undefined,
+    header: 'Effort',
+    size: 100,
+    enableGlobalFilter: false,
+    sortFn: 'basic',
+    sortUndefined: -1,
+    meta: { hiddenByDefault: true } satisfies WaydGridColumnMeta,
+  },
+  {
+    id: 'size',
+    accessorFn: (row) => row.size ?? undefined,
+    header: 'Size',
+    size: 100,
+    enableGlobalFilter: false,
+    sortFn: 'basic',
+    sortUndefined: -1,
+    meta: { hiddenByDefault: true } satisfies WaydGridColumnMeta,
+  },
   {
     id: 'team',
     accessorFn: (row) => row.team?.name ?? '',

@@ -16,10 +16,12 @@ import dayjs from 'dayjs'
 import { FC, ReactNode, useState } from 'react'
 import {
   BacklogHealthCheckDto,
+  SizingMethod,
   TeamBacklogHealthDto,
 } from '@/src/services/wayd-api'
 import { useGetTeamBacklogHealthQuery } from '@/src/store/features/organizations/team-api'
 import { isApiError } from '@/src/utils/problem-details'
+import { sizingMethodMeasure } from '@/src/utils/sizing-method'
 import { healthCheckTagColor } from '../../health-check/health-check-utils'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import BacklogHealthGrid from './backlog-health-grid'
@@ -187,7 +189,10 @@ export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
               value={health?.totalWorkItems ?? 0}
               secondaryValue={
                 health &&
-                `${health.proposedWorkItems} proposed · ${health.activeWorkItems} active · ${health.totalStoryPoints} pts`
+                `${health.proposedWorkItems} proposed · ${health.activeWorkItems} active` +
+                  (health.sizingMethod === SizingMethod.Count
+                    ? ''
+                    : ` · ${health.totalEstimate} ${sizingMethodMeasure(health.sizingMethod)}`)
               }
               loading={isLoading && !health}
               cardStyle={METRIC_CARD_FLEX}
@@ -205,8 +210,8 @@ export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
               {`History ${dayjs(health.from).format('MMM D, YYYY')} – ${dayjs(health.to).format('MMM D, YYYY')}: ${health.itemsCompleted} completed, ${health.itemsCreated} created. Readiness checks look at the top ${health.readinessWindowWorkItems} work items.`}
               {health.agingWipDays != null &&
                 ` Aging beyond ${Number(health.agingWipDays.toFixed(1))} days.`}
-              {health.oversizedStoryPoints != null &&
-                ` Oversized above ${health.oversizedStoryPoints} points.`}
+              {health.oversizedEstimate != null &&
+                ` Oversized above ${health.oversizedEstimate} ${sizingMethodMeasure(health.sizingMethod)}.`}
             </Text>
           )}
 
@@ -249,6 +254,7 @@ export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
           </Flex>
           <BacklogHealthGrid
             workItems={shownWorkItems}
+            sizingMethod={health?.sizingMethod}
             isLoading={isLoading}
             refetch={refetch}
             persistStateKey={persistStateKey}

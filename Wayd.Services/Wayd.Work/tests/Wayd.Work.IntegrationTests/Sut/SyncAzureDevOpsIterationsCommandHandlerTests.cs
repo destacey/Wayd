@@ -77,7 +77,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
             foreach (var teamId in new[] { teamA, teamB })
             {
                 var sprints = await start.Context.Iterations.Where(i => i.TeamId == teamId).ToListAsync(ct);
-                var timeline = new TeamSprintTimeline(teamId, sprints, new TeamSprintSchedules([], new SprintSchedule(DateTimeZone.Utc, 1)));
+                var timeline = new TeamSprintTimeline(teamId, sprints, new TeamSprintSchedules([], new SprintSchedule(DateTimeZone.Utc, 1, SizingMethod.Count)));
                 sprints.Single().Start(timeline, started, EventActor.System, started).IsSuccess.Should().BeTrue();
             }
             await start.Context.SaveChangesAsync(ct);

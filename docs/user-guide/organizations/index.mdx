@@ -96,15 +96,19 @@ Each team has an **Operating Model** that defines how it works. The operating mo
 - **Methodology** — The team's delivery approach:
   - **Scrum** — Sprint-based with time-boxed iterations, sprint backlog, and sprint planning
   - **Kanban** — Continuous flow, pulling from a product backlog
-- **Sizing Method** — How the team estimates work:
-  - **Story Points** — Relative sizing using story points
+- **Sizing Method** — Which estimate the team's metrics read from each work item:
+  - **Story Points** — The work item's Story Points
+  - **Effort** — The work item's Effort, which the Azure DevOps Scrum process uses to estimate backlog items
+  - **Size** — The work item's Size, which the Azure DevOps CMMI process uses to estimate requirements
   - **Count** — Simple item count (each item = 1)
+
+  A work item carries each estimate separately, and only the team's sizing method decides which one counts; the work item's process does not. A work item with no value in that estimate is unestimated, even when it has a different estimate. An estimate of 0 is a real estimate.
 - **Time Zone** — The IANA time zone the team's sprint days are counted in, such as `America/Chicago`
 - **Commitment Grace Period** — How many days after a sprint's planned start its commitment is taken when the team does not start the sprint itself (1 is the end of the first planned day)
 
 Operating models have an effective date range, creating a history. When a team changes how it works (e.g., moving from Kanban to Scrum, or relocating to another time zone), a new operating model is added and the previous one is automatically closed the day before the new one starts.
 
-A sprint uses the time zone and grace period of the operating model in effect on its planned start date, for the whole sprint. So a team that moves keeps its old zone for sprints planned before the move, while editing a model corrects every sprint in that model's period.
+A sprint uses the time zone, grace period and sizing method of the operating model in effect on its planned start date, for the whole sprint. So a team that moves, or starts sizing in a different unit, keeps its old zone and unit for sprints planned before the change, while editing a model corrects every sprint in that model's period.
 
 A new model's time zone is pre-filled from the team's parent Team of Teams — the zone that team of teams had on the new model's start date — or from the [scheduling settings](../settings/index.mdx) when the team had no parent then. The grace period is pre-filled from the scheduling settings. These are suggestions only: changing the parent's zone or the scheduling settings never changes an existing team.
 
@@ -191,7 +195,7 @@ Members are managed from the **Actions menu → Team Management**:
 
 The **Backlog** section shows all work items assigned to the team across all workspaces. This gives the team a unified view of their work regardless of which workspace it lives in.
 
-The backlog is displayed as a grid with sortable and filterable columns. It pulls work items where the team is assigned, providing a single-pane view of everything the team needs to work on.
+The backlog is displayed as a grid with sortable and filterable columns. It pulls work items where the team is assigned, providing a single-pane view of everything the team needs to work on. Its estimate column follows the team's sizing method; see [Estimate columns](../work-management/work-items.mdx#estimate-columns).
 
 ### Sprints
 
@@ -253,7 +257,7 @@ The **Activity** section shows the team's recorded history: what changed, who ch
 Listed under **Reports** at the bottom of the section rail, this shows the full history of the team's operating model changes over time. Each entry shows:
 - Start and End dates
 - Methodology (Scrum or Kanban)
-- Sizing Method (Story Points or Count)
+- Sizing Method (Story Points, Effort, Size or Count)
 - Time Zone and Grace Days
 - Status (Current or Historical)
 

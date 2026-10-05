@@ -6,7 +6,10 @@ namespace Wayd.Work.Domain.Models.BacklogHealth;
 /// <summary>
 /// A work item the team completed in the lookback window.
 /// </summary>
-public sealed record BacklogHealthCompletion(Instant? Activated, Instant Done, double? StoryPoints);
+/// <param name="Estimate">
+/// Its estimate in the team's current sizing method; null when it has none, or when the team sizes by count.
+/// </param>
+public sealed record BacklogHealthCompletion(Instant? Activated, Instant Done, double? Estimate);
 
 /// <summary>
 /// What the team completed and took on over the lookback window.

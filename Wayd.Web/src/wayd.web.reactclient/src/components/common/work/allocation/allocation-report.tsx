@@ -162,7 +162,7 @@ const SummaryCards: FC<{
             : '—',
           summary &&
             `${summary.estimatedItems} of ${summary.itemsInPointSizedTeams} items in point-sized teams`,
-          'Items with an estimate above zero, among teams that size in story points.',
+          'Items with story points, among teams that size in story points. An estimate of 0 counts as estimated.',
         )}
         {card(
           'Teams Included',
@@ -170,7 +170,7 @@ const SummaryCards: FC<{
             ? `${summary.teamsIncluded - excluded.length} of ${summary.teamsIncluded}`
             : '',
           excluded.length > 0
-            ? `${excluded.map((t) => t.name).join(', ')} ${excluded.length === 1 ? 'sizes' : 'size'} by count`
+            ? `${excluded.map((t) => t.name).join(', ')} ${excluded.length === 1 ? "doesn't" : "don't"} size in points`
             : summary && 'Every team sizes in points',
         )}
         {linked}
@@ -328,7 +328,7 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
             }))}
           />
         </Space>
-        {measure === AllocationMeasure.StoryPoints && (
+        {measure !== AllocationMeasure.Count && (
           <Space>
             <Text type="secondary">Unestimated items</Text>
             <Segmented<UnestimatedHandling>
@@ -407,11 +407,12 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
           )}
           {measure === AllocationMeasure.TeamEffort && (
             <Text type="secondary" style={{ fontSize: 12 }}>
-              Each team&apos;s split is measured in its own sizing — story
-              points, or items for teams that size by count — then teams are
-              combined by their share of completed items, so the percentages
-              never add one team&apos;s story points to another&apos;s. Story
-              point totals are still plain sums across teams.
+              Each team&apos;s split is measured in its own sizing method —
+              story points, effort, size, or items for teams that size by count,
+              as each sized on the day the work was done — then combined by
+              share of completed items, so the percentages never add estimates
+              in different units. Story point totals are still plain sums across
+              teams.
             </Text>
           )}
         </>

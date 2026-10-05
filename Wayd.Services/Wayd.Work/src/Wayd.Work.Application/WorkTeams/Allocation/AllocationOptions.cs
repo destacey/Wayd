@@ -16,22 +16,23 @@ public enum AllocationMeasure
     /// <summary>Every item counts as one, in every team, as a team that sizes by count does.</summary>
     Count = 0,
 
-    /// <summary>Story points, from teams that size in story points only.</summary>
+    /// <summary>Story points, only from teams that sized in story points on the day the work was done.</summary>
     StoryPoints = 1,
 
     /// <summary>
-    /// Each team's split measured in its own sizing, then teams combined by their share of completed items,
-    /// so story points are never added across teams whose scales differ.
+    /// Each team's split measured in its own sizing method (story points, effort, size or count, as it sized
+    /// on the day the work was done), then combined by share of completed items, so estimates are never added
+    /// across teams whose scales differ or across one team's units.
     /// </summary>
     TeamEffort = 2,
 }
 
-/// <summary>What a story point measure does with a work item that has no estimate.</summary>
+/// <summary>What an estimate-based measure does with a work item that has no estimate in its team's unit.</summary>
 public enum UnestimatedHandling
 {
     Exclude = 0,
 
-    /// <summary>The average points per estimated item of the same team and work type in the window.</summary>
+    /// <summary>The average estimate per estimated item of the same team, sizing method and work type in the window.</summary>
     TeamAverage = 1,
 }
 

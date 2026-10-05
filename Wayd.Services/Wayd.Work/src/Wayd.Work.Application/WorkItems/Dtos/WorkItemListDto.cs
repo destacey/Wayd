@@ -28,6 +28,13 @@ public sealed record WorkItemListDto : IMapFrom<WorkItem>
     public EmployeeNavigationDto? AssignedTo { get; set; }
     public double StackRank { get; set; }
     public double? StoryPoints { get; set; }
+
+    /// <summary>The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated.</summary>
+    public double? Effort { get; set; }
+
+    /// <summary>The size estimate, the CMMI process's requirement estimate; null when unestimated.</summary>
+    public double? Size { get; set; }
+
     public WorkProjectNavigationDto? Project { get; set; }
     public string? ExternalViewWorkItemUrl { get; set; }
     public Instant Created { get; set; }

@@ -63,6 +63,11 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         return team.Id;
     }
 
+    private void TeamSizesIn(SizingMethod sizingMethod) =>
+        _dispatcher
+            .Setup(d => d.Send(It.Is<GetTeamScheduleQuery>(q => q.TeamId == _team && q.AsOf == _now.InUtc().Date), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TeamScheduleDto("UTC", 1, sizingMethod));
+
     private void MembersAre(int? count) =>
         _dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamMemberCountQuery>(), It.IsAny<CancellationToken>()))
@@ -77,7 +82,9 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         Instant? lastModified = null,
         Instant? activated = null,
         Instant? done = null,
-        Guid? projectId = null)
+        Guid? projectId = null,
+        double? storyPoints = null,
+        double? effort = null)
     {
         var item = new WorkItemFaker()
             .WithWorkspace(_workspace)
@@ -91,6 +98,8 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
             .WithActivatedTimestamp(activated)
             .WithDoneTimestamp(done)
             .WithProjectId(projectId)
+            .WithStoryPoints(storyPoints)
+            .WithEffort(effort)
             .Generate();
 
         _context.AddWorkItem(item);
@@ -151,6 +160,46 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
 
         // Assert
         result.Value!.Checks.Select(c => c.Check.Id).Should().Equal(Enum.GetValues<BacklogHealthCheck>().Select(c => (int)c));
+    }
+
+    [Fact]
+    public async Task Handle_TeamSizingInEffort_ReadsEachItemsEffortWithoutFallingBack()
+    {
+        // Arrange
+        TeamSizesIn(SizingMethod.Effort);
+        var estimated = AddItem(_team, stackRank: 1, storyPoints: 3, effort: 8);
+        var pointsOnly = AddItem(_team, stackRank: 2, storyPoints: 5);
+
+        // Act
+        var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);
+
+        // Assert
+        var health = result.Value!;
+        health.SizingMethod.Should().Be(SizingMethod.Effort);
+        health.TotalEstimate.Should().Be(8);
+        health.WorkItems.Single(w => w.Id == estimated.Id).Estimate.Should().Be(8);
+        var unestimated = health.WorkItems.Single(w => w.Id == pointsOnly.Id);
+        unestimated.Estimate.Should().BeNull();
+        unestimated.Flags.Select(f => f.Id).Should().Contain((int)BacklogHealthCheck.MissingEstimate);
+    }
+
+    [Fact]
+    public async Task Handle_TeamWithNoOperatingModelToday_IsMeasuredByCount()
+    {
+        // Arrange
+        AddItem(_team, storyPoints: 3);
+        AddItem(_team);
+
+        // Act
+        var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);
+
+        // Assert
+        var health = result.Value!;
+        health.SizingMethod.Should().Be(SizingMethod.Count);
+        health.TotalEstimate.Should().Be(2);
+        health.Checks.Single(c => c.Check.Id == (int)BacklogHealthCheck.MissingEstimate).Outcome.Id
+            .Should().Be((int)BacklogHealthOutcome.NotApplicable);
+        health.WorkItems.Should().AllSatisfy(w => w.Estimate.Should().BeNull());
     }
 
     [Fact]

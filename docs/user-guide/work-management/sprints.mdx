@@ -84,7 +84,7 @@ The sprint detail page shows:
 - **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), and the sprint's length in days
 - **Team** link and timeline progress bar
 - **Sprint Metrics** (for Active/Completed sprints) — see [Sprint Metrics](#sprint-metrics) below
-- **Backlog grid** — [Work items](./work-items.mdx#work-items) in the sprint with Rank, Key, Type, Title, Story Points, Status, Status Category, and Team
+- **Backlog grid** — [Work items](./work-items.mdx#work-items) in the sprint with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team
 - **Activity** — the sprint's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx)
 - **Links** section
 
@@ -113,21 +113,21 @@ The panel is only visible if you have at least one active team sprint.
 
 Sprint metrics provide quantitative insight into a sprint's progress and delivery. Metrics are available for both individual sprints and [PI iterations](../planning/planning-intervals.mdx#pi-iteration-detail-page) (which aggregate across all mapped sprints).
 
-All metrics can be viewed using either **Story Points** or **Count** sizing, toggled via a selector.
+**Metrics are measured in the team's sizing method.** A sprint uses the [sizing method](../organizations/index.mdx#operating-model) of the operating model in effect on its planned start — Story Points, Effort, Size or Count — so a team that changes how it sizes keeps its earlier sprints in the old unit. A sprint whose team is not mapped to a Wayd team counts work items. A selector switches the metrics between the team's sizing method and counting work items; for a team that sizes by count the two are the same, so the selector is disabled.
 
 ### Metric Definitions
 
 | Metric | Formula | Description |
 |--------|---------|-------------|
-| **Total** | Sum of all work items (or story points) in the sprint | Everything committed to the sprint |
+| **Total** | Sum of every work item's estimate in the team's sizing method (or the number of work items) | Everything committed to the sprint |
 | **Completed** | Items where status category is **Done** or **Removed** | Work that is finished or removed from scope |
 | **In Progress** | Items where status category is **Active** | Work currently being performed |
 | **Not Started** | Items where status category is **Proposed** | Work that hasn't begun yet |
 | **Remaining** | Total − Completed | Work still to be done |
 | **Completion Rate** | `(Completed / Total) × 100` | Percentage of sprint work completed. Target: 80% |
-| **Velocity** | Completed count (story points or items) | How much work the team delivered. Percentage of total shown alongside. |
+| **Velocity** | Completed estimate (or the number of completed work items) | How much work the team delivered. Percentage of total shown alongside. |
 | **Avg Cycle Time** | `Sum(Done − Activated) / Count` for Done items with both timestamps | Average days from start to completion. Only includes items that moved through Active to Done. |
-| **Missing Story Points** | Count of items with null or zero story points | Indicates estimation gaps. Highlighted red if any exist. |
+| **Unestimated** | Count of items with no value in the team's sizing method | Indicates estimation gaps. Highlighted red if any exist. An estimate of 0 is an estimate, and another estimate never stands in: a Story Points team's item with only an Effort is unestimated. Not shown when counting work items. |
 
 ### How "Completed" Is Defined
 
@@ -156,6 +156,7 @@ For a deeper analysis of cycle time patterns over longer periods, use the [Cycle
 ### PI Iteration Metric Aggregation
 
 When viewing a [PI iteration](../planning/planning-intervals.mdx#pi-iteration-detail-page), metrics are aggregated from all mapped team sprints:
-- **Counts and story points** are summed across all sprints (Total, Completed, In Progress, Not Started, Missing)
+- **Counts** are summed across all sprints (Total, Completed, In Progress, Not Started, Unestimated)
+- **Estimates** are summed only when every sprint is measured in the same sizing method. When teams size in different units, estimates are never added together: the iteration's totals are counts, and each team's sprint card shows its own unit
 - **Average Cycle Time** is the average of each sprint's average cycle time (simple average, not weighted)
 - **Team Count** and **Sprint Count** show how many teams and sprints are included

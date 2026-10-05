@@ -12,7 +12,8 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { SizingMethod, WorkItemListDto } from '@/src/services/wayd-api'
+import { estimateColumns } from './estimate-columns'
 import type { ColumnDef } from '../wayd-grid-core'
 import { FC, ReactNode, useMemo } from 'react'
 
@@ -30,6 +31,8 @@ export interface WorkItemsGridProps {
   viewSelector?: ReactNode | undefined
   /** Column layout persistence key for the hosting page (see WaydGridProps). */
   persistStateKey?: string
+  /** The team's sizing method, whose estimate column shows by default; Story Points for several teams' work. */
+  sizingMethod?: SizingMethod | null
 }
 
 const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
@@ -73,13 +76,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         sortFn: workStatusCategorySort,
         meta: { filterType: 'set' },
       },
-      {
-        id: 'storyPoints',
-        accessorKey: 'storyPoints',
-        header: 'SPs',
-        size: 100,
-        meta: { headerTooltip: 'Story Points' },
-      },
+      ...estimateColumns<WorkItemListDto>(props.sizingMethod, 100),
       {
         id: 'team',
         accessorKey: 'team.name',
@@ -175,7 +172,12 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
           getValue<number | undefined>()?.toFixed(2) ?? '',
       },
     ],
-    [props.hideParentColumn, props.hideProjectColumn, props.showStats],
+    [
+      props.hideParentColumn,
+      props.hideProjectColumn,
+      props.showStats,
+      props.sizingMethod,
+    ],
   )
 
   const refresh = async () => {

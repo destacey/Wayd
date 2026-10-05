@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Work.Application.WorkItems.Dtos;
 
 namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
@@ -19,19 +20,27 @@ public sealed record PlanningIntervalIterationMetricsResponse
     public int TeamCount { get; init; }
     public int SprintCount { get; init; }
 
+    /// <summary>
+    /// The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null
+    /// when the sprints use different sizing methods, or there are none: estimates in different units are never
+    /// added, so the estimate totals are null too and only the counts roll up.
+    /// </summary>
+    public SizingMethod? SizingMethod { get; init; }
+
     public int TotalWorkItems { get; init; }
-    public double TotalStoryPoints { get; init; }
+    public double? TotalEstimate { get; init; }
 
     public int CompletedWorkItems { get; init; }
-    public double CompletedStoryPoints { get; init; }
+    public double? CompletedEstimate { get; init; }
 
     public int InProgressWorkItems { get; init; }
-    public double InProgressStoryPoints { get; init; }
+    public double? InProgressEstimate { get; init; }
 
     public int NotStartedWorkItems { get; init; }
-    public double NotStartedStoryPoints { get; init; }
+    public double? NotStartedEstimate { get; init; }
 
-    public int MissingStoryPointsCount { get; init; }
+    /// <summary>Items with no value in their own sprint's sizing method, across every sprint.</summary>
+    public int UnestimatedWorkItems { get; init; }
 
     /// <summary>Cycle-time rollup across all sprints in this iteration.</summary>
     public required CycleTimeSummary CycleTime { get; init; }
@@ -68,17 +77,35 @@ public sealed record SprintMetricsSummary
     public string? TimeZone { get; init; }
     public required NavigationDto Team { get; init; }
 
+    /// <summary>
+    /// The estimate the sprint is measured in: its team's sizing method on the sprint's planned start. Under
+    /// Count every estimate equals its item count.
+    /// </summary>
+    public SizingMethod SizingMethod { get; init; }
+
     // Metrics
     public int TotalWorkItems { get; init; }
-    public double TotalStoryPoints { get; init; }
+    public double TotalEstimate { get; init; }
     public int CompletedWorkItems { get; init; }
-    public double CompletedStoryPoints { get; init; }
+    public double CompletedEstimate { get; init; }
     public int InProgressWorkItems { get; init; }
-    public double InProgressStoryPoints { get; init; }
+    public double InProgressEstimate { get; init; }
     public int NotStartedWorkItems { get; init; }
-    public double NotStartedStoryPoints { get; init; }
-    public int MissingStoryPointsCount { get; init; }
+    public double NotStartedEstimate { get; init; }
+
+    /// <summary>Items with no value in <see cref="SizingMethod"/>. An estimate of 0 is an estimate.</summary>
+    public int UnestimatedWorkItems { get; init; }
 
     /// <summary>Cycle-time rollup for this sprint.</summary>
     public required CycleTimeSummary CycleTime { get; init; }
+
+    /// <summary>
+    /// The sizing method shared by every one of <paramref name="sprints"/>, or null when they use different
+    /// ones or there are none.
+    /// </summary>
+    public static SizingMethod? CommonSizingMethod(IReadOnlyCollection<SprintMetricsSummary> sprints)
+    {
+        var methods = sprints.Select(s => s.SizingMethod).Distinct().ToList();
+        return methods.Count == 1 ? methods[0] : null;
+    }
 }

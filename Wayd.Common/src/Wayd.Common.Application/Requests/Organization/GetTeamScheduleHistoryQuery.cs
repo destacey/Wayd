@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Common.Application.Requests.Organization;
 
@@ -17,4 +18,6 @@ public sealed record GetTeamScheduleHistoryQuery(Guid TeamId) : IQuery<IReadOnly
 /// </summary>
 public sealed record GetTeamsScheduleHistoryQuery(IReadOnlyCollection<Guid> TeamIds) : IQuery<IReadOnlyDictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>>;
 
-public sealed record TeamSchedulePeriodDto(LocalDate Start, LocalDate? End, string TimeZone, int CommitmentGraceDays);
+/// <param name="End">Inclusive; null for the current operating model.</param>
+/// <param name="SizingMethod">Which of a work item's estimates the team's sprints in the period are measured in.</param>
+public sealed record TeamSchedulePeriodDto(LocalDate Start, LocalDate? End, string TimeZone, int CommitmentGraceDays, SizingMethod SizingMethod);

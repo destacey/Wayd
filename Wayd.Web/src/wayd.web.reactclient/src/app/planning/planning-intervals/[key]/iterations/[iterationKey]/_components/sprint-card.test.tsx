@@ -3,15 +3,13 @@ jest.unmock('dayjs')
 import { render, screen } from '@testing-library/react'
 import SprintCard from './sprint-card'
 import { IterationState } from '@/src/components/types'
-import {
-  SizingMethod,
-  SprintMetricsSummary,
-  TeamOperatingModelDetailsDto,
-  Methodology,
-} from '@/src/services/wayd-api'
+import { SizingMethod, SprintMetricsSummary } from '@/src/services/wayd-api'
 
-// Mock Metrics components
+// Mock Metrics components; sprintMetricValues stays real so the figures shown can be asserted.
 jest.mock('@/src/components/common/metrics', () => ({
+  sprintMetricValues: jest.requireActual(
+    '@/src/components/common/metrics/sprint-metric-values',
+  ).sprintMetricValues,
   MetricCard: ({
     title,
     value,
@@ -102,15 +100,16 @@ describe('SprintCard', () => {
       key: 1,
       name: 'Team Alpha',
     },
+    sizingMethod: SizingMethod.Effort,
     totalWorkItems: 10,
-    totalStoryPoints: 100,
+    totalEstimate: 100,
     completedWorkItems: 5,
-    completedStoryPoints: 50,
+    completedEstimate: 50,
     inProgressWorkItems: 3,
-    inProgressStoryPoints: 30,
+    inProgressEstimate: 30,
     notStartedWorkItems: 2,
-    notStartedStoryPoints: 20,
-    missingStoryPointsCount: 1,
+    notStartedEstimate: 20,
+    unestimatedWorkItems: 1,
     cycleTime: {
       workItemsCount: 4,
       totalCycleTimeDays: 18,
@@ -118,72 +117,12 @@ describe('SprintCard', () => {
     },
   }
 
-  const mockOperatingModelStoryPoints: TeamOperatingModelDetailsDto = {
-    id: 'om-1',
-    teamId: 'team-1',
-    start: '2024-01-01',
-    methodology: Methodology.Scrum,
-    sizingMethod: SizingMethod.StoryPoints,
-    timeZone: 'UTC',
-    commitmentGraceDays: 1,
-    isCurrent: true,
-  }
+  describe('Estimate mode', () => {
+    it("renders the sprint's estimates when not by count", () => {
+      // Arrange / Act
+      render(<SprintCard sprint={mockSprint} byCount={false} />)
 
-  const mockOperatingModelCount: TeamOperatingModelDetailsDto = {
-    id: 'om-2',
-    teamId: 'team-1',
-    start: '2024-01-01',
-    methodology: Methodology.Kanban,
-    sizingMethod: SizingMethod.Count,
-    timeZone: 'UTC',
-    commitmentGraceDays: 1,
-    isCurrent: true,
-  }
-
-  describe('Count mode', () => {
-    it('renders metrics with work item counts when sizingMethod is Count', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
-
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
-      expect(screen.getByTestId('secondary-In Progress')).toHaveTextContent(
-        '2 not started',
-      )
-    })
-
-    it('renders metrics with work item counts when operatingModel uses Count', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelCount}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
-      // Should fallback to count since operatingModel uses Count
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
-    })
-  })
-
-  describe('Story Points mode', () => {
-    it('renders metrics with story points when both sizingMethod and operatingModel support it', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
+      // Assert
       expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent(
         '50',
       )
@@ -192,82 +131,74 @@ describe('SprintCard', () => {
       expect(screen.getByTestId('secondary-In Progress')).toHaveTextContent(
         '20 not started',
       )
+      expect(screen.getByTestId('tooltip-Velocity')).toHaveTextContent(
+        SizingMethod.Effort,
+      )
     })
   })
 
-  describe('Count-based sizing tag', () => {
-    it('shows count-based sizing tag when sizingMethod is StoryPoints but operatingModel uses Count', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelCount}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
+  describe('Count mode', () => {
+    it('renders work item counts when byCount', () => {
+      // Arrange / Act
+      render(<SprintCard sprint={mockSprint} byCount />)
+
+      // Assert
+      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
+      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
+      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
+      expect(screen.getByTestId('secondary-In Progress')).toHaveTextContent(
+        '2 not started',
+      )
+      expect(screen.getByTestId('tooltip-Velocity')).toHaveTextContent(
+        SizingMethod.Count,
+      )
+    })
+  })
+
+  describe('Unit tag', () => {
+    it.each([
+      [SizingMethod.StoryPoints, 'Story Points'],
+      [SizingMethod.Effort, 'Effort'],
+      [SizingMethod.Size, 'Size'],
+      [SizingMethod.Count, 'Count'],
+    ])("shows the sprint's sizing method %s as %s", (sizingMethod, label) => {
+      // Arrange / Act
+      const { container } = render(
+        <SprintCard sprint={{ ...mockSprint, sizingMethod }} byCount={false} />,
       )
 
-      expect(screen.getByText('Count-based Metrics')).toBeInTheDocument()
+      // Assert
+      expect(container.querySelector('.ant-tag')).toHaveTextContent(
+        new RegExp(`^${label}$`),
+      )
     })
 
-    it('does not show count-based sizing tag when sizingMethod is Count', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelCount}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+    it('shows Count when byCount, whatever the sprint is sized in', () => {
+      // Arrange / Act
+      const { container } = render(<SprintCard sprint={mockSprint} byCount />)
 
-      expect(screen.queryByText('Count-based Metrics')).not.toBeInTheDocument()
-    })
-
-    it('does not show count-based sizing tag when operatingModel supports StoryPoints', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
-      expect(screen.queryByText('Count-based Metrics')).not.toBeInTheDocument()
+      // Assert
+      expect(container.querySelector('.ant-tag')).toHaveTextContent(/^Count$/)
     })
   })
 
   describe('Header content', () => {
     it('renders team name with correct link', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={mockSprint} byCount />)
 
       const teamLink = screen.getByRole('link', { name: 'Team Alpha' })
       expect(teamLink).toHaveAttribute('href', '/organizations/teams/1')
     })
 
     it('renders sprint name with correct link', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={mockSprint} byCount />)
 
       const sprintLink = screen.getByRole('link', { name: 'Sprint 1' })
       expect(sprintLink).toHaveAttribute('href', '/work/sprints/101')
     })
 
     it('renders formatted date range', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={mockSprint} byCount />)
 
       expect(
         screen.getByText(/Jan 1, 2025.*-.*Jan 14, 2025/),
@@ -277,27 +208,15 @@ describe('SprintCard', () => {
 
   describe('Health indicator', () => {
     it('renders health indicator with correct values in count mode', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={mockSprint} byCount />)
 
       expect(
         screen.getByTestId('iteration-health-indicator'),
       ).toHaveTextContent('Health: 5/10')
     })
 
-    it('renders health indicator with story point values when applicable', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
+    it('renders health indicator with estimate values when not by count', () => {
+      render(<SprintCard sprint={mockSprint} byCount={false} />)
 
       expect(
         screen.getByTestId('iteration-health-indicator'),
@@ -307,13 +226,7 @@ describe('SprintCard', () => {
 
   describe('Progress bar', () => {
     it('renders progress bar for active sprints', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={mockSprint} byCount />)
 
       expect(screen.getByTestId('iteration-progress-bar')).toBeInTheDocument()
     })
@@ -324,13 +237,7 @@ describe('SprintCard', () => {
         state: { id: IterationState.Future, name: 'Future' },
       }
 
-      render(
-        <SprintCard
-          sprint={futureSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={futureSprint} byCount />)
 
       expect(
         screen.queryByTestId('iteration-progress-bar'),
@@ -345,13 +252,7 @@ describe('SprintCard', () => {
     }
 
     it('only shows Total metric for future sprints', () => {
-      render(
-        <SprintCard
-          sprint={futureSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={futureSprint} byCount />)
 
       expect(screen.getByTestId('metric-Total')).toBeInTheDocument()
       expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
@@ -365,14 +266,8 @@ describe('SprintCard', () => {
       expect(screen.queryByTestId('metric-Cycle Time')).not.toBeInTheDocument()
     })
 
-    it('shows Total with story points for future sprints in story points mode', () => {
-      render(
-        <SprintCard
-          sprint={futureSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
+    it('shows the total estimate for future sprints when not by count', () => {
+      render(<SprintCard sprint={futureSprint} byCount={false} />)
 
       expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
     })
@@ -380,13 +275,7 @@ describe('SprintCard', () => {
 
   describe('Active/Completed sprint', () => {
     it('shows all metrics for active sprints', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={mockSprint} byCount />)
 
       expect(screen.getByTestId('metric-Completion Rate')).toBeInTheDocument()
       expect(screen.getByTestId('metric-Velocity')).toBeInTheDocument()
@@ -400,13 +289,7 @@ describe('SprintCard', () => {
         state: { id: IterationState.Completed, name: 'Completed' },
       }
 
-      render(
-        <SprintCard
-          sprint={completedSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={completedSprint} byCount />)
 
       expect(screen.getByTestId('metric-Completion Rate')).toBeInTheDocument()
       expect(screen.getByTestId('metric-Velocity')).toBeInTheDocument()
@@ -417,13 +300,7 @@ describe('SprintCard', () => {
 
   describe('Cycle Time', () => {
     it('renders cycle time when available', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={mockSprint} byCount />)
 
       expect(screen.getByTestId('value-Cycle Time')).toHaveTextContent('4.5')
     })
@@ -438,71 +315,10 @@ describe('SprintCard', () => {
         },
       }
 
-      render(
-        <SprintCard
-          sprint={sprintWithNullCycleTime}
-          operatingModel={mockOperatingModelStoryPoints}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
+      render(<SprintCard sprint={sprintWithNullCycleTime} byCount />)
 
       // Component passes 0 when averageCycleTimeDays is null/undefined
       expect(screen.getByTestId('value-Cycle Time')).toHaveTextContent('0')
-    })
-  })
-
-  describe('Undefined operatingModel', () => {
-    it('renders with count values when operatingModel is undefined', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={undefined}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
-
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
-    })
-
-    it('falls back to count values when operatingModel is undefined and sizingMethod is StoryPoints', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={undefined}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
-      // Should use count values since operatingModel is undefined
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
-    })
-
-    it('shows count-based sizing tag when operatingModel is undefined and sizingMethod is StoryPoints', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={undefined}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
-      expect(screen.getByText('Count-based Metrics')).toBeInTheDocument()
-    })
-
-    it('does not show count-based sizing tag when operatingModel is undefined and sizingMethod is Count', () => {
-      render(
-        <SprintCard
-          sprint={mockSprint}
-          operatingModel={undefined}
-          sizingMethod={SizingMethod.Count}
-        />,
-      )
-
-      expect(screen.queryByText('Count-based Metrics')).not.toBeInTheDocument()
     })
   })
 })

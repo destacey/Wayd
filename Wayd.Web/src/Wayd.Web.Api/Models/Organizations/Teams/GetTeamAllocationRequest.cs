@@ -22,7 +22,7 @@ public sealed record GetTeamAllocationRequest
     /// <summary>How to weigh each work item (default Count).</summary>
     public AllocationMeasure? Measure { get; set; }
 
-    /// <summary>Story points only: what to do with unestimated items (default Exclude).</summary>
+    /// <summary>StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</summary>
     public UnestimatedHandling? Unestimated { get; set; }
 
     /// <summary>Strategic theme only: how to credit a project with several themes (default SplitEvenly).</summary>

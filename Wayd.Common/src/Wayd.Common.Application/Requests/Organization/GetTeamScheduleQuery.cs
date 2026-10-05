@@ -1,9 +1,10 @@
 using NodaTime;
+using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Common.Application.Requests.Organization;
 
 /// <summary>
-/// The time zone and commitment grace period of the operating model an Organization team had in effect on
+/// The time zone, commitment grace period and sizing method of the operating model an Organization team had in effect on
 /// <paramref name="AsOf"/>, or null when the team does not exist or had no operating model that day.
 /// </summary>
 /// <remarks>
@@ -12,4 +13,5 @@ namespace Wayd.Common.Application.Requests.Organization;
 /// </remarks>
 public sealed record GetTeamScheduleQuery(Guid TeamId, LocalDate AsOf) : IQuery<TeamScheduleDto?>;
 
-public sealed record TeamScheduleDto(string TimeZone, int CommitmentGraceDays);
+/// <param name="SizingMethod">Which of a work item's estimates the team's work is measured in.</param>
+public sealed record TeamScheduleDto(string TimeZone, int CommitmentGraceDays, SizingMethod SizingMethod);

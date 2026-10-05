@@ -1,5 +1,4 @@
 using Wayd.Common.Application.Requests.Organization;
-using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Organization.Application.Teams.Queries;
 
@@ -64,7 +63,7 @@ public sealed class GetTeamStructureQueryHandler(IOrganizationDbContext organiza
                 })
                 .Where(x => x.Start <= request.To && (x.End == null || request.From <= x.End))
                 .ToListAsync(cancellationToken))
-            .Select(x => new TeamSizingPeriod(x.TeamId, x.Start, x.End, x.SizingMethod == SizingMethod.StoryPoints))
+            .Select(x => new TeamSizingPeriod(x.TeamId, x.Start, x.End, x.SizingMethod))
             .ToList();
 
         return new TeamStructure(request.TeamId, teams, subtreeEdges, sizingPeriods);

@@ -113,10 +113,7 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
           <Text strong style={{ fontSize: 14 }}>
             Current Sprint
           </Text>
-          <ActiveTeamSprint
-            teamId={team.id}
-            sizingMethod={team.operatingModel.sizingMethod}
-          />
+          <ActiveTeamSprint teamId={team.id} />
         </Flex>
       )}
 

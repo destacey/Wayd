@@ -8,6 +8,7 @@ import { compareCalendarDates } from '@/src/utils'
 import {
   useGetSprintActivitiesQuery,
   useGetSprintBacklogQuery,
+  useGetSprintMetricsQuery,
   useGetSprintQuery,
   useLazyGetSprintActivitiesQuery,
 } from '@/src/store/features/work-management/sprints-api'
@@ -29,10 +30,7 @@ import {
 } from '@/src/app/work/sprints/_components'
 import { IterationStateTag } from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
-import {
-  useGetTeamOperatingModelAsOfQuery,
-  useGetTeamSprintsQuery,
-} from '@/src/store/features/organizations/team-api'
+import { useGetTeamSprintsQuery } from '@/src/store/features/organizations/team-api'
 import { SwapOutlined } from '@ant-design/icons'
 import { Space } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
@@ -78,13 +76,10 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     skip: !sprintKey || activeSection !== SprintSections.Backlog,
   })
 
-  const { data: teamOperatingModel } = useGetTeamOperatingModelAsOfQuery(
-    {
-      teamId: sprint?.team.id ?? '',
-      asOfDate: sprint?.start ?? '',
-    },
-    { skip: !sprint || !sprint?.team.id },
-  )
+  // The sprint's sizing method on its planned start, which its metrics report.
+  const { data: sprintMetrics } = useGetSprintMetricsQuery(sprintKey, {
+    skip: !sprintKey || activeSection !== SprintSections.Backlog,
+  })
 
   const activitiesQuery = useGetSprintActivitiesQuery(
     { idOrKey: sprint?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
@@ -193,6 +188,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             isLoading={workItemsLoading}
             refetch={refetchWorkItems}
             hideTeamColumn
+            sizingMethod={sprintMetrics?.sizingMethod}
             persistStateKey="sprint-backlog"
           />
         )
@@ -200,7 +196,6 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return (
           <SprintDetails
             sprint={sprint}
-            sizingMethod={teamOperatingModel?.sizingMethod}
             onHealthIndicatorReady={setHealthIndicator}
           />
         )

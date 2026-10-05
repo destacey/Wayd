@@ -39,7 +39,7 @@ export const definitions: [string, McpToolDefinition][] = [
     'Teams_GetBacklogHealth',
     {
       name: 'Teams_GetBacklogHealth',
-      description: `Grade a team's open backlog. Returns \`checks\` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Story Points, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an \`outcome\` (Assessed, Not Enough History, Not Applicable), a \`grade\` (Healthy, At Risk, Unhealthy; absent when not assessed), and a \`value\` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). \`workItems\` lists every open backlog work item in rank order with the \`flags\` that apply to it, and \`thresholds\` states the values it was graded with. Every threshold is optional and falls back to its default.`,
+      description: `Grade a team's open backlog. Returns \`checks\` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an \`outcome\` (Assessed, Not Enough History, Not Applicable), a \`grade\` (Healthy, At Risk, Unhealthy; absent when not assessed), and a \`value\` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). \`workItems\` lists every open backlog work item in rank order with the \`flags\` that apply to it, and \`thresholds\` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (\`totalEstimate\`, \`oversizedEstimate\`, each work item's \`estimate\`) are in the team's current \`sizingMethod\` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -76,7 +76,7 @@ export const definitions: [string, McpToolDefinition][] = [
             minimum: 1,
             maximum: 100,
             description:
-              'Story point percentile of completed work a work item is oversized above (default 85).',
+              "Percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).",
           },
           readinessWindowWeeks: {
             type: 'integer',
@@ -233,7 +233,7 @@ export const definitions: [string, McpToolDefinition][] = [
     'Teams_GetTeamAllocation',
     {
       name: 'Teams_GetTeamAllocation',
-      description: `Report where a team's completed work went. Groups the Requirement-tier work items the team completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average). Work with no project is its own group.`,
+      description: `Report where a team's completed work went. Groups the Requirement-tier work items the team completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -322,7 +322,7 @@ export const definitions: [string, McpToolDefinition][] = [
     'TeamsOfTeams_GetAllocation',
     {
       name: 'TeamsOfTeams_GetAllocation',
-      description: `Report where the completed work of a team of teams, and every team beneath it, went. Groups the Requirement-tier work items completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only), or TeamEffort (normalizes scales across teams; recommended for teams of teams). Work with no project is its own group.`,
+      description: `Report where the completed work of a team of teams, and every team beneath it, went. Groups the Requirement-tier work items completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -347,13 +347,13 @@ export const definitions: [string, McpToolDefinition][] = [
             type: 'string',
             enum: ['Count', 'StoryPoints', 'TeamEffort'],
             description:
-              "How each completed work item is weighed (default Count). TeamEffort measures each team's split in its own sizing and combines them by share of completed items, avoiding mixing scales across teams.",
+              "How each completed work item is weighed (default Count). TeamEffort measures each team's split in its own sizing method (story points, effort, size or count, as it sized on the day the work was done) and combines them by share of completed items, avoiding mixing scales across teams or units.",
           },
           unestimated: {
             type: 'string',
             enum: ['Exclude', 'TeamAverage'],
             description:
-              'Story points only: what to do with unestimated items (default Exclude). TeamAverage uses the team average for that work type in the window.',
+              "StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude). TeamAverage uses the team's average for that work type in the same unit in the window. An estimate of 0 is never filled.",
           },
           themeCounting: {
             type: 'string',

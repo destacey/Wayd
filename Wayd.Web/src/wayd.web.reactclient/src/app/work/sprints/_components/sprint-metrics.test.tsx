@@ -45,8 +45,11 @@ jest.mock('@/src/components/contexts/theme', () => ({
   }),
 }))
 
-// Mock Metrics components
+// Mock Metrics components; sprintMetricValues stays real so the figures shown can be asserted.
 jest.mock('@/src/components/common/metrics', () => ({
+  sprintMetricValues: jest.requireActual(
+    '@/src/components/common/metrics/sprint-metric-values',
+  ).sprintMetricValues,
   MetricCard: ({ title, value }: { title: string; value: any }) => (
     <div data-testid={`metric-${title}`}>
       <span>{title}</span>
@@ -122,15 +125,16 @@ describe('SprintMetrics', () => {
 
   const mockMetrics: SprintWorkItemMetricsDto = {
     sprintId: 'sprint-1',
+    sizingMethod: SizingMethod.Effort,
     totalWorkItems: 10,
     completedWorkItems: 5,
     inProgressWorkItems: 3,
     notStartedWorkItems: 2,
-    totalStoryPoints: 100,
-    completedStoryPoints: 50,
-    inProgressStoryPoints: 30,
-    notStartedStoryPoints: 20,
-    missingStoryPointsCount: 1,
+    totalEstimate: 100,
+    completedEstimate: 50,
+    inProgressEstimate: 30,
+    notStartedEstimate: 20,
+    unestimatedWorkItems: 1,
     cycleTime: {
       workItemsCount: 4,
       totalCycleTimeDays: 18,
@@ -145,124 +149,115 @@ describe('SprintMetrics', () => {
     })
   })
 
-  describe('Default (Count) mode', () => {
-    it('renders all metrics with count by default', () => {
+  const countSizedMetrics: SprintWorkItemMetricsDto = {
+    ...mockMetrics,
+    sizingMethod: SizingMethod.Count,
+    totalEstimate: 10,
+    completedEstimate: 5,
+    inProgressEstimate: 3,
+    notStartedEstimate: 2,
+    unestimatedWorkItems: 0,
+  }
+
+  const segmentedOptions = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll('.ant-segmented-item')).map(
+      (option) => option.textContent,
+    )
+
+  describe("Default (sprint's sizing method) mode", () => {
+    it("renders all metrics in the sprint's sizing method by default", () => {
+      // Arrange / Act
       render(<SprintMetrics sprint={mockSprint} />)
 
-      expect(screen.getByTestId('metric-Completion Rate')).toBeInTheDocument()
-      // Note: Our mock for CompletionRateMetric just renders 'completed', which matches the prop we pass.
-      // The real component calculates percentage. Here we verify the prop passed is correct (5).
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
-
-      expect(screen.getByTestId('metric-Total')).toBeInTheDocument()
-      expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
-
-      expect(screen.getByTestId('metric-Velocity')).toBeInTheDocument()
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
-
-      expect(screen.getByTestId('metric-In Progress')).toBeInTheDocument()
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
-
-      expect(screen.getByTestId('metric-Not Started')).toBeInTheDocument()
-      expect(screen.getByTestId('value-Not Started')).toHaveTextContent('2')
-    })
-  })
-
-  describe('Story Points mode', () => {
-    it('renders all metrics with story points when sizingMethod prop is StoryPoints', () => {
-      render(
-        <SprintMetrics
-          sprint={mockSprint}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
-      expect(screen.getByTestId('metric-Completion Rate')).toBeInTheDocument()
+      // Assert
       expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent(
         '50',
       )
-
-      expect(screen.getByTestId('metric-Total')).toBeInTheDocument()
       expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
-
-      expect(screen.getByTestId('metric-Velocity')).toBeInTheDocument()
       expect(screen.getByTestId('value-Velocity')).toHaveTextContent('50')
-
-      expect(screen.getByTestId('metric-In Progress')).toBeInTheDocument()
       expect(screen.getByTestId('value-In Progress')).toHaveTextContent('30')
-
-      expect(screen.getByTestId('metric-Not Started')).toBeInTheDocument()
       expect(screen.getByTestId('value-Not Started')).toHaveTextContent('20')
+    })
+
+    it('offers the sizing method and Count, with the sizing method selected', () => {
+      // Arrange / Act
+      const { container } = render(<SprintMetrics sprint={mockSprint} />)
+
+      // Assert
+      expect(segmentedOptions(container)).toEqual(['Effort', 'Count'])
+      expect(
+        container.querySelector('.ant-segmented-item-selected'),
+      ).toHaveTextContent('Effort')
+      expect(container.querySelector('.ant-segmented-disabled')).toBeNull()
     })
   })
 
   describe('Switching between modes', () => {
-    it('switches to story points mode when segmented control is clicked', async () => {
+    it('switches to counts when Count is clicked', async () => {
+      // Arrange
       const user = userEvent.setup()
       render(<SprintMetrics sprint={mockSprint} />)
-
-      // Initially in Count mode, verify count values
-      expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
-
-      // Switch to Story Points
-      const storyPointsOption = screen.getByText('Story Points')
-      await user.click(storyPointsOption)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
-      })
-
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('50')
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('30')
-      expect(screen.getByTestId('value-Not Started')).toHaveTextContent('20')
-    })
-
-    it('switches back to count mode from story points', async () => {
-      const user = userEvent.setup()
-      render(
-        <SprintMetrics
-          sprint={mockSprint}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
-      // Initially in Story Points mode
       expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
 
-      // Switch to Count
-      const countOption = screen.getByText('Count')
-      await user.click(countOption)
+      // Act
+      await user.click(screen.getByText('Count'))
 
+      // Assert
       await waitFor(() => {
         expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
       })
-
+      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
       expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
       expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
       expect(screen.getByTestId('value-Not Started')).toHaveTextContent('2')
     })
 
-    it('updates when sizingMethod prop changes', async () => {
-      const { rerender } = render(<SprintMetrics sprint={mockSprint} />)
+    it('switches back to the sizing method from Count', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(<SprintMetrics sprint={mockSprint} />)
+      await user.click(screen.getByText('Count'))
+      await waitFor(() => {
+        expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
+      })
 
-      // Initially in Count mode
-      expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
+      // Act
+      await user.click(screen.getByText('Effort'))
 
-      // Change prop to Story Points
-      rerender(
-        <SprintMetrics
-          sprint={mockSprint}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-
+      // Assert
       await waitFor(() => {
         expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
       })
-
       expect(screen.getByTestId('value-Velocity')).toHaveTextContent('50')
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('30')
-      expect(screen.getByTestId('value-Not Started')).toHaveTextContent('20')
+    })
+  })
+
+  describe('Count-sized sprint', () => {
+    beforeEach(() => {
+      ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
+        data: countSizedMetrics,
+        isLoading: false,
+      })
+    })
+
+    it('offers only Count, and disables the toggle', () => {
+      // Arrange / Act
+      const { container } = render(<SprintMetrics sprint={mockSprint} />)
+
+      // Assert
+      expect(segmentedOptions(container)).toEqual(['Count'])
+      expect(
+        container.querySelector('.ant-segmented-disabled'),
+      ).toBeInTheDocument()
+    })
+
+    it('renders counts', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={mockSprint} />)
+
+      // Assert
+      expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
+      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
     })
   })
 
@@ -313,21 +308,43 @@ describe('SprintMetrics', () => {
     })
   })
 
-  describe('Missing SPs', () => {
-    it('renders missing SPs in story points mode', () => {
-      render(
-        <SprintMetrics
-          sprint={mockSprint}
-          sizingMethod={SizingMethod.StoryPoints}
-        />,
-      )
-      expect(screen.getByTestId('metric-Missing SPs')).toBeInTheDocument()
-      expect(screen.getByTestId('value-Missing SPs')).toHaveTextContent('1')
+  describe('Unestimated', () => {
+    it('renders the unestimated item count when showing estimates', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={mockSprint} />)
+
+      // Assert
+      expect(screen.getByTestId('value-Unestimated')).toHaveTextContent('1')
     })
 
-    it('does not render missing SPs in count mode', () => {
+    it('hides unestimated after switching to Count', async () => {
+      // Arrange
+      const user = userEvent.setup()
       render(<SprintMetrics sprint={mockSprint} />)
-      expect(screen.queryByTestId('metric-Missing SPs')).not.toBeInTheDocument()
+
+      // Act
+      await user.click(screen.getByText('Count'))
+
+      // Assert
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('metric-Unestimated'),
+        ).not.toBeInTheDocument()
+      })
+    })
+
+    it('does not render unestimated for a Count-sized sprint', () => {
+      // Arrange
+      ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
+        data: { ...countSizedMetrics, unestimatedWorkItems: 3 },
+        isLoading: false,
+      })
+
+      // Act
+      render(<SprintMetrics sprint={mockSprint} />)
+
+      // Assert
+      expect(screen.queryByTestId('metric-Unestimated')).not.toBeInTheDocument()
     })
   })
 
@@ -373,13 +390,13 @@ describe('SprintMetrics', () => {
         />,
       )
 
-      // Should be called initially (in Count mode)
+      // Should be called initially (in the sprint's sizing method)
       await waitFor(() => {
         expect(onHealthIndicatorReady).toHaveBeenCalledTimes(1)
       })
 
-      // Switch to Story Points mode
-      await user.click(screen.getByText('Story Points'))
+      // Switch to Count mode
+      await user.click(screen.getByText('Count'))
 
       // Should be called again with updated values
       await waitFor(() => {

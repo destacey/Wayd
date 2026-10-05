@@ -23,14 +23,14 @@ public sealed class BacklogHealthAssessment
         IReadOnlyDictionary<Guid, IReadOnlyList<BacklogHealthCheck>> itemFlags,
         int readinessWindowItems,
         double? agingWipDays,
-        double? oversizedStoryPoints)
+        double? oversizedEstimate)
     {
         Thresholds = thresholds;
         Checks = checks;
         ItemFlags = itemFlags;
         ReadinessWindowItems = readinessWindowItems;
         AgingWipDays = agingWipDays;
-        OversizedStoryPoints = oversizedStoryPoints;
+        OversizedEstimate = oversizedEstimate;
     }
 
     public BacklogHealthThresholds Thresholds { get; }
@@ -56,9 +56,10 @@ public sealed class BacklogHealthAssessment
     public double? AgingWipDays { get; }
 
     /// <summary>
-    /// The estimate an item is flagged as oversized above. Null without enough history.
+    /// The estimate, in the team's sizing method, an item is flagged as oversized above. Null without enough
+    /// history, or when the team sizes by count.
     /// </summary>
-    public double? OversizedStoryPoints { get; }
+    public double? OversizedEstimate { get; }
 
     public BacklogHealthCheckResult this[BacklogHealthCheck check] => Checks.Single(c => c.Check == check);
 }

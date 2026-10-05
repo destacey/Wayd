@@ -16,9 +16,9 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Team** | A group of people that work together to deliver value. Has a Name, Code (unique 2-10 char identifier), Active Date, and Operating Model. Can be a member of a Team of Teams. |
 | **Team of Teams** | A higher-level organizational unit that contains child teams and other teams of teams, forming the organizational hierarchy. Provides rollup visibility. Does not have backlogs or sprints. Has its own Operating Model holding only a Time Zone, used for its own rollups and never inherited by its child teams. |
 | **Team Code** | A unique 2-10 character uppercase alphanumeric identifier for a team (e.g., `PLATFORM`, `MOBILE`). |
-| **Operating Model** | Defines how a team works: Methodology (Scrum or Kanban), Sizing Method (Story Points or Count), Time Zone (IANA id) and Commitment Grace Period (days). Has a date range creating a history of changes; a sprint uses the model in effect on its planned start date. |
+| **Operating Model** | Defines how a team works: Methodology (Scrum or Kanban), Sizing Method (Story Points, Effort, Size or Count), Time Zone (IANA id) and Commitment Grace Period (days). Has a date range creating a history of changes; a sprint uses the model in effect on its planned start date. |
 | **Methodology** | The team's delivery approach. Scrum = sprint-based with time-boxed iterations. Kanban = continuous flow from product backlog. |
-| **Sizing Method** | How the team estimates work. Story Points = relative sizing. Count = each item counts as 1. |
+| **Sizing Method** | Which of a work item's estimates the team's metrics read: Story Points, Effort or Size, each its own work item field, or Count (each item counts as 1). The work process plays no part. An item with no value in the team's estimate is unestimated; another estimate never stands in, and 0 is a real estimate. |
 | **Team Membership** | A date-ranged parent-child relationship between a team and a Team of Teams. States: Past, Active, Future. Only one active parent per team. |
 | **Employee** | An individual in the organization. Can be a member of multiple teams. May be synced from a people connector (Microsoft Entra ID via Graph, or Workday). |
 | **Work Email** | One of the email addresses an employee is known by. Exactly one is the primary (mirroring `Employee.Email`); the rest are other work addresses the same person uses or used to use — typically ones left behind by a tenant or domain migration. Only work addresses are recorded; home and personal addresses are filtered out at the connector. Owned by the active people connector and fully replaced on each sync. Used to match people against systems that still reference an older address, such as Azure DevOps work items. |
@@ -59,13 +59,13 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 
 | Term | Definition |
 |------|-----------|
-| **Total** | Sum of all work items (or story points) in a sprint. |
+| **Total** | Sum of a sprint's work items' estimates in its sizing method (Story Points, Effort or Size), or the number of work items under Count. |
 | **Completed** | Items where status category is Done OR Removed. Includes both. |
 | **Remaining** | Total minus Completed. |
 | **Completion Rate** | (Completed / Total) × 100. Target: 80%. |
-| **Velocity** | Completed count (story points or items delivered). |
+| **Velocity** | Completed work, as estimates in the sprint's sizing method or as items under Count. |
 | **Average Cycle Time** | Mean days from Activated to Done for eligible items. Only Done items (not Removed) with both timestamps. |
-| **Missing Story Points** | Count of items with null or zero story points. Indicates estimation gaps. |
+| **Unestimated** | Count of a sprint's items with no value in its sizing method; 0 is an estimate. Indicates estimation gaps. |
 | **Time to Start** | Days from work item creation to activation (how long work waited). |
 | **Cycle Time** | Days from activation to completion. Formula: DoneTimestamp − ActivatedTimestamp. |
 | **Lead Time** | Days from creation to completion (total request-to-delivery time). |
@@ -97,8 +97,8 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Backlog** | A team's unified view of all assigned work items across all workspaces. Visible in the team's Backlog section. |
 | **Allocation** | Where a team's (or a team of teams' and every descendant team's) completed Requirement-tier work went over a date range, grouped by portfolio, program, project, strategic theme or work type. A team's work rolls up to the parent it had on the day each item was done. |
 | **No Project** | Completed work where neither the item nor its parents link to a project. Its own group in every allocation dimension except work type, where it is shown as a portion of each type. Distinct from **No program** / **No theme**, which is work on a project that lacks that level. |
-| **Estimate Coverage** | The share of completed items from story-point-sized teams that carry an estimate above zero. Shown on the allocation report when measuring story points. |
-| **Share of Team Effort** | An allocation measure: each team's split measured in its own sizing (story points, or items for count-sized teams), then teams combined by their share of completed items, so story points are never added across teams. |
+| **Estimate Coverage** | The share of completed items from story-point-sized teams that carry an estimate (0 is an estimate). Shown on the allocation report when measuring story points. |
+| **Share of Team Effort** | An allocation measure: each team's split measured in its own sizing method (story points, effort, size, or items for count-sized teams, as it sized on the day the work was done), then teams combined by their share of completed items, so story points are never added across teams. |
 
 ## Project Portfolio Management
 

@@ -32,19 +32,22 @@ public sealed record AllocationSummaryDto
     /// <summary>Completed items from teams that sized in story points on the day each was done.</summary>
     public int ItemsInPointSizedTeams { get; init; }
 
-    /// <summary>Of <see cref="ItemsInPointSizedTeams"/>, those with an estimate above zero.</summary>
+    /// <summary>Of <see cref="ItemsInPointSizedTeams"/>, those with story points; 0 is an estimate.</summary>
     public int EstimatedItems { get; init; }
 
     /// <summary>Estimated story points; filled-in points are reported separately.</summary>
     public double StoryPoints { get; init; }
 
+    /// <summary>Items whose estimate was filled from their team's average, in whatever unit the team sized in.</summary>
     public int FilledItems { get; init; }
+
+    /// <summary>The story points filled in; fills in other units are not story points and are left out.</summary>
     public double FilledStoryPoints { get; init; }
 
     /// <summary>Teams (not teams of teams) that completed work in the window.</summary>
     public int TeamsIncluded { get; init; }
 
-    /// <summary>Teams whose work the measure leaves out, such as count-sized teams under story points.</summary>
+    /// <summary>Teams whose work the measure leaves out: under story points, teams that size by anything else.</summary>
     public List<AllocationTeamReferenceDto> ExcludedTeams { get; init; } = [];
 
     /// <summary>Items with no project in their ancestry.</summary>

@@ -69,22 +69,22 @@ A team's **sizing method** decides how its work can be measured, not its methodo
 
 ### Story Points
 
-Story points are only counted for teams that size in story points. Teams that size by count are left out, listed on the **Teams Included** card and marked **Excluded** in the By Team view.
+Story points are only counted for work done while a team sized in story points. Teams that size by Effort, Size or count are left out, even when their items carry story points, and are listed on the **Teams Included** card and marked **Excluded** in the By Team view.
 
-Items with no estimate, or an estimate of zero, are handled by the **Unestimated items** setting:
+Items with no estimate are handled by the **Unestimated items** setting; an estimate of 0 is an estimate:
 
 - **Exclude** (the default) leaves them out.
-- **Use team average** gives each one the average estimate of the same team's estimated items **of the same work type** in the date range, or the team's average across all types when it estimated nothing of that type. The average is per team because story points are relative to the team that assigned them, and per work type because bugs and tasks are often left unpointed and a story average would inflate them. Filled-in points are always labelled, for example "+33 filled in".
+- **Use team average** gives each one the average estimate of the same team's estimated items **of the same work type** in the date range, or the team's average across all types when it estimated nothing of that type. An item with an estimate of 0 is estimated, so it is never filled in. The average is per team because story points are relative to the team that assigned them, and per work type because bugs and tasks are often left unpointed and a story average would inflate them. Filled-in points are always labelled, for example "+33 filled in".
 
 The **Estimated** card shows how many of the items from point-sized teams carried an estimate. Low coverage is worth knowing in its own right, and a filled-in average is only as good as the estimates it is taken from.
 
 ### Share of Team Effort
 
-Adding story points across teams mixes scales: 8 points on one team is not 8 points on another. **Share of Team Effort** avoids that. Each team's split is measured in its own sizing, story points or items for teams that size by count, and teams are then combined in proportion to how many items each completed. Every team counts, whatever its sizing method.
+Adding story points across teams mixes scales: 8 points on one team is not 8 points on another. **Share of Team Effort** avoids that. Each team's split is measured in its own [sizing method](../organizations/index.mdx#operating-model) — Story Points, Effort, Size, or items for teams that size by count — as it sized on the day each item was done, and the splits are then combined in proportion to how many items each completed. Every team counts, whatever its sizing method. A team that changed its sizing method within the range is measured separately in each, so its estimates in two units are never added together. **Use team average** fills unestimated items here too, from the team's average in the same unit.
 
 Only the **percentages** avoid mixing scales. The **Story Points** card and the **Story Points** columns in the tables are still plain totals summed across teams, shown for reference.
 
-A team that sizes in story points but estimated nothing in the range is measured by items instead, so its work still counts.
+A team that estimated nothing in its unit in the range is measured by items instead, so its work still counts.
 
 This measure is offered only on a team of teams. On a single team there is nothing to combine, so it would repeat Story Points or Count. Hover over the **Measure** switch in the report for a short description of each.
 

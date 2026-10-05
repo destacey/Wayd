@@ -5,20 +5,22 @@ import {
   CycleTimeMetric,
   MetricCard,
   VelocityMetric,
+  sprintMetricValues,
 } from '@/src/components/common/metrics'
 import {
   IterationHealthIndicator,
   IterationProgressBar,
 } from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
-import {
-  SizingMethod,
-  SprintMetricsSummary,
-  TeamOperatingModelDetailsDto,
-} from '@/src/services/wayd-api'
+import { SizingMethod, SprintMetricsSummary } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Grid, Row, Tag, Typography } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
-import { formatCalendarDate, sprintActiveDays } from '@/src/utils'
+import {
+  formatCalendarDate,
+  sizingMethodLabel,
+  sizingMethodMeasure,
+  sprintActiveDays,
+} from '@/src/utils'
 import Link from 'next/link'
 import { FC } from 'react'
 
@@ -27,38 +29,33 @@ const { useBreakpoint } = Grid
 
 interface SprintCardProps {
   sprint: SprintMetricsSummary
-  operatingModel?: TeamOperatingModelDetailsDto
-  sizingMethod: SizingMethod
+  /** Counts work items rather than summing the sprint's own sizing method. */
+  byCount: boolean
 }
 
-const SprintCard: FC<SprintCardProps> = ({
-  sprint,
-  operatingModel,
-  sizingMethod,
-}) => {
+const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
   const screens = useBreakpoint()
   const isXs = !screens.sm // xs screens (< 576px)
 
-  const teamSupportsSP =
-    operatingModel?.sizingMethod === SizingMethod.StoryPoints
-  const useStoryPoints =
-    sizingMethod === SizingMethod.StoryPoints && teamSupportsSP
-  const effectiveSizingMethod = useStoryPoints
-    ? SizingMethod.StoryPoints
-    : SizingMethod.Count
+  // Each team's sprint is shown in its own sizing method; units are never mixed across cards.
+  const effectiveSizingMethod = byCount
+    ? SizingMethod.Count
+    : sprint.sizingMethod
+  const {
+    total: displayTotal,
+    completed: displayCompleted,
+    inProgress: displayInProgress,
+    notStarted: displayNotStarted,
+  } = sprintMetricValues(sprint, byCount)
+  const measure = sizingMethodMeasure(effectiveSizingMethod)
 
-  const displayTotal = useStoryPoints
-    ? sprint.totalStoryPoints
-    : sprint.totalWorkItems
-  const displayCompleted = useStoryPoints
-    ? sprint.completedStoryPoints
-    : sprint.completedWorkItems
-  const displayInProgress = useStoryPoints
-    ? sprint.inProgressStoryPoints
-    : sprint.inProgressWorkItems
-  const displayNotStarted = useStoryPoints
-    ? sprint.notStartedStoryPoints
-    : sprint.notStartedWorkItems
+  const unitTag = (
+    <WaydTooltip
+      title={`This team's sprint is measured in ${measure}: its sizing method on the sprint's planned start.`}
+    >
+      <Tag>{sizingMethodLabel(effectiveSizingMethod)}</Tag>
+    </WaydTooltip>
+  )
 
   const formatDateRange = () =>
     `${formatCalendarDate(sprint.start)} - ${formatCalendarDate(sprint.end)}`
@@ -104,11 +101,7 @@ const SprintCard: FC<SprintCardProps> = ({
                 total={displayTotal}
                 completed={displayCompleted}
               />
-              {sizingMethod === SizingMethod.StoryPoints && !teamSupportsSP && (
-                <WaydTooltip title="This team does not support story point sizing. Values are based on work item counts.">
-                  <Tag>Count-based Metrics</Tag>
-                </WaydTooltip>
-              )}
+              {unitTag}
             </Flex>
           </Flex>
         ) : (
@@ -138,11 +131,7 @@ const SprintCard: FC<SprintCardProps> = ({
                 total={displayTotal}
                 completed={displayCompleted}
               />
-              {sizingMethod === SizingMethod.StoryPoints && !teamSupportsSP && (
-                <WaydTooltip title="This team does not support story point sizing. Values are based on work item counts.">
-                  <Tag>Count-based Metrics</Tag>
-                </WaydTooltip>
-              )}
+              {unitTag}
             </Flex>
           </Flex>
         )}
@@ -164,7 +153,7 @@ const SprintCard: FC<SprintCardProps> = ({
               <MetricCard
                 title="Total"
                 value={displayTotal}
-                tooltip="Total story points or work items planned for this sprint"
+                tooltip={`Total ${measure} planned for this sprint`}
                 cardStyle={metricCardStyle}
               />
             </Col>
@@ -191,7 +180,7 @@ const SprintCard: FC<SprintCardProps> = ({
                   title="In Progress"
                   value={displayInProgress}
                   secondaryValue={`${displayNotStarted} not started`}
-                  tooltip="Total story points or work items currently in progress"
+                  tooltip={`Total ${measure} currently in progress`}
                   cardStyle={metricCardStyle}
                 />
               </Col>

@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Persistence;
@@ -87,10 +88,42 @@ public static class TeamSprintTimelineLoader
         return new IterationStateReader(timelines, Zone(defaults.DefaultTimeZone), now);
     }
 
+    /// <summary>
+    /// The schedule each sprint is counted in, keyed by sprint id: its team's on its planned start, or the
+    /// system defaults for a sprint with no team or no planned start. Unlike a timeline, this needs no
+    /// neighbouring sprints, so it suits reading a few sprints of many teams.
+    /// </summary>
+    public static async Task<IReadOnlyDictionary<Guid, SprintSchedule>> LoadSprintSchedules(
+        this IDispatcher dispatcher,
+        ISettings<SchedulingSettings> schedulingSettings,
+        IReadOnlyCollection<(Guid Id, Guid? TeamId, LocalDate? PlannedStart)> sprints,
+        CancellationToken cancellationToken)
+    {
+        var defaults = await schedulingSettings.Get(cancellationToken);
+        var teamIds = sprints.Where(s => s.TeamId.HasValue).Select(s => s.TeamId!.Value).Distinct().ToList();
+        var periods = teamIds.Count == 0
+            ? new Dictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>()
+            : await dispatcher.Send(new GetTeamsScheduleHistoryQuery(teamIds), cancellationToken);
+
+        var schedulesByTeam = teamIds.ToDictionary(id => id, id => Schedules(periods.GetValueOrDefault(id) ?? [], defaults));
+        var fallback = Fallback(defaults);
+
+        return sprints.ToDictionary(
+            s => s.Id,
+            s => s.TeamId is { } teamId && s.PlannedStart is { } start
+                ? schedulesByTeam[teamId].AsOf(start)
+                : fallback);
+    }
+
     private static TeamSprintSchedules Schedules(IEnumerable<TeamSchedulePeriodDto> periods, SchedulingSettings defaults) =>
         new(
-            periods.Select(p => new SprintSchedulePeriod(p.Start, p.End, new SprintSchedule(Zone(p.TimeZone), p.CommitmentGraceDays))),
-            new SprintSchedule(Zone(defaults.DefaultTimeZone), defaults.DefaultCommitmentGraceDays));
+            periods.Select(p => new SprintSchedulePeriod(p.Start, p.End, new SprintSchedule(Zone(p.TimeZone), p.CommitmentGraceDays, p.SizingMethod))),
+            Fallback(defaults));
+
+    // A day a team has no operating model, like a sprint with no team, is counted by item: there is no
+    // sizing method to say which estimate to read.
+    private static SprintSchedule Fallback(SchedulingSettings defaults) =>
+        new(Zone(defaults.DefaultTimeZone), defaults.DefaultCommitmentGraceDays, SizingMethod.Count);
 
     // Zones are validated when saved; an id the tz database later drops falls back rather than failing
     // every read of the team's sprints.

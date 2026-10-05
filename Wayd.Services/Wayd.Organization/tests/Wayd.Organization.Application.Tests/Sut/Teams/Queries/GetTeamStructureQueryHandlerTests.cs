@@ -126,7 +126,7 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
         // Arrange
         var team = NewTeam();
         team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(new LocalDate(2026, 8, 1), Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(new LocalDate(2026, 8, 1), Methodology.Kanban, SizingMethod.Size, "UTC", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamStructureQuery(team.Id, From, To), TestContext.Current.CancellationToken);
@@ -135,8 +135,8 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
         result!.Teams.Select(t => t.Id).Should().BeEquivalentTo([team.Id]);
         result.SizingPeriods.Should().BeEquivalentTo(new[]
         {
-            new TeamSizingPeriod(team.Id, ActiveDate, new LocalDate(2026, 7, 31), true),
-            new TeamSizingPeriod(team.Id, new LocalDate(2026, 8, 1), null, false),
+            new TeamSizingPeriod(team.Id, ActiveDate, new LocalDate(2026, 7, 31), SizingMethod.StoryPoints),
+            new TeamSizingPeriod(team.Id, new LocalDate(2026, 8, 1), null, SizingMethod.Size),
         });
     }
 
@@ -153,7 +153,7 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
 
         // Assert
         result!.SizingPeriods.Should().ContainSingle()
-            .Which.UsesStoryPoints.Should().BeTrue();
+            .Which.SizingMethod.Should().Be(SizingMethod.StoryPoints);
     }
 
     public void Dispose()

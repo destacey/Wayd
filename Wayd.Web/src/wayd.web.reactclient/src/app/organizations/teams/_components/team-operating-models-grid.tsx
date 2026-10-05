@@ -9,10 +9,8 @@ import {
   useDeleteTeamOperatingModelMutation,
   useGetTeamOperatingModelsQuery,
 } from '@/src/store/features/organizations/team-api'
-import {
-  SizingMethod,
-  TeamOperatingModelDetailsDto,
-} from '@/src/services/wayd-api'
+import { TeamOperatingModelDetailsDto } from '@/src/services/wayd-api'
+import { sizingMethodLabel } from '@/src/utils'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
@@ -23,12 +21,6 @@ import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 interface TeamOperatingModelsGridProps {
   teamId: string
   canUpdate: boolean
-}
-
-const getSizingMethodDisplayName = (sizingMethod: SizingMethod): string => {
-  return sizingMethod === SizingMethod.StoryPoints
-    ? 'Story Points'
-    : sizingMethod
 }
 
 const StatusCellRenderer = ({
@@ -156,9 +148,7 @@ const TeamOperatingModelsGrid = ({
       {
         id: 'sizingMethod',
         accessorFn: (row) =>
-          row.sizingMethod
-            ? getSizingMethodDisplayName(row.sizingMethod)
-            : null,
+          row.sizingMethod ? sizingMethodLabel(row.sizingMethod) : null,
         header: 'Sizing Method',
         meta: { filterType: 'set' },
       },

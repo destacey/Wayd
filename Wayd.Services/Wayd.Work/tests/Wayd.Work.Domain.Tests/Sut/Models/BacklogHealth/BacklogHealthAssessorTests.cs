@@ -1,5 +1,6 @@
 ﻿using NodaTime;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Domain.Models.BacklogHealth;
@@ -19,7 +20,7 @@ public class BacklogHealthAssessorTests
         Id = Guid.NewGuid(),
         Rank = rank,
         StatusCategory = status,
-        StoryPoints = 3,
+        Estimate = 3,
         Created = _now - Duration.FromDays(10),
         LastModified = _now - Duration.FromDays(1),
         Activated = status == WorkStatusCategory.Active ? _now - Duration.FromDays(1) : null,
@@ -31,8 +32,8 @@ public class BacklogHealthAssessorTests
     private static List<BacklogHealthItem> Items(int count, WorkStatusCategory status = WorkStatusCategory.Proposed) =>
         [.. Enumerable.Range(1, count).Select(rank => Item(rank, status))];
 
-    private static BacklogHealthCompletion Completion(double cycleTimeDays = 5, double? storyPoints = 3) =>
-        new(_now - Duration.FromDays(cycleTimeDays + 1), _now - Duration.FromDays(1), storyPoints);
+    private static BacklogHealthCompletion Completion(double cycleTimeDays = 5, double? estimate = 3) =>
+        new(_now - Duration.FromDays(cycleTimeDays + 1), _now - Duration.FromDays(1), estimate);
 
     private static BacklogHealthHistory History(int completions = 10, int itemsCreated = 10) =>
         new(LookbackDays, [.. Enumerable.Range(0, completions).Select(_ => Completion())], itemsCreated);
@@ -45,8 +46,9 @@ public class BacklogHealthAssessorTests
         BacklogHealthHistory? history = null,
         int? memberCount = 5,
         bool usesProjects = true,
-        BacklogHealthThresholds? thresholds = null) =>
-        BacklogHealthAssessor.Assess(backlog, history ?? History(), memberCount, usesProjects, _now, thresholds ?? BacklogHealthThresholds.Default);
+        BacklogHealthThresholds? thresholds = null,
+        SizingMethod sizingMethod = SizingMethod.StoryPoints) =>
+        BacklogHealthAssessor.Assess(backlog, history ?? History(), sizingMethod, memberCount, usesProjects, _now, thresholds ?? BacklogHealthThresholds.Default);
 
     [Fact]
     public void Assess_ReturnsOneResultPerCheckInOrder()
@@ -98,7 +100,7 @@ public class BacklogHealthAssessorTests
             result[check].Grade.Should().BeNull();
         }
         result.AgingWipDays.Should().BeNull();
-        result.OversizedStoryPoints.Should().BeNull();
+        result.OversizedEstimate.Should().BeNull();
     }
 
     [Theory]
@@ -276,18 +278,53 @@ public class BacklogHealthAssessorTests
     public void Assess_ReadinessWindow_IsSizedFromThroughput()
     {
         // Arrange
-        var backlog = Items(10).Select(i => i with { StoryPoints = null }).ToList();
+        var backlog = Items(10).Select(i => i with { Estimate = null }).ToList();
 
         // Act
         var result = Assess(backlog);
 
         // Assert
         result.ReadinessWindowItems.Should().Be(4);
-        var missing = result[BacklogHealthCheck.MissingStoryPoints];
+        var missing = result[BacklogHealthCheck.MissingEstimate];
         missing.InScope.Should().Be(4);
         missing.Flagged.Should().Be(4);
         backlog.Where(i => i.Rank > 4).Should().AllSatisfy(i =>
-            result.ItemFlags[i.Id].Should().NotContain(BacklogHealthCheck.MissingStoryPoints));
+            result.ItemFlags[i.Id].Should().NotContain(BacklogHealthCheck.MissingEstimate));
+    }
+
+    [Fact]
+    public void Assess_MissingEstimate_ZeroIsAnEstimate()
+    {
+        // Arrange
+        var zero = Item(1) with { Estimate = 0 };
+        var missing = Item(2) with { Estimate = null };
+
+        // Act
+        var result = Assess([zero, missing]);
+
+        // Assert
+        result.ItemFlags[zero.Id].Should().NotContain(BacklogHealthCheck.MissingEstimate);
+        result.ItemFlags[missing.Id].Should().Contain(BacklogHealthCheck.MissingEstimate);
+    }
+
+    [Fact]
+    public void Assess_CountSizedTeam_EstimateChecksAreNotApplicable()
+    {
+        // Arrange
+        var backlog = Items(5).Select(i => i with { Estimate = null }).ToList();
+
+        // Act
+        var result = Assess(backlog, sizingMethod: SizingMethod.Count);
+
+        // Assert
+        foreach (var check in new[] { BacklogHealthCheck.MissingEstimate, BacklogHealthCheck.Oversized })
+        {
+            result[check].Outcome.Should().Be(BacklogHealthOutcome.NotApplicable);
+            result[check].Grade.Should().BeNull();
+        }
+        result.OversizedEstimate.Should().BeNull();
+        backlog.Should().AllSatisfy(i =>
+            result.ItemFlags[i.Id].Should().NotContain(BacklogHealthCheck.MissingEstimate));
     }
 
     [Fact]
@@ -321,19 +358,19 @@ public class BacklogHealthAssessorTests
     }
 
     [Fact]
-    public void Assess_Oversized_FlagsEstimatesAboveTheStoryPointPercentile()
+    public void Assess_Oversized_FlagsEstimatesAboveTheTeamsPercentile()
     {
         // Arrange
-        var history = History([.. Enumerable.Range(1, 20).Select(points => Completion(storyPoints: points))]);
-        var oversized = Item(1) with { StoryPoints = 18 };
-        var fits = Item(2) with { StoryPoints = 17 };
-        var unestimated = Item(3) with { StoryPoints = null };
+        var history = History([.. Enumerable.Range(1, 20).Select(estimate => Completion(estimate: estimate))]);
+        var oversized = Item(1) with { Estimate = 18 };
+        var fits = Item(2) with { Estimate = 17 };
+        var unestimated = Item(3) with { Estimate = null };
 
         // Act
-        var result = Assess([oversized, fits, unestimated], history);
+        var result = Assess([oversized, fits, unestimated], history, sizingMethod: SizingMethod.Effort);
 
         // Assert
-        result.OversizedStoryPoints.Should().Be(17);
+        result.OversizedEstimate.Should().Be(17);
         result.ItemFlags[oversized.Id].Should().Contain(BacklogHealthCheck.Oversized);
         result.ItemFlags[fits.Id].Should().NotContain(BacklogHealthCheck.Oversized);
         result[BacklogHealthCheck.Oversized].InScope.Should().Be(2);

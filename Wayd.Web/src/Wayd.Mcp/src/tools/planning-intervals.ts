@@ -124,7 +124,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['PlanningIntervals_GetIterationMetrics', {
     name: 'PlanningIntervals_GetIterationMetrics',
-    description: `Get metrics for a PI iteration aggregated across all mapped sprints.`,
+    description: `Get metrics for a PI iteration aggregated across all mapped sprints. Each sprint in \`sprintMetrics\` is measured in its team's \`sizingMethod\` (StoryPoints, Effort, Size or Count), so its \`*Estimate\` fields are in that unit; the \`*WorkItems\` fields are always item counts. The iteration's own \`sizingMethod\` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.`,
     inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"iterationIdOrKey":{"type":"string"}},"required":["idOrKey","iterationIdOrKey"]},
     method: 'get',
     pathTemplate: '/api/planning/planning-intervals/{idOrKey}/iterations/{iterationIdOrKey}/metrics',

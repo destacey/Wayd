@@ -35297,7 +35297,7 @@ export class TeamsClient {
      * @param staleDays (optional) Days without a change before a work item is stale (default 90).
      * @param oldProposedDays (optional) Days since creation before a proposed work item is old (default 180).
      * @param agingWipPercentile (optional) The cycle time percentile an active work item is aging beyond (default 85).
-     * @param oversizedPercentile (optional) The story point percentile a work item is oversized above (default 85).
+     * @param oversizedPercentile (optional) The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).
      * @param readinessWindowWeeks (optional) Weeks of throughput the readiness checks look ahead (default 4).
      * @param readinessFallbackItems (optional) Top-ranked work items the readiness checks look at without enough history (default 20).
      * @param atRiskPercent (optional) Percent of work items flagged at which a check is At Risk (default 10).
@@ -35420,7 +35420,7 @@ export class TeamsClient {
      * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
      * @param dimension (optional) What to group work by (default Portfolio).
      * @param measure (optional) How to weigh each work item (default Count).
-     * @param unestimated (optional) Story points only: what to do with unestimated items (default Exclude).
+     * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
      * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
      */
     getTeamAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {
@@ -37391,7 +37391,7 @@ export class TeamsOfTeamsClient {
      * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
      * @param dimension (optional) What to group work by (default Portfolio).
      * @param measure (optional) How to weigh each work item (default Count).
-     * @param unestimated (optional) Story points only: what to do with unestimated items (default Exclude).
+     * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
      * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
      */
     getAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {
@@ -47656,6 +47656,8 @@ export interface WorkItemListDto {
     assignedTo?: EmployeeNavigationDto | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    effort?: number | undefined;
+    size?: number | undefined;
     project?: WorkProjectNavigationDto | undefined;
     externalViewWorkItemUrl?: string | undefined;
     created: Date;
@@ -48592,18 +48594,30 @@ export interface PlanningIntervalIterationMetricsResponse {
     category: SimpleNavigationDto;
     teamCount: number;
     sprintCount: number;
+    /** The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null
+when the sprints use different sizing methods, or there are none: estimates in different units are never
+added, so the estimate totals are null too and only the counts roll up. */
+    sizingMethod?: SizingMethod | undefined;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate?: number | undefined;
     completedWorkItems: number;
-    completedStoryPoints: number;
+    completedEstimate?: number | undefined;
     inProgressWorkItems: number;
-    inProgressStoryPoints: number;
+    inProgressEstimate?: number | undefined;
     notStartedWorkItems: number;
-    notStartedStoryPoints: number;
-    missingStoryPointsCount: number;
+    notStartedEstimate?: number | undefined;
+    /** Items with no value in their own sprint's sizing method, across every sprint. */
+    unestimatedWorkItems: number;
     /** Cycle-time rollup across all sprints in this iteration. */
     cycleTime: CycleTimeSummary;
     sprintMetrics: SprintMetricsSummary[];
+}
+
+export enum SizingMethod {
+    StoryPoints = "StoryPoints",
+    Count = "Count",
+    Effort = "Effort",
+    Size = "Size",
 }
 
 /** Metrics summary for an individual sprint within the PI Iteration. */
@@ -48623,15 +48637,19 @@ midnight, so its last day is the one before. */
     /** The IANA time zone the sprint's days are counted in: its team's. */
     timeZone?: string | undefined;
     team: NavigationDto;
+    /** The estimate the sprint is measured in: its team's sizing method on the sprint's planned start. Under
+Count every estimate equals its item count. */
+    sizingMethod: SizingMethod;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate: number;
     completedWorkItems: number;
-    completedStoryPoints: number;
+    completedEstimate: number;
     inProgressWorkItems: number;
-    inProgressStoryPoints: number;
+    inProgressEstimate: number;
     notStartedWorkItems: number;
-    notStartedStoryPoints: number;
-    missingStoryPointsCount: number;
+    notStartedEstimate: number;
+    /** Items with no value in SizingMethod. An estimate of 0 is an estimate. */
+    unestimatedWorkItems: number;
     /** Cycle-time rollup for this sprint. */
     cycleTime: CycleTimeSummary;
 }
@@ -48657,6 +48675,8 @@ export interface SprintBacklogItemDto {
     externalViewWorkItemUrl?: string | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    effort?: number | undefined;
+    size?: number | undefined;
     tags: string[];
     cycleTime?: number | undefined;
 }
@@ -49547,15 +49567,16 @@ export interface InstantWindowDto {
 
 export interface SprintWorkItemMetricsDto {
     sprintId: string;
+    sizingMethod: SizingMethod;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate: number;
     completedWorkItems: number;
-    completedStoryPoints: number;
+    completedEstimate: number;
     inProgressWorkItems: number;
-    inProgressStoryPoints: number;
+    inProgressEstimate: number;
     notStartedWorkItems: number;
-    notStartedStoryPoints: number;
-    missingStoryPointsCount: number;
+    notStartedEstimate: number;
+    unestimatedWorkItems: number;
     cycleTime: CycleTimeSummary;
 }
 
@@ -50023,11 +50044,6 @@ export enum Methodology {
     Kanban = "Kanban",
 }
 
-export enum SizingMethod {
-    StoryPoints = "StoryPoints",
-    Count = "Count",
-}
-
 export interface CreateTeamRequest {
     /** Gets the team name. */
     name: string;
@@ -50145,6 +50161,8 @@ export interface WorkItemBacklogItemDto {
     externalViewWorkItemUrl?: string | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    effort?: number | undefined;
+    size?: number | undefined;
     tags: string[];
 }
 
@@ -50154,8 +50172,9 @@ export interface TeamBacklogHealthDto {
     lookbackDays: number;
     from: string;
     to: string;
+    sizingMethod: SizingMethod;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate: number;
     proposedWorkItems: number;
     activeWorkItems: number;
     itemsCompleted: number;
@@ -50164,7 +50183,7 @@ export interface TeamBacklogHealthDto {
     memberCount?: number | undefined;
     readinessWindowWorkItems: number;
     agingWipDays?: number | undefined;
-    oversizedStoryPoints?: number | undefined;
+    oversizedEstimate?: number | undefined;
     checks: BacklogHealthCheckDto[];
     workItems: BacklogHealthWorkItemDto[];
 }
@@ -50208,7 +50227,7 @@ export interface BacklogHealthWorkItemDto {
     sprint?: WorkIterationNavigationDto | undefined;
     assignedTo?: EmployeeNavigationDto | undefined;
     project?: WorkProjectNavigationDto | undefined;
-    storyPoints?: number | undefined;
+    estimate?: number | undefined;
     created: Date;
     lastModified: Date;
     activated?: Date | undefined;

@@ -13725,7 +13725,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment reached its environment.
         /// </summary>
         /// <remarks>
-        /// Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SucceedAsync(System.Guid id, SucceedDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -13735,7 +13735,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment did not reach its environment.
         /// </summary>
         /// <remarks>
-        /// Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task FailAsync(System.Guid id, FailDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -13755,7 +13755,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment reached its environment and was then reverted.
         /// </summary>
         /// <remarks>
-        /// Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.
+        /// Offered only for a deployment that succeeded: one still in flight, failed, or already rolled back is refused. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RollBackAsync(System.Guid id, RollBackDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -14441,7 +14441,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment reached its environment.
         /// </summary>
         /// <remarks>
-        /// Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SucceedAsync(System.Guid id, SucceedDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -14533,7 +14533,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment did not reach its environment.
         /// </summary>
         /// <remarks>
-        /// Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.
+        /// Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task FailAsync(System.Guid id, FailDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -14709,7 +14709,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that a deployment reached its environment and was then reverted.
         /// </summary>
         /// <remarks>
-        /// Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.
+        /// Offered only for a deployment that succeeded: one still in flight, failed, or already rolled back is refused. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RollBackAsync(System.Guid id, RollBackDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -40919,6 +40919,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get metrics for a PI iteration aggregated across all mapped sprints.
         /// </summary>
+        /// <remarks>
+        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PlanningIntervalIterationMetricsResponse> GetIterationMetricsAsync(string idOrKey, string iterationIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -42887,6 +42890,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get metrics for a PI iteration aggregated across all mapped sprints.
         /// </summary>
+        /// <remarks>
+        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PlanningIntervalIterationMetricsResponse> GetIterationMetricsAsync(string idOrKey, string iterationIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -62755,13 +62761,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Grade a team's open backlog.
         /// </summary>
         /// <remarks>
-        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Story Points, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default.
+        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.
         /// </remarks>
         /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
         /// <param name="oldProposedDays">Days since creation before a proposed work item is old (default 180).</param>
         /// <param name="agingWipPercentile">The cycle time percentile an active work item is aging beyond (default 85).</param>
-        /// <param name="oversizedPercentile">The story point percentile a work item is oversized above (default 85).</param>
+        /// <param name="oversizedPercentile">The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).</param>
         /// <param name="readinessWindowWeeks">Weeks of throughput the readiness checks look ahead (default 4).</param>
         /// <param name="readinessFallbackItems">Top-ranked work items the readiness checks look at without enough history (default 20).</param>
         /// <param name="atRiskPercent">Percent of work items flagged at which a check is At Risk (default 10).</param>
@@ -62781,13 +62787,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average). Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -64426,13 +64432,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Grade a team's open backlog.
         /// </summary>
         /// <remarks>
-        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Story Points, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default.
+        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.
         /// </remarks>
         /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
         /// <param name="oldProposedDays">Days since creation before a proposed work item is old (default 180).</param>
         /// <param name="agingWipPercentile">The cycle time percentile an active work item is aging beyond (default 85).</param>
-        /// <param name="oversizedPercentile">The story point percentile a work item is oversized above (default 85).</param>
+        /// <param name="oversizedPercentile">The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).</param>
         /// <param name="readinessWindowWeeks">Weeks of throughput the readiness checks look ahead (default 4).</param>
         /// <param name="readinessFallbackItems">Top-ranked work items the readiness checks look at without enough history (default 20).</param>
         /// <param name="atRiskPercent">Percent of work items flagged at which a check is At Risk (default 10).</param>
@@ -64619,13 +64625,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average). Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -67156,13 +67162,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only), or TeamEffort (normalizes scales across teams; recommended for teams of teams). Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -67820,13 +67826,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only), or TeamEffort (normalizes scales across teams; recommended for teams of teams). Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
         /// </remarks>
         /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
-        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -89385,6 +89391,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        public double? Effort { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("size")]
+        public double? Size { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("project")]
         public WorkProjectNavigationDto? Project { get; set; } = default!;
 
@@ -92261,32 +92273,44 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("sprintCount")]
         public int SprintCount { get; set; } = default!;
 
+        /// <summary>
+        /// The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null
+        /// <br/>when the sprints use different sizing methods, or there are none: estimates in different units are never
+        /// <br/>added, so the estimate totals are null too and only the counts roll up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod? SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double? TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
         public int CompletedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("completedStoryPoints")]
-        public double CompletedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double? CompletedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
         public int InProgressWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("inProgressStoryPoints")]
-        public double InProgressStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
+        public double? InProgressEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("notStartedWorkItems")]
         public int NotStartedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("notStartedStoryPoints")]
-        public double NotStartedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("notStartedEstimate")]
+        public double? NotStartedEstimate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("missingStoryPointsCount")]
-        public int MissingStoryPointsCount { get; set; } = default!;
+        /// <summary>
+        /// Items with no value in their own sprint's sizing method, across every sprint.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
+        public int UnestimatedWorkItems { get; set; } = default!;
 
         /// <summary>
         /// Cycle-time rollup across all sprints in this iteration.
@@ -92298,6 +92322,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("sprintMetrics")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintMetricsSummary> SprintMetrics { get; set; } = new System.Collections.ObjectModel.Collection<SprintMetricsSummary>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum SizingMethod
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StoryPoints")]
+        StoryPoints = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Count")]
+        Count = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Effort")]
+        Effort = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Size")]
+        Size = 3,
 
     }
 
@@ -92357,32 +92399,44 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate the sprint is measured in: its team's sizing method on the sprint's planned start. Under
+        /// <br/>Count every estimate equals its item count.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
         public int CompletedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("completedStoryPoints")]
-        public double CompletedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double CompletedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
         public int InProgressWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("inProgressStoryPoints")]
-        public double InProgressStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
+        public double InProgressEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("notStartedWorkItems")]
         public int NotStartedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("notStartedStoryPoints")]
-        public double NotStartedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("notStartedEstimate")]
+        public double NotStartedEstimate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("missingStoryPointsCount")]
-        public int MissingStoryPointsCount { get; set; } = default!;
+        /// <summary>
+        /// Items with no value in SizingMethod. An estimate of 0 is an estimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
+        public int UnestimatedWorkItems { get; set; } = default!;
 
         /// <summary>
         /// Cycle-time rollup for this sprint.
@@ -92465,6 +92519,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        public double? Effort { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("size")]
+        public double? Size { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -95146,32 +95206,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid SprintId { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
         public int CompletedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("completedStoryPoints")]
-        public double CompletedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double CompletedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
         public int InProgressWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("inProgressStoryPoints")]
-        public double InProgressStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
+        public double InProgressEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("notStartedWorkItems")]
         public int NotStartedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("notStartedStoryPoints")]
-        public double NotStartedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("notStartedEstimate")]
+        public double NotStartedEstimate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("missingStoryPointsCount")]
-        public int MissingStoryPointsCount { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
+        public int UnestimatedWorkItems { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("cycleTime")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -96586,18 +96651,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum SizingMethod
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"StoryPoints")]
-        StoryPoints = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Count")]
-        Count = 1,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateTeamRequest
     {
 
@@ -96976,6 +97029,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        public double? Effort { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("size")]
+        public double? Size { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();
@@ -97007,11 +97066,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("proposedWorkItems")]
         public int ProposedWorkItems { get; set; } = default!;
@@ -97037,8 +97101,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("agingWipDays")]
         public double? AgingWipDays { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("oversizedStoryPoints")]
-        public double? OversizedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("oversizedEstimate")]
+        public double? OversizedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("checks")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -97186,8 +97250,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("project")]
         public WorkProjectNavigationDto? Project { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
-        public double? StoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        public double? Estimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

@@ -12,7 +12,8 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
-import { SprintBacklogItemDto } from '@/src/services/wayd-api'
+import { SizingMethod, SprintBacklogItemDto } from '@/src/services/wayd-api'
+import { estimateColumns } from '../work/estimate-columns'
 import type { ColumnDef } from '../wayd-grid-core'
 export interface SprintBacklogGridProps {
   workItems: SprintBacklogItemDto[]
@@ -23,6 +24,11 @@ export interface SprintBacklogGridProps {
   gridHeight?: number
   /** Column layout persistence key for the hosting page (see WaydGridProps). */
   persistStateKey?: string
+  /**
+   * The sprint's sizing method, whose estimate column shows by default; Story Points when the grid holds
+   * sprints that size differently.
+   */
+  sizingMethod?: SizingMethod | null
 }
 
 const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
@@ -32,6 +38,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
     hideTeamColumn = false,
     hideSprintColumn = false,
     gridHeight,
+    sizingMethod,
   } = props
 
   const columns: ColumnDef<SprintBacklogItemDto, any>[] = [
@@ -62,12 +69,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
       meta: { filterType: 'set' },
     },
     { id: 'title', accessorKey: 'title', header: 'Title', size: 400 },
-    {
-      id: 'storyPoints',
-      accessorKey: 'storyPoints',
-      header: 'SPs',
-      size: 80,
-    },
+    ...estimateColumns<SprintBacklogItemDto>(sizingMethod),
     {
       id: 'status',
       accessorKey: 'status',

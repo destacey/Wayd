@@ -30,9 +30,11 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
     /// <inheritdoc />
     public override async ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken = default)
     {
-        var caller = request.Services?.GetRequiredService<IHttpContextAccessor>().HttpContext
+        var services = request.Services
             ?? throw new InvalidOperationException("An API tool can only run within an HTTP request.");
-        var pipeline = request.Services.GetRequiredService<ApiPipeline>();
+        var caller = services.GetRequiredService<IHttpContextAccessor>().HttpContext
+            ?? throw new InvalidOperationException("An API tool can only run within an HTTP request.");
+        var pipeline = services.GetRequiredService<ApiPipeline>();
 
         var values = request.Params?.Arguments ?? new Dictionary<string, JsonElement>();
         var path = new StringBuilder(PathTemplate);

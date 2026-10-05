@@ -189,10 +189,12 @@ public static class ImportTools
             query.Add("validateOnly", "true");
 
             var body = await content.ReadAsByteArrayAsync(cancellationToken);
-            var caller = request.Services!.GetRequiredService<IHttpContextAccessor>().HttpContext
+            var services = request.Services
+                ?? throw new InvalidOperationException("An API tool can only run within an HTTP request.");
+            var caller = services.GetRequiredService<IHttpContextAccessor>().HttpContext
                 ?? throw new InvalidOperationException("An API tool can only run within an HTTP request.");
 
-            var response = await request.Services!.GetRequiredService<ApiPipeline>().Send(
+            var response = await services.GetRequiredService<ApiPipeline>().Send(
                 caller, "POST", format!.Path, query.ToQueryString(), null, (body, content.Headers.ContentType!.ToString()), cancellationToken);
             return ApiToolResult.From(response);
         }

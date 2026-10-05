@@ -39,7 +39,10 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
-    [OpenApiOperation("Get a list of releases.", "Ordered by released date then sequence — never by the version label, which is free text.")]
+    [OpenApiOperation(
+        "List product releases — the announcements made to customers, such as `Wayd 2026.09`.",
+        "A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Unannounced releases come first, then the most recently announced. Never ordered by the version label, which is free text and never parsed. Filtering by product deliberately excludes releases that name no product: one spanning product lines belongs to no single product, so listing it under one would misstate what that product announced.")]
+    [McpTool("Releases_GetReleases", "List releases")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ReleaseDto>>> GetReleases(
@@ -56,7 +59,10 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
-    [OpenApiOperation("Get release details.", "Accepts the release's id or its short key.")]
+    [OpenApiOperation(
+        "Get one release in full, including everything it announces: the packages it shipped and the versions it carries directly.",
+        "Each contents entry reports its own shipped date, which is what tells you whether the release can be announced yet. A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Accepts the release's UUID or its short key.")]
+    [McpTool("Releases_GetRelease", "Get release")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ReleaseDto>> GetRelease(string idOrKey, CancellationToken cancellationToken)
@@ -70,7 +76,10 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
-    [OpenApiOperation("Get activity history for the release.", "")]
+    [OpenApiOperation(
+        "Get a release's activity history, newest first: every change recorded on the release — details, contents, dates and status.",
+        "Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
+    [McpTool("Releases_GetActivities", "Get release activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -85,8 +94,9 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpGet("{idOrKey}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Get a release's status change history.",
-        "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+        "Get a release's status change history, newest first.",
+        "Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past. Correcting a date leaves this untouched — that is the point of having a separate action for it.")]
+    [McpTool("Releases_GetStatusHistory", "Get release status history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -105,7 +115,10 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Releases)]
-    [OpenApiOperation("Plan a release.", "Contents are attached afterwards — an announcement is commonly drafted before anyone knows which versions will make it.")]
+    [OpenApiOperation(
+        "Draft a release — the announcement, before it carries anything.",
+        "A release is what was announced to customers, not what was built — for one artifact and its version number, use the Versions_* tools instead. Contents are attached afterwards with Releases_SetContents, because an announcement is commonly drafted before anyone knows which versions will make it. The product is optional and usually names a product *line* rather than a leaf; leave it empty for a release spanning product lines. Unlike a version, a release is not restricted to releasable product types.")]
+    [McpTool("Releases_Plan", "Plan a release", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Plan(
         [FromBody] PlanReleaseRequest request, CancellationToken cancellationToken)
@@ -224,7 +237,10 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
-    [OpenApiOperation("Update a release.", "")]
+    [OpenApiOperation(
+        "Update a release's descriptive fields.",
+        "**This is a whole-record overwrite: an omitted field is cleared.** Send every value the release should end up with, including ones you are not changing — omitting the product makes the release span product lines, and omitting the notes deletes them. The dates and the contents are not here; each has its own tool because each carries a rule this one does not.")]
+    [McpTool("Releases_Update", "Update a release", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -244,8 +260,9 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPut("{id}/contents")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Set what a release announces.",
-        "Whole-set replacement of both routes at once: anything left out is removed, and both lists empty clears the release. A version shipping inside one of the supplied packages cannot also be carried directly, so that one shipment is announced once.")]
+        "Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.",
+        "**This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.\n\nContents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).\n\n**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.\n\nAn empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.")]
+    [McpTool("Releases_SetContents", "Set what a release announces", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetContents(
@@ -261,7 +278,10 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
 
     [HttpPut("{id}/target-date")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
-    [OpenApiOperation("Move or clear a release's target date.", "")]
+    [OpenApiOperation(
+        "Move or clear a release's target date.",
+        "Omitting the date records that the release is no longer targeted, which is a different statement from never having set one. Refused on a release in a terminal status.")]
+    [McpTool("Releases_MoveTargetDate", "Move a release target date", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MoveTargetDate(
@@ -278,8 +298,9 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Correct a release's recorded target and released dates.",
-        "Fixes dates entered wrongly without changing the release's status. Both are sent, so an omitted target date is cleared. The released date cannot be cleared — revert the release instead. There is no cut date: a release is never cut.")]
+        "Fix a release's target or announced date that was recorded wrongly.",
+        "The status does not move and the status history is left untouched — that is the point of having this separate from Releases_MarkReleased, which asserts the release moved and refuses to run twice. **Both dates are sent, so an omitted target date is cleared.** The announced date cannot be cleared once set: an announced release with no announced date contradicts its own status — revert it instead. There is no cut date to correct; a release is never cut.")]
+    [McpTool("Releases_CorrectDates", "Correct release dates", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
@@ -297,8 +318,9 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPost("{id}/release")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Record that a release was announced.",
-        "Refused while the release carries a version or package that has not shipped — telling customers a release shipped while something inside it has not is the one claim a release can make that its own contents contradict.")]
+        "Record that a release was announced to customers.",
+        "**Refused while the release carries a version or package that has not shipped** — telling customers a release is out while something inside it has not gone anywhere is the one claim a release can make that its own contents contradict. Call Releases_GetRelease first and check each contents entry's shipped date; release the outstanding ones, or remove them from this release. An empty release announces normally. Shipping and announcing are separate acts, so this date is commonly later than the date the contents shipped.")]
+    [McpTool("Releases_MarkReleased", "Announce a release")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MarkReleased(
@@ -314,7 +336,10 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Releases)]
-    [OpenApiOperation("Delete a release.", "Permanent: also deletes its contents list and status history. The versions and packages it listed are kept.")]
+    [OpenApiOperation(
+        "Permanently delete a release in any state, with its list of contents and its status history.",
+        "**The versions and packages it listed are kept** — only the release and its links to them go. For a release created by mistake, or when the user asks to purge history; a real announcement that was retracted is `Releases_Withdraw`. Deleting an announced release is also how a package it lists becomes deletable, since its contents cannot otherwise change. Needs the release Delete permission.")]
+    [McpTool("Releases_Delete", "Delete a release", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -329,8 +354,9 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPost("{id}/withdraw")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Retract a release.",
-        "Says nothing about the versions it carried: an artifact that shipped has shipped whatever the market was later told, so each version is withdrawn separately where it too was pulled.")]
+        "Retract a release after it was announced.",
+        "Terminal, and it says **nothing about the versions it carried** — an artifact that shipped has shipped whatever the market was later told, so a version that was itself pulled is withdrawn on its own record. Use this only when a real announcement was retracted; if the release was marked announced by mistake and never actually went out, use Releases_Revert instead.")]
+    [McpTool("Releases_Withdraw", "Withdraw a release")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Withdraw(
@@ -346,8 +372,9 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPost("{id}/revert")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Revert a release announced in error.",
-        "For a release marked announced by mistake. Moves it back to Ready and clears the released date. Not a withdrawal — that retracts an announcement which really went out.")]
+        "Record that a release marked as announced was **not in fact announced** — the wrong record was updated, and it never went out.",
+        "Returns the release to a live status and clears its announced date. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts, so the record has to say why. Do not use this for a release that really was announced and then retracted — that is Releases_Withdraw.")]
+    [McpTool("Releases_Revert", "Revert a release")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

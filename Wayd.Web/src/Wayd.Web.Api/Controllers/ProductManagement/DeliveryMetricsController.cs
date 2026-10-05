@@ -28,8 +28,9 @@ public class DeliveryMetricsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.DeliveryMetrics)]
     [OpenApiOperation(
-        "Get the delivery measures over a window.",
-        "Deployment frequency and change failure rate. Lead time and time to restore are reported as unavailable.")]
+        "Get the delivery measures over a window, computed from deployment records.",
+        "Returns **deployment frequency** and **change failure rate**, plus an `unavailable` list naming the measures this module cannot compute yet and why — read that list rather than treating a missing measure as zero.\n\nTwo caveats worth carrying into any answer. **Production-scoped measures depend on environment categories**, not names, so a deployment into an environment whose category is not Production does not count toward deployment frequency. And **change failure rate is a proxy**: a pipeline run that failed before reaching production is a failure that was *prevented*, while a real change failure is a deployment that succeeded and then broke something — which the pipeline has no way to know. Report it as approximate rather than as the metric.")]
+    [McpTool("DeliveryMetrics_GetDeliveryMetrics", "Get delivery metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

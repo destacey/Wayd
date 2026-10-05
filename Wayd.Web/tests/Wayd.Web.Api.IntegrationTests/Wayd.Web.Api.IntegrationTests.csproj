@@ -32,4 +32,10 @@
         <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Written by the @wayd/mcp package's tests/hosted-parity.test.ts; McpToolCatalogTests compares
+             the hosted MCP server with it. -->
+        <Content Include="Mcp\npm-tool-parity.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

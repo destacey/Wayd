@@ -26,7 +26,10 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProductTypes)]
-    [OpenApiOperation("Get a list of product types.", "")]
+    [OpenApiOperation(
+        "List the product types an organization recognises, in the order an administrator arranged them.",
+        "**Call this before Products_Create or Products_Retype**, which both need a type UUID.\n\nThe flag that matters is `isReleasable`: it decides whether versions can be cut against products of this type. A product line or a platform is typically not releasable; a service, application or library is. It also gates retyping — a product with versions cannot be moved to a type that is not releasable.\n\nInactive types cannot be assigned to a product, though a product already carrying one keeps it.")]
+    [McpTool("ProductTypes_GetProductTypes", "List product types")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProductTypeDto>>> GetProductTypes(
@@ -39,7 +42,10 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ProductTypes)]
-    [OpenApiOperation("Create a product type.", "")]
+    [OpenApiOperation(
+        "Define a product type.",
+        "**`isReleasable` is the consequential field** — it decides whether versions can be cut against products of this type, and it is what a product line or platform sets to false. Names must be unique. `order` is presentation only and implies no hierarchy.")]
+    [McpTool("ProductTypes_Create", "Create a product type", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(
         [FromBody] CreateProductTypeRequest request, CancellationToken cancellationToken)
@@ -53,7 +59,10 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTypes)]
-    [OpenApiOperation("Update a product type.", "")]
+    [OpenApiOperation(
+        "Update a product type.",
+        "**This is a whole-record overwrite, and `isReleasable` is required — so renaming a type means resending its current releasability, and sending the wrong value silently changes whether versions can be cut against every product of this type.** Read the type first.\n\nRefused on a seeded system type. Names must stay unique.")]
+    [McpTool("ProductTypes_Update", "Update a product type", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -72,7 +81,10 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/active")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTypes)]
-    [OpenApiOperation("Activate or deactivate a product type.", "")]
+    [OpenApiOperation(
+        "Take a product type out of use, or put it back.",
+        "A deactivated type cannot be assigned to a product, but products already using it keep resolving it — which is why this is deactivation rather than deletion.\n\nUnlike editing, this **is** allowed on a seeded system type: an organization that does not ship libraries should be able to hide that type without the seeder recreating it.")]
+    [McpTool("ProductTypes_SetActive", "Activate or deactivate a product type", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -91,7 +103,10 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTypes)]
-    [OpenApiOperation("Delete an unused product type.", "A type in use must be deactivated instead.")]
+    [OpenApiOperation(
+        "Delete a product type.",
+        "Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A type is \"in use\" when any product carries it, so in practice this only removes a type created by mistake and never assigned.")]
+    [McpTool("ProductTypes_Delete", "Delete a product type", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)

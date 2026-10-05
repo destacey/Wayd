@@ -10,6 +10,7 @@ using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Application.Workspaces.Commands;
 using Wayd.Work.Application.Workspaces.Dtos;
 using Wayd.Work.Application.Workspaces.Queries;
+using Wayd.Work.Domain.Extensions;
 using Wayd.Work.Domain.Models;
 
 namespace Wayd.Web.Api.Controllers.Work;
@@ -116,6 +117,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<WorkItemDetailsDto>> GetWorkItem(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetWorkItemQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))
@@ -149,6 +153,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<WorkItemProjectInfoDto>> GetWorkItemProjectInfo(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetWorkItemProjectInfoQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))
@@ -198,6 +205,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetChildWorkItems(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetChildWorkItemsQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))
@@ -228,6 +238,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ScopedDependencyDto>>> GetWorkItemDependencies(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
 
         var result = await _dispatcher.Send(new GetWorkItemDependenciesQuery(idOrKey, key), cancellationToken);
@@ -243,7 +256,10 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Forecast when a work item will be done.", "A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.")]
+    [OpenApiOperation(
+        "Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.",
+        "A portfolio work item (an Epic or Feature, say) is forecast from its open backlog descendants. Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining), `backlogPosition`, and on Forecast completion `percentiles` (a `date` per `confidence`), plus `chanceOfFinishingByTargetDate` (0 to 1) when `targetDate` is given. `issues` explain what could not be forecast (No Team, Not a Backlog Item, Not Enough History); `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.")]
+    [McpTool("Workspaces_GetWorkItemForecast", "Forecast work item completion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -258,6 +274,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     {
         if (!IsoDateQuery.TryParse(targetDate, out var parsedTargetDate))
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
 
         var key = new WorkItemKey(workItemKey);
         var options = new ForecastOptions
@@ -282,6 +301,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<IEnumerable<WorkItemProgressDailyRollupDto>>> GetMetrics(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetWorkItemMetricsQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))

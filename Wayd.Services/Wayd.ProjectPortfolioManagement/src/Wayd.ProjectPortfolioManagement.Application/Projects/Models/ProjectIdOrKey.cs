@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Domain.Interfaces;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Interfaces;
@@ -13,7 +14,24 @@ public sealed class ProjectIdOrKey : OneOfBase<Guid, ProjectKey>
 {
     public ProjectIdOrKey(OneOf<Guid, ProjectKey> value) : base(value) { }
 
-    public ProjectIdOrKey(string value) : base(Guid.TryParse(value, out var guid) ? guid : new ProjectKey(value)) { }
+    /// <summary>Reads a route or query value as a Guid id or a project key.</summary>
+    /// <exception cref="NotFoundException">The value is neither, so it can name no project.</exception>
+    public ProjectIdOrKey(string value) : base(Parse(value)) { }
+
+    private static OneOf<Guid, ProjectKey> Parse(string value)
+    {
+        if (Guid.TryParse(value, out var guid))
+            return guid;
+
+        try
+        {
+            return new ProjectKey(value);
+        }
+        catch (ArgumentException)
+        {
+            throw new NotFoundException($"No project has the id or key '{value}'.");
+        }
+    }
 
     public static implicit operator ProjectIdOrKey(Guid value) => new(OneOf<Guid, ProjectKey>.FromT0(value));
     public static implicit operator ProjectIdOrKey(ProjectKey value) => new(OneOf<Guid, ProjectKey>.FromT1(value));

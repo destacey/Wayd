@@ -206,9 +206,10 @@ A version that shipped inside a package has **no deployment of its own**. Lookin
 returns nothing; find the package whose manifest names it. This is the most common source of "why is
 this empty?".
 
-Outcomes are one-way: once `Deployments_Succeed`, `Deployments_Fail` or `Deployments_RollBack` is
-recorded, none can be called again. **Failure and rollback are different**: a failure never arrived,
-while a rollback arrived and had to be undone. Change failure rate counts the second kind.
+Outcomes are one-way: once `Deployments_Succeed` or `Deployments_Fail` is recorded, neither can be
+called again, and the only step left is `Deployments_RollBack` on a success. A rollback is final.
+**Failure and rollback are different**: a failure never arrived, while a rollback arrived and had to
+be undone. Change failure rate counts the second kind.
 
 **A production success releases what it shipped.** Succeeding a production deployment, or importing one
 that succeeded or was rolled back, marks an unreleased version — or a package and the versions that

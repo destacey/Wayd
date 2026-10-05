@@ -16,7 +16,8 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpGet("{id}/health-checks")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get all health checks for a project.", "")]
+    [OpenApiOperation("Get the full health check history for a project, ordered newest first.", "")]
+    [McpTool("Projects_GetProjectHealthChecks", "List project health checks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProjectHealthCheckDetailsDto>>> GetHealthChecks(Guid id, CancellationToken cancellationToken)
@@ -27,7 +28,8 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpGet("{id}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a specific health check for a project.", "")]
+    [OpenApiOperation("Get a single project health check by ID.", "")]
+    [McpTool("Projects_GetProjectHealthCheck", "Get project health check")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectHealthCheckDetailsDto>> GetHealthCheck(Guid id, Guid healthCheckId, CancellationToken cancellationToken)
@@ -41,7 +43,10 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpPost("{id}/health-checks")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Create a health check for a project.", "")]
+    [OpenApiOperation(
+        "Log a new health check on a project.",
+        "Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Caller must be the project, parent portfolio, or parent program owner or manager.")]
+    [McpTool("Projects_CreateProjectHealthCheck", "Log a project health check", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -56,7 +61,10 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpPut("{id}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Update a health check for a project.", "")]
+    [OpenApiOperation(
+        "Correct an existing health check's status, expiration, or note.",
+        "This rewrites what was reported for that point in time — to report a *new* assessment, use Projects_CreateProjectHealthCheck instead, which preserves the history. Every field is overwritten from the request body, so read the check first and echo back anything that should stay the same. Caller must be the project, parent portfolio, or parent program owner or manager.")]
+    [McpTool("Projects_UpdateProjectHealthCheck", "Update project health check")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -71,7 +79,10 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpDelete("{id}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Delete a health check from a project.", "")]
+    [OpenApiOperation(
+        "Delete a health check from a project, permanently removing it from the project's health history.",
+        "Deleting the active check leaves the project with no current health status. Prefer logging a new check over deleting an old one — deletion rewrites the record of what was reported when.")]
+    [McpTool("Projects_DeleteProjectHealthCheck", "Delete project health check")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> DeleteHealthCheck(Guid id, Guid healthCheckId, CancellationToken cancellationToken)

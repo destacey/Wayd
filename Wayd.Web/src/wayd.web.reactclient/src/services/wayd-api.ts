@@ -3422,7 +3422,7 @@ export class UsersClient {
     }
 
     /**
-     * Get list of all users.
+     * Get a list of all users.
      */
     getUsers( cancelToken?: CancelToken): Promise<UserDetailsDto[]> {
         let url_ = this.baseUrl + "/api/user-management/users";
@@ -6258,7 +6258,7 @@ export class DeliveryMetricsClient {
     }
 
     /**
-     * Get the delivery measures over a window.
+     * Get the delivery measures over a window, computed from deployment records.
      * @param from (optional) 
      * @param to (optional) 
      * @param productId (optional) 
@@ -6350,7 +6350,7 @@ export class DeliveryOverviewClient {
     }
 
     /**
-     * Get version activity over a window.
+     * Get version activity over a window — what was **cut and shipped**, measured from versions rather than deployments.
      * @param from (optional) Any instant on the window's first day, read as a day in timeZone. An instant
     rather than a date because the generated client types every date parameter as a JavaScript
     Date and sends toISOString(), which no LocalDate binder accepts. The caller
@@ -6428,7 +6428,7 @@ export class DeliveryOverviewClient {
     }
 
     /**
-     * Get what has happened to versions and packages lately.
+     * Get what has happened to versions and packages lately, most recent first — a feed answering "what shipped recently?".
      * @param take (optional) 
      * @param productId (optional) 
      */
@@ -6506,7 +6506,7 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
-     * Get a list of deployment environments.
+     * List the deployment environments defined for the organization.
      * @param isActive (optional) 
      * @param category (optional) 
      */
@@ -6570,7 +6570,7 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
-     * Create a deployment environment.
+     * Define a deployment environment.
      */
     create(request: CreateDeploymentEnvironmentRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/deployment-environments";
@@ -6632,7 +6632,7 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
-     * Get what is running in each environment, in rollout order.
+     * Get what is running in each environment right now, in rollout order (lowest ring first).
      * @param includeInactive (optional) 
      */
     getRollout(includeInactive?: boolean | null | undefined, cancelToken?: CancelToken): Promise<EnvironmentRolloutDto[]> {
@@ -6781,7 +6781,7 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
-     * Update a deployment environment.
+     * Update an environment's name, category or ring order.
      */
     update(id: string, request: UpdateDeploymentEnvironmentRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/deployment-environments/{id}";
@@ -6849,7 +6849,7 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
-     * Delete a deployment environment.
+     * Permanently delete an environment **and every deployment into it**, with their status history.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/deployment-environments/{id}";
@@ -6906,7 +6906,7 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
-     * Activate or deactivate a deployment environment.
+     * Retire an environment or reinstate one.
      */
     setActive(id: string, request: SetDeploymentEnvironmentActiveRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/deployment-environments/{id}/active";
@@ -6981,7 +6981,7 @@ export class DeploymentsClient {
     }
 
     /**
-     * Get a list of deployments.
+     * List deployments, most recently started first.
      * @param versionId (optional) 
      * @param packageId (optional) 
      * @param environmentId (optional) 
@@ -7054,7 +7054,7 @@ export class DeploymentsClient {
     }
 
     /**
-     * Start a deployment.
+     * Record a deployment beginning.
      */
     start(request: StartDeploymentRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/deployments";
@@ -7116,7 +7116,7 @@ export class DeploymentsClient {
     }
 
     /**
-     * Get deployment details.
+     * Get one deployment in full — what it carried, the environment it reached, its frozen environment category, its artifact identifier and its outcome.
      */
     getDeployment(idOrKey: string, cancelToken?: CancelToken): Promise<DeploymentDto> {
         let url_ = this.baseUrl + "/api/product-management/deployments/{idOrKey}";
@@ -7177,7 +7177,7 @@ export class DeploymentsClient {
     }
 
     /**
-     * Get activity history for the deployment.
+     * Get a deployment's activity history, newest first: when it started and its outcome — succeeded, failed or rolled back.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -7248,7 +7248,7 @@ export class DeploymentsClient {
     }
 
     /**
-     * Get a deployment's status change history.
+     * Get a deployment's status change history, newest first.
      */
     getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
         let url_ = this.baseUrl + "/api/product-management/deployments/{idOrKey}/status-history";
@@ -7526,7 +7526,7 @@ export class DeploymentsClient {
     }
 
     /**
-     * Delete a deployment.
+     * Permanently delete a deployment and its status history.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/deployments/{id}";
@@ -7583,7 +7583,7 @@ export class DeploymentsClient {
     }
 
     /**
-     * Record that a deployment was reverted.
+     * Record that a deployment reached its environment and was then reverted.
      */
     rollBack(id: string, request: RollBackDeploymentRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/deployments/{id}/roll-back";
@@ -7658,7 +7658,7 @@ export class ProductsClient {
     }
 
     /**
-     * Get a list of products.
+     * List products from the catalog, ordered by name.
      * @param parentId (optional) 
      * @param productTypeId (optional) 
      * @param statusCategory (optional) 
@@ -7728,7 +7728,7 @@ export class ProductsClient {
     }
 
     /**
-     * Create a product.
+     * Add a product to the catalog.
      */
     create(request: CreateProductRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/products";
@@ -7790,7 +7790,7 @@ export class ProductsClient {
     }
 
     /**
-     * Get product details.
+     * Get one product in full — its type, parent, status, tags, external identifier, and whether its type allows versions to be cut against it.
      */
     getProduct(idOrKey: string, cancelToken?: CancelToken): Promise<ProductDto> {
         let url_ = this.baseUrl + "/api/product-management/products/{idOrKey}";
@@ -7851,7 +7851,7 @@ export class ProductsClient {
     }
 
     /**
-     * Get activity history for the product.
+     * Get a product's activity history, newest first: every change recorded on the product — details, type, parent, status, tags and external link — plus a child product moving in or out, listed as a related entry raised on that child.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -7922,7 +7922,7 @@ export class ProductsClient {
     }
 
     /**
-     * Get a product's status change history.
+     * Get a product's status change history, newest first.
      */
     getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
         let url_ = this.baseUrl + "/api/product-management/products/{idOrKey}/status-history";
@@ -7990,7 +7990,7 @@ export class ProductsClient {
     }
 
     /**
-     * Get the statuses a product can be moved to.
+     * Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.
      */
     getStatusOptions( cancelToken?: CancelToken): Promise<StatusNavigationDto[]> {
         let url_ = this.baseUrl + "/api/product-management/products/status-options";
@@ -8217,7 +8217,7 @@ export class ProductsClient {
     }
 
     /**
-     * Update a product.
+     * Update a product's name and description.
      */
     update(id: string, request: UpdateProductRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}";
@@ -8285,7 +8285,7 @@ export class ProductsClient {
     }
 
     /**
-     * Delete a product.
+     * Permanently delete a product.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}";
@@ -8342,7 +8342,7 @@ export class ProductsClient {
     }
 
     /**
-     * Link a product to the record that owns it in another system.
+     * Set or clear a product's identifier in the system that owns it — a repository, a pipeline, a registry package.
      */
     linkExternally(id: string, request: LinkProductExternallyRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}/external-link";
@@ -8410,7 +8410,7 @@ export class ProductsClient {
     }
 
     /**
-     * Move a product to a different parent.
+     * Move a product to a different parent, or to the root by omitting the parent.
      */
     reparent(id: string, request: ReparentProductRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}/parent";
@@ -8614,7 +8614,7 @@ export class ProductsClient {
     }
 
     /**
-     * Tag a product.
+     * Apply a tag to a product.
      */
     tag(id: string, tagId: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}/tags/{tagId}";
@@ -8734,7 +8734,7 @@ export class ProductsClient {
     }
 
     /**
-     * Get what a product depends on and what depends on it.
+     * Get what a product depends on (`dependsOn`) and what depends on it (`usedBy`).
      * @param includeEnded (optional) 
      */
     getDependencies(idOrKey: string, includeEnded?: boolean | undefined, cancelToken?: CancelToken): Promise<ProductDependenciesDto> {
@@ -8872,7 +8872,7 @@ export class ProductsClient {
     }
 
     /**
-     * Reword what a product's dependency is for.
+     * Reword what a product's dependency is for, and record its interaction styles where none have been recorded.
      */
     updateDependency(id: string, dependencyId: string, request: UpdateProductDependencyRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}";
@@ -9007,7 +9007,7 @@ export class ProductsClient {
     }
 
     /**
-     * Change the terms a product's dependency holds on.
+     * Change the terms a product's dependency holds on — its strength, how the product reaches it, or both.
      */
     changeDependencyTerms(id: string, dependencyId: string, request: ChangeProductDependencyTermsRequest, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}/terms";
@@ -9082,7 +9082,7 @@ export class ProductsClient {
     }
 
     /**
-     * Delete a dependency recorded by mistake.
+     * **Delete** a dependency that was recorded by mistake.
      */
     removeDependency(id: string, dependencyId: string, request: RemoveProductDependencyRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}/remove";
@@ -9167,7 +9167,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Get a list of tag categories and their tags.
+     * List the tag categories and the tags in each.
      * @param isActive (optional) 
      */
     getProductTagCategories(isActive?: boolean | null | undefined, cancelToken?: CancelToken): Promise<ProductTagCategoryDto[]> {
@@ -9228,7 +9228,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Create a tag category.
+     * Create a tag category — an axis such as Platform, Tech Stack or Compliance.
      */
     create(request: CreateProductTagCategoryRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/product-tag-categories";
@@ -9290,7 +9290,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Update a tag category.
+     * Rename a tag category or change its description.
      */
     update(id: string, request: UpdateProductTagCategoryRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-tag-categories/{id}";
@@ -9358,7 +9358,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Delete an unused tag category.
+     * Delete a tag category and its tags.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-tag-categories/{id}";
@@ -9415,7 +9415,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Activate or deactivate a tag category.
+     * Take a tag category out of use, or put it back.
      */
     setActive(id: string, request: SetProductTagCategoryActiveRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-tag-categories/{id}/active";
@@ -9620,7 +9620,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Rename a tag.
+     * Rename a tag or change its description.
      */
     renameTag(id: string, tagId: string, request: RenameProductTagRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-tag-categories/{id}/tags/{tagId}";
@@ -9691,7 +9691,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Delete an unused tag.
+     * Permanently delete a tag.
      */
     deleteTag(id: string, tagId: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-tag-categories/{id}/tags/{tagId}";
@@ -9751,7 +9751,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Activate or deactivate a tag.
+     * Take a tag out of use, or put it back.
      */
     setTagActive(id: string, tagId: string, request: SetProductTagActiveRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-tag-categories/{id}/tags/{tagId}/active";
@@ -9829,7 +9829,7 @@ export class ProductTypesClient {
     }
 
     /**
-     * Get a list of product types.
+     * List the product types an organization recognises, in the order an administrator arranged them.
      * @param isActive (optional) 
      */
     getProductTypes(isActive?: boolean | null | undefined, cancelToken?: CancelToken): Promise<ProductTypeDto[]> {
@@ -9890,7 +9890,7 @@ export class ProductTypesClient {
     }
 
     /**
-     * Create a product type.
+     * Define a product type.
      */
     create(request: CreateProductTypeRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/product-types";
@@ -10020,7 +10020,7 @@ export class ProductTypesClient {
     }
 
     /**
-     * Delete an unused product type.
+     * Delete a product type.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-types/{id}";
@@ -10077,7 +10077,7 @@ export class ProductTypesClient {
     }
 
     /**
-     * Activate or deactivate a product type.
+     * Take a product type out of use, or put it back.
      */
     setActive(id: string, request: SetProductTypeActiveRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/product-types/{id}/active";
@@ -10159,7 +10159,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Get a list of release packages.
+     * List release packages — coordinated shipments such as `WAYD-2026.09.1`.
      * @param statusCategory (optional) 
      * @param containingProductId (optional) 
      * @param containingVersionId (optional) 
@@ -10226,7 +10226,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Assemble a release package.
+     * Assemble a package and its manifest together.
      */
     assemble(request: AssembleReleasePackageRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/release-packages";
@@ -10288,7 +10288,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Get release package details.
+     * Get one package in full, including its complete manifest — every component version it shipped, and whether each changed or was carried forward.
      */
     getReleasePackage(idOrKey: string, cancelToken?: CancelToken): Promise<ReleasePackageDto> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{idOrKey}";
@@ -10349,7 +10349,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Get activity history for the release package.
+     * Get a release package's activity history, newest first: its assembly, manifest amendments and status.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -10420,7 +10420,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Get a release package's status change history.
+     * Get a package's status change history, newest first.
      */
     getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{idOrKey}/status-history";
@@ -10581,7 +10581,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Replace a package's manifest.
+     * Replace a package's manifest as a whole.
      */
     setManifest(id: string, request: SetReleasePackageManifestRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/manifest";
@@ -10649,7 +10649,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Record that a package shipped.
+     * Record that a package shipped, and close its manifest.
      */
     markReleased(id: string, request: MarkReleasePackageReleasedRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/release";
@@ -10710,7 +10710,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Correct a package's recorded target date and released moment.
+     * Fix a package's target date or released moment that was recorded wrongly.
      */
     correctDates(id: string, request: CorrectReleasePackageDatesRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/dates";
@@ -10771,7 +10771,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Delete a release package.
+     * Permanently delete a package with its manifest, its status history and **every deployment of it**.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{id}";
@@ -10828,7 +10828,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Withdraw a package.
+     * Pull a package.
      */
     withdraw(id: string, request: WithdrawReleasePackageRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/withdraw";
@@ -10903,7 +10903,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Get a list of releases.
+     * List product releases — the announcements made to customers, such as `Wayd 2026.09`.
      * @param productId (optional) 
      * @param statusCategory (optional) 
      * @param containingVersionId (optional) 
@@ -10970,7 +10970,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Plan a release.
+     * Draft a release — the announcement, before it carries anything.
      */
     plan(request: PlanReleaseRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/releases";
@@ -11032,7 +11032,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Get release details.
+     * Get one release in full, including everything it announces: the packages it shipped and the versions it carries directly.
      */
     getRelease(idOrKey: string, cancelToken?: CancelToken): Promise<ReleaseDto> {
         let url_ = this.baseUrl + "/api/product-management/releases/{idOrKey}";
@@ -11093,7 +11093,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Get activity history for the release.
+     * Get a release's activity history, newest first: every change recorded on the release — details, contents, dates and status.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -11164,7 +11164,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Get a release's status change history.
+     * Get a release's status change history, newest first.
      */
     getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
         let url_ = this.baseUrl + "/api/product-management/releases/{idOrKey}/status-history";
@@ -11323,7 +11323,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Update a release.
+     * Update a release's descriptive fields.
      */
     update(id: string, request: UpdateReleaseRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}";
@@ -11391,7 +11391,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Delete a release.
+     * Permanently delete a release in any state, with its list of contents and its status history.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}";
@@ -11448,7 +11448,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Set what a release announces.
+     * Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.
      */
     setContents(id: string, request: SetReleaseContentsRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/contents";
@@ -11570,7 +11570,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Correct a release's recorded target and released dates.
+     * Fix a release's target or announced date that was recorded wrongly.
      */
     correctDates(id: string, request: CorrectReleaseDatesRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/dates";
@@ -11631,7 +11631,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Record that a release was announced.
+     * Record that a release was announced to customers.
      */
     markReleased(id: string, request: MarkReleaseReleasedRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/release";
@@ -11692,7 +11692,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Retract a release.
+     * Retract a release after it was announced.
      */
     withdraw(id: string, request: WithdrawReleaseRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/withdraw";
@@ -11753,7 +11753,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Revert a release announced in error.
+     * Record that a release marked as announced was **not in fact announced** — the wrong record was updated, and it never went out.
      */
     revert(id: string, request: RevertReleaseRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/revert";
@@ -11835,7 +11835,7 @@ export class VersionsClient {
     }
 
     /**
-     * Get a list of versions.
+     * List versions — the artifacts that were built, such as `Wayd API 4.12.0`.
      * @param productId (optional) 
      * @param statusCategory (optional) 
      */
@@ -11899,7 +11899,7 @@ export class VersionsClient {
     }
 
     /**
-     * Plan a version.
+     * Record a version against a product.
      */
     plan(request: PlanVersionRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/product-management/versions";
@@ -11961,7 +11961,7 @@ export class VersionsClient {
     }
 
     /**
-     * Get version details.
+     * Get one version in full — its product, version number, and its target date and its cut and released moments.
      */
     getVersion(idOrKey: string, cancelToken?: CancelToken): Promise<VersionDto> {
         let url_ = this.baseUrl + "/api/product-management/versions/{idOrKey}";
@@ -12022,7 +12022,7 @@ export class VersionsClient {
     }
 
     /**
-     * Get activity history for the version.
+     * Get a version's activity history, newest first: every change recorded on the version — details, dates and status.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -12093,7 +12093,7 @@ export class VersionsClient {
     }
 
     /**
-     * Get a version's status change history.
+     * Get a version's status change history, newest first — when it was cut, how long it sat ready before shipping, who moved it.
      */
     getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
         let url_ = this.baseUrl + "/api/product-management/versions/{idOrKey}/status-history";
@@ -12249,7 +12249,7 @@ export class VersionsClient {
     }
 
     /**
-     * Update a version.
+     * Update a version's descriptive fields.
      */
     update(id: string, request: UpdateVersionRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/versions/{id}";
@@ -12317,7 +12317,7 @@ export class VersionsClient {
     }
 
     /**
-     * Delete a version.
+     * Permanently delete a version with its status history and **every deployment of it**.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/versions/{id}";
@@ -12435,7 +12435,7 @@ export class VersionsClient {
     }
 
     /**
-     * Correct a version's recorded target date and cut and released moments.
+     * Fix a version's target date or cut or released moment that was recorded wrongly.
      */
     correctDates(id: string, request: CorrectVersionDatesRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/versions/{id}/dates";
@@ -12496,7 +12496,7 @@ export class VersionsClient {
     }
 
     /**
-     * Cut a version.
+     * Record that a version was cut — scope is frozen and it is ready to ship.
      */
     cut(id: string, request: CutVersionRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/versions/{id}/cut";
@@ -12618,7 +12618,7 @@ export class VersionsClient {
     }
 
     /**
-     * Withdraw a version.
+     * Pull a version.
      */
     withdraw(id: string, request: WithdrawVersionRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/versions/{id}/withdraw";
@@ -12679,7 +12679,7 @@ export class VersionsClient {
     }
 
     /**
-     * Revert a version recorded as shipped.
+     * Record that a version marked as shipped did **not in fact ship** — the wrong record was updated.
      */
     revert(id: string, request: RevertVersionReleaseRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/versions/{id}/revert";
@@ -13195,7 +13195,7 @@ export class ExpenditureCategoriesClient {
     }
 
     /**
-     * Get a list of expenditure categories options.
+     * Get a lightweight list of expenditure category options for lookups.
      * @param includeArchived (optional) 
      */
     getExpenditureCategoryOptions(includeArchived?: boolean | null | undefined, cancelToken?: CancelToken): Promise<ExpenditureCategoryOptionDto[]> {
@@ -13454,7 +13454,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Get activity history for the portfolio.
+     * Get a portfolio's activity history, newest first: every change recorded on the portfolio itself — details, roles, scoring model, status.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -13701,7 +13701,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Update a portfolio.
+     * Update a portfolio's name, description, and role assignments.
      */
     update(id: string, request: UpdatePortfolioRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{id}";
@@ -13826,7 +13826,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Activate a project portfolio.
+     * Activate a proposed portfolio.
      */
     activate(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/activate";
@@ -13890,7 +13890,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Close a project portfolio.
+     * Close an active or on-hold portfolio.
      */
     close(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/close";
@@ -13954,7 +13954,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Archive a project portfolio.
+     * Archive a closed portfolio, removing it from active use.
      */
     archive(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/archive";
@@ -14268,7 +14268,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Get the per-project score breakdown for the portfolio's ranking board.
+     * Get the per-project score breakdown behind a portfolio's ranking board: the portfolio's current scoring model definition, plus each project's criterion ratings and output values.
      */
     getRankingScoreboard(id: string, cancelToken?: CancelToken): Promise<PortfolioRankingScoreboardDto> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/ranking-scoreboard";
@@ -14329,7 +14329,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Get a list of programs for the portfolio.
+     * Get a list of programs for a portfolio.
      * @param status (optional) 
      */
     getPrograms(idOrKey: string, status?: ProgramStatus[] | null | undefined, cancelToken?: CancelToken): Promise<ProgramListDto[]> {
@@ -14400,7 +14400,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Get a list of projects for the portfolio.
+     * Get a list of projects for a portfolio.
      * @param status (optional) 
      */
     getProjects(idOrKey: string, status?: ProjectStatus[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
@@ -14471,7 +14471,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Get a list of strategic initiatives for the portfolio.
+     * Get a list of strategic initiatives for a portfolio.
      * @param status (optional) 
      */
     getStrategicInitiatives(idOrKey: string, status?: StrategicInitiativeStatus[] | null | undefined, cancelToken?: CancelToken): Promise<StrategicInitiativeListDto[]> {
@@ -14593,7 +14593,7 @@ export class PortfoliosClient {
     }
 
     /**
-     * Get a list of project portfolio options.
+     * Get a lightweight list of project portfolio options (id and name) for use in lookups.
      */
     getPortfolioOptions( cancelToken?: CancelToken): Promise<ProjectPortfolioOptionDto[]> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/options";
@@ -14736,7 +14736,7 @@ export class ProgramsClient {
     }
 
     /**
-     * Create a program.
+     * Create a program inside a portfolio.
      */
     create(request: CreateProgramRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/ppm/programs";
@@ -14859,7 +14859,7 @@ export class ProgramsClient {
     }
 
     /**
-     * Get activity history for the program.
+     * Get a program's activity history, newest first: every change recorded on the program itself — details, roles, timeline, strategic themes, status.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -15018,7 +15018,7 @@ export class ProgramsClient {
     }
 
     /**
-     * Update a program.
+     * Update a program's name, description, dates, roles, and strategic themes.
      */
     update(id: string, request: UpdateProgramRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/programs/{id}";
@@ -15143,7 +15143,7 @@ export class ProgramsClient {
     }
 
     /**
-     * Activate a program.
+     * Activate a proposed program.
      */
     activate(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/programs/{id}/activate";
@@ -15207,7 +15207,7 @@ export class ProgramsClient {
     }
 
     /**
-     * Complete a program.
+     * Complete an active program.
      */
     complete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/programs/{id}/complete";
@@ -15393,7 +15393,7 @@ export class ProgramsClient {
     }
 
     /**
-     * Get a list of projects.
+     * Get a list of projects for a program.
      * @param status (optional) 
      */
     getProjects(idOrKey: string, status?: ProjectStatus[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
@@ -15478,7 +15478,7 @@ export class ProjectHealthChecksClient {
     }
 
     /**
-     * Get all health checks for a project.
+     * Get the full health check history for a project, ordered newest first.
      */
     getHealthChecks(id: string, cancelToken?: CancelToken): Promise<ProjectHealthCheckDetailsDto[]> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/health-checks";
@@ -15539,7 +15539,7 @@ export class ProjectHealthChecksClient {
     }
 
     /**
-     * Create a health check for a project.
+     * Log a new health check on a project.
      */
     createHealthCheck(id: string, request: CreateProjectHealthCheckRequest, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/health-checks";
@@ -15611,7 +15611,7 @@ export class ProjectHealthChecksClient {
     }
 
     /**
-     * Get a specific health check for a project.
+     * Get a single project health check by ID.
      */
     getHealthCheck(id: string, healthCheckId: string, cancelToken?: CancelToken): Promise<ProjectHealthCheckDetailsDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/health-checks/{healthCheckId}";
@@ -15675,7 +15675,7 @@ export class ProjectHealthChecksClient {
     }
 
     /**
-     * Update a health check for a project.
+     * Correct an existing health check's status, expiration, or note.
      */
     updateHealthCheck(id: string, healthCheckId: string, request: UpdateProjectHealthCheckRequest, cancelToken?: CancelToken): Promise<ProjectHealthCheckDetailsDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/health-checks/{healthCheckId}";
@@ -15750,7 +15750,7 @@ export class ProjectHealthChecksClient {
     }
 
     /**
-     * Delete a health check from a project.
+     * Delete a health check from a project, permanently removing it from the project's health history.
      */
     deleteHealthCheck(id: string, healthCheckId: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/health-checks/{healthCheckId}";
@@ -16616,7 +16616,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Create a project.
+     * Create a project in a portfolio, optionally inside a program.
      */
     create(request: CreateProjectRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/ppm/projects";
@@ -16678,7 +16678,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Get a summary of the current user's project involvement.
+     * Get a summary of the current user's project involvement, as counts per role (total, sponsor, owner, manager, member, assignee).
      * @param status (optional) 
      */
     getMyProjectsSummary(status?: ProjectStatus[] | null | undefined, cancelToken?: CancelToken): Promise<MyProjectsSummaryDto> {
@@ -16732,7 +16732,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Get aggregated task metrics across the current user's projects.
+     * Get aggregated open-task counts across the current user's projects: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
      * @param status (optional) 
      * @param role (optional) 
      */
@@ -16789,7 +16789,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Get aggregated task metrics across the projects an employee is involved in.
+     * Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
      * @param status (optional) 
      * @param role (optional) 
      * @param employeeId (optional) 
@@ -16964,7 +16964,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Get activity history for the project.
+     * Get a project's activity history, newest first: every change recorded on the project itself — details, key, program, lifecycle, timeline, roles, strategic themes, status, health checks and scores.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -17299,7 +17299,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Update a project.
+     * Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.
      */
     update(id: string, request: UpdateProjectRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}";
@@ -17424,7 +17424,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Change a project's program.
+     * Move a project into a different program, or out of its program entirely by passing a null programId.
      */
     changeProgram(id: string, request: ChangeProjectProgramRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/program";
@@ -17560,7 +17560,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Approve a project.
+     * Approve a proposed project.
      */
     approve(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/approve";
@@ -17624,7 +17624,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Activate a project.
+     * Activate a proposed or approved project.
      */
     activate(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/activate";
@@ -17688,7 +17688,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Complete a project.
+     * Complete an active project.
      */
     complete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/complete";
@@ -17752,7 +17752,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Cancel a project.
+     * Cancel a project that is not already completed or canceled.
      */
     cancel(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/cancel";
@@ -17816,7 +17816,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Revert a project to an earlier status.
+     * Move a project **backwards** to an earlier status — for example reopening a completed or canceled project, or returning an active one to approved.
      */
     revertStatus(id: string, request: RevertProjectStatusRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/revert-status";
@@ -18071,7 +18071,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Forecast when a project's work items will be done.
+     * Forecast when a project's work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
      * @param ignoreDependencies (optional) 
@@ -18466,7 +18466,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Get plan summary metrics for multiple projects in a single request.
+     * Get plan summary metrics for multiple projects in one request, keyed by project ID.
      * @param projectId (optional) 
      * @param role (optional) 
      * @param employeeId (optional) 
@@ -18753,7 +18753,7 @@ export class ProjectScoresClient {
     }
 
     /**
-     * Get the scoring context for a project (assigned model, current score, and whether the user can score).
+     * Get the scoring context for a project: the scoring model assigned to its portfolio (criteria, scales, and outputs), whether that model has been archived, and the project's current score.
      */
     getScoringContext(id: string, cancelToken?: CancelToken): Promise<ProjectScoringContextDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/scoring-context";
@@ -18814,7 +18814,7 @@ export class ProjectScoresClient {
     }
 
     /**
-     * Get the scoring history for a project.
+     * Get the scoring history for a project — every score ever recorded, each with its headline value, the model used, who scored it, and when.
      */
     getScores(id: string, cancelToken?: CancelToken): Promise<ProjectScoreSummaryDto[]> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/scores";
@@ -18940,7 +18940,7 @@ export class ProjectScoresClient {
     }
 
     /**
-     * Get a specific recorded score for a project.
+     * Get one recorded project score in full.
      */
     getScore(id: string, scoreId: string, cancelToken?: CancelToken): Promise<ProjectScoreDetailsDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/scores/{scoreId}";
@@ -20017,7 +20017,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get strategic initiative details.
+     * Get strategic initiative details, including its portfolio, date range, sponsors, and owners.
      */
     getStrategicInitiative(idOrKey: string, cancelToken?: CancelToken): Promise<StrategicInitiativeDetailsDto> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{idOrKey}";
@@ -20078,7 +20078,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get activity history for the strategic initiative.
+     * Get a strategic initiative's activity history, newest first: every change recorded on the initiative — details, roles, timeline, status, linked projects, and its KPIs with their targets, checkpoint plans and measurements.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -20365,7 +20365,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Approve a strategic initiative.
+     * Approve a proposed strategic initiative.
      */
     approve(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/approve";
@@ -20429,7 +20429,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Activate a strategic initiative.
+     * Activate an approved strategic initiative.
      */
     activate(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/activate";
@@ -20493,7 +20493,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Complete a strategic initiative.
+     * Complete an active or on-hold strategic initiative.
      */
     complete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/complete";
@@ -20679,7 +20679,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get a list of KPIs for a strategic initiative.
+     * Get the KPIs for a strategic initiative — the measures that define whether it succeeded.
      */
     getKpis(id: string, cancelToken?: CancelToken): Promise<StrategicInitiativeKpiListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/kpis";
@@ -20805,7 +20805,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get a KPI for a strategic initiative.
+     * Get a single KPI for a strategic initiative.
      */
     getKpi(id: string, kpiId: string, cancelToken?: CancelToken): Promise<StrategicInitiativeKpiDetailsDto> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/kpis/{kpiId}";
@@ -21075,7 +21075,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get the checkpoints for a strategic initiative KPI.
+     * Get the checkpoints for a KPI — the dated milestones a KPI is expected to hit, each with its own target value and optional at-risk threshold.
      */
     getKpiCheckpoints(id: string, kpiId: string, cancelToken?: CancelToken): Promise<StrategicInitiativeKpiCheckpointDto[]> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/kpis/{kpiId}/checkpoints";
@@ -21139,7 +21139,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get the checkpoint plan for a strategic initiative KPI. The checkpoint plan provides the checkpoints and their corresponding measurements.
+     * Get the checkpoint plan for a KPI: every checkpoint paired with the measurement recorded against it, plus a computed health and trend per checkpoint.
      */
     getKpiCheckpointPlan(id: string, kpiId: string, cancelToken?: CancelToken): Promise<StrategicInitiativeKpiCheckpointDetailsDto[]> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/kpis/{kpiId}/checkpoints/plan";
@@ -21274,7 +21274,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get the measurements for a strategic initiative KPI.
+     * Get every measurement recorded against a KPI, each with its actual value, the date it was taken, who took it, and an optional note.
      */
     getKpiMeasurements(id: string, kpiId: string, cancelToken?: CancelToken): Promise<StrategicInitiativeKpiMeasurementDto[]> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/kpis/{kpiId}/measurements";
@@ -21338,7 +21338,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Add a measurement to the strategic initiative KPI.
+     * Record a measurement against a KPI — the actual observed value at a point in time.
      */
     addKpiMeasurement(id: string, kpiId: string, request: AddStrategicInitiativeKpiMeasurementRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/kpis/{kpiId}/measurements";
@@ -21409,7 +21409,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Remove a measurement from the strategic initiative KPI.
+     * Remove a measurement from a KPI.
      */
     removeKpiMeasurement(id: string, kpiId: string, measurementId: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{id}/kpis/{kpiId}/measurements/{measurementId}";
@@ -21479,7 +21479,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Get a list of projects for the strategic initiative.
+     * Get the projects linked to a strategic initiative — the delivery work carried out to achieve it.
      */
     getProjects(idOrKey: string, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/{idOrKey}/projects";
@@ -22196,7 +22196,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get activity history for the planning interval.
+     * Get a planning interval's activity history, newest first: every change recorded on the interval itself — details, dates, teams, iterations, sprint mappings, and objectives being locked or unlocked.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -22559,7 +22559,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get a list of planning interval teams.
+     * Get a list of teams participating in a planning interval.
      */
     getTeams(idOrKey: string, cancelToken?: CancelToken): Promise<PlanningIntervalTeamResponse[]> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/teams";
@@ -22620,7 +22620,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get the PI predictability for a team.
+     * Get the PI predictability for a specific team.
      */
     getTeamPredictability(idOrKey: string, teamId: string, cancelToken?: CancelToken): Promise<number | null> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/teams/{teamId}/predictability";
@@ -22806,7 +22806,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get a list of planning interval iterations.
+     * Get a list of iterations for a planning interval.
      */
     getIterations(idOrKey: string, cancelToken?: CancelToken): Promise<PlanningIntervalIterationListDto[]> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/iterations";
@@ -23423,7 +23423,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get a list of planning interval teams.
+     * Get a list of planning interval objectives.
      * @param teamId (optional) 
      */
     getObjectives(idOrKey: string, teamId?: string | null | undefined, cancelToken?: CancelToken): Promise<PlanningIntervalObjectiveListDto[]> {
@@ -23558,7 +23558,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get activity history for the planning interval objective.
+     * Get a planning interval objective's activity history, newest first: every change recorded on the objective — details, status, progress, order, stretch, timeline and health checks.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -23988,7 +23988,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get work items for an objective.
+     * Get work items linked to a planning interval objective.
      */
     getObjectiveWorkItems(idOrKey: string, objectiveIdOrKey: string, cancelToken?: CancelToken): Promise<WorkItemsSummaryDto> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/work-items";
@@ -24059,7 +24059,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Forecast when an objective's work items will be done.
+     * Forecast when a planning interval objective's linked work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
      * @param ignoreDependencies (optional) 
@@ -24142,7 +24142,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get metrics for the work items linked to an objective.
+     * Get daily metrics for work items linked to a planning interval objective.
      */
     getObjectiveWorkItemMetrics(idOrKey: string, objectiveIdOrKey: string, cancelToken?: CancelToken): Promise<WorkItemProgressDailyRollupDto[]> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/work-items/metrics";
@@ -24437,7 +24437,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get the health check history for a planning interval objective.
+     * Get the full health check history for a planning interval objective, ordered newest first.
      */
     getObjectiveHealthChecks(id: string, objectiveId: string, cancelToken?: CancelToken): Promise<PlanningIntervalObjectiveHealthCheckDetailsDto[]> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/{objectiveId}/health-checks";
@@ -24501,7 +24501,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Create a planning interval objective health check.
+     * Log a new health check on a planning interval objective.
      */
     createObjectiveHealthCheck(id: string, objectiveId: string, request: CreatePlanningIntervalObjectiveHealthCheckRequest, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/{objectiveId}/health-checks";
@@ -24569,7 +24569,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get a planning interval objective health check by id.
+     * Get a single planning interval objective health check by ID.
      */
     getObjectiveHealthCheck(id: string, objectiveId: string, healthCheckId: string, cancelToken?: CancelToken): Promise<PlanningIntervalObjectiveHealthCheckDetailsDto> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/{objectiveId}/health-checks/{healthCheckId}";
@@ -26947,7 +26947,7 @@ export class RoadmapsClient {
     }
 
     /**
-     * Get roadmap items
+     * Get all items (activities, timeboxes, milestones) for a roadmap.
      */
     getItems(idOrKey: string, cancelToken?: CancelToken): Promise<RoadmapItemListDto[]> {
         let url_ = this.baseUrl + "/api/planning/roadmaps/{idOrKey}/items";
@@ -27008,7 +27008,7 @@ export class RoadmapsClient {
     }
 
     /**
-     * Get roadmap activities
+     * Get roadmap activities.
      */
     getActivities(idOrKey: string, cancelToken?: CancelToken): Promise<RoadmapActivityListDto[]> {
         let url_ = this.baseUrl + "/api/planning/roadmaps/{idOrKey}/items/activities";
@@ -27069,7 +27069,7 @@ export class RoadmapsClient {
     }
 
     /**
-     * Get roadmap item details
+     * Get roadmap item details.
      */
     getItem(roadmapIdOrKey: string, itemId: string, cancelToken?: CancelToken): Promise<RoadmapItemDetailsDto> {
         let url_ = this.baseUrl + "/api/planning/roadmaps/{roadmapIdOrKey}/items/{itemId}";
@@ -27542,7 +27542,7 @@ export class RoadmapsClient {
     }
 
     /**
-     * Get a list of all visibility.
+     * Get a list of all roadmap visibility options.
      */
     getVisibilityOptions( cancelToken?: CancelToken): Promise<VisibilityDto[]> {
         let url_ = this.baseUrl + "/api/planning/roadmaps/visibility-options";
@@ -27672,7 +27672,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Get a list of story maps.
+     * Get a list of story maps (id, key, name, description, status, owner).
      * @param includeArchived (optional) 
      */
     getList(includeArchived?: boolean | undefined, cancelToken?: CancelToken): Promise<StoryMapListDto[]> {
@@ -27797,7 +27797,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Get a story map in full using the Id or key.
+     * Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.
      */
     get(idOrKey: string, cancelToken?: CancelToken): Promise<StoryMapDetailsDto> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{idOrKey}";
@@ -27919,7 +27919,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Delete a story map.
+     * Delete a story map and everything on it.
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{id}";
@@ -28094,7 +28094,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Add a goal to a story map. It comes with one step already created.
+     * Add a goal to a story map.
      */
     addGoal(storyMapId: string, request: AddGoalRequest, cancelToken?: CancelToken): Promise<StoryMapGoalDto> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/goals";
@@ -28283,7 +28283,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Reorder a goal.
+     * Reorder a goal within the map.
      */
     reorderGoal(storyMapId: string, goalId: string, request: ReorderGoalRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/goals/{goalId}/order";
@@ -28664,7 +28664,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Add a task to a step. Without a swim lane, it lands in the default swim lane.
+     * Add a task (story card) to a step.
      */
     addTask(storyMapId: string, request: AddTaskRequest, cancelToken?: CancelToken): Promise<StoryMapTaskDto> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/tasks";
@@ -29244,7 +29244,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Remove a checklist item.
+     * Remove a checklist item from a task.
      */
     removeChecklistItem(storyMapId: string, taskId: string, itemId: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/tasks/{taskId}/checklist/{itemId}";
@@ -29374,7 +29374,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Promote a checklist item into a task in the same step.
+     * Promote a checklist item into its own task in the same step.
      */
     promoteChecklistItem(storyMapId: string, taskId: string, itemId: string, cancelToken?: CancelToken): Promise<StoryMapTaskDto> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/tasks/{taskId}/checklist/{itemId}/promote";
@@ -29694,7 +29694,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Remove a swim lane. Its tasks return to the default swim lane; the response is the number moved.
+     * Remove a swim lane.
      */
     removeSwimLane(storyMapId: string, swimLaneId: string, cancelToken?: CancelToken): Promise<number> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/swim-lanes/{swimLaneId}";
@@ -29758,7 +29758,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Set a swim lane's descriptive dates.
+     * Set a swim lane's descriptive start and end dates.
      */
     setSwimLaneDates(storyMapId: string, swimLaneId: string, request: SetSwimLaneDatesRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/swim-lanes/{swimLaneId}/dates";
@@ -29951,7 +29951,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Update a persona.
+     * Update a persona's name, description, and color.
      */
     updatePersona(storyMapId: string, personaId: string, request: UpdatePersonaRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/personas/{personaId}";
@@ -30015,7 +30015,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Delete a persona and strip its tag from every node. The response is the number of nodes untagged.
+     * Delete a persona and strip its tag from every goal, step, and task.
      */
     deletePersona(storyMapId: string, personaId: string, cancelToken?: CancelToken): Promise<number> {
         let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/personas/{personaId}";
@@ -31976,7 +31976,7 @@ export class WorkspacesClient {
     }
 
     /**
-     * Forecast when a work item will be done.
+     * Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
      * @param ignoreDependencies (optional) 
@@ -34439,7 +34439,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get team details using the key.
+     * Get team details.
      */
     getById(id: number, cancelToken?: CancelToken): Promise<TeamDetailsDto> {
         let url_ = this.baseUrl + "/api/organization/teams/{id}";
@@ -34568,7 +34568,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get activity history for the team.
+     * Get a team's activity history, newest first: the team's creation, detail changes, activation and deactivation, members joining, leaving or changing roles (by employee and role id), its membership in a team of teams being added, re-dated or removed, and operating models being set, corrected or removed.
      * @param page (optional) 
      * @param pageSize (optional) 
      */
@@ -35292,7 +35292,7 @@ export class TeamsClient {
     }
 
     /**
-     * Grade a team's backlog health.
+     * Grade a team's open backlog.
      * @param lookbackDays (optional) Days of history to measure throughput, cycle time and net flow over (14-365, default 90).
      * @param staleDays (optional) Days without a change before a work item is stale (default 90).
      * @param oldProposedDays (optional) Days since creation before a proposed work item is old (default 180).
@@ -35508,7 +35508,7 @@ export class TeamsClient {
     }
 
     /**
-     * Forecast how many backlog work items a team will finish by a date.
+     * Forecast how many of a team's open backlog work items it will finish from today through `targetDate`, by Monte Carlo simulation of its recent daily throughput.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
      * @param startedWorkFirst (optional) 
@@ -37061,7 +37061,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Get a list of team of teams.
+     * Get a list of teams of teams in the organization.
      * @param includeInactive (optional) 
      */
     getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<TeamOfTeamsListDto[]> {
@@ -39089,7 +39089,7 @@ export class ImportsClient {
     }
 
     /**
-     * Get a page of import runs, newest first.
+     * List import runs, newest first, as `processes` with a `totalCount`.
      * @param status (optional) 
      * @param importType (optional) 
      * @param submittedByUserId (optional) 
@@ -39169,7 +39169,7 @@ export class ImportsClient {
     }
 
     /**
-     * Get the import types the caller may see, each flagged with whether they may submit it.
+     * List the kinds of import you may see.
      */
     getDefinitions( cancelToken?: CancelToken): Promise<ImportDefinitionDto[]> {
         let url_ = this.baseUrl + "/api/imports/definitions";
@@ -39220,7 +39220,7 @@ export class ImportsClient {
     }
 
     /**
-     * Get the status and counts of an import.
+     * Get one import run's status and counts.
      */
     getById(id: string, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/imports/{id}";
@@ -39281,7 +39281,7 @@ export class ImportsClient {
     }
 
     /**
-     * Get a page of row outcomes for an import.
+     * Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
      * @param status (optional) 
      * @param pageNumber (optional) 
      * @param pageSize (optional) 
@@ -39355,7 +39355,7 @@ export class ImportsClient {
     }
 
     /**
-     * Stop an import that is still running.
+     * Stop an import run that is still going.
      */
     cancel(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/imports/{id}/cancel";
@@ -39412,7 +39412,7 @@ export class ImportsClient {
     }
 
     /**
-     * Queue an import again to apply the rows it never reached.
+     * Queue a finished import run again to apply the rows it never reached — after it was stopped, or failed partway.
      */
     resume(id: string, cancelToken?: CancelToken): Promise<ResumedImport> {
         let url_ = this.baseUrl + "/api/imports/{id}/resume";
@@ -39473,7 +39473,7 @@ export class ImportsClient {
     }
 
     /**
-     * Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.
+     * Import, for real, the rows a finished preflight checked — without sending the file again.
      * @param submissionGroupId (optional) 
      */
     apply(id: string, submissionGroupId?: string | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
@@ -39544,7 +39544,7 @@ export class ImportsClient {
     }
 
     /**
-     * Queue an import again, this time also reattempting the rows it rejected.
+     * Queue a finished import run again, reattempting its rejected rows as well as any it never reached.
      */
     retryFailed(id: string, cancelToken?: CancelToken): Promise<ResumedImport> {
         let url_ = this.baseUrl + "/api/imports/{id}/retry-failed";

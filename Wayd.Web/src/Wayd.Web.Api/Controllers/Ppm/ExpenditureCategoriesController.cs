@@ -117,7 +117,10 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpGet("options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Get a list of expenditure categories options.", "")]
+    [OpenApiOperation(
+        "Get a lightweight list of expenditure category options for lookups.",
+        "Use this to resolve the expenditureCategoryId required when creating or updating a project.")]
+    [McpTool("ExpenditureCategories_GetOptions", "List expenditure category options")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ExpenditureCategoryOptionDto>>> GetExpenditureCategoryOptions([FromQuery] bool? includeArchived, CancellationToken cancellationToken)

@@ -26,7 +26,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Get a list of tag categories and their tags.", "")]
+    [OpenApiOperation(
+        "List the tag categories and the tags in each.",
+        "**Call this before Products_Tag**, which needs a tag UUID.\n\nA category is an axis — Platform, Tech Stack, Compliance — and its `allowsMany` flag decides how tagging behaves. On an axis where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.\n\nOnly active tags in active categories can be applied.")]
+    [McpTool("ProductTagCategories_GetProductTagCategories", "List product tag categories")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProductTagCategoryDto>>> GetProductTagCategories(
@@ -39,7 +42,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Create a tag category.", "")]
+    [OpenApiOperation(
+        "Create a tag category — an axis such as Platform, Tech Stack or Compliance.",
+        "**`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags on this axis, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.")]
+    [McpTool("ProductTagCategories_Create", "Create a tag category", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(
         [FromBody] CreateProductTagCategoryRequest request, CancellationToken cancellationToken)
@@ -53,7 +59,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Update a tag category.", "")]
+    [OpenApiOperation(
+        "Rename a tag category or change its description.",
+        "**An omitted description is cleared.** `allowsMany` is not here and cannot be changed after creation. Refused on a seeded system category. Names must stay unique.")]
+    [McpTool("ProductTagCategories_Update", "Update a tag category", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -72,7 +81,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPut("{id}/active")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Activate or deactivate a tag category.", "")]
+    [OpenApiOperation(
+        "Take a tag category out of use, or put it back.",
+        "Tags on an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.\n\nAs with product types, this **is** allowed on a seeded system category, unlike editing.")]
+    [McpTool("ProductTagCategories_SetActive", "Activate or deactivate a tag category", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -91,7 +103,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPut("reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Put the tag categories in a given order.", "Takes the whole set, not a subset.")]
+    [OpenApiOperation(
+        "Put the tag categories in a given order.",
+        "**The list must name every category exactly once** — a partial list is refused, so read them all first and send the complete sequence. Ordering is presentation only.")]
+    [McpTool("ProductTagCategories_Reorder", "Reorder tag categories", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -107,7 +122,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Delete an unused tag category.", "An axis products are tagged along must be deactivated instead.")]
+    [OpenApiOperation(
+        "Delete a tag category and its tags.",
+        "Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged along it, so this only removes an axis created by mistake and never applied.")]
+    [McpTool("ProductTagCategories_Delete", "Delete a tag category", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -121,7 +139,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPost("{id}/tags")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Add a tag to a category.", "")]
+    [OpenApiOperation(
+        "Add a tag to a category.",
+        "Tag names must be unique within their axis, though the same name may appear on different axes. Refused on a seeded system category.")]
+    [McpTool("ProductTagCategories_AddTag", "Add a tag", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -138,7 +159,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPut("{id}/tags/{tagId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Rename a tag.", "Safe on a tag in use: products reference it by id.")]
+    [OpenApiOperation(
+        "Rename a tag or change its description.",
+        "**An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the axis. Refused on a seeded system category.\n\nRenaming does not rewrite history: a product carrying the tag simply reports the new name.")]
+    [McpTool("ProductTagCategories_RenameTag", "Rename a tag", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -155,7 +179,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPut("{id}/tags/{tagId}/active")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Activate or deactivate a tag.", "")]
+    [OpenApiOperation(
+        "Take a tag out of use, or put it back.",
+        "An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.\n\n**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole axis with `ProductTagCategories_SetActive` if it should stop being used.")]
+    [McpTool("ProductTagCategories_SetTagActive", "Activate or deactivate a tag", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetTagActive(
@@ -171,7 +198,10 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpDelete("{id}/tags/{tagId}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTagCategories)]
-    [OpenApiOperation("Delete an unused tag.", "A tag products carry must be deactivated instead.")]
+    [OpenApiOperation(
+        "Permanently delete a tag.",
+        "The tag must belong to the category named in the path. Refused on a seeded system category, and refused while any product carries the tag — deactivate it with `ProductTagCategories_SetTagActive` instead, which stops new use without stripping it from the products that have it. The `productCount` on each tag from `ProductTagCategories_GetProductTagCategories` says whether it is in use.")]
+    [McpTool("ProductTagCategories_DeleteTag", "Delete a tag", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> DeleteTag(Guid id, Guid tagId, CancellationToken cancellationToken)

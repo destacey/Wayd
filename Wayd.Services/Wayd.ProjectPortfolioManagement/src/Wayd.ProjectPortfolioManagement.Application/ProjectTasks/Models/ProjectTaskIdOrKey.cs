@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Domain.Interfaces;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using OneOf;
@@ -12,7 +13,24 @@ public sealed class ProjectTaskIdOrKey : OneOfBase<Guid, ProjectTaskKey>
 {
     public ProjectTaskIdOrKey(OneOf<Guid, ProjectTaskKey> value) : base(value) { }
 
-    public ProjectTaskIdOrKey(string value) : base(Guid.TryParse(value, out var guid) ? guid : new ProjectTaskKey(value)) { }
+    /// <summary>Reads a route or query value as a Guid id or a task key.</summary>
+    /// <exception cref="NotFoundException">The value is neither, so it can name no task.</exception>
+    public ProjectTaskIdOrKey(string value) : base(Parse(value)) { }
+
+    private static OneOf<Guid, ProjectTaskKey> Parse(string value)
+    {
+        if (Guid.TryParse(value, out var guid))
+            return guid;
+
+        try
+        {
+            return new ProjectTaskKey(value);
+        }
+        catch (ArgumentException)
+        {
+            throw new NotFoundException($"No task has the id or key '{value}'.");
+        }
+    }
 
     /// <summary>
     /// Implicitly converts a Guid to an <see cref="ProjectTaskIdOrKey"/>.

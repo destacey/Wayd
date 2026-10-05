@@ -31,7 +31,8 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("Get list of all users.", "")]
+    [OpenApiOperation("Get a list of all users.", "")]
+    [McpTool("Users_GetUsers", "List users")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<List<UserDetailsDto>> GetUsers(CancellationToken cancellationToken)
@@ -51,6 +52,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
     [OpenApiOperation("Get a user's details.", "")]
+    [McpTool("Users_GetUser", "Get user")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

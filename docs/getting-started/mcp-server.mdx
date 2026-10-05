@@ -78,6 +78,45 @@ VS Code / Cursor (`.vscode/mcp.json`):
 }
 ```
 
+### Choosing Tools
+
+Every tool's description is loaded into the conversation before any work starts, and all of them together run to about 45,000 tokens. Ask for only the tools your work needs by naming toolsets, and add read-only mode for an assistant that should look but never change anything.
+
+| Toolset    | Tools                                                                         |
+| ---------- | ----------------------------------------------------------------------------- |
+| `ppm`      | Portfolios, programs, projects, tasks, strategic initiatives                  |
+| `planning` | Planning intervals, roadmaps, story maps                                      |
+| `products` | Products, product types, tag categories                                       |
+| `delivery` | Versions, releases, release packages, deployments, environments, metrics      |
+| `teams`    | Teams, teams of teams, users                                                  |
+| `work`     | Work item forecasts for workspaces                                            |
+| `imports`  | Checking, applying and following CSV imports                                  |
+
+Choose them on the URL, or in headers if your client sends them:
+
+| Query parameter                 | Header                             | Effect                                                                |
+| ------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| `toolsets=ppm,planning`         | `X-MCP-Toolsets: ppm,planning`     | Only those toolsets. Leave it out, or name `all`, for every toolset.  |
+| `readonly=true`                 | `X-MCP-Readonly: true`             | Only tools that read; every create, update and delete is left out.    |
+
+The query parameter wins when both are sent. An unknown toolset name is refused with 400 rather than ignored, so a typo does not quietly leave you without tools. A tool outside the selection cannot be called either, so read-only mode holds even against an assistant that knows a write tool's name.
+
+```json
+{
+    "mcpServers": {
+        "wayd-planning": {
+            "type": "http",
+            "url": "https://your-wayd-api.com/mcp?toolsets=planning,teams&readonly=true",
+            "headers": {
+                "x-api-key": "your-personal-access-token"
+            }
+        }
+    }
+}
+```
+
+Read-only mode limits which tools are offered, not what your token may do. For a guarantee, also use a token whose account has view permissions only.
+
 ## Setup
 
 ### Claude Desktop

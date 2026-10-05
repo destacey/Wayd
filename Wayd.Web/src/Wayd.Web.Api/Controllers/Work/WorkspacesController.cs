@@ -10,6 +10,7 @@ using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Application.Workspaces.Commands;
 using Wayd.Work.Application.Workspaces.Dtos;
 using Wayd.Work.Application.Workspaces.Queries;
+using Wayd.Work.Domain.Extensions;
 using Wayd.Work.Domain.Models;
 
 namespace Wayd.Web.Api.Controllers.Work;
@@ -116,6 +117,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<WorkItemDetailsDto>> GetWorkItem(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetWorkItemQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))
@@ -149,6 +153,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<WorkItemProjectInfoDto>> GetWorkItemProjectInfo(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetWorkItemProjectInfoQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))
@@ -198,6 +205,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetChildWorkItems(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetChildWorkItemsQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))
@@ -228,6 +238,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ScopedDependencyDto>>> GetWorkItemDependencies(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
 
         var result = await _dispatcher.Send(new GetWorkItemDependenciesQuery(idOrKey, key), cancellationToken);
@@ -262,6 +275,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
         if (!IsoDateQuery.TryParse(targetDate, out var parsedTargetDate))
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
 
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         var options = new ForecastOptions
         {
@@ -285,6 +301,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<IEnumerable<WorkItemProgressDailyRollupDto>>> GetMetrics(string idOrKey, string workItemKey, CancellationToken cancellationToken)
     {
         // TODO: allow work item key or id
+        if (!workItemKey.IsValidWorkItemKeyFormat())
+            return NotFound();
+
         var key = new WorkItemKey(workItemKey);
         GetWorkItemMetricsQuery query;
         if (Guid.TryParse(idOrKey, out Guid guidId))

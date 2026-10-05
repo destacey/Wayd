@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Models;
+using NotFoundException = Wayd.Common.Application.Exceptions.NotFoundException;
 using Wayd.Work.Domain.Interfaces;
 using OneOf;
 
@@ -8,7 +9,24 @@ namespace Wayd.Work.Application.Workspaces.Models;
 public sealed class WorkspaceIdOrKey : OneOfBase<Guid, WorkspaceKey>
 {
     public WorkspaceIdOrKey(OneOf<Guid, WorkspaceKey> value) : base(value) { }
-    public WorkspaceIdOrKey(string value) : base(Guid.TryParse(value, out var guid) ? guid : new WorkspaceKey(value)) { }
+    /// <summary>Reads a route or query value as a Guid id or a workspace key.</summary>
+    /// <exception cref="NotFoundException">The value is neither, so it can name no workspace.</exception>
+    public WorkspaceIdOrKey(string value) : base(Parse(value)) { }
+
+    private static OneOf<Guid, WorkspaceKey> Parse(string value)
+    {
+        if (Guid.TryParse(value, out var guid))
+            return guid;
+
+        try
+        {
+            return new WorkspaceKey(value);
+        }
+        catch (ArgumentException)
+        {
+            throw new NotFoundException($"No workspace has the id or key '{value}'.");
+        }
+    }
 
     public static implicit operator WorkspaceIdOrKey(Guid value) => new(OneOf<Guid, WorkspaceKey>.FromT0(value));
     public static implicit operator WorkspaceIdOrKey(WorkspaceKey value) => new(OneOf<Guid, WorkspaceKey>.FromT1(value));

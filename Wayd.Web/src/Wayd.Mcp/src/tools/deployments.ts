@@ -33,7 +33,7 @@ const readsOnly = {
 } as const;
 
 const ID_ONLY = 'Deployment ID. This endpoint takes a UUID only, not a deployment key.';
-const IN_FLIGHT = 'Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again.';
+const IN_FLIGHT = 'Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`.';
 
 export const definitions: [string, McpToolDefinition][] = [
 
@@ -113,7 +113,7 @@ Only an **active** environment is accepted. Leaving \`startedAt\` empty records 
 
   ['Deployments_RollBack', {
     name: 'Deployments_RollBack',
-    description: `Record that a deployment reached its environment and was then reverted. ${IN_FLIGHT} Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.`,
+    description: `Record that a deployment reached its environment and was then reverted. Offered only for a deployment that succeeded: one still in flight, failed, or already rolled back is refused. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"reason":{"type":"string","description":"Why it was rolled back. Optional."},"rolledBackAt":{"type":"string","format":"date-time","description":"When it was rolled back. Omit to record it as now."}},"required":[]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/deployments/{id}/roll-back',

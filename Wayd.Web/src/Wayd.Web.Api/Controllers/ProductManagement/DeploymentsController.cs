@@ -192,7 +192,7 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Record that a deployment reached its environment.",
-        "Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.")]
+        "Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.")]
     [McpTool("Deployments_Succeed", "Record deployment success")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -211,7 +211,7 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Record that a deployment did not reach its environment.",
-        "Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.")]
+        "Offered only while the deployment is still in flight — once it has succeeded or failed, neither can be recorded again; a success can still be rolled back with `Deployments_RollBack`. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.")]
     [McpTool("Deployments_Fail", "Record deployment failure")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -247,7 +247,7 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Record that a deployment reached its environment and was then reverted.",
-        "Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.")]
+        "Offered only for a deployment that succeeded: one still in flight, failed, or already rolled back is refused. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.")]
     [McpTool("Deployments_RollBack", "Record deployment rollback")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

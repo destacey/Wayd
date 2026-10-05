@@ -56,4 +56,14 @@ public interface IWorkItemSource
         SyncType syncType,
         Guid syncId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns the next batch of work item revisions for a workspace, after
+    /// <paramref name="watermark"/>; a null watermark starts from the workspace's first revision.
+    /// The runner calls it again with the returned watermark until a batch reports it is the last.
+    /// </summary>
+    Task<Result<WorkItemHistoryBatch>> GetWorkItemHistory(
+        WorkspaceSyncTarget target,
+        string? watermark,
+        CancellationToken cancellationToken);
 }

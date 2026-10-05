@@ -301,6 +301,15 @@ public sealed class AzureDevOpsWorkItemSource(
             PartialFailureMessage: hadPartialFailure ? string.Join("; ", failureMessages) : null));
     }
 
+    /// <summary>
+    /// Returns no revisions until the reporting revisions API is mapped onto the contract (#921),
+    /// leaving the watermark where it was.
+    /// </summary>
+    public Task<Result<WorkItemHistoryBatch>> GetWorkItemHistory(WorkspaceSyncTarget target, string? watermark, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Result.Success(WorkItemHistoryBatch.Empty(watermark)));
+    }
+
     // ----- helpers -----
 
     private const string TeamMappingsFilterKey = "azdo.teamMappings";

@@ -30,6 +30,13 @@ public sealed record WorkItemBacklogItemDto : IMapFrom<WorkItem>
     // This is used to set the rank of the work items in the backlog
     public double StackRank { get; set; }
     public double? StoryPoints { get; set; }
+
+    /// <summary>The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated.</summary>
+    public double? Effort { get; set; }
+
+    /// <summary>The size estimate, the CMMI process's requirement estimate; null when unestimated.</summary>
+    public double? Size { get; set; }
+
     public List<string> Tags { get; set; } = [];
 
     public void ConfigureMapping(TypeAdapterConfig config)

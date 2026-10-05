@@ -47656,6 +47656,8 @@ export interface WorkItemListDto {
     assignedTo?: EmployeeNavigationDto | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    effort?: number | undefined;
+    size?: number | undefined;
     project?: WorkProjectNavigationDto | undefined;
     externalViewWorkItemUrl?: string | undefined;
     created: Date;
@@ -48673,6 +48675,8 @@ export interface SprintBacklogItemDto {
     externalViewWorkItemUrl?: string | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    effort?: number | undefined;
+    size?: number | undefined;
     tags: string[];
     cycleTime?: number | undefined;
 }
@@ -50157,6 +50161,8 @@ export interface WorkItemBacklogItemDto {
     externalViewWorkItemUrl?: string | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    effort?: number | undefined;
+    size?: number | undefined;
     tags: string[];
 }
 

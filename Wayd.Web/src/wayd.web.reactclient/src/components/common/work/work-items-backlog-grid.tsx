@@ -12,7 +12,8 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
-import { WorkItemBacklogItemDto } from '@/src/services/wayd-api'
+import { SizingMethod, WorkItemBacklogItemDto } from '@/src/services/wayd-api'
+import { estimateColumns } from './estimate-columns'
 import type { ColumnDef } from '../wayd-grid-core'
 export interface WorkItemsBacklogGridProps {
   workItems: WorkItemBacklogItemDto[]
@@ -21,6 +22,8 @@ export interface WorkItemsBacklogGridProps {
   refetch: () => void
   /** Column layout persistence key for the hosting page (see WaydGridProps). */
   persistStateKey?: string
+  /** The team's sizing method, whose estimate column shows by default. */
+  sizingMethod?: SizingMethod | null
 }
 
 const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
@@ -48,12 +51,7 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
       size: 125,
       meta: { filterType: 'set' },
     },
-    {
-      id: 'storyPoints',
-      accessorKey: 'storyPoints',
-      header: 'SPs',
-      size: 80,
-    },
+    ...estimateColumns<WorkItemBacklogItemDto>(props.sizingMethod),
     {
       id: 'status',
       accessorKey: 'status',

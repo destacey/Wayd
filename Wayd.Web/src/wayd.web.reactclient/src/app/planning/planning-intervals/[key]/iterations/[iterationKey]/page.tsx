@@ -12,6 +12,7 @@ import { useDocumentTitle } from '@/src/hooks'
 import { compareCalendarDates } from '@/src/utils'
 import {
   useGetPlanningIntervalIterationBacklogQuery,
+  useGetPlanningIntervalIterationMetricsQuery,
   useGetPlanningIntervalIterationQuery,
   useGetPlanningIntervalIterationsQuery,
 } from '@/src/store/features/planning/planning-interval-api'
@@ -70,6 +71,13 @@ const PlanningIntervalIterationPage = (props: {
     { skip: activeSection !== IterationSections.Backlog },
   )
 
+  // Null when the iteration's sprints size differently, so the backlog shows Story Points.
+  const { data: iterationMetrics } =
+    useGetPlanningIntervalIterationMetricsQuery(
+      { planningIntervalKey: piKey, iterationKey: piIterationKey },
+      { skip: activeSection !== IterationSections.Backlog },
+    )
+
   const handleIterationChange = (value: string | number) => {
     const params = new URLSearchParams(searchParams.toString())
     router.push(
@@ -108,6 +116,7 @@ const PlanningIntervalIterationPage = (props: {
             workItems={backlog ?? []}
             isLoading={backlogIsLoading}
             refetch={refetchBacklog}
+            sizingMethod={iterationMetrics?.sizingMethod}
             persistStateKey="iteration-backlog"
           />
         )

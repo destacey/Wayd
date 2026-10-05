@@ -8,6 +8,7 @@ import { compareCalendarDates } from '@/src/utils'
 import {
   useGetSprintActivitiesQuery,
   useGetSprintBacklogQuery,
+  useGetSprintMetricsQuery,
   useGetSprintQuery,
   useLazyGetSprintActivitiesQuery,
 } from '@/src/store/features/work-management/sprints-api'
@@ -72,6 +73,11 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     isLoading: workItemsLoading,
     refetch: refetchWorkItems,
   } = useGetSprintBacklogQuery(sprintKey, {
+    skip: !sprintKey || activeSection !== SprintSections.Backlog,
+  })
+
+  // The sprint's sizing method on its planned start, which its metrics report.
+  const { data: sprintMetrics } = useGetSprintMetricsQuery(sprintKey, {
     skip: !sprintKey || activeSection !== SprintSections.Backlog,
   })
 
@@ -182,6 +188,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             isLoading={workItemsLoading}
             refetch={refetchWorkItems}
             hideTeamColumn
+            sizingMethod={sprintMetrics?.sizingMethod}
             persistStateKey="sprint-backlog"
           />
         )

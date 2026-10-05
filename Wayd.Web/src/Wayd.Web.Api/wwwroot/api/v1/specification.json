@@ -49409,6 +49409,16 @@
             "format": "double",
             "nullable": true
           },
+          "effort": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "size": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "project": {
             "nullable": true,
             "oneOf": [
@@ -53489,6 +53499,16 @@
             "format": "double"
           },
           "storyPoints": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "effort": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "size": {
             "type": "number",
             "format": "double",
             "nullable": true
@@ -59571,6 +59591,16 @@
             "format": "double"
           },
           "storyPoints": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "effort": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "size": {
             "type": "number",
             "format": "double",
             "nullable": true

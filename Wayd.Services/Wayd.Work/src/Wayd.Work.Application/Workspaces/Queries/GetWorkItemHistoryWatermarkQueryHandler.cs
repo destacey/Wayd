@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
+using Wayd.Common.Domain.Enums;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workspaces.Queries;
@@ -13,12 +14,12 @@ public sealed class GetWorkItemHistoryWatermarkQueryHandler(IWorkDbContext workD
     public async Task<Result<string?>> Handle(GetWorkItemHistoryWatermarkQuery request, CancellationToken cancellationToken)
     {
         var workspace = await _workDbContext.Workspaces
-            .Where(w => w.Id == request.WorkspaceId)
+            .Where(w => w.Id == request.WorkspaceId && w.OwnershipInfo.Ownership == Ownership.Managed)
             .Select(w => new { w.WorkItemHistoryWatermark })
             .FirstOrDefaultAsync(cancellationToken);
 
         return workspace is null
-            ? Result.Failure<string?>($"Workspace {request.WorkspaceId} does not exist.")
+            ? Result.Failure<string?>($"Managed workspace {request.WorkspaceId} does not exist.")
             : Result.Success(workspace.WorkItemHistoryWatermark);
     }
 }

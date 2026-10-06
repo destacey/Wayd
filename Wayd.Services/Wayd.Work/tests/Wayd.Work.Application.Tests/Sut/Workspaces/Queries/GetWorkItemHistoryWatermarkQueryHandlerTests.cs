@@ -28,7 +28,7 @@ public sealed class GetWorkItemHistoryWatermarkQueryHandlerTests : IDisposable
     public async Task Handle_ReturnsTheWorkspacesWatermark(string? watermark)
     {
         // Arrange
-        var workspace = new WorkspaceFaker().WithWorkItemHistoryWatermark(watermark).Generate();
+        var workspace = new WorkspaceFaker().AsExternal().WithWorkItemHistoryWatermark(watermark).Generate();
         _fakeWorkDbContext.AddWorkspace(workspace);
 
         // Act
@@ -37,6 +37,20 @@ public sealed class GetWorkItemHistoryWatermarkQueryHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be(watermark);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheWorkspaceIsWaydOwned_ReturnsFailure()
+    {
+        // Arrange — only a synced workspace has history to resume
+        var workspace = new WorkspaceFaker().WithWorkItemHistoryWatermark("token-7").Generate();
+        _fakeWorkDbContext.AddWorkspace(workspace);
+
+        // Act
+        var result = await _handler.Handle(new GetWorkItemHistoryWatermarkQuery(workspace.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
     }
 
     [Fact]

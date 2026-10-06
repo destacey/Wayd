@@ -45,7 +45,9 @@ public sealed class WorkItemStateTimeline
             return null;
 
         // A revision stamped before the period it follows (clock skew in the source) still has to
-        // leave the periods contiguous and ordered, so it starts no earlier than that period.
+        // leave the periods contiguous and ordered, so it starts no earlier than that period. That
+        // closes the earlier period with ValidTo equal to ValidFrom: a zero-length period no as-of
+        // query matches, kept because its revision was applied.
         var validFrom = _open is not null && changed < _open.ValidFrom ? _open.ValidFrom : changed;
 
         _open?.Close(validFrom);

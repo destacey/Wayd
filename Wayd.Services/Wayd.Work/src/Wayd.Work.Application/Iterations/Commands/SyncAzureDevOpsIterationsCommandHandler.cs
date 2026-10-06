@@ -115,6 +115,10 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
 
         try
         {
+            // One transaction, so a delete that fails leaves the history still pointing at the
+            // iterations it kept.
+            await using var unitOfWork = await _workDbContext.BeginUnitOfWork(cancellationToken);
+
             // The database cannot clear these itself (see WorkItemStateHistoryConfig). The history
             // keeps the source's iteration id, so a period still says which iteration it was in.
             var deletedIds = iterationsToDelete.Select(i => i.Id).ToArray();
@@ -123,6 +127,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
                 .ExecuteUpdateAsync(s => s.SetProperty(h => h.IterationId, (Guid?)null), cancellationToken);
 
             await _workDbContext.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
             syncLog.IterationDeleted(iterationsToDelete.Count);
         }
         catch (Exception ex)

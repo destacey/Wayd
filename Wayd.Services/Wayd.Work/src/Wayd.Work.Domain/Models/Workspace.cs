@@ -92,6 +92,12 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     public bool IsActive { get; private set; } = true;
 
     /// <summary>
+    /// The source's opaque token for where the work item history sync left off; null before the
+    /// first history sync, or after a full sync cleared the history to replay it.
+    /// </summary>
+    public string? WorkItemHistoryWatermark { get; private set; }
+
+    /// <summary>
     /// A collection of work items in the workspace.
     /// </summary>
     public IReadOnlyCollection<WorkItem> WorkItems => _workItems.AsReadOnly();
@@ -153,6 +159,15 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
         Description = newDescription;
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Records where the work item history sync left off. Saved with the history it covers, so the
+    /// next sync resumes after the last batch that was stored.
+    /// </summary>
+    public void SetWorkItemHistoryWatermark(string? watermark)
+    {
+        WorkItemHistoryWatermark = watermark;
     }
 
     public Result SetSystemId(string systemId)

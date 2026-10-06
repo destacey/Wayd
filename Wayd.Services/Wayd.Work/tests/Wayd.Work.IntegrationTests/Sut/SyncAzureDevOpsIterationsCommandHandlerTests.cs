@@ -59,7 +59,45 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
         (await verify.Context.WorkItems.AsNoTracking().SingleAsync(w => w.Id == workItemId, ct)).IterationId.Should().BeNull();
     }
 
-[Fact]
+    [Fact]
+    public async Task Handle_WhenASprintInWorkItemHistoryIsGoneFromTheSource_DeletesItAndKeepsTheSourceIterationId()
+    {
+        // Arrange — the database cannot clear the history's reference itself, so the delete would be refused
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        await Sync([External(1, "Sprint 1"), External(2, "Sprint 2")], ct);
+
+        Guid removedSprintId;
+        await using (var seed = new WaydDbContextAccessor(_fixture))
+        {
+            removedSprintId = await seed.Context.Iterations
+                .Where(i => i.OwnershipInfo.SystemId == SystemId && i.OwnershipInfo.ExternalId == "1")
+                .Select(i => i.Id)
+                .SingleAsync(ct);
+            var workspaceId = await SeedWorkspace(seed.Context);
+            var workItemId = await InsertWorkItem(seed.Context, workspaceId, removedSprintId);
+            await seed.Context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO [Work].[WorkItemStateHistory]
+                    ([WorkItemId], [WorkspaceId], [Revision], [ValidFrom], [IterationId], [ExternalIterationId],
+                     [StatusName], [WorkTypeName])
+                VALUES ({workItemId}, {workspaceId}, 1, SYSUTCDATETIME(), {removedSprintId}, 1, 'Active', 'Sync Story');
+                """,
+                ct);
+        }
+
+        // Act
+        await Sync([External(2, "Sprint 2")], ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await verify.Context.Iterations.AnyAsync(i => i.Id == removedSprintId, ct)).Should().BeFalse();
+        var period = await verify.Context.WorkItemStateHistory.AsNoTracking().SingleAsync(ct);
+        period.IterationId.Should().BeNull();
+        period.ExternalIterationId.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Handle_WhenAnOpenSprintMovesToATeamWithAnOpenSprint_CompletesTheMovedSprintAndKeepsItsStart()
     {
         // Arrange — each team has started its sprint; then the source moves sprint 2 onto team A

@@ -196,6 +196,7 @@ public partial class EventCoverageTests
         [typeof(StatusTransition)] = "A transition row the owning record writes alongside its status-changed event.",
         [typeof(ImportProcess)] = "The state of an import run, advanced per chunk; it is the record of the run.",
         [typeof(SyncRun)] = "The state of a sync run; it is the record of the run.",
+        [typeof(WorkItemStateHistory)] = "A work item's history imported from the source's revisions; it is the record.",
 
         // Derived or side-effect data with no meaning of its own.
         [typeof(ExternalEmployeeBlacklistItem)] =

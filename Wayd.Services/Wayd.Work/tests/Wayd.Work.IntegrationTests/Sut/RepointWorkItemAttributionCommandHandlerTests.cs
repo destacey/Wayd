@@ -55,6 +55,42 @@ public sealed class RepointWorkItemAttributionCommandHandlerTests(SqlServerDbCon
     }
 
     [Fact]
+    public async Task Handle_RepointsTheAssigneeInWorkItemHistory()
+    {
+        // Arrange — one history period per seeded item, each assigned to its item's identity
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var seeded = await WorkItemSeeder.Seed(_fixture, AssignedExternalId, OtherExternalId, ct);
+
+        await using (var seed = new WaydDbContextAccessor(_fixture))
+        {
+            await seed.Context.Database.ExecuteSqlRawAsync(
+                """
+                INSERT INTO [Work].[WorkItemStateHistory]
+                    ([WorkItemId], [WorkspaceId], [Revision], [ValidFrom], [StatusName], [WorkTypeName], [AssignedToExternalId])
+                SELECT w.[Id], w.[WorkspaceId], 1, SYSUTCDATETIME(), 'Seed Status', 'Seed Type', e.[AssignedToExternalId]
+                FROM [Work].[WorkItems] w
+                JOIN [Work].[WorkItemsExtended] e ON e.[Id] = w.[Id];
+                """,
+                ct);
+        }
+
+        await using var accessor = new WaydDbContextAccessor(_fixture);
+        var handler = CreateHandler(accessor);
+
+        // Act
+        var result = await handler.Handle(new RepointWorkItemAttributionCommand(AssignedExternalId, seeded.EmployeeId), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var periods = await verify.Context.WorkItemStateHistory.AsNoTracking().ToDictionaryAsync(h => h.WorkItemId, ct);
+        periods[seeded.MatchingWorkItemId].AssignedToId.Should().Be(seeded.EmployeeId);
+        periods[seeded.OtherWorkItemId].AssignedToId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Handle_LeavesItemsCarryingADifferentIdentityAlone()
     {
         // Arrange

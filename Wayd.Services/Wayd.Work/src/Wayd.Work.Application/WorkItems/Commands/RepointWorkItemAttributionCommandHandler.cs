@@ -7,8 +7,9 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 /// Applies an admin's identity decision to work already synced.
 /// </summary>
 /// <remarks>
-/// Repairs all three attributions the sync resolves — assignee, author, and last-modifier — so a
-/// mapping fixes the whole record rather than the half a user happens to look at first.
+/// Repairs all three attributions the sync resolves — assignee, author, and last-modifier — and
+/// the assignee in the work item history, so a mapping fixes the whole record rather than the half
+/// a user happens to look at first.
 /// <para>
 /// Set-based rather than loading aggregates: a single identity can own tens of thousands of work
 /// items, and every column written here is a denormalized attribution pointer that carries no
@@ -65,11 +66,19 @@ public sealed class RepointWorkItemAttributionCommandHandler(
                     s => s.SetProperty(wi => wi.LastModifiedById, request.EmployeeId),
                     cancellationToken);
 
-            if (assignedUpdated + createdUpdated + lastModifiedUpdated > 0)
+            // History periods resolve the assignee the same way, so a mapping corrects the past too.
+            var historyUpdated = await _workDbContext.WorkItemStateHistory
+                .Where(h => h.AssignedToExternalId == externalId
+                    && h.AssignedToId != request.EmployeeId)
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(h => h.AssignedToId, request.EmployeeId),
+                    cancellationToken);
+
+            if (assignedUpdated + createdUpdated + lastModifiedUpdated + historyUpdated > 0)
             {
                 _logger.LogInformation(
-                    "Repointed external identity {ExternalId} to employee {EmployeeId}: {AssignedCount} assigned, {CreatedCount} created, {LastModifiedCount} last-modified.",
-                    externalId, request.EmployeeId, assignedUpdated, createdUpdated, lastModifiedUpdated);
+                    "Repointed external identity {ExternalId} to employee {EmployeeId}: {AssignedCount} assigned, {CreatedCount} created, {LastModifiedCount} last-modified, {HistoryCount} history periods.",
+                    externalId, request.EmployeeId, assignedUpdated, createdUpdated, lastModifiedUpdated, historyUpdated);
             }
 
             return Result.Success();

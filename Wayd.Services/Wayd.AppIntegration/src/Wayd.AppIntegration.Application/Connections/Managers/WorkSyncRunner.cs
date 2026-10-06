@@ -4,6 +4,7 @@ using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Logging;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 
@@ -35,6 +36,13 @@ public sealed class WorkSyncRunner(
     private static readonly Action<ILogger, Exception?> _cancellationRequested = LoggerMessage.Define(LogLevel.Information,
         AppEventId.AppIntegration_CancellationRequested.ToEventId(),
         "Cancellation requested. Stopping sync.");
+
+    // The client reads DetailsJson with camelCase keys, as it does every other API payload; this
+    // direct Serialize call does not get MVC's naming policy.
+    private static readonly JsonSerializerOptions _detailsJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     private static readonly Action<ILogger, int, int, Exception?> _runSummary = LoggerMessage.Define<int, int>(LogLevel.Information,
         AppEventId.AppIntegration_WorkSyncRunner_RunSummary.ToEventId(),
@@ -173,7 +181,7 @@ public sealed class WorkSyncRunner(
                 cancellationToken.ThrowIfCancellationRequested();
                 using (_logger.BeginScope(new Dictionary<string, object> { ["WorkspaceId"] = target.InternalWorkspaceId }))
                 {
-                    var detail = await RunWorkspace(source, target, descriptorResult.Value.SystemId!, syncType, syncId, cancellationToken);
+                    var detail = await RunWorkspace(source, target, connectionId, descriptorResult.Value.SystemId!, syncType, syncId, cancellationToken);
                     workspaceDetails.Add(detail);
 
                     if (detail.Succeeded)
@@ -218,7 +226,7 @@ public sealed class WorkSyncRunner(
         }
     }
 
-    private async Task<WorkspaceSyncDetail> RunWorkspace(IWorkItemSource source, WorkspaceSyncTarget target, string systemId, SyncType syncType, Guid syncId, CancellationToken cancellationToken)
+    private async Task<WorkspaceSyncDetail> RunWorkspace(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, string systemId, SyncType syncType, Guid syncId, CancellationToken cancellationToken)
     {
         var prepResult = await source.PrepareWorkspaceForItemSync(target, syncId, cancellationToken);
         if (prepResult.IsFailure)
@@ -241,7 +249,82 @@ public sealed class WorkSyncRunner(
             return WorkspaceSyncDetail.FromFailure(target, itemsResult.Error);
         }
 
-        return WorkspaceSyncDetail.FromSuccess(target, itemsResult.Value);
+        // After the items: history is kept only for items Wayd holds, so a new item has to exist
+        // before its revisions are applied. A failure here leaves the items synced, so the workspace
+        // is degraded rather than failed.
+        var items = itemsResult.Value;
+        var historyResult = await SyncWorkItemHistory(source, target, connectionId, syncType, cancellationToken);
+        if (historyResult.IsFailure)
+        {
+            _logger.LogError("Work item history sync failed for workspace {WorkspaceId}: {Error}", target.InternalWorkspaceId, historyResult.Error);
+            var message = $"Work item history: {historyResult.Error}";
+            items = items with
+            {
+                HadPartialFailure = true,
+                PartialFailureMessage = items.PartialFailureMessage is null ? message : $"{items.PartialFailureMessage}; {message}",
+            };
+        }
+
+        return WorkspaceSyncDetail.FromSuccess(target, items, historyResult.IsSuccess ? historyResult.Value : 0);
+    }
+
+    /// <summary>
+    /// Pulls the workspace's work item history from the source a batch at a time, from the stored
+    /// watermark until the source reports its last batch. A full sync replays from the start onto
+    /// the history already stored: revisions already applied are skipped, so it fills gaps and
+    /// changes nothing it already holds.
+    /// </summary>
+    /// <returns>The number of revisions received.</returns>
+    private async Task<Result<int>> SyncWorkItemHistory(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, SyncType syncType, CancellationToken cancellationToken)
+    {
+        string? watermark;
+        if (syncType == SyncType.Full)
+        {
+            watermark = null;
+        }
+        else
+        {
+            var watermarkResult = await _dispatcher.Send(new GetWorkItemHistoryWatermarkQuery(target.InternalWorkspaceId), cancellationToken);
+            if (watermarkResult.IsFailure)
+                return Result.Failure<int>(watermarkResult.Error);
+
+            watermark = watermarkResult.Value;
+        }
+
+        var processed = 0;
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var batchResult = await source.GetWorkItemHistory(target, watermark, cancellationToken);
+            if (batchResult.IsFailure)
+                return Result.Failure<int>(batchResult.Error);
+
+            var batch = batchResult.Value;
+            var advanced = batch.NextWatermark != watermark;
+
+            if (batch.Revisions.Count > 0 || advanced)
+            {
+                var applyResult = await _dispatcher.Send(
+                    new SyncExternalWorkItemHistoryCommand(connectionId, target.InternalWorkspaceId, batch.Revisions, batch.NextWatermark),
+                    cancellationToken);
+                if (applyResult.IsFailure)
+                    return Result.Failure<int>(applyResult.Error);
+
+                processed += batch.Revisions.Count;
+            }
+
+            if (batch.IsLastBatch)
+                return processed;
+
+            // A source that stays where it was would be asked for the same batch forever, holding the
+            // sync job and every later one queued behind it. Revisions do not count as progress: a
+            // repeated batch is skipped as already applied.
+            if (!advanced)
+                return Result.Failure<int>("The source returned a batch without advancing its watermark.");
+
+            watermark = batch.NextWatermark;
+        }
     }
 
     private Task<Result<SyncableConnectionDescriptor>> BuildDescriptor(Guid connectionId, Connector connector, CancellationToken cancellationToken)
@@ -259,7 +342,7 @@ public sealed class WorkSyncRunner(
         {
             try
             {
-                run.SetDetails(JsonSerializer.Serialize(details));
+                run.SetDetails(JsonSerializer.Serialize(details, _detailsJsonOptions));
             }
             catch (Exception ex)
             {

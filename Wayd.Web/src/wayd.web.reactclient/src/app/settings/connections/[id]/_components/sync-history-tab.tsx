@@ -42,6 +42,8 @@ interface WorkspaceSyncDetail {
   parentLinkChangesProcessed: number
   dependencyLinkChangesProcessed: number
   deletedWorkItemsProcessed: number
+  // Absent from runs recorded before work item history was synced.
+  workItemRevisionsProcessed?: number
   hadPartialFailure: boolean
   error?: string | null
 }
@@ -126,10 +128,27 @@ interface ExclusionBreakdownEntry {
   count: number
 }
 
-function parseDetailsJson<T>(json: string | null | undefined): T | undefined {
+// Work-sync runs recorded before the runner wrote camelCase stored PascalCase keys; lowering each
+// key's first letter reads both.
+function camelCaseKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(camelCaseKeys)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, inner]) => [
+        key.charAt(0).toLowerCase() + key.slice(1),
+        camelCaseKeys(inner),
+      ]),
+    )
+  }
+  return value
+}
+
+export function parseDetailsJson<T>(
+  json: string | null | undefined,
+): T | undefined {
   if (!json) return undefined
   try {
-    return JSON.parse(json) as T
+    return camelCaseKeys(JSON.parse(json)) as T
   } catch {
     return undefined
   }
@@ -161,6 +180,7 @@ function WorkExpandedRow({ syncRun }: { syncRun: SyncRunDetailsDto }) {
     { title: 'Parent links', dataIndex: 'parentLinkChangesProcessed', key: 'parentLinks', width: 110 },
     { title: 'Dep. links', dataIndex: 'dependencyLinkChangesProcessed', key: 'depLinks', width: 100 },
     { title: 'Deletions', dataIndex: 'deletedWorkItemsProcessed', key: 'deletions', width: 90 },
+    { title: 'Revisions', dataIndex: 'workItemRevisionsProcessed', key: 'revisions', width: 90 },
     {
       title: 'Error',
       dataIndex: 'error',

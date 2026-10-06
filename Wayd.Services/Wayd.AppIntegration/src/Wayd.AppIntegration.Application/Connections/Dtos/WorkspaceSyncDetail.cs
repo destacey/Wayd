@@ -1,4 +1,4 @@
-﻿using Wayd.Integrations.Abstractions;
+using Wayd.Integrations.Abstractions;
 
 namespace Wayd.AppIntegration.Application.Connections.Dtos;
 
@@ -14,14 +14,15 @@ public sealed record WorkspaceSyncDetail(
     int ParentLinkChangesProcessed,
     int DependencyLinkChangesProcessed,
     int DeletedWorkItemsProcessed,
+    int WorkItemRevisionsProcessed,
     bool HadPartialFailure,
     string? Error)
 {
-    public static WorkspaceSyncDetail FromSuccess(WorkspaceSyncTarget target, WorkspaceItemsSyncResult r) =>
+    public static WorkspaceSyncDetail FromSuccess(WorkspaceSyncTarget target, WorkspaceItemsSyncResult r, int workItemRevisionsProcessed) =>
         new(target.InternalWorkspaceId, target.WorkspaceName, true,
             r.WorkItemsProcessed, r.ParentLinkChangesProcessed, r.DependencyLinkChangesProcessed, r.DeletedWorkItemsProcessed,
-            r.HadPartialFailure, r.PartialFailureMessage);
+            workItemRevisionsProcessed, r.HadPartialFailure, r.PartialFailureMessage);
 
     public static WorkspaceSyncDetail FromFailure(WorkspaceSyncTarget target, string error) =>
-        new(target.InternalWorkspaceId, target.WorkspaceName, false, 0, 0, 0, 0, false, error);
+        new(target.InternalWorkspaceId, target.WorkspaceName, false, 0, 0, 0, 0, 0, false, error);
 }

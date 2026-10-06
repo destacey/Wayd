@@ -184,6 +184,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<WorkItem> WorkItems => Set<WorkItem>();
     public DbSet<WorkItemDependency> WorkItemDependencies => Set<WorkItemDependency>();
     public DbSet<WorkItemHierarchy> WorkItemHierarchies => Set<WorkItemHierarchy>();
+    public DbSet<WorkItemStateHistory> WorkItemStateHistory => Set<WorkItemStateHistory>();
     public DbSet<Iteration> Iterations => Set<Iteration>();
     public DbSet<WorkProcess> WorkProcesses => Set<WorkProcess>();
     public DbSet<WorkProject> WorkProjects => Set<WorkProject>();

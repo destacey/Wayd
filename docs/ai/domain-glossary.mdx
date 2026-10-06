@@ -92,7 +92,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Work Status Category** | Fixed normalization set: Proposed (not started), Active (in progress), Done (completed), Removed (removed without completion). Enables cross-workflow metrics. |
 | **Work Item Dependency** | A predecessor/successor relationship between work items. Tracks State (ToDo/InProgress/Done/Removed/Deleted), Health (Healthy/AtRisk/Unhealthy), and Scope (IntraTeam/CrossTeam). |
 | **Dependency Health** | Automatically calculated from planned dates. Healthy = predecessor before successor. AtRisk = unplanned. Unhealthy = predecessor after successor or scheduling conflict. |
-| **Work Item Revision** | An audit trail entry: revision number, who, when, and field-level changes (old/new values). |
+| **Work Item History** | A work item's tracked state over time, imported from the source's revisions as effective-dated periods. Answers what was true about an item at an instant, which sprint metrics need. Deleted with the work item. |
 | **Work Item Hierarchy** | Parent-child relationship. Only Portfolio tier types can be parents. Parent must be higher level than child. |
 | **Backlog** | A team's unified view of all assigned work items across all workspaces. Visible in the team's Backlog section. |
 | **Allocation** | Where a team's (or a team of teams' and every descendant team's) completed Requirement-tier work went over a date range, grouped by portfolio, program, project, strategic theme or work type. A team's work rolls up to the parent it had on the day each item was done. |

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Organization;
@@ -306,6 +307,83 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
             .WithMany()
             .HasForeignKey(w => w.IterationId)
             .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public class WorkItemStateHistoryConfig : IEntityTypeConfiguration<WorkItemStateHistory>
+{
+    public void Configure(EntityTypeBuilder<WorkItemStateHistory> builder)
+    {
+        builder.ToTable("WorkItemStateHistory", SchemaNames.Work);
+
+        // An identity key: the table grows with every tracked change, and a GUID key would scatter
+        // those inserts across the clustered index.
+        builder.HasKey(h => h.Id);
+        builder.Property(h => h.Id).ValueGeneratedOnAdd();
+
+        // Drives the as-of queries sprint metrics run: the items in an iteration at an instant.
+        builder.HasIndex(h => new { h.IterationId, h.ValidFrom })
+            .IncludeProperties(h => new { h.WorkItemId, h.ValidTo, h.StatusCategory, h.WorkTypeId, h.StoryPoints, h.Effort, h.Size })
+            .WhereNotNull(nameof(WorkItemStateHistory.IterationId));
+
+        // A revision opens at most one period, and the ingest seeks the item's last revision here.
+        builder.HasIndex(h => new { h.WorkItemId, h.Revision })
+            .IsUnique();
+
+        // Periods are contiguous, so an item has at most one that is still open.
+        builder.HasIndex(h => h.WorkItemId, "IX_WorkItemStateHistory_WorkItemId_Open")
+            .IsUnique()
+            .WhereNull(nameof(WorkItemStateHistory.ValidTo));
+
+        builder.HasIndex(h => h.AssignedToExternalId)
+            .WhereNotNull(nameof(WorkItemStateHistory.AssignedToExternalId));
+
+        // Properties
+        builder.Property(h => h.ValidFrom).IsRequired();
+        builder.Property(h => h.ValidTo);
+        builder.Property(h => h.StatusName).IsRequired().HasMaxLength(128);
+        builder.Property(h => h.StatusCategory)
+            .HasConversion<EnumConverter<WorkStatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(h => h.WorkTypeName).IsRequired().HasMaxLength(128);
+        builder.Property(h => h.TeamKey).HasMaxLength(128);
+        builder.Property(h => h.AssignedToExternalId).HasMaxLength(128);
+
+        builder.Ignore(h => h.State);
+
+        // Relationships
+        builder.HasOne<WorkItem>()
+            .WithMany()
+            .HasForeignKey(h => h.WorkItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Workspace>()
+            .WithMany()
+            .HasForeignKey(h => h.WorkspaceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Not SetNull: SQL Server refuses a second cascade path from Iterations, which already reach
+        // this table through WorkItems. The iteration sync clears these references before it deletes.
+        builder.HasOne<Iteration>()
+            .WithMany()
+            .HasForeignKey(h => h.IterationId)
+            .OnDelete(DeleteBehavior.ClientSetNull);
+
+        builder.HasOne<WorkStatus>()
+            .WithMany()
+            .HasForeignKey(h => h.StatusId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<WorkType>()
+            .WithMany()
+            .HasForeignKey(h => h.WorkTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(h => h.AssignedToId)
+            .OnDelete(DeleteBehavior.ClientSetNull);
     }
 }
 
@@ -659,6 +737,7 @@ public class WorkspaceConfig : IEntityTypeConfiguration<Workspace>
         builder.Property(w => w.Description).HasMaxLength(1024);
         builder.Property(w => w.ExternalViewWorkItemUrlTemplate).HasMaxLength(256);
         builder.Property(w => w.IsActive);
+        builder.Property(w => w.WorkItemHistoryWatermark).HasMaxLength(1024);
 
         // Value Objects
         builder.ComplexProperty(w => w.OwnershipInfo, options =>

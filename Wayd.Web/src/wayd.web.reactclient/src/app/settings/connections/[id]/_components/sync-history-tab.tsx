@@ -128,10 +128,27 @@ interface ExclusionBreakdownEntry {
   count: number
 }
 
-function parseDetailsJson<T>(json: string | null | undefined): T | undefined {
+// Work-sync runs recorded before the runner wrote camelCase stored PascalCase keys; lowering each
+// key's first letter reads both.
+function camelCaseKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(camelCaseKeys)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, inner]) => [
+        key.charAt(0).toLowerCase() + key.slice(1),
+        camelCaseKeys(inner),
+      ]),
+    )
+  }
+  return value
+}
+
+export function parseDetailsJson<T>(
+  json: string | null | undefined,
+): T | undefined {
   if (!json) return undefined
   try {
-    return JSON.parse(json) as T
+    return camelCaseKeys(JSON.parse(json)) as T
   } catch {
     return undefined
   }

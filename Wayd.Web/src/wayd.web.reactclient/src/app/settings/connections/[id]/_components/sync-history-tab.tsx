@@ -42,6 +42,8 @@ interface WorkspaceSyncDetail {
   parentLinkChangesProcessed: number
   dependencyLinkChangesProcessed: number
   deletedWorkItemsProcessed: number
+  // Absent from runs recorded before work item history was synced.
+  workItemRevisionsProcessed?: number
   hadPartialFailure: boolean
   error?: string | null
 }
@@ -161,6 +163,7 @@ function WorkExpandedRow({ syncRun }: { syncRun: SyncRunDetailsDto }) {
     { title: 'Parent links', dataIndex: 'parentLinkChangesProcessed', key: 'parentLinks', width: 110 },
     { title: 'Dep. links', dataIndex: 'dependencyLinkChangesProcessed', key: 'depLinks', width: 100 },
     { title: 'Deletions', dataIndex: 'deletedWorkItemsProcessed', key: 'deletions', width: 90 },
+    { title: 'Revisions', dataIndex: 'workItemRevisionsProcessed', key: 'revisions', width: 90 },
     {
       title: 'Error',
       dataIndex: 'error',

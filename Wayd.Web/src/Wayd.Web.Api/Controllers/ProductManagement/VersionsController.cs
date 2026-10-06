@@ -31,6 +31,7 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
+[McpTools(McpToolset.Delivery)]
 public class VersionsController(IDispatcher dispatcher, ICsvService csvService, ISettings<SchedulingSettings> schedulingSettings, ILogger<VersionsController> logger) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;

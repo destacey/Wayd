@@ -36,7 +36,7 @@ public static class McpServerSetup
                 options.Stateless = true;
                 options.ConfigureSessionOptions = async (context, serverOptions, _) =>
                 {
-                    var tools = await context.RequestServices.GetRequiredService<McpToolCatalog>().GetTools();
+                    var tools = await context.RequestServices.GetRequiredService<McpToolCatalog>().GetTools(McpToolFilter.For(context));
                     var collection = new McpServerPrimitiveCollection<McpServerTool>();
                     foreach (var tool in tools)
                         collection.Add(tool);
@@ -49,7 +49,8 @@ public static class McpServerSetup
 
     /// <summary>
     /// Maps the MCP server at <see cref="Path"/>, for authenticated callers while the
-    /// <see cref="FeatureFlags.McpServer"/> flag is on, and answers 404 while it is off.
+    /// <see cref="FeatureFlags.McpServer"/> flag is on, and answers 404 while it is off. A request whose
+    /// <see cref="McpToolFilter"/> cannot be read is refused with 400.
     /// </summary>
     public static WebApplication MapWaydMcp(this WebApplication app)
     {
@@ -62,6 +63,16 @@ public static class McpServerSetup
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;
                 }
+
+                var filter = McpToolFilter.From(context.Request);
+                if (filter.IsFailure)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsync(filter.Error, context.RequestAborted);
+                    return;
+                }
+                McpToolFilter.Store(context, filter.Value);
+
                 await next(context);
             }));
 

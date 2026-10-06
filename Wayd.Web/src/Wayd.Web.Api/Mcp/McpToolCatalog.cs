@@ -12,7 +12,7 @@ namespace Wayd.Web.Api.Mcp;
 
 /// <summary>
 /// Every tool the hosted MCP server offers: one per action marked <see cref="McpToolAttribute"/>, described
-/// from the API's OpenAPI document, plus the import tools.
+/// from the API's OpenAPI document, plus the import tools. Each belongs to one <see cref="McpToolset"/>.
 /// </summary>
 /// <remarks>
 /// Built on first use rather than at startup, because generating the document needs the whole application,
@@ -23,12 +23,19 @@ public sealed partial class McpToolCatalog(
     IOpenApiDocumentGenerator documentGenerator,
     IEnumerable<OpenApiDocumentRegistration> documentRegistrations)
 {
-    private readonly Lazy<Task<IReadOnlyList<McpServerTool>>> _tools = new(() => Build(apiDescriptions, documentGenerator, documentRegistrations));
+    private readonly Lazy<Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>>> _tools = new(() => Build(apiDescriptions, documentGenerator, documentRegistrations));
 
     /// <summary>Every tool, in a stable order.</summary>
-    public Task<IReadOnlyList<McpServerTool>> GetTools() => _tools.Value;
+    public Task<IReadOnlyList<McpServerTool>> GetTools() => GetTools(McpToolFilter.All);
 
-    private static async Task<IReadOnlyList<McpServerTool>> Build(
+    /// <summary>The tools <paramref name="filter"/> allows, in a stable order.</summary>
+    public async Task<IReadOnlyList<McpServerTool>> GetTools(McpToolFilter filter) =>
+        [.. (await _tools.Value).Where(t => filter.Allows(t.Toolset, t.Tool.ProtocolTool.Annotations)).Select(t => t.Tool)];
+
+    /// <summary>Every tool with the toolset it belongs to, in a stable order.</summary>
+    public Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>> GetToolsets() => _tools.Value;
+
+    private static async Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>> Build(
         IApiDescriptionGroupCollectionProvider apiDescriptions,
         IOpenApiDocumentGenerator documentGenerator,
         IEnumerable<OpenApiDocumentRegistration> documentRegistrations)
@@ -48,15 +55,18 @@ public sealed partial class McpToolCatalog(
         }
 
         var schema = new OpenApiToolSchema(document);
-        var tools = new List<McpServerTool>();
+        var tools = new List<(McpServerTool Tool, McpToolset Toolset)>();
 
         var actions = apiDescriptions.ApiDescriptionGroups.Items
             .SelectMany(g => g.Items)
-            .Select(d => (Description: d, Attribute: (d.ActionDescriptor as ControllerActionDescriptor)?.MethodInfo.GetCustomAttributes(typeof(McpToolAttribute), false).OfType<McpToolAttribute>().SingleOrDefault()))
+            .Select(d => (Description: d, Action: d.ActionDescriptor as ControllerActionDescriptor))
+            .Select(d => (d.Description, d.Action, Attribute: d.Action?.MethodInfo.GetCustomAttributes(typeof(McpToolAttribute), false).OfType<McpToolAttribute>().SingleOrDefault()))
             .Where(a => a.Attribute is not null);
 
-        foreach (var (description, attribute) in actions)
+        foreach (var (description, action, attribute) in actions)
         {
+            var toolset = action!.ControllerTypeInfo.GetCustomAttributes(typeof(McpToolsAttribute), false).OfType<McpToolsAttribute>().SingleOrDefault()?.Toolset
+                ?? throw new InvalidOperationException($"Tool '{attribute!.Name}' is on {action.ControllerTypeInfo.Name}, which has no [McpTools] naming its toolset.");
             var method = description.HttpMethod?.ToUpperInvariant()
                 ?? throw new InvalidOperationException($"Tool '{attribute!.Name}' is on an action with no HTTP method.");
             var path = "/" + description.RelativePath;
@@ -74,16 +84,16 @@ public sealed partial class McpToolCatalog(
                 InputSchema = JsonSerializer.SerializeToElement(inputSchema),
                 Annotations = McpToolAnnotationDefaults.For(method, attribute),
             };
-            tools.Add(new ApiEndpointTool(protocolTool, method, template, arguments));
+            tools.Add((new ApiEndpointTool(protocolTool, method, template, arguments), toolset));
         }
 
-        tools.AddRange(ImportTools.Create(ImportFormats.From(document)));
+        tools.AddRange(ImportTools.Create(ImportFormats.From(document)).Select(t => (t, McpToolset.Imports)));
 
-        var duplicate = tools.GroupBy(t => t.ProtocolTool.Name).FirstOrDefault(g => g.Count() > 1);
+        var duplicate = tools.GroupBy(t => t.Tool.ProtocolTool.Name).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
             throw new InvalidOperationException($"More than one tool is named '{duplicate.Key}'.");
 
-        return [.. tools.OrderBy(t => t.ProtocolTool.Name, StringComparer.Ordinal)];
+        return [.. tools.OrderBy(t => t.Tool.ProtocolTool.Name, StringComparer.Ordinal)];
     }
 
     /// <summary>The operation's summary followed by its description, which together read as one paragraph.</summary>

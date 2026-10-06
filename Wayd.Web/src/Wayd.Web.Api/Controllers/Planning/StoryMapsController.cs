@@ -13,6 +13,7 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.StoryMaps)]
+[McpTools(McpToolset.Planning)]
 public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;

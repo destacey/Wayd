@@ -30,6 +30,7 @@ namespace Wayd.Web.Api.Controllers.Imports;
 [ApiVersionNeutral]
 [ApiController]
 [Authorize]
+[McpTools(McpToolset.Imports)]
 public class ImportsController(IDispatcher dispatcher) : ControllerBase
 {
     /// <summary>Also where every import submission points a caller to follow its run.</summary>

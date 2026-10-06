@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using NodaTime;
@@ -78,6 +79,93 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Connect_WithToolsetsAndReadOnly_ReceivesOnlyThoseToolsetsReadOnlyTools()
+    {
+        // Arrange
+        await SetFlag(true);
+        var token = await CreateToken();
+        var filter = new McpToolFilter(new HashSet<McpToolset> { McpToolset.Planning, McpToolset.Teams }, true);
+
+        // Act
+        await using var mcp = await Connect(token, "?toolsets=planning,teams&readonly=true");
+        var tools = await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        var expected = await _factory.Services.GetRequiredService<McpToolCatalog>().GetTools(filter);
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected.Select(t => t.ProtocolTool.Name), tools.Select(t => t.Name).Order(StringComparer.Ordinal));
+        Assert.All(tools, t => Assert.True(t.ProtocolTool.Annotations?.ReadOnlyHint));
+    }
+
+    [Fact]
+    public async Task Connect_ReadsTheToolsetsHeader()
+    {
+        // Arrange
+        await SetFlag(true);
+        var token = await CreateToken();
+        var filter = new McpToolFilter(new HashSet<McpToolset> { McpToolset.Imports }, false);
+
+        // Act
+        await using var mcp = await Connect(token, headers: new() { [McpToolFilter.ToolsetsHeader] = "imports" });
+        var tools = await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        var expected = await _factory.Services.GetRequiredService<McpToolCatalog>().GetTools(filter);
+        Assert.Equal(expected.Select(t => t.ProtocolTool.Name), tools.Select(t => t.Name).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task CallTool_IsRefused_WhenTheToolIsOutsideTheChosenToolsets()
+    {
+        // Arrange
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Projects);
+        var (_, token) = await CreateUserWithToken(permission);
+        await using var mcp = await Connect(token, "?toolsets=planning");
+
+        // Act
+        var call = () => mcp.CallToolAsync("Projects_GetStatuses", cancellationToken: TestContext.Current.CancellationToken).AsTask();
+
+        // Assert
+        await Assert.ThrowsAsync<McpProtocolException>(call);
+    }
+
+    [Fact]
+    public async Task CallTool_IsRefused_WhenReadOnlyAndTheToolWrites()
+    {
+        // Arrange — the caller may update portfolios, so only read-only mode stands in the way
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.ProjectPortfolios);
+        var (_, token) = await CreateUserWithToken(permission);
+        var portfolioId = await CreatePortfolio();
+        await using var mcp = await Connect(token, "?readonly=true");
+
+        // Act
+        var call = () => mcp.CallToolAsync(
+            "Portfolios_Update",
+            new Dictionary<string, object?> { ["id"] = portfolioId, ["requestBody"] = new { id = portfolioId, name = "Renamed through MCP" } },
+            cancellationToken: TestContext.Current.CancellationToken).AsTask();
+
+        // Assert
+        await Assert.ThrowsAsync<McpProtocolException>(call);
+    }
+
+    [Fact]
+    public async Task Mcp_AnswersBadRequest_ForAnUnknownToolset()
+    {
+        // Arrange
+        await SetFlag(true);
+        var user = await _factory.CreateAuthenticatedClient();
+
+        // Act
+        var response = await user.Client.PostAsync($"{McpServerSetup.Path}?toolsets=ppm,roadmaps", JsonContent.Create(new { }), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("names 'roadmaps', which is not a toolset", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task CallTool_AnswersWithWhatTheEndpointReturns()
     {
         // Arrange
@@ -138,13 +226,15 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
 
     private static string TextOf(CallToolResult result) => Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text;
 
-    private async Task<McpClient> Connect(string token)
+    private async Task<McpClient> Connect(string token, string query = "", Dictionary<string, string>? headers = null)
     {
+        headers ??= [];
+        headers["x-api-key"] = token;
         var transport = new HttpClientTransport(
             new HttpClientTransportOptions
             {
-                Endpoint = new Uri(_factory.Server.BaseAddress, McpServerSetup.Path),
-                AdditionalHeaders = new Dictionary<string, string> { ["x-api-key"] = token },
+                Endpoint = new Uri(_factory.Server.BaseAddress, McpServerSetup.Path + query),
+                AdditionalHeaders = headers,
             },
             _factory.CreateClient(),
             ownsHttpClient: true);

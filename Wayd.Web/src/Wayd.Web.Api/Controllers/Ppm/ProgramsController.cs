@@ -18,6 +18,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Ppm)]
 public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<ProgramsController> _logger = logger;

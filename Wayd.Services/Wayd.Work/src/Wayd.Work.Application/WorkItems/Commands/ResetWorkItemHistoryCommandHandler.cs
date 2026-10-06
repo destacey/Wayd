@@ -3,6 +3,10 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
 
+/// <summary>
+/// Deletes a workspace's work item history and clears its watermark in one transaction, so a full
+/// sync can replay the source's revisions from the start.
+/// </summary>
 public sealed class ResetWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, ILogger<ResetWorkItemHistoryCommandHandler> logger) : ICommandHandler<ResetWorkItemHistoryCommand>
 {
     // Each delete stays well inside the command timeout however large the workspace's history is.

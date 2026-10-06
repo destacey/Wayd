@@ -40,10 +40,14 @@ public sealed record WorkItemTrackedState(
     /// are compared: a resolved id can differ for the same source value when a mapping changed
     /// between syncs, and that is not a change to the work item.
     /// </summary>
+    /// <remarks>
+    /// Status and work type names ignore case, as resolving them does: a source that recases a
+    /// name still means the same status. The other values are identifiers and compare exactly.
+    /// </remarks>
     public bool HasSameSourceValues(WorkItemTrackedState other) =>
         ExternalIterationId == other.ExternalIterationId
-        && StatusName == other.StatusName
-        && WorkTypeName == other.WorkTypeName
+        && string.Equals(StatusName, other.StatusName, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(WorkTypeName, other.WorkTypeName, StringComparison.OrdinalIgnoreCase)
         && TeamKey == other.TeamKey
         && AssignedToExternalId == other.AssignedToExternalId
         && StoryPoints == other.StoryPoints

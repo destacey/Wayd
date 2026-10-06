@@ -83,6 +83,37 @@ public sealed class WorkItemStateTimelineTests
     }
 
     [Fact]
+    public void Apply_RevisionThatOnlyRecasesTheStatusOrTypeName_OpensNoPeriod()
+    {
+        // Arrange
+        var timeline = NewTimeline();
+        var state = new WorkItemTrackedStateFaker().WithStatusName("Active").Generate();
+        timeline.Apply(1, Start, state);
+
+        // Act
+        var period = timeline.Apply(2, Start.Plus(Duration.FromHours(1)),
+            state with { StatusName = "ACTIVE", WorkTypeName = state.WorkTypeName.ToLowerInvariant() });
+
+        // Assert
+        period.Should().BeNull();
+    }
+
+    [Fact]
+    public void Apply_RevisionThatOnlyRecasesTheAssigneeId_OpensAPeriod()
+    {
+        // Arrange — identity ids are opaque, so a different case is a different identity
+        var timeline = NewTimeline();
+        var state = new WorkItemTrackedStateFaker().Generate() with { AssignedToExternalId = "abc-identity" };
+        timeline.Apply(1, Start, state);
+
+        // Act
+        var period = timeline.Apply(2, Start.Plus(Duration.FromHours(1)), state with { AssignedToExternalId = "ABC-IDENTITY" });
+
+        // Assert
+        period.Should().NotBeNull();
+    }
+
+    [Fact]
     public void Apply_RevisionAlreadyApplied_IsSkipped()
     {
         // Arrange — a batch delivered again after its watermark failed to save

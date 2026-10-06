@@ -3,6 +3,9 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workspaces.Queries;
 
+/// <summary>
+/// Reads where a workspace's work item history sync left off, so a differential sync resumes there.
+/// </summary>
 public sealed class GetWorkItemHistoryWatermarkQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetWorkItemHistoryWatermarkQuery, Result<string?>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;

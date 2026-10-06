@@ -37,6 +37,13 @@ public sealed class WorkSyncRunner(
         AppEventId.AppIntegration_CancellationRequested.ToEventId(),
         "Cancellation requested. Stopping sync.");
 
+    // The client reads DetailsJson with camelCase keys, as it does every other API payload; this
+    // direct Serialize call does not get MVC's naming policy.
+    private static readonly JsonSerializerOptions _detailsJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     private static readonly Action<ILogger, int, int, Exception?> _runSummary = LoggerMessage.Define<int, int>(LogLevel.Information,
         AppEventId.AppIntegration_WorkSyncRunner_RunSummary.ToEventId(),
         "WorkSyncRunner finished: {SucceededRuns}/{TotalRuns} connection runs succeeded.");
@@ -339,7 +346,7 @@ public sealed class WorkSyncRunner(
         {
             try
             {
-                run.SetDetails(JsonSerializer.Serialize(details));
+                run.SetDetails(JsonSerializer.Serialize(details, _detailsJsonOptions));
             }
             catch (Exception ex)
             {

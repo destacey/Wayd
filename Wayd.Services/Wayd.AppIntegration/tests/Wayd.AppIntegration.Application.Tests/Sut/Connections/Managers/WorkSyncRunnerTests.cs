@@ -210,6 +210,24 @@ public class WorkSyncRunnerTests
     }
 
     [Fact]
+    public async Task Run_HappyPath_WritesDetailsWithTheCamelCaseKeysTheClientReads()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource(workItemsPerWorkspace: 7);
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        // Assert
+        var details = _db.SyncRuns.Single().DetailsJson;
+        details.Should().Contain("\"internalWorkspaceId\":");
+        details.Should().Contain("\"workItemsProcessed\":7");
+        details.Should().NotContain("\"WorkItemsProcessed\"");
+    }
+
+    [Fact]
     public async Task Run_HappyPath_CallsSourceInExpectedOrder()
     {
         var connection = SeedActiveAzdoConnection();
@@ -283,7 +301,7 @@ public class WorkSyncRunnerTests
             (connection.Id, 3, "w1"),
             (connection.Id, 2, "w2"));
         dispatcher.Verify(s => s.Send(It.IsAny<ResetWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()), Times.Never);
-        _db.SyncRuns.Single().DetailsJson.Should().Contain("\"WorkItemRevisionsProcessed\":5");
+        _db.SyncRuns.Single().DetailsJson.Should().Contain("\"workItemRevisionsProcessed\":5");
     }
 
     [Fact]

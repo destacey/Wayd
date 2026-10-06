@@ -81,4 +81,10 @@ public static class WorkspaceFakerExtensions
         faker.RuleFor(x => x.IsActive, isActive);
         return faker;
     }
+
+    public static WorkspaceFaker WithWorkItemHistoryWatermark(this WorkspaceFaker faker, string? watermark)
+    {
+        faker.RuleFor(x => x.WorkItemHistoryWatermark, watermark);
+        return faker;
+    }
 }

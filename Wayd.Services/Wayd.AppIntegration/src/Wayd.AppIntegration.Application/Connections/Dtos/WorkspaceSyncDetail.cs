@@ -15,7 +15,8 @@ public sealed record WorkspaceSyncDetail(
     int DependencyLinkChangesProcessed,
     int DeletedWorkItemsProcessed,
     bool HadPartialFailure,
-    string? Error)
+    string? Error,
+    int WorkItemRevisionsProcessed = 0)
 {
     public static WorkspaceSyncDetail FromSuccess(WorkspaceSyncTarget target, WorkspaceItemsSyncResult r) =>
         new(target.InternalWorkspaceId, target.WorkspaceName, true,

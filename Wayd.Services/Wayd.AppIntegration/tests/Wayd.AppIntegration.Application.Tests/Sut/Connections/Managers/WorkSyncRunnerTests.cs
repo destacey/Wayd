@@ -153,9 +153,6 @@ public class WorkSyncRunnerTests
             .Setup(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<string?>(null));
         dispatcher
-            .Setup(s => s.Send(It.IsAny<ResetWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
-        dispatcher
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
     }
@@ -300,33 +297,28 @@ public class WorkSyncRunnerTests
         applied.Select(c => (c.ConnectionId, c.Revisions.Count, c.Watermark)).Should().Equal(
             (connection.Id, 3, "w1"),
             (connection.Id, 2, "w2"));
-        dispatcher.Verify(s => s.Send(It.IsAny<ResetWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()), Times.Never);
         _db.SyncRuns.Single().DetailsJson.Should().Contain("\"workItemRevisionsProcessed\":5");
     }
 
     [Fact]
-    public async Task Run_Full_ResetsHistoryAndReplaysFromTheStart()
+    public async Task Run_Full_ReplaysHistoryFromTheStartIgnoringTheStoredWatermark()
     {
-        // Arrange
+        // Arrange — the stored history is kept; the replay's already-applied revisions are skipped
         var connection = SeedActiveAzdoConnection();
         SetupConnectionsQuery(connection);
         StubHappyPathSource();
-        var sequence = new List<string>();
-        var dispatcher = _mocker.GetMock<IDispatcher>();
-        dispatcher
-            .Setup(s => s.Send(It.IsAny<ResetWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
-            .Callback(() => sequence.Add(nameof(ResetWorkItemHistoryCommand)))
-            .ReturnsAsync(Result.Success());
+        var watermarks = new List<string?>();
         _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback((WorkspaceSyncTarget _, string? watermark, CancellationToken _) => sequence.Add($"history from {watermark ?? "start"}"))
+            .Callback((WorkspaceSyncTarget _, string? watermark, CancellationToken _) => watermarks.Add(watermark))
             .ReturnsAsync(HistoryBatch(1, "w1", isLastBatch: true));
 
         // Act
         await _sut.Run(SyncType.Full, SyncTriggerSource.Manual, CancellationToken.None);
 
         // Assert
-        sequence.Should().Equal(nameof(ResetWorkItemHistoryCommand), "history from start");
-        dispatcher.Verify(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+        watermarks.Should().Equal([null]);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -352,15 +344,17 @@ public class WorkSyncRunnerTests
         run.DetailsJson.Should().Contain("Work item history: Revisions unavailable");
     }
 
-    [Fact]
-    public async Task Run_HistorySourceThatDoesNotAdvance_StopsAndRecordsTheFailure()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)] // revisions are not progress: a repeated batch is skipped as already applied
+    public async Task Run_HistorySourceThatDoesNotAdvance_StopsAndRecordsTheFailure(int revisionCount)
     {
         // Arrange
         var connection = SeedActiveAzdoConnection();
         SetupConnectionsQuery(connection);
         StubHappyPathSource();
         _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(HistoryBatch(0, null, isLastBatch: false));
+            .ReturnsAsync(HistoryBatch(revisionCount, null, isLastBatch: false));
 
         // Act
         await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);

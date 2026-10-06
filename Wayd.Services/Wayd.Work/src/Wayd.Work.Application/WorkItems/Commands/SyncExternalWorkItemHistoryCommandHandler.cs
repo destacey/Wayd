@@ -13,8 +13,13 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 /// </summary>
 /// <remarks>
 /// Each value is resolved the way the work item sync resolves it, and the source's value is kept
-/// beside the result. Revisions of an item Wayd does not hold are skipped: history is deleted with
-/// its work item, and the work item sync runs first, so a missing item is one that was deleted.
+/// beside the result. Revisions of an item Wayd does not hold in any workspace of the source system
+/// are skipped: history is deleted with its work item, and the work item sync runs first, so a
+/// missing item is one that was deleted.
+/// <para>
+/// Nothing here deletes history. A full sync replays from the start and relies on already-applied
+/// revisions being skipped, so it fills gaps without touching what is stored.
+/// </para>
 /// </remarks>
 public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemHistoryCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemHistoryCommand>
 {
@@ -36,7 +41,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
 
         if (request.Revisions.Count > 0)
         {
-            var workItemIds = await LoadWorkItemIds(workspace.Id, request.Revisions, cancellationToken);
+            var workItemIds = await LoadWorkItemIds(workspace, request.Revisions, cancellationToken);
             var statuses = await LoadStatusResolver(workspace.WorkProcessId, cancellationToken);
             var iterationIds = await LoadIterationIds(workspace.OwnershipInfo.SystemId, request.Revisions, cancellationToken);
             var employeeIds = await LoadEmployeeIds(request.ConnectionId, request.Revisions, cancellationToken);
@@ -108,13 +113,24 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
             revision.Size);
     }
 
-    private async Task<Dictionary<int, Guid>> LoadWorkItemIds(Guid workspaceId, IReadOnlyList<IExternalWorkItemRevision> revisions, CancellationToken cancellationToken)
+    /// <summary>
+    /// The Wayd id of each referenced work item, matched across every workspace of the source
+    /// system rather than the one being synced: an item that has since moved to another workspace
+    /// still owns the revisions it made before the move.
+    /// </summary>
+    private async Task<Dictionary<int, Guid>> LoadWorkItemIds(Workspace workspace, IReadOnlyList<IExternalWorkItemRevision> revisions, CancellationToken cancellationToken)
     {
+        var systemId = workspace.OwnershipInfo.SystemId;
+        var workspaceId = workspace.Id;
+        var inSystem = systemId is null
+            ? _workDbContext.WorkItems.Where(w => w.WorkspaceId == workspaceId)
+            : _workDbContext.WorkItems.Where(w => w.Workspace.OwnershipInfo.SystemId == systemId);
+
         var ids = new Dictionary<int, Guid>();
         foreach (var batch in revisions.Select(r => r.WorkItemId).Distinct().Chunk(LookupBatchSize))
         {
-            var rows = await _workDbContext.WorkItems
-                .Where(w => w.WorkspaceId == workspaceId && w.ExternalId != null && batch.Contains(w.ExternalId.Value))
+            var rows = await inSystem
+                .Where(w => w.ExternalId != null && batch.Contains(w.ExternalId.Value))
                 .Select(w => new { ExternalId = w.ExternalId!.Value, w.Id })
                 .ToListAsync(cancellationToken);
 

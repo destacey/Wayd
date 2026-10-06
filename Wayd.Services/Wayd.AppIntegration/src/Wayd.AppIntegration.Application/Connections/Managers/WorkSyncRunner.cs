@@ -265,27 +265,21 @@ public sealed class WorkSyncRunner(
             };
         }
 
-        return WorkspaceSyncDetail.FromSuccess(target, items) with
-        {
-            WorkItemRevisionsProcessed = historyResult.IsSuccess ? historyResult.Value : 0,
-        };
+        return WorkspaceSyncDetail.FromSuccess(target, items, historyResult.IsSuccess ? historyResult.Value : 0);
     }
 
     /// <summary>
     /// Pulls the workspace's work item history from the source a batch at a time, from the stored
-    /// watermark until the source reports its last batch. A full sync clears the history first and
-    /// replays it from the start.
+    /// watermark until the source reports its last batch. A full sync replays from the start onto
+    /// the history already stored: revisions already applied are skipped, so it fills gaps and
+    /// changes nothing it already holds.
     /// </summary>
-    /// <returns>The number of revisions applied.</returns>
+    /// <returns>The number of revisions received.</returns>
     private async Task<Result<int>> SyncWorkItemHistory(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, SyncType syncType, CancellationToken cancellationToken)
     {
         string? watermark;
         if (syncType == SyncType.Full)
         {
-            var resetResult = await _dispatcher.Send(new ResetWorkItemHistoryCommand(target.InternalWorkspaceId), cancellationToken);
-            if (resetResult.IsFailure)
-                return Result.Failure<int>(resetResult.Error);
-
             watermark = null;
         }
         else
@@ -323,9 +317,11 @@ public sealed class WorkSyncRunner(
             if (batch.IsLastBatch)
                 return processed;
 
-            // A source that hands back nothing and stays where it was would be asked forever.
-            if (batch.Revisions.Count == 0 && !advanced)
-                return Result.Failure<int>("The source returned an empty batch without advancing its watermark.");
+            // A source that stays where it was would be asked for the same batch forever, holding the
+            // sync job and every later one queued behind it. Revisions do not count as progress: a
+            // repeated batch is skipped as already applied.
+            if (!advanced)
+                return Result.Failure<int>("The source returned a batch without advancing its watermark.");
 
             watermark = batch.NextWatermark;
         }

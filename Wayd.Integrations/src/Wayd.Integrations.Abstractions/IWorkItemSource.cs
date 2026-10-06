@@ -62,6 +62,11 @@ public interface IWorkItemSource
     /// <paramref name="watermark"/>; a null watermark starts from the workspace's first revision.
     /// The runner calls it again with the returned watermark until a batch reports it is the last.
     /// </summary>
+    /// <remarks>
+    /// Every batch that is not the last must return a watermark different from the one it was
+    /// given; the runner fails the history sync when one does not, rather than ask forever. A
+    /// revision may be returned again on a later call: it is skipped as already applied.
+    /// </remarks>
     Task<Result<WorkItemHistoryBatch>> GetWorkItemHistory(
         WorkspaceSyncTarget target,
         string? watermark,

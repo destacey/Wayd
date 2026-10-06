@@ -41,7 +41,10 @@ public sealed class WorkItemStateHistory : BaseEntity<long>
     /// <summary>The work item this period belongs to.</summary>
     public Guid WorkItemId { get; private init; }
 
-    /// <summary>The workspace whose sync wrote the period; a full sync rebuilds a workspace's periods together.</summary>
+    /// <summary>
+    /// The workspace whose sync wrote the period. An item that moved workspace keeps the periods
+    /// written before the move under the workspace it was in.
+    /// </summary>
     public Guid WorkspaceId { get; private init; }
 
     /// <summary>The source revision that opened the period.</summary>

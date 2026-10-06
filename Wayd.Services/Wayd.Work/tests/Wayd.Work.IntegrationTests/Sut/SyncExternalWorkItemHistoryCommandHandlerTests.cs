@@ -166,31 +166,44 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
     }
 
     [Fact]
-    public async Task ResetThenReplay_ProducesTheSamePeriods()
+    public async Task Handle_AFullReplayOntoStoredHistory_ChangesNothing()
     {
-        // Arrange — what a full sync does
+        // Arrange — what a full sync does: replay every batch from the start onto what is stored
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetWorkData(ct);
         var (workspaceId, _) = await Seed(ct);
-        await Sync(workspaceId, Revisions(), "token-1", ct);
+        await Sync(workspaceId, Revisions().Take(2).ToList(), "token-1", ct);
+        await Sync(workspaceId, Revisions().Skip(2).ToList(), "token-2", ct);
         var before = await Snapshot(ct);
 
         // Act
-        await using (var accessor = new WaydDbContextAccessor(_fixture))
-        {
-            var reset = new ResetWorkItemHistoryCommandHandler(accessor.Context, NullLogger<ResetWorkItemHistoryCommandHandler>.Instance);
-            var result = await reset.Handle(new ResetWorkItemHistoryCommand(workspaceId), ct);
-            result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        }
-        await using (var verifyReset = new WaydDbContextAccessor(_fixture))
-        {
-            (await verifyReset.Context.WorkItemStateHistory.AnyAsync(ct)).Should().BeFalse();
-            (await WatermarkOf(verifyReset.Context, workspaceId, ct)).Should().BeNull();
-        }
-        await Sync(workspaceId, Revisions(), "token-1", ct);
+        await Sync(workspaceId, Revisions().Take(2).ToList(), "token-1", ct);
+        await Sync(workspaceId, Revisions().Skip(2).ToList(), "token-2", ct);
 
         // Assert
         (await Snapshot(ct)).Should().Equal(before);
+    }
+
+    [Fact]
+    public async Task Handle_RevisionsOfAnItemThatMovedToAnotherWorkspace_AreApplied()
+    {
+        // Arrange — the item now lives in its seeded workspace, but its earlier revisions arrive
+        // through the sync of the workspace it moved from, in the same source system
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (currentWorkspaceId, workItemId) = await Seed(ct);
+        var formerWorkspaceId = await SeedSiblingWorkspace(currentWorkspaceId, ct);
+
+        // Act
+        await Sync(formerWorkspaceId, Revisions(), "token-1", ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var periods = await verify.Context.WorkItemStateHistory.AsNoTracking()
+            .Where(h => h.WorkItemId == workItemId)
+            .ToListAsync(ct);
+        periods.Should().HaveCount(3);
+        periods.Should().OnlyContain(p => p.WorkspaceId == formerWorkspaceId);
     }
 
     /// <summary>
@@ -276,6 +289,26 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
             ct);
 
         return (workspaceId, workItemId);
+    }
+
+    /// <summary>A second managed workspace in the same source system, sharing the seeded process.</summary>
+    private async Task<Guid> SeedSiblingWorkspace(Guid seededWorkspaceId, CancellationToken ct)
+    {
+        var workspaceId = Guid.CreateVersion7();
+
+        await using var context = _fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO [Work].[Workspaces]
+                ([Id], [Key], [Name], [Ownership], [SystemId], [WorkProcessId], [IsActive], [IsDeleted],
+                 [SystemCreated], [SystemLastModified])
+            SELECT {workspaceId}, 'HIST2', 'Former History Workspace', 'Managed', {SystemId}, [WorkProcessId], 1, 0,
+                   SYSUTCDATETIME(), SYSUTCDATETIME()
+            FROM [Work].[Workspaces] WHERE [Id] = {seededWorkspaceId};
+            """,
+            ct);
+
+        return workspaceId;
     }
 
     private sealed record ExternalRevision(int WorkItemId, int Revision, Instant Changed, string WorkType, string WorkStatus) : IExternalWorkItemRevision

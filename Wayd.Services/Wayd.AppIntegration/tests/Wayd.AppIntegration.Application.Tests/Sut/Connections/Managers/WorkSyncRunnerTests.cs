@@ -297,12 +297,40 @@ public class WorkSyncRunnerTests
         await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
 
         // Assert
-        applied.Select(c => (c.ConnectionId, c.Revisions.Count, c.Watermark)).Should().Equal(
-            (connection.Id, 3, "w1"),
-            (connection.Id, 2, "w2"));
+        applied.Select(c => (c.ConnectionId, c.Revisions.Count, c.Watermark, c.IsLastBatch)).Should().Equal(
+            (connection.Id, 3, "w1", false),
+            (connection.Id, 2, "w2", true));
         var details = _db.SyncRuns.Single().DetailsJson;
         details.Should().Contain("\"workItemRevisionsProcessed\":5");
         details.Should().Contain("\"workItemHistoryPeriodsWritten\":6");
+    }
+
+    [Fact]
+    public async Task Run_EmptyLastBatchThatDoesNotAdvance_IsStillAppliedToMarkHistoryReadToEnd()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success<string?>("w1"));
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), "w1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HistoryBatch(0, "w1", isLastBatch: true));
+        var applied = new List<SyncExternalWorkItemHistoryCommand>();
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .Callback((ICommand<int> command, CancellationToken _) => applied.Add((SyncExternalWorkItemHistoryCommand)command))
+            .ReturnsAsync(Result.Success(0));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        // Assert
+        applied.Where(c => c.FilledWorkItemIds is null)
+            .Select(c => (c.Revisions.Count, c.Watermark, c.IsLastBatch))
+            .Should().Equal((0, "w1", true));
     }
 
     [Fact]

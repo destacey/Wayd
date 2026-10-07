@@ -24,12 +24,13 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 /// replays from the start and fills gaps without changing what is stored.
 /// </para>
 /// </remarks>
-public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemHistoryCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemHistoryCommand, int>
+public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemHistoryCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemHistoryCommand, int>
 {
     // Keeps IN lists inside SQL Server's parameter limit.
     private const int LookupBatchSize = 1000;
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkItemHistoryCommandHandler> _logger = logger;
 
     public async Task<Result<int>> Handle(SyncExternalWorkItemHistoryCommand request, CancellationToken cancellationToken)
@@ -125,6 +126,8 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
         if (request.FilledWorkItemIds is null)
         {
             workspace.SetWorkItemHistoryWatermark(request.Watermark);
+            if (request.IsLastBatch)
+                workspace.WorkItemHistoryReadToEnd(_dateTimeProvider.Now);
         }
         else
         {

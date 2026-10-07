@@ -336,10 +336,12 @@ public sealed class WorkSyncRunner(
             var batch = batchResult.Value;
             var advanced = batch.NextWatermark != watermark;
 
-            if (batch.Revisions.Count > 0 || advanced)
+            // A last batch is applied even when empty: it marks the workspace's history as read to the
+            // end, which a workspace already up to date at upgrade would otherwise never record.
+            if (batch.Revisions.Count > 0 || advanced || batch.IsLastBatch)
             {
                 var applyResult = await _dispatcher.Send(
-                    new SyncExternalWorkItemHistoryCommand(connectionId, target.InternalWorkspaceId, batch.Revisions, batch.NextWatermark),
+                    new SyncExternalWorkItemHistoryCommand(connectionId, target.InternalWorkspaceId, batch.Revisions, batch.NextWatermark, batch.IsLastBatch),
                     cancellationToken);
                 if (applyResult.IsFailure)
                     return new HistorySyncOutcome(revisions, periods, applyResult.Error);

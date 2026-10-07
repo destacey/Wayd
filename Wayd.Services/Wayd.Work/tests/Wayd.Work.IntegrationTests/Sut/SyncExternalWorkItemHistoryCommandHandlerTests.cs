@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Infrastructure.Persistence.Context;
@@ -21,6 +23,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
     private const int ExternalWorkItemId = 501;
     private static readonly Guid ConnectionId = Guid.NewGuid();
     private static readonly Instant Start = Instant.FromUtc(2026, 3, 2, 9, 0);
+    private static readonly Instant SyncedAt = Instant.FromUtc(2026, 4, 1, 12, 0);
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
@@ -50,6 +53,26 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         periods.Should().OnlyContain(p => p.WorkspaceId == workspaceId && p.WorkTypeName == "History Story");
 
         (await WatermarkOf(verify.Context, workspaceId, ct)).Should().Be("token-1");
+        (await BackfilledOnOf(verify.Context, workspaceId, ct)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_TheLastBatch_MarksHistoryReadToEndOnlyTheFirstTime()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, _) = await Seed(ct);
+        await Sync(workspaceId, Revisions().Take(2).ToList(), "token-1", ct);
+
+        // Act
+        await Sync(workspaceId, Revisions().Skip(2).ToList(), "token-2", ct, isLastBatch: true);
+        await Sync(workspaceId, [], "token-2", ct, isLastBatch: true, now: SyncedAt.Plus(Duration.FromDays(1)));
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await BackfilledOnOf(verify.Context, workspaceId, ct)).Should().Be(SyncedAt);
+        (await WatermarkOf(verify.Context, workspaceId, ct)).Should().Be("token-2");
     }
 
     [Fact]
@@ -356,12 +379,14 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
     ];
 
     /// <returns>The number of periods the batch opened.</returns>
-    private async Task<int> Sync(Guid workspaceId, IReadOnlyList<IExternalWorkItemRevision> revisions, string? watermark, CancellationToken ct, IReadOnlyCollection<int>? filledWorkItemIds = null)
+    private async Task<int> Sync(Guid workspaceId, IReadOnlyList<IExternalWorkItemRevision> revisions, string? watermark, CancellationToken ct, IReadOnlyCollection<int>? filledWorkItemIds = null, bool isLastBatch = false, Instant? now = null)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
-        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
+        var dateTimeProvider = new Mock<IDateTimeProvider>();
+        dateTimeProvider.SetupGet(p => p.Now).Returns(now ?? SyncedAt);
+        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
 
-        var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, watermark, filledWorkItemIds), ct);
+        var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, watermark, isLastBatch, filledWorkItemIds), ct);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         return result.Value;
@@ -378,6 +403,9 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
 
     private static Task<string?> WatermarkOf(WaydDbContext context, Guid workspaceId, CancellationToken ct) =>
         context.Workspaces.Where(w => w.Id == workspaceId).Select(w => w.WorkItemHistoryWatermark).SingleAsync(ct);
+
+    private static Task<Instant?> BackfilledOnOf(WaydDbContext context, Guid workspaceId, CancellationToken ct) =>
+        context.Workspaces.Where(w => w.Id == workspaceId).Select(w => w.WorkItemHistoryBackfilledOn).SingleAsync(ct);
 
     private async Task<(Guid WorkspaceId, Guid WorkItemId)> Seed(CancellationToken ct)
     {

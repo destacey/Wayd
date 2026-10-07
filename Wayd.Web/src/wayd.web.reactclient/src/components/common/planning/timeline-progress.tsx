@@ -8,6 +8,7 @@ import {
   parseCalendarDate,
   todayCalendarDate,
 } from '@/src/utils/calendar-date'
+import { dayOfPeriod, percentageElapsed } from '@/src/utils/dates'
 
 const { Text } = Typography
 const { useBreakpoint } = Grid
@@ -39,19 +40,14 @@ const TimelineProgress: FC<TimelineProgressProps> = ({
   const startDay = parseCalendarDate(start)
   const endDay = parseCalendarDate(end)
 
-  const totalDays = calendarDaysBetween(start, end) + 1
   const daysUntilStart = Math.max(
     calendarDaysBetween(todayCalendarDate(), start),
     0,
   )
   const isFuture = daysUntilStart > 0
 
-  const currentDay = isFuture
-    ? 0
-    : Math.min(calendarDaysBetween(start, todayCalendarDate()) + 1, totalDays)
-  const progressPercent = isFuture
-    ? 0
-    : Math.round((currentDay / totalDays) * 100)
+  const { currentDay, totalDays } = dayOfPeriod(start, end)
+  const progressPercent = Math.round(percentageElapsed(start, end))
 
   const fontSize = size === 'small' ? 11 : 12
 

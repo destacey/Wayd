@@ -17,30 +17,39 @@ export function daysRemaining(
 }
 
 /**
- * Calculates the percentage of days elapsed between a start date and end date,
- * counted in whole calendar days like daysRemaining.
- *
- * @param startDate - The start date of the period.
- * @param endDate - The end date of the period.
- * @param referenceDate - Optional reference date used instead of the current date.
- * @returns The percentage elapsed (0-100). Returns 0 if the period hasn't started,
- *          capped at 100 if past the end date.
+ * Which day of a period the reference date (today by default) is, counting the
+ * first and last days inclusively — "day 9 of 14". Day 0 before the period
+ * starts; capped at the last day after it ends. Every view of a period's
+ * progress reads it from here, so a timeline and a countdown always agree.
+ */
+export function dayOfPeriod(
+  startDate: CalendarDate | Date,
+  endDate: CalendarDate | Date,
+  referenceDate?: CalendarDate | Date,
+): { currentDay: number; totalDays: number } {
+  const totalDays = calendarDaysBetween(startDate, endDate) + 1
+  const day = calendarDaysBetween(startDate, referenceDate ?? new Date()) + 1
+  return {
+    currentDay: Math.min(Math.max(day, 0), Math.max(totalDays, 0)),
+    totalDays,
+  }
+}
+
+/**
+ * The share of a period's days reached, as {@link dayOfPeriod} counts them:
+ * on day 9 of 14, 64%. 0 before the period starts, 100 after it ends.
  */
 export function percentageElapsed(
   startDate: CalendarDate | Date,
   endDate: CalendarDate | Date,
   referenceDate?: CalendarDate | Date,
 ): number {
-  const totalDays = calendarDaysBetween(startDate, endDate)
-  const elapsedDays = Math.max(
-    0,
-    calendarDaysBetween(startDate, referenceDate ?? new Date()),
+  const { currentDay, totalDays } = dayOfPeriod(
+    startDate,
+    endDate,
+    referenceDate,
   )
-
-  if (totalDays <= 0) return 0
-
-  const percentage = (elapsedDays / totalDays) * 100
-  return Math.min(100, percentage)
+  return totalDays > 0 ? (currentDay / totalDays) * 100 : 0
 }
 
 /**

@@ -5,7 +5,6 @@ import {
   CycleTimeMetric,
   DaysCountdownMetric,
   HealthMetric,
-  METRIC_CARD_FLEX,
   MetricCard,
   StatusMetric,
   sprintOverviewFigures,
@@ -25,12 +24,18 @@ import {
   sizingMethodMeasure,
   sprintActiveDays,
 } from '@/src/utils'
-import { FC, ReactNode, useEffect, useState } from 'react'
+import { CSSProperties, FC, ReactNode, useEffect, useState } from 'react'
 import { sprintScopeWindowText } from './sprint-scope-window-text'
 
 const { Text } = Typography
 
 const COUNT = 'Count'
+
+const METRIC_GRID: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+  gap: 8,
+}
 
 export interface SprintMetricsProps {
   sprint: SprintDetailsDto
@@ -70,6 +75,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
 
   const figures = sprintOverviewFigures(metrics, scope, showsCount)
   const scopeFigures = figures.scope
+  const showsUnestimated = !showsCount && !!metrics
 
   useEffect(() => {
     if (!isLoading && metrics && onHealthIndicatorReady) {
@@ -125,29 +131,26 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
         </WaydTooltip>
       </Flex>
       {/*
-        Wrapping flex rows rather than Row/Col: the 24-column grid splits the
-        available width into fixed fractions whichever way the labels fall, so
-        in a record page's narrower content column the same span clipped
-        "Avg Cycle Time" and "Days Remaining". Here each card states the width
-        it needs and the row wraps when they no longer fit.
+        Both rows share one column template, so a card in the second row sits
+        under one in the first. auto-fill keeps empty tracks, which is what
+        holds the shorter commitment row to the progress row's columns; each
+        column is at least wide enough for "Avg Cycle Time" and "Days Remaining".
 
         The first row is progress — how the sprint's work is going; the second
         is commitment — what the sprint committed to and what became of it.
       */}
-      <Flex wrap gap={8}>
+      <div style={METRIC_GRID}>
         {isActive && (
           <DaysCountdownMetric
             state={sprint.state.id as IterationState}
             startDate={activeDays.start}
             endDate={activeDays.end}
-            cardStyle={METRIC_CARD_FLEX}
           />
         )}
         <CompletionRateMetric
           completed={figures.completed}
           total={figures.completionBase}
           tooltip={tooltipUnit}
-          cardStyle={METRIC_CARD_FLEX}
         />
         <MetricCard
           title="Velocity"
@@ -163,7 +166,6 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
               ? `The ${measure} completed while in the sprint, including work completed and then moved out. Unlike most tools' velocity, work moved to a Removed status in the sprint counts too, shown beneath.`
               : `The ${measure} in the sprint that are done (Status Category: Done or Removed).`
           }
-          cardStyle={METRIC_CARD_FLEX}
         />
         {isActive && (
           <>
@@ -173,14 +175,12 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
               total={figures.currentTotal}
               color={token.colorInfo}
               tooltip={`The ${measure} in the sprint now that are in progress (Status Category: Active). The percentage is their share of the sprint's work now.`}
-              cardStyle={METRIC_CARD_FLEX}
             />
             <StatusMetric
               title="Not Started"
               value={figures.notStarted}
               total={figures.currentTotal}
               tooltip={`The ${measure} in the sprint now that are not started (Status Category: Proposed). The percentage is their share of the sprint's work now.`}
-              cardStyle={METRIC_CARD_FLEX}
             />
           </>
         )}
@@ -188,58 +188,55 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
           <CycleTimeMetric
             value={metrics.cycleTime.averageCycleTimeDays ?? 0}
             tooltip="The average cycle time of done work items in the sprint (in days). Cycle time measures the time from when work starts (Activated) to when it's completed (Done)."
-            cardStyle={METRIC_CARD_FLEX}
           />
         )}
-        {!showsCount && metrics && (
-          <HealthMetric
-            title="Unestimated"
-            value={metrics.unestimatedWorkItems}
-            severity="warning"
-            tooltip={`Number of work items in the sprint with no ${sizingMethodMeasure(sizingMethod)}. An estimate of 0 counts as estimated.`}
-            cardStyle={METRIC_CARD_FLEX}
-          />
-        )}
-      </Flex>
-      {scopeFigures && (
-        <Flex wrap gap={8}>
-          <MetricCard
-            title="Committed"
-            value={scopeFigures.committed}
-            tooltip={`The ${measure} in the sprint at its commitment point, as estimated then.`}
-            cardStyle={METRIC_CARD_FLEX}
-          />
-          <MetricCard
-            title="Added"
-            value={scopeFigures.added}
-            tooltip={`The ${measure} that entered the sprint after its commitment point, as estimated when added.`}
-            cardStyle={METRIC_CARD_FLEX}
-          />
-          {(!isActive || scopeFigures.carriedOver > 0) && (
-            <MetricCard
-              title="Carried Over"
-              value={scopeFigures.carriedOver}
-              tooltip={`Unfinished ${measure} still in the sprint at its end, or moved to the team's next sprint on its last day.`}
-              cardStyle={METRIC_CARD_FLEX}
+      </div>
+      {(scopeFigures || showsUnestimated) && (
+        <div style={METRIC_GRID}>
+          {scopeFigures && (
+            <>
+              <MetricCard
+                title="Committed"
+                value={scopeFigures.committed}
+                tooltip={`The ${measure} in the sprint at its commitment point, as estimated then.`}
+              />
+              <MetricCard
+                title="Added"
+                value={scopeFigures.added}
+                tooltip={`The ${measure} that entered the sprint after its commitment point, as estimated when added.`}
+              />
+              {(!isActive || scopeFigures.carriedOver > 0) && (
+                <MetricCard
+                  title="Carried Over"
+                  value={scopeFigures.carriedOver}
+                  tooltip={`Unfinished ${measure} still in the sprint at its end, or moved to the team's next sprint on its last day.`}
+                />
+              )}
+              <MetricCard
+                title="Descoped"
+                value={scopeFigures.descoped}
+                tooltip={`Unfinished ${measure} taken out of the sprint before its last day, or on it for somewhere other than the team's next sprint.`}
+              />
+              {scopeFigures.sayDo !== null && (
+                <MetricCard
+                  title={isActive ? 'Say/Do so far' : 'Say/Do'}
+                  value={scopeFigures.sayDo * 100}
+                  precision={0}
+                  suffix="%"
+                  tooltip="Of the work in the sprint at its commitment point, the share completed by its end. Work added later does not count, and an item completed as Removed counts as completed."
+                />
+              )}
+            </>
+          )}
+          {showsUnestimated && (
+            <HealthMetric
+              title="Unestimated"
+              value={metrics.unestimatedWorkItems}
+              severity="warning"
+              tooltip={`Number of work items in the sprint with no ${sizingMethodMeasure(sizingMethod)}. An estimate of 0 counts as estimated.`}
             />
           )}
-          <MetricCard
-            title="Descoped"
-            value={scopeFigures.descoped}
-            tooltip={`Unfinished ${measure} taken out of the sprint before its last day, or on it for somewhere other than the team's next sprint.`}
-            cardStyle={METRIC_CARD_FLEX}
-          />
-          {scopeFigures.sayDo !== null && (
-            <MetricCard
-              title={isActive ? 'Say/Do so far' : 'Say/Do'}
-              value={scopeFigures.sayDo * 100}
-              precision={0}
-              suffix="%"
-              tooltip="Of the work in the sprint at its commitment point, the share completed by its end. Work added later does not count, and an item completed as Removed counts as completed."
-              cardStyle={METRIC_CARD_FLEX}
-            />
-          )}
-        </Flex>
+        </div>
       )}
       {scopeFigures && scope && (
         <Flex vertical>

@@ -240,13 +240,13 @@ describe('SprintMetrics', () => {
         'metric-In Progress',
         'metric-Not Started',
         'metric-Avg Cycle Time',
-        'metric-Unestimated',
       ])
       expect(titlesIn(rowOf('Committed'))).toEqual([
         'metric-Committed',
         'metric-Added',
         'metric-Descoped',
         'metric-Say/Do so far',
+        'metric-Unestimated',
       ])
     })
 
@@ -295,7 +295,7 @@ describe('SprintMetrics', () => {
 
       // Assert
       expect(
-        screen.getByText('Times are in the team’s zone, UTC.'),
+        screen.getByText('Days are counted in the team’s zone, UTC.'),
       ).toBeInTheDocument()
     })
   })

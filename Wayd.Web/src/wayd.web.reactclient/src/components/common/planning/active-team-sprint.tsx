@@ -115,6 +115,7 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
             <MetricCard
               title="Velocity"
               value={figures.completed}
+              valueStyle={{ color: token.colorSuccess }}
               tooltip={`The ${measure} completed while in the sprint. Unlike most tools' velocity, work moved to a Removed status in the sprint counts too.`}
             />
           </Col>

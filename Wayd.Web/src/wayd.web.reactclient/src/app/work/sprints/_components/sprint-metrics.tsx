@@ -152,6 +152,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
         <MetricCard
           title="Velocity"
           value={figures.completed}
+          valueStyle={{ color: token.colorSuccess }}
           secondaryValue={
             scopeFigures && scopeFigures.removed > 0
               ? `${scopeFigures.removed.toLocaleString()} as Removed`
@@ -194,6 +195,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
           <HealthMetric
             title="Unestimated"
             value={metrics.unestimatedWorkItems}
+            severity="warning"
             tooltip={`Number of work items in the sprint with no ${sizingMethodMeasure(sizingMethod)}. An estimate of 0 counts as estimated.`}
             cardStyle={METRIC_CARD_FLEX}
           />

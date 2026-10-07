@@ -57650,12 +57650,12 @@
           "outcome": {
             "$ref": "#/components/schemas/SprintScopeOutcome"
           },
-          "enteredAt": {
+          "addedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
           },
-          "leftAt": {
+          "removedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true

@@ -95477,11 +95477,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintScopeOutcome>))]
         public SprintScopeOutcome Outcome { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("enteredAt")]
-        public System.DateTimeOffset? EnteredAt { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("addedAt")]
+        public System.DateTimeOffset? AddedAt { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("leftAt")]
-        public System.DateTimeOffset? LeftAt { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("removedAt")]
+        public System.DateTimeOffset? RemovedAt { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("entryEstimate")]
         public double? EntryEstimate { get; set; } = default!;

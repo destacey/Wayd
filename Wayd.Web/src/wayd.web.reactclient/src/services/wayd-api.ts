@@ -49680,8 +49680,8 @@ export interface SprintScopeItemDto {
     workItem: SprintBacklogItemDto;
     entry: SprintScopeEntry;
     outcome: SprintScopeOutcome;
-    enteredAt?: Date | undefined;
-    leftAt?: Date | undefined;
+    addedAt?: Date | undefined;
+    removedAt?: Date | undefined;
     entryEstimate?: number | undefined;
     outcomeEstimate?: number | undefined;
 }

@@ -17,28 +17,82 @@ export function daysRemaining(
 }
 
 /**
- * Calculates the percentage of days elapsed between a start date and end date,
- * counted in whole calendar days like daysRemaining.
- *
- * @param startDate - The start date of the period.
- * @param endDate - The end date of the period.
- * @param referenceDate - Optional reference date used instead of the current date.
- * @returns The percentage elapsed (0-100). Returns 0 if the period hasn't started,
- *          capped at 100 if past the end date.
+ * Which day of a period the reference date (today by default) is, counting the
+ * first and last days inclusively — "day 9 of 14". Day 0 before the period
+ * starts; capped at the last day after it ends. Every view of a period's
+ * progress reads it from here, so a timeline and a countdown always agree.
+ */
+export function dayOfPeriod(
+  startDate: CalendarDate | Date,
+  endDate: CalendarDate | Date,
+  referenceDate?: CalendarDate | Date,
+): { currentDay: number; totalDays: number } {
+  const totalDays = calendarDaysBetween(startDate, endDate) + 1
+  const day = calendarDaysBetween(startDate, referenceDate ?? new Date()) + 1
+  return {
+    currentDay: Math.min(Math.max(day, 0), Math.max(totalDays, 0)),
+    totalDays,
+  }
+}
+
+/**
+ * The share of a period's days reached, as {@link dayOfPeriod} counts them:
+ * on day 9 of 14, 64%. 0 before the period starts, 100 after it ends.
  */
 export function percentageElapsed(
   startDate: CalendarDate | Date,
   endDate: CalendarDate | Date,
   referenceDate?: CalendarDate | Date,
 ): number {
-  const totalDays = calendarDaysBetween(startDate, endDate)
-  const elapsedDays = Math.max(
-    0,
-    calendarDaysBetween(startDate, referenceDate ?? new Date()),
+  const { currentDay, totalDays } = dayOfPeriod(
+    startDate,
+    endDate,
+    referenceDate,
   )
+  return totalDays > 0 ? (currentDay / totalDays) * 100 : 0
+}
 
-  if (totalDays <= 0) return 0
+/**
+ * Says which clock a picker of moments reads — the viewer's, which is what
+ * antd's pickers use — and, when the team counts its days on another, which
+ * one that is: "your time zone, PDT (America/Los_Angeles); the team's is
+ * America/Chicago". A moment entered on the wrong clock is off by hours.
+ */
+export function pickerTimeZoneNote(
+  teamTimeZone?: string | null,
+  viewerTimeZone: string = Intl.DateTimeFormat().resolvedOptions().timeZone,
+  at: Date = new Date(),
+): string {
+  const abbreviation =
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: viewerTimeZone,
+      timeZoneName: 'short',
+    })
+      .formatToParts(at)
+      .find((part) => part.type === 'timeZoneName')?.value ?? viewerTimeZone
 
-  const percentage = (elapsedDays / totalDays) * 100
-  return Math.min(100, percentage)
+  const viewer = `your time zone, ${abbreviation} (${viewerTimeZone})`
+  return teamTimeZone && teamTimeZone !== viewerTimeZone
+    ? `${viewer}; the team's is ${teamTimeZone}`
+    : viewer
+}
+
+/**
+ * An instant as the clock read in `timeZone`, an IANA id such as a team's,
+ * with the zone's abbreviation so the reader knows which clock it is. Takes
+ * the ISO string a `Date`-typed field really holds as well as a `Date`.
+ */
+export function formatInstantInZone(
+  instant: Date | string,
+  timeZone: string,
+): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(new Date(instant))
 }

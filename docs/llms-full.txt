@@ -194,6 +194,21 @@ Short time-boxed periods (typically 2 weeks) owned by teams. Properties:
 
 A sprint is measured in its team's sizing method on its planned start (`SprintSchedule.SizingMethod`, read through `WorkItemEstimate.Of`); a sprint with no team, or a day with no operating model, counts items. Responses carry counts always and `*Estimate` fields plus `SizingMethod`. A PI iteration rollup sums estimates only when every sprint shares one sizing method, otherwise its estimate fields and `SizingMethod` are null.
 
+### Sprint Scope
+
+What a sprint committed to and what became of it, worked out when read (never stored) from `WorkItemStateHistory` between the commitment point (effective start) and the effective end (`SprintScopeReport`, `GET /api/work/sprints/{idOrKey}/scope`). Only requirement-tier work types count; a type change out of the tier leaves scope, into it enters.
+
+- Entry: **Committed** (in the sprint at the commitment point; taken out and put back stays committed) or **Added** (entered after it, before the effective end)
+- Outcome, from the item's state when last in the sprint: **Completed** (Done), **Removed** (Removed-category, counts as completed), **CarriedOver** (unfinished and still in at the effective end, or moved to the team's next sprint on or after the last day), **Descoped** (unfinished and left before the last day, or on it for anywhere but the next sprint), **Remaining** (unfinished in a sprint not yet ended)
+- Work already Done or Removed before `FinishedWorkCutoff` (the recorded start, else the start of the first planned day) is out of scope while it stays finished; reopened in the sprint, it is Added from then on
+- Last day = the earlier of the last planned day and the day the sprint actually ended, in the team's zone
+- Say/do = completed of committed ÷ committed, by count and by the estimate at the commitment point
+- The sprint page shows Predictability = velocity ÷ committed, capped at 100% (finished added work counts), and Re-estimated = scope total at final estimates − committed − added. Each item carries `AddedAt` and `RemovedAt` (removed from the sprint, not a Removed status) and its original and final estimate
+- Sprint metrics (`SprintWorkItemMetricsDto`) count requirement-tier work only, matching scope
+- A sprint is read up to now: before its commitment point it has no scope
+- Deleted work items take their history with them, so they appear in no category
+- `HistoryIncomplete` when any workspace holding the sprint's work (in history or currently) has no `Workspace.WorkItemHistoryBackfilledOn`, set the first time a history sync reads to the source's last batch
+
 ### Workspaces
 
 Containers for work items. Properties:

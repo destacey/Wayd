@@ -8,7 +8,12 @@ import {
   useReopenSprintMutation,
   useStartSprintMutation,
 } from '@/src/store/features/work-management/sprints-api'
-import { formatCalendarDate, isApiError, sprintActiveDays } from '@/src/utils'
+import {
+  formatCalendarDate,
+  isApiError,
+  pickerTimeZoneNote,
+  sprintActiveDays,
+} from '@/src/utils'
 import { disabledTimeAfter } from './past-moment'
 import { Alert, DatePicker, Form, Modal, Space } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
@@ -171,7 +176,7 @@ const ChangeSprintLifecycleForm = ({
               label={momentLabel}
               required
               validateStatus={momentInWindow ? undefined : 'error'}
-              help={`Between ${pickable.earliest.format(MOMENT_FORMAT)} and ${pickable.latest ? pickable.latest.format(MOMENT_FORMAT) : 'now'}, in your time zone.`}
+              help={`Between ${pickable.earliest.format(MOMENT_FORMAT)} and ${pickable.latest ? pickable.latest.format(MOMENT_FORMAT) : 'now'}, in ${pickerTimeZoneNote(sprint.timeZone)}.`}
             >
               <DatePicker
                 showTime={{ format: 'h:mm A' }}

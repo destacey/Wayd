@@ -6,6 +6,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Tests.Infrastructure;
@@ -59,8 +60,8 @@ public sealed class GetSprintsWorkItemMetricsQueryTests : IDisposable
         _dbContext.AddIterations([before, after]);
         _dbContext.AddWorkItems(
         [
-            new WorkItemFaker().WithIterationId(before.Id).WithActiveState().WithStoryPoints(3).WithEffort(20).Generate(),
-            new WorkItemFaker().WithIterationId(after.Id).WithActiveState().WithStoryPoints(5).WithEffort(40).Generate(),
+            StoryIn(before.Id).WithActiveState().WithStoryPoints(3).WithEffort(20).Generate(),
+            StoryIn(after.Id).WithActiveState().WithStoryPoints(5).WithEffort(40).Generate(),
         ]);
 
         // Act
@@ -84,8 +85,8 @@ public sealed class GetSprintsWorkItemMetricsQueryTests : IDisposable
         _dbContext.AddIterations([sprint]);
         _dbContext.AddWorkItems(
         [
-            new WorkItemFaker().WithIterationId(sprint.Id).WithActiveState().WithStoryPoints(8).Generate(),
-            new WorkItemFaker().WithIterationId(sprint.Id).WithActiveState().Generate(),
+            StoryIn(sprint.Id).WithActiveState().WithStoryPoints(8).Generate(),
+            StoryIn(sprint.Id).WithActiveState().Generate(),
         ]);
 
         // Act
@@ -97,6 +98,32 @@ public sealed class GetSprintsWorkItemMetricsQueryTests : IDisposable
         metrics.TotalEstimate.Should().Be(2);
         metrics.UnestimatedWorkItems.Should().Be(0);
     }
+
+    [Fact]
+    public async Task Handle_SprintWithTasks_CountsOnlyRequirementTierWork()
+    {
+        // Arrange — tasks break a story down; counting them would count the work twice
+        var sprint = Sprint(null, SwitchedToEffort);
+        var taskLevel = new WorkTypeLevelFaker().WithTier(WorkTypeTier.Task).Generate();
+        var task = new WorkTypeFaker().WithName("Task").WithLevel(taskLevel).Generate();
+        _dbContext.AddIterations([sprint]);
+        _dbContext.AddWorkItems(
+        [
+            StoryIn(sprint.Id).WithActiveState().Generate(),
+            new WorkItemFaker().WithType(task).WithIterationId(sprint.Id).WithActiveState().Generate(),
+        ]);
+
+        // Act
+        var result = await _handler.Handle(new GetSprintsWorkItemMetricsQuery([sprint.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.TotalWorkItems.Should().Be(1);
+    }
+
+    private static readonly WorkType Story = new WorkTypeFaker().AsStory().Generate();
+
+    private static WorkItemFaker StoryIn(Guid sprintId) =>
+        new WorkItemFaker().WithType(Story).WithIterationId(sprintId);
 
     private static Iteration Sprint(Guid? teamId, LocalDate start) =>
         new IterationFaker()

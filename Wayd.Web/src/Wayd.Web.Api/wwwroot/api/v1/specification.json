@@ -27132,6 +27132,54 @@
         ]
       }
     },
+    "/api/work/sprints/{idOrKey}/scope": {
+      "get": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Get sprint scope.",
+        "description": "What the sprint committed to and what became of it, worked out from work item history between its effective start and end: each requirement-tier item that was in the sprint, whether it was committed or added, and whether it was completed, completed as Removed, carried over or descoped. Not found when the sprint has no planned dates.",
+        "operationId": "Sprints_GetSprintScope",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintScopeDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/{id}/start": {
       "post": {
         "tags": [
@@ -57441,6 +57489,218 @@
             "$ref": "#/components/schemas/CycleTimeSummary"
           }
         }
+      },
+      "SprintScopeDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timeZone",
+          "totals",
+          "items",
+          "sprintId",
+          "sizingMethod",
+          "effectiveStart",
+          "startIsActual",
+          "effectiveEnd",
+          "endIsActual",
+          "lastDay",
+          "hasTeam",
+          "historyIncomplete"
+        ],
+        "properties": {
+          "sprintId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
+          "effectiveStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startIsActual": {
+            "type": "boolean"
+          },
+          "effectiveEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endIsActual": {
+            "type": "boolean"
+          },
+          "lastDay": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "hasTeam": {
+            "type": "boolean"
+          },
+          "historyIncomplete": {
+            "type": "boolean"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/SprintScopeTotalsDto"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintScopeItemDto"
+            }
+          }
+        }
+      },
+      "SprintScopeTotalsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "total",
+          "committed",
+          "added",
+          "completed",
+          "removed",
+          "carriedOver",
+          "descoped",
+          "remaining",
+          "completedOfCommitted",
+          "unestimated"
+        ],
+        "properties": {
+          "total": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "committed": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "added": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "completed": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "removed": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "carriedOver": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "descoped": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "remaining": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "completedOfCommitted": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "sayDoCount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "sayDoEstimate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "unestimated": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SprintScopeMeasureDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "estimate"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estimate": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "SprintScopeItemDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workItem",
+          "entry",
+          "outcome"
+        ],
+        "properties": {
+          "workItem": {
+            "$ref": "#/components/schemas/SprintBacklogItemDto"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/SprintScopeEntry"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/SprintScopeOutcome"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "removedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "entryEstimate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "outcomeEstimate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "SprintScopeEntry": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Committed",
+          "Added"
+        ],
+        "enum": [
+          "Committed",
+          "Added"
+        ]
+      },
+      "SprintScopeOutcome": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Completed",
+          "Removed",
+          "CarriedOver",
+          "Descoped",
+          "Remaining"
+        ],
+        "enum": [
+          "Completed",
+          "Removed",
+          "CarriedOver",
+          "Descoped",
+          "Remaining"
+        ]
       },
       "StartSprintRequest": {
         "type": "object",

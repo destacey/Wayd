@@ -12,6 +12,10 @@ namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 /// <param name="WorkspaceId">The workspace whose sync read the revisions.</param>
 /// <param name="Revisions">The batch's revisions, in any order.</param>
 /// <param name="Watermark">The source's token for where this batch ends.</param>
+/// <param name="IsLastBatch">
+/// Whether the source reported this as the last batch of its stream, so the workspace's history is
+/// read through to the end.
+/// </param>
 /// <param name="FilledWorkItemIds">
 /// Set when the revisions were fetched from these items to fill their missing revision numbers:
 /// they lie outside the workspace's stream, so the watermark stays where it was, and each item is
@@ -23,6 +27,7 @@ public sealed record SyncExternalWorkItemHistoryCommand(
     Guid WorkspaceId,
     IReadOnlyList<IExternalWorkItemRevision> Revisions,
     string? Watermark,
+    bool IsLastBatch = false,
     IReadOnlyCollection<int>? FilledWorkItemIds = null) : ICommand<int>, ILongRunningRequest;
 
 public sealed class SyncExternalWorkItemHistoryCommandValidator : CustomValidator<SyncExternalWorkItemHistoryCommand>

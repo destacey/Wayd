@@ -98,6 +98,14 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     public string? WorkItemHistoryWatermark { get; private set; }
 
     /// <summary>
+    /// When a work item history sync first read the workspace's history through to the source's last
+    /// batch; null until then. The source returns history from the beginning, so once this is set the
+    /// stored history is complete, and before it a read that stopped part way is missing its most
+    /// recent revisions. Kept through later full syncs, which replay onto history already stored.
+    /// </summary>
+    public Instant? WorkItemHistoryBackfilledOn { get; private set; }
+
+    /// <summary>
     /// A collection of work items in the workspace.
     /// </summary>
     public IReadOnlyCollection<WorkItem> WorkItems => _workItems.AsReadOnly();
@@ -168,6 +176,15 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     public void SetWorkItemHistoryWatermark(string? watermark)
     {
         WorkItemHistoryWatermark = watermark;
+    }
+
+    /// <summary>
+    /// Records that a history sync reached the source's last batch. Only the first time counts:
+    /// history is complete from then on.
+    /// </summary>
+    public void WorkItemHistoryReadToEnd(Instant now)
+    {
+        WorkItemHistoryBackfilledOn ??= now;
     }
 
     public Result SetSystemId(string systemId)

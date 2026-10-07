@@ -5,3 +5,4 @@ export {
   SprintLifecycleAction,
 } from './change-sprint-lifecycle-form'
 export { default as CorrectSprintActualDatesForm } from './correct-sprint-actual-dates-form'
+export { default as SprintScopeGrid } from './sprint-scope-grid'

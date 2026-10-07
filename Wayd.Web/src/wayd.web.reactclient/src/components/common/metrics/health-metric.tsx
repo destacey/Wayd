@@ -9,6 +9,8 @@ export interface HealthMetricProps {
   title: string
   tooltip?: string
   goodIfZero?: boolean
+  /** How a bad value is shown: an error, or a warning for a gap worth fixing that doesn't break anything. */
+  severity?: 'error' | 'warning'
   cardStyle?: React.CSSProperties
 }
 
@@ -17,16 +19,15 @@ const HealthMetric: FC<HealthMetricProps> = ({
   title,
   tooltip,
   goodIfZero = true,
+  severity = 'error',
   cardStyle,
 }) => {
   const { token } = useTheme()
 
-  let color
-  if (goodIfZero) {
-    color = value === 0 ? token.colorSuccess : token.colorError
-  } else {
-    color = value > 0 ? token.colorSuccess : token.colorError
-  }
+  const isGood = goodIfZero ? value === 0 : value > 0
+  const badColor =
+    severity === 'warning' ? token.colorWarning : token.colorError
+  const color = isGood ? token.colorSuccess : badColor
 
   return (
     <MetricCard

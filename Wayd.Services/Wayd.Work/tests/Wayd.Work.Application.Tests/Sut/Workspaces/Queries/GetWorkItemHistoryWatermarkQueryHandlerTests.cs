@@ -23,12 +23,16 @@ public sealed class GetWorkItemHistoryWatermarkQueryHandlerTests : IDisposable
     }
 
     [Theory]
-    [InlineData("token-7")]
-    [InlineData(null)]
-    public async Task Handle_ReturnsTheWorkspacesWatermark(string? watermark)
+    [InlineData("token-7", true)]
+    [InlineData(null, false)]
+    public async Task Handle_ReturnsTheWorkspacesWatermarkAndWhetherHistoryWasReadToTheEnd(string? watermark, bool readToEnd)
     {
         // Arrange
-        var workspace = new WorkspaceFaker().AsExternal().WithWorkItemHistoryWatermark(watermark).Generate();
+        var workspace = new WorkspaceFaker()
+            .AsExternal()
+            .WithWorkItemHistoryWatermark(watermark)
+            .WithWorkItemHistoryBackfilledOn(readToEnd ? NodaTime.Instant.FromUtc(2026, 9, 1, 0, 0) : null)
+            .Generate();
         _fakeWorkDbContext.AddWorkspace(workspace);
 
         // Act
@@ -36,7 +40,7 @@ public sealed class GetWorkItemHistoryWatermarkQueryHandlerTests : IDisposable
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(watermark);
+        result.Value.Should().Be(new WorkItemHistoryCursor(watermark, readToEnd));
     }
 
     [Fact]

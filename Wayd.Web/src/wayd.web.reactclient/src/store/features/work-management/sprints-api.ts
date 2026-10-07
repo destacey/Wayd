@@ -7,6 +7,7 @@ import {
   SprintBacklogItemDto,
   SprintDetailsDto,
   SprintListDto,
+  SprintScopeDto,
   SprintWorkItemMetricsDto,
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
@@ -70,6 +71,23 @@ export const sprintsApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, sprintKey) => [
         { type: QueryTags.SprintMetrics, id: sprintKey },
+      ],
+    }),
+
+    getSprintScope: builder.query<SprintScopeDto, number>({
+      queryFn: async (sprintKey: number) => {
+        try {
+          const data = await getSprintsClient().getSprintScope(
+            sprintKey.toString(),
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, sprintKey) => [
+        { type: QueryTags.SprintScope, id: sprintKey },
       ],
     }),
 
@@ -219,6 +237,9 @@ function sprintLifecycleTags(id: string, key: number) {
     { type: QueryTags.Sprint, id: key },
     { type: QueryTags.Sprint, id: 'LIST' },
     { type: QueryTags.SprintMetrics, id: key },
+    // The sprint's actual dates bound its scope, so every team sprint's report
+    // can move with them — a start completes the previous sprint too.
+    QueryTags.SprintScope,
     { type: QueryTags.ActivityLog, id },
     QueryTags.TeamSprint,
     QueryTags.ActiveSprint,
@@ -231,6 +252,7 @@ export const {
   useGetSprintQuery,
   useGetSprintBacklogQuery,
   useGetSprintMetricsQuery,
+  useGetSprintScopeQuery,
   useGetSprintPlanningIntervalsQuery,
   useGetSprintActivitiesQuery,
   useLazyGetSprintActivitiesQuery,

@@ -54925,6 +54925,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get sprint scope.
+        /// </summary>
+        /// <remarks>
+        /// What the sprint committed to and what became of it, worked out from work item history between its effective start and end: each requirement-tier item that was in the sprint, whether it was committed or added, and whether it was completed, completed as Removed, carried over or descoped. Not found when the sprint has no planned dates.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<SprintScopeDto> GetSprintScopeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Start a sprint.
         /// </summary>
         /// <remarks>
@@ -55434,6 +55444,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<SprintWorkItemMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get sprint scope.
+        /// </summary>
+        /// <remarks>
+        /// What the sprint committed to and what became of it, worked out from work item history between its effective start and end: each requirement-tier item that was in the sprint, whether it was committed or added, and whether it was completed, completed as Removed, carried over or descoped. Not found when the sprint has no planned dates.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<SprintScopeDto> GetSprintScopeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/work/sprints/{idOrKey}/scope"
+                    urlBuilder_.Append("api/work/sprints/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/scope");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<SprintScopeDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -95241,6 +95342,185 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("cycleTime")]
         [System.ComponentModel.DataAnnotations.Required]
         public CycleTimeSummary CycleTime { get; set; } = new CycleTimeSummary();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintScopeDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("sprintId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid SprintId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("effectiveStart")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset EffectiveStart { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("startIsActual")]
+        public bool StartIsActual { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("effectiveEnd")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset EffectiveEnd { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("endIsActual")]
+        public bool EndIsActual { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastDay")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset LastDay { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TimeZone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasTeam")]
+        public bool HasTeam { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("historyIncomplete")]
+        public bool HistoryIncomplete { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totals")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeTotalsDto Totals { get; set; } = new SprintScopeTotalsDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SprintScopeItemDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<SprintScopeItemDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintScopeTotalsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("total")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto Total { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("committed")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto Committed { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("added")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto Added { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("completed")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto Completed { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("removed")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto Removed { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("carriedOver")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto CarriedOver { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("descoped")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto Descoped { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("remaining")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto Remaining { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("completedOfCommitted")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintScopeMeasureDto CompletedOfCommitted { get; set; } = new SprintScopeMeasureDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("sayDoCount")]
+        public double? SayDoCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sayDoEstimate")]
+        public double? SayDoEstimate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("unestimated")]
+        public int Unestimated { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintScopeMeasureDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("count")]
+        public int Count { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        public double Estimate { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintScopeItemDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("workItem")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SprintBacklogItemDto WorkItem { get; set; } = new SprintBacklogItemDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("entry")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintScopeEntry>))]
+        public SprintScopeEntry Entry { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("outcome")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintScopeOutcome>))]
+        public SprintScopeOutcome Outcome { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("addedAt")]
+        public System.DateTimeOffset? AddedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("removedAt")]
+        public System.DateTimeOffset? RemovedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entryEstimate")]
+        public double? EntryEstimate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("outcomeEstimate")]
+        public double? OutcomeEstimate { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum SprintScopeEntry
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Committed")]
+        Committed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Added")]
+        Added = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum SprintScopeOutcome
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
+        Completed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Removed")]
+        Removed = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"CarriedOver")]
+        CarriedOver = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Descoped")]
+        Descoped = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Remaining")]
+        Remaining = 4,
 
     }
 

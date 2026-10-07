@@ -30672,6 +30672,67 @@ export class SprintsClient {
     }
 
     /**
+     * Get sprint scope.
+     */
+    getSprintScope(idOrKey: string, cancelToken?: CancelToken): Promise<SprintScopeDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/scope";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintScope(_response);
+        });
+    }
+
+    protected processGetSprintScope(response: AxiosResponse): Promise<SprintScopeDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintScopeDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintScopeDto>(null as any);
+    }
+
+    /**
      * Start a sprint.
      */
     start(id: string, request: StartSprintRequest, cancelToken?: CancelToken): Promise<void> {
@@ -49578,6 +49639,64 @@ export interface SprintWorkItemMetricsDto {
     notStartedEstimate: number;
     unestimatedWorkItems: number;
     cycleTime: CycleTimeSummary;
+}
+
+export interface SprintScopeDto {
+    sprintId: string;
+    sizingMethod: SizingMethod;
+    effectiveStart: Date;
+    startIsActual: boolean;
+    effectiveEnd: Date;
+    endIsActual: boolean;
+    lastDay: Date;
+    timeZone: string;
+    hasTeam: boolean;
+    historyIncomplete: boolean;
+    totals: SprintScopeTotalsDto;
+    items: SprintScopeItemDto[];
+}
+
+export interface SprintScopeTotalsDto {
+    total: SprintScopeMeasureDto;
+    committed: SprintScopeMeasureDto;
+    added: SprintScopeMeasureDto;
+    completed: SprintScopeMeasureDto;
+    removed: SprintScopeMeasureDto;
+    carriedOver: SprintScopeMeasureDto;
+    descoped: SprintScopeMeasureDto;
+    remaining: SprintScopeMeasureDto;
+    completedOfCommitted: SprintScopeMeasureDto;
+    sayDoCount?: number | undefined;
+    sayDoEstimate?: number | undefined;
+    unestimated: number;
+}
+
+export interface SprintScopeMeasureDto {
+    count: number;
+    estimate: number;
+}
+
+export interface SprintScopeItemDto {
+    workItem: SprintBacklogItemDto;
+    entry: SprintScopeEntry;
+    outcome: SprintScopeOutcome;
+    addedAt?: Date | undefined;
+    removedAt?: Date | undefined;
+    entryEstimate?: number | undefined;
+    outcomeEstimate?: number | undefined;
+}
+
+export enum SprintScopeEntry {
+    Committed = "Committed",
+    Added = "Added",
+}
+
+export enum SprintScopeOutcome {
+    Completed = "Completed",
+    Removed = "Removed",
+    CarriedOver = "CarriedOver",
+    Descoped = "Descoped",
+    Remaining = "Remaining",
 }
 
 /** Starts a sprint. */

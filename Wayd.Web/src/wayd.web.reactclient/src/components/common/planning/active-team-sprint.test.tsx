@@ -9,6 +9,12 @@ jest.mock('../../../store/features/organizations/team-api', () => ({
 
 jest.mock('../../../store/features/work-management/sprints-api', () => ({
   useGetSprintMetricsQuery: jest.fn(),
+  useGetSprintScopeQuery: jest.fn(),
+}))
+
+jest.mock('./sprint-say-do-metric', () => ({
+  __esModule: true,
+  default: () => <div data-testid="say-do-metric" />,
 }))
 
 // Mock useTheme
@@ -28,10 +34,14 @@ jest.mock('./timeline-progress', () => ({
   default: () => <div data-testid="timeline-progress">Timeline Progress</div>,
 }))
 
-// Mock Metrics; sprintMetricValues stays real so the figures shown can be asserted.
+// Mock Metrics; the figures stay real so what is shown can be asserted.
 jest.mock('../metrics', () => ({
-  sprintMetricValues: jest.requireActual('../metrics/sprint-metric-values')
-    .sprintMetricValues,
+  sprintOverviewFigures: jest.requireActual(
+    '../metrics/sprint-overview-figures',
+  ).sprintOverviewFigures,
+  MetricCard: ({ title, value }: { title: string; value: number }) => (
+    <div data-testid={`metric-${title}`}>{value}</div>
+  ),
   CompletionRateMetric: ({
     completed,
     total,
@@ -43,17 +53,6 @@ jest.mock('../metrics', () => ({
   }) => (
     <div data-testid="completion-rate-metric">
       {completed}/{total} {tooltip}
-    </div>
-  ),
-  VelocityMetric: ({
-    completed,
-    tooltip,
-  }: {
-    completed: number
-    tooltip?: string
-  }) => (
-    <div data-testid="velocity-metric">
-      {completed} {tooltip}
     </div>
   ),
   StatusMetric: ({ value, tooltip }: { value: number; tooltip?: string }) => (
@@ -82,7 +81,10 @@ jest.mock('./sprint-pi-predictability', () => ({
 }))
 
 import { useGetActiveSprintQuery } from '../../../store/features/organizations/team-api'
-import { useGetSprintMetricsQuery } from '../../../store/features/work-management/sprints-api'
+import {
+  useGetSprintMetricsQuery,
+  useGetSprintScopeQuery,
+} from '../../../store/features/work-management/sprints-api'
 
 describe('ActiveTeamSprint', () => {
   const mockSprint = {
@@ -120,6 +122,10 @@ describe('ActiveTeamSprint', () => {
       data: mockMetrics,
       isLoading: false,
     })
+    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    })
   })
 
   it('renders active sprint details', () => {
@@ -131,7 +137,7 @@ describe('ActiveTeamSprint', () => {
     expect(screen.getByText('Sprint 1')).toBeInTheDocument()
     expect(screen.getByTestId('timeline-progress')).toBeInTheDocument()
     expect(screen.getByTestId('completion-rate-metric')).toBeInTheDocument()
-    expect(screen.getByTestId('velocity-metric')).toBeInTheDocument()
+    expect(screen.getByTestId('metric-Velocity')).toBeInTheDocument()
     expect(screen.getByTestId('iteration-health-indicator')).toBeInTheDocument()
   })
 
@@ -143,10 +149,10 @@ describe('ActiveTeamSprint', () => {
     expect(screen.getByTestId('completion-rate-metric')).toHaveTextContent(
       '25/40 Effort',
     )
-    expect(screen.getByTestId('velocity-metric')).toHaveTextContent('25 Effort')
+    expect(screen.getByTestId('metric-Velocity')).toHaveTextContent('25')
     expect(screen.getByTestId('status-metric-value')).toHaveTextContent('9')
     expect(screen.getByTestId('status-metric')).toHaveTextContent(
-      'Total effort currently in the sprint',
+      'The effort in the sprint now',
     )
     expect(screen.getByTestId('iteration-health-indicator')).toHaveTextContent(
       'Health: 25/40',
@@ -175,8 +181,49 @@ describe('ActiveTeamSprint', () => {
       '2/4 Count',
     )
     expect(screen.getByTestId('status-metric')).toHaveTextContent(
-      'Total work items currently in the sprint',
+      'The work items in the sprint now',
     )
+  })
+
+  it('shows predictability and say/do once the sprint has a commitment', () => {
+    // Arrange
+    const measure = (count: number, estimate: number) => ({ count, estimate })
+    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({
+      data: {
+        effectiveStart: '2023-01-02T00:00:00Z',
+        historyIncomplete: false,
+        totals: {
+          total: measure(5, 48),
+          committed: measure(4, 40),
+          added: measure(1, 8),
+          completed: measure(3, 30),
+          removed: measure(0, 0),
+          carriedOver: measure(0, 0),
+          descoped: measure(1, 8),
+          remaining: measure(1, 10),
+          completedOfCommitted: measure(2, 22),
+          sayDoCount: 0.5,
+          sayDoEstimate: 0.55,
+          unestimated: 0,
+        },
+      },
+      isLoading: false,
+    })
+
+    // Act
+    render(<ActiveTeamSprint teamId="team-1" />)
+
+    // Assert
+    // Velocity 30 of 40 committed.
+    expect(screen.getByTestId('metric-Predictability')).toHaveTextContent('75')
+    expect(
+      screen.queryByTestId('completion-rate-metric'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByTestId('iteration-health-indicator')).toHaveTextContent(
+      'Health: 30/40',
+    )
+    expect(screen.getByTestId('say-do-metric')).toBeInTheDocument()
+    expect(screen.queryByTestId('cycle-time-metric')).not.toBeInTheDocument()
   })
 
   it('fetches metrics for the active sprint', () => {

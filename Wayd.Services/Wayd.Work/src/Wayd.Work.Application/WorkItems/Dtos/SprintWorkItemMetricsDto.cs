@@ -4,7 +4,9 @@ using Wayd.Common.Domain.Enums.Work;
 namespace Wayd.Work.Application.WorkItems.Dtos;
 
 /// <summary>
-/// Work item metrics for a single sprint, as item counts and as estimates in the sprint's sizing method.
+/// Work item metrics for a single sprint, as item counts and as estimates in the sprint's sizing method. Only
+/// requirement-tier work counts: tasks are left out, and bugs count only where the process puts them at the
+/// requirement level.
 /// </summary>
 public sealed record SprintWorkItemMetricsDto
 {

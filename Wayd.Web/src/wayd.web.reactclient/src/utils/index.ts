@@ -1,4 +1,10 @@
-export { daysRemaining, percentageElapsed } from './dates'
+export {
+  dayOfPeriod,
+  daysRemaining,
+  formatInstantInZone,
+  percentageElapsed,
+  pickerTimeZoneNote,
+} from './dates'
 export {
   type CalendarDate,
   calendarDateInZone,

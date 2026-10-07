@@ -1,4 +1,44 @@
-import { daysRemaining, percentageElapsed } from './dates'
+import {
+  dayOfPeriod,
+  daysRemaining,
+  formatInstantInZone,
+  percentageElapsed,
+  pickerTimeZoneNote,
+} from './dates'
+
+describe('pickerTimeZoneNote', () => {
+  const at = new Date('2026-09-28T17:00:00Z')
+
+  it('names the viewer’s zone and the team’s when they differ', () => {
+    // Arrange / Act / Assert
+    expect(
+      pickerTimeZoneNote('America/Chicago', 'America/Los_Angeles', at),
+    ).toBe(
+      "your time zone, PDT (America/Los_Angeles); the team's is America/Chicago",
+    )
+  })
+
+  it('names only the viewer’s zone when the team shares it', () => {
+    // Arrange / Act / Assert
+    expect(pickerTimeZoneNote('UTC', 'UTC', at)).toBe(
+      'your time zone, UTC (UTC)',
+    )
+  })
+})
+
+describe('formatInstantInZone', () => {
+  it('shows the clock in the given zone, with its abbreviation', () => {
+    expect(formatInstantInZone('2026-09-15T05:00:00Z', 'America/Chicago')).toBe(
+      'Sep 15, 2026, 12:00 AM CDT',
+    )
+  })
+
+  it('takes a Date as well as an ISO string', () => {
+    expect(formatInstantInZone(new Date('2026-09-15T05:00:00Z'), 'UTC')).toBe(
+      'Sep 15, 2026, 5:00 AM UTC',
+    )
+  })
+})
 
 describe('daysRemaining', () => {
   it('should return the number of days remaining for a future date', () => {
@@ -42,75 +82,61 @@ describe('daysRemaining', () => {
   })
 })
 
+describe('dayOfPeriod', () => {
+  it('counts the first and last days, as the sprint timeline does', () => {
+    // Arrange / Act
+    const result = dayOfPeriod('2026-09-28', '2026-10-11', '2026-10-06')
+
+    // Assert
+    expect(result).toEqual({ currentDay: 9, totalDays: 14 })
+  })
+
+  it('is day 0 before the period starts', () => {
+    // Arrange / Act
+    const result = dayOfPeriod('2026-09-28', '2026-10-11', '2026-09-20')
+
+    // Assert
+    expect(result.currentDay).toBe(0)
+  })
+
+  it('stays on the last day after the period ends', () => {
+    // Arrange / Act
+    const result = dayOfPeriod('2026-09-28', '2026-10-11', '2026-10-20')
+
+    // Assert
+    expect(result.currentDay).toBe(14)
+  })
+})
+
 describe('percentageElapsed', () => {
-  it('should return 0% at the start', () => {
-    const start = new Date('2025-01-01T00:00:00')
-    const end = new Date('2025-01-15T00:00:00')
-    const now = new Date('2025-01-01T00:00:00')
+  it('is the share of the period’s days reached, counting today', () => {
+    // Arrange / Act — day 9 of 14
+    const result = percentageElapsed('2026-09-28', '2026-10-11', '2026-10-06')
 
-    expect(percentageElapsed(start, end, now)).toEqual(0)
+    // Assert
+    expect(Math.round(result)).toBe(64)
   })
 
-  it('should return 50% at the midpoint', () => {
-    const start = new Date('2025-01-01T00:00:00')
-    const end = new Date('2025-01-15T00:00:00')
-    const now = new Date('2025-01-08T00:00:00')
-
-    expect(percentageElapsed(start, end, now)).toEqual(50)
+  it('is 0% before the period starts', () => {
+    // Arrange / Act / Assert
+    expect(percentageElapsed('2026-09-28', '2026-10-11', '2026-09-27')).toBe(0)
   })
 
-  it('should return 100% at the end', () => {
-    const start = new Date('2025-01-01T00:00:00')
-    const end = new Date('2025-01-15T00:00:00')
-    const now = new Date('2025-01-15T00:00:00')
-
-    expect(percentageElapsed(start, end, now)).toEqual(100)
+  it('is 100% on the last day and after it', () => {
+    // Arrange / Act / Assert
+    expect(percentageElapsed('2026-09-28', '2026-10-11', '2026-10-11')).toBe(
+      100,
+    )
+    expect(percentageElapsed('2026-09-28', '2026-10-11', '2026-10-20')).toBe(
+      100,
+    )
   })
 
-  it('should cap at 100% if past the end date', () => {
-    const start = new Date('2025-01-01T00:00:00')
-    const end = new Date('2025-01-15T00:00:00')
-    const now = new Date('2025-01-20T00:00:00')
-
-    expect(percentageElapsed(start, end, now)).toEqual(100)
-  })
-
-  it('should return 0% if before the start date', () => {
-    const start = new Date('2025-01-10T00:00:00')
-    const end = new Date('2025-01-20T00:00:00')
-    const now = new Date('2025-01-05T00:00:00')
-
-    expect(percentageElapsed(start, end, now)).toEqual(0)
-  })
-
-  it('should calculate percentage based on whole days', () => {
-    // 10 day period, at start of day 5 (4 elapsed days = 40%)
-    // Note: Time component is ignored, dates normalized to midnight UTC
-    const start = new Date('2025-01-01T00:00:00')
-    const end = new Date('2025-01-11T00:00:00')
-    const now = new Date('2025-01-05T12:00:00')
-
-    expect(percentageElapsed(start, end, now)).toEqual(40)
-  })
-
-  it('should handle same start and end date', () => {
-    const start = new Date('2025-01-01T00:00:00')
-    const end = new Date('2025-01-01T00:00:00')
-    const now = new Date('2025-01-01T12:00:00')
-
-    expect(percentageElapsed(start, end, now)).toEqual(0)
-  })
-
-  it('should use current time when reference date not provided', () => {
-    const now = new Date()
-    const start = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
-    const end = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000) // 5 days from now
-
-    const percentage = percentageElapsed(start, end)
-
-    // Should be close to 50% (within 1% to account for test execution time)
-    expect(percentage).toBeGreaterThan(49)
-    expect(percentage).toBeLessThan(51)
+  it('is 100% on a one-day period', () => {
+    // Arrange / Act / Assert
+    expect(percentageElapsed('2026-09-28', '2026-09-28', '2026-09-28')).toBe(
+      100,
+    )
   })
 })
 
@@ -132,13 +158,5 @@ describe('calendar date inputs', () => {
 
     // Assert
     expect(result).toEqual(1)
-  })
-
-  it('calculates percentage elapsed from calendar dates', () => {
-    // Act
-    const result = percentageElapsed('2025-01-01', '2025-01-11', '2025-01-05')
-
-    // Assert
-    expect(result).toEqual(40)
   })
 })

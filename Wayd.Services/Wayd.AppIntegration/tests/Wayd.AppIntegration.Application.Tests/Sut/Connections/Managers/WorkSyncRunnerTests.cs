@@ -151,7 +151,7 @@ public class WorkSyncRunnerTests
             .ReturnsAsync(Result.Success());
         dispatcher
             .Setup(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success<string?>(null));
+            .ReturnsAsync(Result.Success(new WorkItemHistoryCursor(null, false)));
         dispatcher
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(0));
@@ -282,7 +282,7 @@ public class WorkSyncRunnerTests
         var dispatcher = _mocker.GetMock<IDispatcher>();
         dispatcher
             .Setup(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success<string?>("w0"));
+            .ReturnsAsync(Result.Success(new WorkItemHistoryCursor("w0", false)));
         _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), "w0", It.IsAny<CancellationToken>()))
             .ReturnsAsync(HistoryBatch(3, "w1", isLastBatch: false));
         _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), "w1", It.IsAny<CancellationToken>()))
@@ -297,12 +297,45 @@ public class WorkSyncRunnerTests
         await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
 
         // Assert
-        applied.Select(c => (c.ConnectionId, c.Revisions.Count, c.Watermark)).Should().Equal(
-            (connection.Id, 3, "w1"),
-            (connection.Id, 2, "w2"));
+        applied.Select(c => (c.ConnectionId, c.Revisions.Count, c.Watermark, c.IsLastBatch)).Should().Equal(
+            (connection.Id, 3, "w1", false),
+            (connection.Id, 2, "w2", true));
         var details = _db.SyncRuns.Single().DetailsJson;
         details.Should().Contain("\"workItemRevisionsProcessed\":5");
         details.Should().Contain("\"workItemHistoryPeriodsWritten\":6");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Run_EmptyLastBatchThatDoesNotAdvance_IsAppliedOnlyUntilHistoryIsReadToEnd(bool readToEnd)
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new WorkItemHistoryCursor("w1", readToEnd)));
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), "w1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HistoryBatch(0, "w1", isLastBatch: true));
+        var applied = new List<SyncExternalWorkItemHistoryCommand>();
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .Callback((ICommand<int> command, CancellationToken _) => applied.Add((SyncExternalWorkItemHistoryCommand)command))
+            .ReturnsAsync(Result.Success(0));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        // Assert
+        var streamed = applied.Where(c => c.FilledWorkItemIds is null)
+            .Select(c => (c.Revisions.Count, c.Watermark, c.IsLastBatch));
+        if (readToEnd)
+            streamed.Should().BeEmpty();
+        else
+            streamed.Should().Equal((0, "w1", true));
     }
 
     [Fact]

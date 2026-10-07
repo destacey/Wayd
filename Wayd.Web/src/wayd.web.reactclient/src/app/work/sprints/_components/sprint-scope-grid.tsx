@@ -1,0 +1,208 @@
+'use client'
+
+import {
+  WaydGrid,
+  renderAssignedToLink,
+  renderSprintLink,
+  renderWorkItemLink,
+  renderWorkStatusTag,
+  workItemKeySort,
+} from '@/src/components/common/wayd-grid'
+import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import {
+  SizingMethod,
+  SprintScopeDto,
+  SprintScopeItemDto,
+} from '@/src/services/wayd-api'
+import { formatInstantInZone, sizingMethodLabel } from '@/src/utils'
+import { Select } from 'antd'
+import { useState } from 'react'
+import {
+  SprintScopeCategory,
+  isInSprintScopeCategory,
+  sprintScopeCategoryLabels,
+  sprintScopeEntryLabels,
+  sprintScopeOutcomeLabels,
+} from './sprint-scope-categories'
+
+export interface SprintScopeGridProps {
+  scope: SprintScopeDto | undefined
+  isLoading: boolean
+  refetch: () => void
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
+}
+
+/**
+ * The work items that were in a sprint's scope, as they are now, with how each
+ * came in and what became of it.
+ */
+const SprintScopeGrid = ({
+  scope,
+  isLoading,
+  refetch,
+  persistStateKey,
+}: SprintScopeGridProps) => {
+  const [category, setCategory] = useState(SprintScopeCategory.All)
+
+  const items = scope?.items ?? []
+  const sizingMethod = scope?.sizingMethod ?? SizingMethod.Count
+  const countSized = sizingMethod === SizingMethod.Count
+  const unit = sizingMethodLabel(sizingMethod)
+  // Column headers are narrow, so Story Points goes by its usual abbreviation.
+  const shortUnit = sizingMethod === SizingMethod.StoryPoints ? 'SP' : unit
+
+  // On the viewer's clock, as the sprint's details and the overview show recorded moments.
+  const viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const formatInstant = (instant: Date | undefined) =>
+    instant ? formatInstantInZone(instant, viewerZone) : null
+
+  const columns: ColumnDef<SprintScopeItemDto, any>[] = [
+    {
+      id: 'key',
+      accessorKey: 'workItem.key',
+      header: 'Key',
+      sortFn: workItemKeySort,
+      cell: ({ row }) =>
+        renderWorkItemLink({
+          key: row.original.workItem.key,
+          workspaceKey: row.original.workItem.workspace.key,
+          externalViewWorkItemUrl:
+            row.original.workItem.externalViewWorkItemUrl,
+        }),
+    },
+    {
+      id: 'type',
+      accessorKey: 'workItem.type',
+      header: 'Type',
+      size: 125,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'title',
+      accessorKey: 'workItem.title',
+      header: 'Title',
+      size: 400,
+    },
+    {
+      id: 'entry',
+      accessorFn: (row) => sprintScopeEntryLabels[row.entry],
+      header: 'Entry',
+      size: 110,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'outcome',
+      accessorFn: (row) => sprintScopeOutcomeLabels[row.outcome],
+      header: 'Outcome',
+      size: 170,
+      meta: { filterType: 'set' },
+    },
+    // Under Count every estimate is 1, which says nothing a row does not.
+    ...(countSized
+      ? []
+      : [
+          {
+            id: 'entryEstimate',
+            accessorKey: 'entryEstimate',
+            header: `Original ${shortUnit}`,
+            size: 110,
+            meta: {
+              headerTooltip: `${unit} when the item came in: at the commitment point if committed, or when it was added`,
+            },
+          } satisfies ColumnDef<SprintScopeItemDto, any>,
+          {
+            id: 'outcomeEstimate',
+            accessorKey: 'outcomeEstimate',
+            header: `Final ${shortUnit}`,
+            size: 110,
+            meta: {
+              headerTooltip: `${unit} when the item was last in the sprint: now if it still is, or when it was completed, removed or the sprint ended`,
+            },
+          } satisfies ColumnDef<SprintScopeItemDto, any>,
+        ]),
+    // The instant is the value, so sorting and filtering compare moments; only
+    // the cell shows it, on the team's clock.
+    {
+      id: 'addedAt',
+      accessorKey: 'addedAt',
+      header: 'Added to Sprint',
+      size: 190,
+      meta: {
+        columnType: 'dateTime',
+        headerTooltip:
+          'When an added item was added to the sprint, on your clock',
+      },
+      cell: ({ row }) => formatInstant(row.original.addedAt),
+    },
+    {
+      id: 'removedAt',
+      accessorKey: 'removedAt',
+      header: 'Removed from Sprint',
+      size: 190,
+      meta: {
+        columnType: 'dateTime',
+        headerTooltip:
+          'When the item was last removed from the sprint — moved elsewhere, not set to a Removed status — on your clock',
+      },
+      cell: ({ row }) => formatInstant(row.original.removedAt),
+    },
+    {
+      id: 'status',
+      accessorKey: 'workItem.status',
+      header: 'Current Status',
+      size: 140,
+      meta: { filterType: 'set' },
+      cell: ({ row }) => renderWorkStatusTag(row.original.workItem),
+    },
+    {
+      id: 'sprint',
+      accessorKey: 'workItem.sprint.name',
+      header: 'Current Sprint',
+      meta: { filterEnableSet: true },
+      cell: ({ row }) =>
+        renderSprintLink(row.original.workItem.sprint, {
+          showTeamCode: false,
+        }),
+    },
+    {
+      id: 'assignedTo',
+      accessorKey: 'workItem.assignedTo.name',
+      header: 'Assigned To',
+      meta: { filterEnableSet: true },
+      cell: ({ row }) => renderAssignedToLink(row.original.workItem.assignedTo),
+    },
+  ]
+
+  const categoryOptions = Object.values(SprintScopeCategory).map((value) => ({
+    value,
+    label: `${sprintScopeCategoryLabels[value]} (${
+      items.filter((item) => isInSprintScopeCategory(item, value)).length
+    })`,
+  }))
+
+  return (
+    <WaydGrid
+      columns={columns}
+      data={items.filter((item) => isInSprintScopeCategory(item, category))}
+      isLoading={isLoading}
+      onRefresh={async () => {
+        refetch()
+      }}
+      leftSlot={
+        <Select
+          aria-label="Scope category"
+          value={category}
+          options={categoryOptions}
+          onChange={setCategory}
+          style={{ minWidth: 180 }}
+        />
+      }
+      persistStateKey={persistStateKey}
+      csvFileName="sprint-scope"
+      emptyMessage="No work items in this category"
+    />
+  )
+}
+
+export default SprintScopeGrid

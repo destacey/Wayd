@@ -67,4 +67,36 @@ public class WorkspaceTests
     }
 
     #endregion
+
+    #region WorkItemHistoryReadToEnd
+
+    [Fact]
+    public void WorkItemHistoryReadToEnd_WhenNotYetRead_RecordsTheInstant()
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker().AsExternal().Generate();
+
+        // Act
+        workspace.WorkItemHistoryReadToEnd(_dateTimeProvider.Now);
+
+        // Assert
+        workspace.WorkItemHistoryBackfilledOn.Should().Be(_dateTimeProvider.Now);
+    }
+
+    [Fact]
+    public void WorkItemHistoryReadToEnd_WhenAlreadyRead_KeepsTheFirstInstant()
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker().AsExternal().Generate();
+        var first = _dateTimeProvider.Now;
+        workspace.WorkItemHistoryReadToEnd(first);
+
+        // Act
+        workspace.WorkItemHistoryReadToEnd(first.Plus(NodaTime.Duration.FromDays(1)));
+
+        // Assert
+        workspace.WorkItemHistoryBackfilledOn.Should().Be(first);
+    }
+
+    #endregion
 }

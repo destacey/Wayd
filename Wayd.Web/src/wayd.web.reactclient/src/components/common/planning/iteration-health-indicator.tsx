@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  calculateCommitmentHealth,
-  calculateIterationHealth,
+  calculateSprintHealth,
   IterationHealthStatus,
+  SprintCommitment,
 } from '@/src/utils/iteration-health'
 import { CalendarDate } from '@/src/utils/calendar-date'
 import { Badge } from 'antd'
@@ -48,7 +48,7 @@ export interface IterationHealthIndicatorProps {
    * added or re-estimated later doesn't count against the team. Without it,
    * health is measured against `total` over the iteration's days.
    */
-  commitment?: { committed: number; start: Date; end: Date }
+  commitment?: SprintCommitment
   /** Show the label text (default: true) */
   showLabel?: boolean
 }
@@ -75,19 +75,13 @@ const IterationHealthIndicator: FC<IterationHealthIndicatorProps> = ({
   showLabel = true,
 }) => {
   const byCommitment = !!commitment && commitment.committed > 0
-  const healthResult = byCommitment
-    ? calculateCommitmentHealth({
-        start: commitment.start,
-        end: commitment.end,
-        committed: commitment.committed,
-        delivered: completed,
-      })
-    : calculateIterationHealth({
-        startDate,
-        endDate,
-        total,
-        completed,
-      })
+  const healthResult = calculateSprintHealth({
+    startDate,
+    endDate,
+    total,
+    completed,
+    commitment,
+  })
 
   const getHealthColor = (
     status: IterationHealthStatus,

@@ -1,6 +1,7 @@
 import {
   calculateCommitmentHealth,
   calculateIterationHealth,
+  calculateSprintHealth,
   IterationHealthStatus,
   sprintActiveDays,
 } from './iteration-health'
@@ -282,5 +283,50 @@ describe('calculateCommitmentHealth', () => {
 
     // Assert
     expect(result.status).toBe(IterationHealthStatus.Unknown)
+  })
+})
+
+describe('calculateSprintHealth', () => {
+  const days = { startDate: '2026-09-28', endDate: '2026-10-11' }
+  const now = new Date('2026-10-06T12:00:00Z')
+
+  it('measures against the commitment when the sprint has one', () => {
+    // Arrange / Act — 19 of 25 committed delivered, though only half of a
+    // grown 40-point scope is done
+    const result = calculateSprintHealth({
+      ...days,
+      total: 40,
+      completed: 19,
+      referenceDate: now,
+      commitment: {
+        committed: 25,
+        start: new Date('2026-09-28T12:00:00Z'),
+        end: new Date('2026-10-12T00:00:00Z'),
+      },
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.OnTrack)
+  })
+
+  it('measures against the total without a commitment', () => {
+    // Arrange / Act — the same 19 of 40 on day 9, by the total
+    const result = calculateSprintHealth({
+      ...days,
+      total: 40,
+      completed: 19,
+      referenceDate: now,
+    })
+
+    // Assert
+    expect(result.status).toBe(
+      calculateIterationHealth({
+        ...days,
+        total: 40,
+        completed: 19,
+        referenceDate: now,
+      }).status,
+    )
+    expect(result.status).not.toBe(IterationHealthStatus.OnTrack)
   })
 })

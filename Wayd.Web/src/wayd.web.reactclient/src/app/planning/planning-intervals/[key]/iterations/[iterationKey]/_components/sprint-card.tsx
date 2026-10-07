@@ -151,6 +151,7 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
             endDate={activeDays.end}
             total={figures.completionBase}
             completed={figures.completed}
+            commitment={figures.scope?.commitment}
           />
         )}
 

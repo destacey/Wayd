@@ -36,11 +36,13 @@ export {
 export {
   calculateCommitmentHealth,
   calculateIterationHealth,
+  calculateSprintHealth,
   sprintActiveDays,
   IterationHealthStatus,
   type CommitmentHealthParams,
   type IterationHealthParams,
   type IterationHealthResult,
+  type SprintCommitment,
 } from './iteration-health'
 export { saveElementAsImage } from './save-element-as-image'
 export { toFileName } from './file-name'

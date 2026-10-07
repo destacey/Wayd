@@ -203,3 +203,34 @@ export function calculateCommitmentHealth(
     return { status: IterationHealthStatus.OffTrack, variancePercent }
   }
 }
+
+/** A sprint's commitment and the instants its burn-down's ideal line runs between. */
+export interface SprintCommitment {
+  committed: number
+  start: Date
+  end: Date
+}
+
+/**
+ * A sprint's health: against its commitment when it has one, as
+ * {@link calculateCommitmentHealth}, or else against its total over its days,
+ * as {@link calculateIterationHealth}. Everything that shows a sprint's health
+ * reads it here, so a tag and a progress bar never disagree.
+ */
+export function calculateSprintHealth(
+  params: IterationHealthParams & { commitment?: SprintCommitment },
+): IterationHealthResult {
+  const { commitment, ...iteration } = params
+  return commitment && commitment.committed > 0
+    ? calculateCommitmentHealth({
+        start: commitment.start,
+        end: commitment.end,
+        committed: commitment.committed,
+        delivered: iteration.completed,
+        now:
+          iteration.referenceDate instanceof Date
+            ? iteration.referenceDate
+            : undefined,
+      })
+    : calculateIterationHealth(iteration)
+}

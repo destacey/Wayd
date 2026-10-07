@@ -1,4 +1,4 @@
-export { daysRemaining, percentageElapsed } from './dates'
+export { daysRemaining, formatInstantInZone, percentageElapsed } from './dates'
 export {
   type CalendarDate,
   calendarDateInZone,

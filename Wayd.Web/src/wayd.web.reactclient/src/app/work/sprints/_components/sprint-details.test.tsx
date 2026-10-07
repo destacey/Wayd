@@ -10,6 +10,10 @@ jest.mock('./sprint-metrics', () => {
   const SprintMetrics = () => <div>Metrics</div>
   return SprintMetrics
 })
+jest.mock('./sprint-scope-summary', () => {
+  const SprintScopeSummary = () => <div>Scope</div>
+  return SprintScopeSummary
+})
 
 const sprint: SprintDetailsDto = {
   id: 'sprint-1',

@@ -1,6 +1,6 @@
 'use client'
 
-import { IconMenu, PageActions } from '@/src/components/common'
+import { IconMenu, PageActions, WaydTooltip } from '@/src/components/common'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -10,6 +10,7 @@ import {
   useGetSprintBacklogQuery,
   useGetSprintMetricsQuery,
   useGetSprintQuery,
+  useGetSprintScopeQuery,
   useLazyGetSprintActivitiesQuery,
 } from '@/src/store/features/work-management/sprints-api'
 import {
@@ -27,12 +28,13 @@ import {
   SprintBacklogGrid,
   SprintDetails,
   SprintLifecycleAction,
+  SprintScopeGrid,
 } from '@/src/app/work/sprints/_components'
 import { IterationStateTag } from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
 import { useGetTeamSprintsQuery } from '@/src/store/features/organizations/team-api'
 import { SwapOutlined } from '@ant-design/icons'
-import { Space } from 'antd'
+import { Alert, Segmented, Space } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import SprintFacts from './_components/sprint-facts'
@@ -41,6 +43,11 @@ enum SprintSections {
   Overview = 'overview',
   Backlog = 'backlog',
   Activities = 'activities',
+}
+
+enum BacklogView {
+  Scope = 'scope',
+  Current = 'current',
 }
 
 const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -68,17 +75,34 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     skip: !sprintKey,
   })
 
+  // Scope exists from the commitment point on; before it, the sprint holds
+  // only what is planned, which the current items show.
+  const scopeAvailable =
+    sprint?.state.id === IterationState.Active ||
+    sprint?.state.id === IterationState.Completed
+  const [backlogView, setBacklogView] = useState(BacklogView.Scope)
+  const showsScope = scopeAvailable && backlogView === BacklogView.Scope
+  const onBacklog = !!sprintKey && activeSection === SprintSections.Backlog
+
   const {
     data: workItems,
     isLoading: workItemsLoading,
     refetch: refetchWorkItems,
   } = useGetSprintBacklogQuery(sprintKey, {
-    skip: !sprintKey || activeSection !== SprintSections.Backlog,
+    skip: !onBacklog || showsScope,
   })
 
   // The sprint's sizing method on its planned start, which its metrics report.
   const { data: sprintMetrics } = useGetSprintMetricsQuery(sprintKey, {
-    skip: !sprintKey || activeSection !== SprintSections.Backlog,
+    skip: !onBacklog || showsScope,
+  })
+
+  const {
+    data: scope,
+    isLoading: scopeLoading,
+    refetch: refetchScope,
+  } = useGetSprintScopeQuery(sprintKey, {
+    skip: !onBacklog || !showsScope,
   })
 
   const activitiesQuery = useGetSprintActivitiesQuery(
@@ -182,15 +206,62 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       case SprintSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       case SprintSections.Backlog:
+        // Block-level children: the grid collapses as a flex item.
         return (
-          <SprintBacklogGrid
-            workItems={workItems ?? []}
-            isLoading={workItemsLoading}
-            refetch={refetchWorkItems}
-            hideTeamColumn
-            sizingMethod={sprintMetrics?.sizingMethod}
-            persistStateKey="sprint-backlog"
-          />
+          <>
+            {scopeAvailable && (
+              <div style={{ marginBottom: 8 }}>
+                <Segmented<BacklogView>
+                  value={backlogView}
+                  onChange={setBacklogView}
+                  options={[
+                    {
+                      value: BacklogView.Scope,
+                      label: (
+                        <WaydTooltip title="Every item that was in the sprint between its commitment point and its end, from work item history">
+                          Sprint Scope
+                        </WaydTooltip>
+                      ),
+                    },
+                    {
+                      value: BacklogView.Current,
+                      label: (
+                        <WaydTooltip title="The items in the sprint right now">
+                          Current Items
+                        </WaydTooltip>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
+            )}
+            {showsScope ? (
+              scope?.historyIncomplete ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  title="History incomplete — run a full sync"
+                  description="This sprint's scope comes from work item history, which has not yet been read in full for every workspace holding its work. A full sync of the connection completes it; until then, Current Items shows what is in the sprint now."
+                />
+              ) : (
+                <SprintScopeGrid
+                  scope={scope}
+                  isLoading={scopeLoading}
+                  refetch={refetchScope}
+                  persistStateKey="sprint-scope"
+                />
+              )
+            ) : (
+              <SprintBacklogGrid
+                workItems={workItems ?? []}
+                isLoading={workItemsLoading}
+                refetch={refetchWorkItems}
+                hideTeamColumn
+                sizingMethod={sprintMetrics?.sizingMethod}
+                persistStateKey="sprint-backlog"
+              />
+            )}
+          </>
         )
       default:
         return (

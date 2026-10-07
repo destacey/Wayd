@@ -42,3 +42,23 @@ export function percentageElapsed(
   const percentage = (elapsedDays / totalDays) * 100
   return Math.min(100, percentage)
 }
+
+/**
+ * An instant as the clock read in `timeZone`, an IANA id such as a team's,
+ * with the zone's abbreviation so the reader knows which clock it is. Takes
+ * the ISO string a `Date`-typed field really holds as well as a `Date`.
+ */
+export function formatInstantInZone(
+  instant: Date | string,
+  timeZone: string,
+): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(new Date(instant))
+}

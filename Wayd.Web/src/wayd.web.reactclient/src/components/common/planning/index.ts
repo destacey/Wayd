@@ -11,4 +11,5 @@ export { default as PlanningIntervalObjectivesGrid } from '@/src/app/planning/pl
 export { default as RisksGrid } from './risks-grid'
 export { default as SprintBacklogGrid } from './sprint-backlog-grid'
 export { default as SprintLink } from './sprint-link'
+export { default as SprintSayDoMetric } from './sprint-say-do-metric'
 export { default as SprintsGrid } from './sprints-grid'

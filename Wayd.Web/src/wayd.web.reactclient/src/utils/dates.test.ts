@@ -1,4 +1,18 @@
-import { daysRemaining, percentageElapsed } from './dates'
+import { daysRemaining, formatInstantInZone, percentageElapsed } from './dates'
+
+describe('formatInstantInZone', () => {
+  it('shows the clock in the given zone, with its abbreviation', () => {
+    expect(formatInstantInZone('2026-09-15T05:00:00Z', 'America/Chicago')).toBe(
+      'Sep 15, 2026, 12:00 AM CDT',
+    )
+  })
+
+  it('takes a Date as well as an ISO string', () => {
+    expect(formatInstantInZone(new Date('2026-09-15T05:00:00Z'), 'UTC')).toBe(
+      'Sep 15, 2026, 5:00 AM UTC',
+    )
+  })
+})
 
 describe('daysRemaining', () => {
   it('should return the number of days remaining for a future date', () => {

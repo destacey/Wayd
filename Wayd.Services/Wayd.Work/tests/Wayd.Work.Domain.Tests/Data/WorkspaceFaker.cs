@@ -1,3 +1,4 @@
+using NodaTime;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Models;
@@ -85,6 +86,12 @@ public static class WorkspaceFakerExtensions
     public static WorkspaceFaker WithWorkItemHistoryWatermark(this WorkspaceFaker faker, string? watermark)
     {
         faker.RuleFor(x => x.WorkItemHistoryWatermark, watermark);
+        return faker;
+    }
+
+    public static WorkspaceFaker WithWorkItemHistoryBackfilledOn(this WorkspaceFaker faker, Instant? backfilledOn)
+    {
+        faker.RuleFor(x => x.WorkItemHistoryBackfilledOn, backfilledOn);
         return faker;
     }
 }

@@ -310,17 +310,20 @@ public sealed class WorkSyncRunner(
     private async Task<HistorySyncOutcome> SyncWorkItemHistory(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, SyncType syncType, CancellationToken cancellationToken)
     {
         string? watermark;
+        bool readToEnd;
         if (syncType == SyncType.Full)
         {
+            // A full sync is rare enough that applying its last batch unconditionally costs nothing.
             watermark = null;
+            readToEnd = false;
         }
         else
         {
-            var watermarkResult = await _dispatcher.Send(new GetWorkItemHistoryWatermarkQuery(target.InternalWorkspaceId), cancellationToken);
-            if (watermarkResult.IsFailure)
-                return new HistorySyncOutcome(0, 0, watermarkResult.Error);
+            var cursorResult = await _dispatcher.Send(new GetWorkItemHistoryWatermarkQuery(target.InternalWorkspaceId), cancellationToken);
+            if (cursorResult.IsFailure)
+                return new HistorySyncOutcome(0, 0, cursorResult.Error);
 
-            watermark = watermarkResult.Value;
+            (watermark, readToEnd) = cursorResult.Value;
         }
 
         var revisions = 0;
@@ -336,9 +339,10 @@ public sealed class WorkSyncRunner(
             var batch = batchResult.Value;
             var advanced = batch.NextWatermark != watermark;
 
-            // A last batch is applied even when empty: it marks the workspace's history as read to the
-            // end, which a workspace already up to date at upgrade would otherwise never record.
-            if (batch.Revisions.Count > 0 || advanced || batch.IsLastBatch)
+            // Until the history has been read to the end once, a last batch is applied even when empty:
+            // applying it records that, which a workspace already up to date at upgrade would otherwise
+            // never do. After that an empty batch that does not advance changes nothing.
+            if (batch.Revisions.Count > 0 || advanced || (batch.IsLastBatch && !readToEnd))
             {
                 var applyResult = await _dispatcher.Send(
                     new SyncExternalWorkItemHistoryCommand(connectionId, target.InternalWorkspaceId, batch.Revisions, batch.NextWatermark, batch.IsLastBatch),

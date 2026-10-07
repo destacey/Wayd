@@ -119,7 +119,7 @@ Sprint metrics provide quantitative insight into a sprint's progress and deliver
 
 ### The Sprint Overview
 
-The sprint page's Overview shows two rows of cards, then where the sprint's commitment point and end came from and the time zone they're in.
+The sprint page's Overview shows two rows of cards, the [burn charts](#burn-up-and-burn-down), then where the sprint's commitment point and end came from and the time zone they're in. The **Story Points / Count** switch above the cards changes the cards and both charts together, and Wayd remembers your choice.
 
 **Progress** — how the sprint's work is going:
 
@@ -147,6 +147,15 @@ The sprint page's Overview shows two rows of cards, then where the sprint's comm
 **Predictability and Say/Do** both compare delivery with the commitment, and read differently on purpose. Predictability asks whether the team delivered *as much as* it committed: finished added work stands in for committed work it didn't finish. Say/Do asks whether it delivered *what* it committed: only the committed items count. A team that swaps committed stories for new ones keeps its Predictability and loses Say/Do.
 
 Velocity comes from the sprint's scope, so carried-over work stays in the measure after it has moved on. Until the sprint has a scope — before its commitment point, or while its [history is incomplete](#sprint-scope) — Velocity is measured on the items in the sprint now, the commitment cards and Predictability are hidden, and a warning says why. The page header's health indicator compares Velocity with everything in the sprint but descoped work, against the time elapsed.
+
+### Burn-up and Burn-down
+
+Under the cards, two charts show the sprint day by day, from the same work item history as [Sprint Scope](#sprint-scope):
+
+- **Burn-up** — **Scope**, the work in the sprint, and **Completed**, the part of it in a Done or Removed status category. Work added after the commitment point steps scope up, descoped work steps it down, and re-estimating an item moves it on the day it was re-estimated. Work completed and then moved out of the sprint stays in both lines.
+- **Burn-down** — **Remaining** (scope less completed), and a dashed **Ideal** line falling evenly from the committed work at the commitment point to zero at the sprint's end. Reopened work counts as remaining again.
+
+Each chart has a reading at the commitment point, at the end of each day in the team's time zone, and at the sprint's end — or now, for a sprint still running, whose lines stop there. A day's changes show on that day. Both charts span the whole sprint, so their days line up, and they agree with the scope cards: at the start, Scope equals **Committed**; at the end, Completed equals **Velocity**. Weekends and team days off aren't skipped yet. While the sprint's [history is incomplete](#sprint-scope) the charts are hidden.
 
 **Correcting the commitment point.** The commitment point is the team's recorded start, so committed points are the estimates at that moment. If the team was still sizing work after pressing Start, correct the start to when sizing finished. The date pickers in **Start**, **Complete** and **Correct Actual Dates** use your time zone and name it, along with the team's when it differs. Azure DevOps shows work item history in your profile's time zone too.
 

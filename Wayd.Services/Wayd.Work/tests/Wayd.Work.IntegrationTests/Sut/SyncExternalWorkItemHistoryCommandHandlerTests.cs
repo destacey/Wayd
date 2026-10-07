@@ -33,9 +33,10 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         var (workspaceId, workItemId) = await Seed(ct);
 
         // Act
-        await Sync(workspaceId, Revisions(), "token-1", ct);
+        var opened = await Sync(workspaceId, Revisions(), "token-1", ct);
 
         // Assert
+        opened.Should().Be(3);
         await using var verify = new WaydDbContextAccessor(_fixture);
         var periods = await verify.Context.WorkItemStateHistory.AsNoTracking()
             .Where(h => h.WorkItemId == workItemId)
@@ -62,9 +63,10 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         var before = await Snapshot(ct);
 
         // Act
-        await Sync(workspaceId, Revisions(), "token-1", ct);
+        var opened = await Sync(workspaceId, Revisions(), "token-1", ct);
 
         // Assert
+        opened.Should().Be(0);
         (await Snapshot(ct)).Should().Equal(before);
     }
 
@@ -86,6 +88,141 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         periods.Select(p => p.StatusName).Should().Equal("New", "Active", "Closed");
         periods.Count(p => p.ValidTo == null).Should().Be(1);
         (await WatermarkOf(verify.Context, workspaceId, ct)).Should().Be("token-2");
+    }
+
+    [Fact]
+    public async Task Handle_ARevisionArrivingAfterLaterOnes_RebuildsThePeriodsAroundIt()
+    {
+        // Arrange — the item left for another project and came back: the revision made there
+        // arrives through that project's sync, after the later revisions. Without it, revision 4
+        // matches revision 2 and merges into its period.
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, workItemId) = await Seed(ct);
+        var day = Duration.FromDays(1);
+        await Sync(workspaceId,
+        [
+            new ExternalRevision(ExternalWorkItemId, 1, Start, "History Story", "New"),
+            new ExternalRevision(ExternalWorkItemId, 2, Start.Plus(day), "History Story", "Active"),
+            new ExternalRevision(ExternalWorkItemId, 4, Start.Plus(day * 3), "History Story", "Active"),
+        ], "token-1", ct);
+
+        // Act
+        var written = await Sync(workspaceId,
+        [
+            new ExternalRevision(ExternalWorkItemId, 3, Start.Plus(day * 2), "History Story", "Blocked"),
+        ], "token-2", ct);
+
+        // Assert
+        written.Should().Be(4);
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var periods = await verify.Context.WorkItemStateHistory.AsNoTracking()
+            .Where(h => h.WorkItemId == workItemId)
+            .OrderBy(h => h.ValidFrom)
+            .ToListAsync(ct);
+        periods.Select(p => (p.Revision, p.StatusName, p.ValidFrom, p.ValidTo)).Should().Equal(
+            (1, "New", Start, Start.Plus(day)),
+            (2, "Active", Start.Plus(day), Start.Plus(day * 2)),
+            (3, "Blocked", Start.Plus(day * 2), Start.Plus(day * 3)),
+            (4, "Active", Start.Plus(day * 3), (Instant?)null));
+    }
+
+    [Fact]
+    public async Task Handle_StoresEveryRevisionOnce()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, workItemId) = await Seed(ct);
+        await Sync(workspaceId, Revisions(), "token-1", ct);
+
+        // Act
+        await Sync(workspaceId, Revisions(), "token-1", ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var stored = await verify.Context.WorkItemSourceRevisions.AsNoTracking()
+            .Where(r => r.WorkItemId == workItemId)
+            .OrderBy(r => r.Revision)
+            .Select(r => new { r.Revision, r.StatusName })
+            .ToListAsync(ct);
+        stored.Select(r => (r.Revision, r.StatusName)).Should().Equal(
+            (1, "New"), (2, "Active"), (3, "Active"), (4, "Closed"));
+    }
+
+    [Fact]
+    public async Task Handle_AFill_RebuildsAroundTheMissingRevisionAndKeepsTheWatermark()
+    {
+        // Arrange — the stream held revisions 1, 2 and 4; revision 3 was made in a project no
+        // workspace syncs, so the fill fetches the item's whole history from the item
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, workItemId) = await Seed(ct);
+        var day = Duration.FromDays(1);
+        List<IExternalWorkItemRevision> all =
+        [
+            new ExternalRevision(ExternalWorkItemId, 1, Start, "History Story", "New"),
+            new ExternalRevision(ExternalWorkItemId, 2, Start.Plus(day), "History Story", "Active"),
+            new ExternalRevision(ExternalWorkItemId, 3, Start.Plus(day * 2), "History Story", "Blocked"),
+            new ExternalRevision(ExternalWorkItemId, 4, Start.Plus(day * 3), "History Story", "Active"),
+        ];
+        await Sync(workspaceId, [all[0], all[1], all[3]], "token-1", ct);
+
+        // Act
+        await Sync(workspaceId, all, null, ct, filledWorkItemIds: [ExternalWorkItemId]);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await WatermarkOf(verify.Context, workspaceId, ct)).Should().Be("token-1");
+        var periods = await verify.Context.WorkItemStateHistory.AsNoTracking()
+            .Where(h => h.WorkItemId == workItemId)
+            .OrderBy(h => h.ValidFrom)
+            .ToListAsync(ct);
+        periods.Select(p => (p.Revision, p.StatusName)).Should().Equal((1, "New"), (2, "Active"), (3, "Blocked"), (4, "Active"));
+        periods.Should().OnlyContain(p => p.WorkspaceId == workspaceId);
+        var fill = await verify.Context.WorkItemRevisionFills.AsNoTracking().SingleAsync(f => f.WorkItemId == workItemId, ct);
+        fill.HighestRevision.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task Handle_AFillThatReturnedNothing_StillRecordsTheItemAsFilled()
+    {
+        // Arrange — the source would not return the item's revisions
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, workItemId) = await Seed(ct);
+        await Sync(workspaceId, Revisions().Skip(1).ToList(), "token-1", ct);
+
+        // Act
+        await Sync(workspaceId, [], null, ct, filledWorkItemIds: [ExternalWorkItemId]);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var fill = await verify.Context.WorkItemRevisionFills.AsNoTracking().SingleAsync(f => f.WorkItemId == workItemId, ct);
+        fill.HighestRevision.Should().Be(4);
+        (await WatermarkOf(verify.Context, workspaceId, ct)).Should().Be("token-1");
+    }
+
+    [Fact]
+    public async Task Handle_AnItemWithAVeryLongHistory_IsStoredInOneBatch()
+    {
+        // Arrange — a fill brings an item's whole history at once; an item edited by automation can
+        // have thousands of revisions, more than SQL Server takes as separate parameters
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, workItemId) = await Seed(ct);
+        await Sync(workspaceId, Revisions().Take(1).ToList(), "token-1", ct);
+        var revisions = Enumerable.Range(1, 2_500)
+            .Select(rev => (IExternalWorkItemRevision)new ExternalRevision(ExternalWorkItemId, rev, Start.Plus(Duration.FromMinutes(rev)), "History Story", rev % 2 == 0 ? "Active" : "New"))
+            .ToList();
+
+        // Act
+        await Sync(workspaceId, revisions, null, ct, filledWorkItemIds: [ExternalWorkItemId]);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await verify.Context.WorkItemSourceRevisions.CountAsync(r => r.WorkItemId == workItemId, ct)).Should().Be(2_500);
+        (await verify.Context.WorkItemStateHistory.CountAsync(h => h.WorkItemId == workItemId, ct)).Should().Be(2_500);
     }
 
     [Fact]
@@ -163,6 +300,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         await using var verify = new WaydDbContextAccessor(_fixture);
         (await verify.Context.WorkItems.AnyAsync(w => w.Id == workItemId, ct)).Should().BeFalse();
         (await verify.Context.WorkItemStateHistory.AnyAsync(h => h.WorkItemId == workItemId, ct)).Should().BeFalse();
+        (await verify.Context.WorkItemSourceRevisions.AnyAsync(r => r.WorkItemId == workItemId, ct)).Should().BeFalse();
     }
 
     [Fact]
@@ -217,14 +355,16 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         new ExternalRevision(ExternalWorkItemId, 4, Start.Plus(Duration.FromDays(3)), "History Story", "Closed"),
     ];
 
-    private async Task Sync(Guid workspaceId, IReadOnlyList<IExternalWorkItemRevision> revisions, string? watermark, CancellationToken ct)
+    /// <returns>The number of periods the batch opened.</returns>
+    private async Task<int> Sync(Guid workspaceId, IReadOnlyList<IExternalWorkItemRevision> revisions, string? watermark, CancellationToken ct, IReadOnlyCollection<int>? filledWorkItemIds = null)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
 
-        var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, watermark), ct);
+        var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, watermark, filledWorkItemIds), ct);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        return result.Value;
     }
 
     private async Task<List<(Guid, int, Instant, Instant?, string)>> Snapshot(CancellationToken ct)
@@ -239,77 +379,15 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
     private static Task<string?> WatermarkOf(WaydDbContext context, Guid workspaceId, CancellationToken ct) =>
         context.Workspaces.Where(w => w.Id == workspaceId).Select(w => w.WorkItemHistoryWatermark).SingleAsync(ct);
 
-    // Straight through SQL: a valid WorkItem needs a workspace, process, type and status that this
-    // test never reads through the aggregates.
     private async Task<(Guid WorkspaceId, Guid WorkItemId)> Seed(CancellationToken ct)
     {
-        var workProcessId = Guid.CreateVersion7();
-        var workspaceId = Guid.CreateVersion7();
-        var workItemId = Guid.CreateVersion7();
-
-        await using var context = _fixture.CreateContext();
-        await context.Database.ExecuteSqlInterpolatedAsync(
-            $"""
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkTypeLevels] WHERE [Name] = 'History Level')
-                INSERT INTO [Work].[WorkTypeLevels]
-                    ([Name], [Tier], [Ownership], [Order], [SystemCreated], [SystemLastModified])
-                VALUES ('History Level', 'Requirement', 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
-
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkTypes] WHERE [Name] = 'History Story')
-                INSERT INTO [Work].[WorkTypes]
-                    ([Name], [IsActive], [IsDeleted], [LevelId], [SystemCreated], [SystemLastModified])
-                SELECT 'History Story', 1, 0, MAX([Id]), SYSUTCDATETIME(), SYSUTCDATETIME()
-                FROM [Work].[WorkTypeLevels] WHERE [Name] = 'History Level';
-
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkStatuses] WHERE [Name] = 'History Status')
-                INSERT INTO [Work].[WorkStatuses]
-                    ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                VALUES ('History Status', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
-
-            INSERT INTO [Work].[WorkProcesses]
-                ([Id], [Name], [Ownership], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-            VALUES ({workProcessId}, 'History Process', 'Managed', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
-
-            INSERT INTO [Work].[Workspaces]
-                ([Id], [Key], [Name], [Ownership], [SystemId], [WorkProcessId], [IsActive], [IsDeleted],
-                 [SystemCreated], [SystemLastModified])
-            VALUES ({workspaceId}, 'HIST', 'History Workspace', 'Managed', {SystemId}, {workProcessId}, 1, 0,
-                    SYSUTCDATETIME(), SYSUTCDATETIME());
-
-            DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = 'History Story');
-            DECLARE @StatusId int = (SELECT TOP 1 [Id] FROM [Work].[WorkStatuses] WHERE [Name] = 'History Status');
-
-            INSERT INTO [Work].[WorkItems]
-                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
-                 [StatusCategory], [Created], [LastModified], [StackRank],
-                 [SystemCreated], [SystemLastModified])
-            VALUES ({workItemId}, 'HIST-1', 'History item', {workspaceId}, {ExternalWorkItemId}, @TypeId, @StatusId,
-                    'Done', SYSUTCDATETIME(), SYSUTCDATETIME(), 1, SYSUTCDATETIME(), SYSUTCDATETIME());
-            """,
-            ct);
-
+        var workspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "HIST", ct);
+        var workItemId = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, ExternalWorkItemId, ct);
         return (workspaceId, workItemId);
     }
 
-    /// <summary>A second managed workspace in the same source system, sharing the seeded process.</summary>
-    private async Task<Guid> SeedSiblingWorkspace(Guid seededWorkspaceId, CancellationToken ct)
-    {
-        var workspaceId = Guid.CreateVersion7();
-
-        await using var context = _fixture.CreateContext();
-        await context.Database.ExecuteSqlInterpolatedAsync(
-            $"""
-            INSERT INTO [Work].[Workspaces]
-                ([Id], [Key], [Name], [Ownership], [SystemId], [WorkProcessId], [IsActive], [IsDeleted],
-                 [SystemCreated], [SystemLastModified])
-            SELECT {workspaceId}, 'HIST2', 'Former History Workspace', 'Managed', {SystemId}, [WorkProcessId], 1, 0,
-                   SYSUTCDATETIME(), SYSUTCDATETIME()
-            FROM [Work].[Workspaces] WHERE [Id] = {seededWorkspaceId};
-            """,
-            ct);
-
-        return workspaceId;
-    }
+    private Task<Guid> SeedSiblingWorkspace(Guid seededWorkspaceId, CancellationToken ct) =>
+        WorkItemHistorySeeder.SeedSiblingWorkspace(_fixture, seededWorkspaceId, "HIST2", ct);
 
     private sealed record ExternalRevision(int WorkItemId, int Revision, Instant Changed, string WorkType, string WorkStatus) : IExternalWorkItemRevision
     {

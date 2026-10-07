@@ -9,8 +9,9 @@ namespace Wayd.Work.Domain.Models;
 /// where <c>ValidFrom &lt;= T</c> and <c>ValidTo</c> is null or after T.
 /// </summary>
 /// <remarks>
-/// Imported from the source's revisions, not raised by Wayd: writing a period raises no domain
-/// event. The rows are deleted with their work item.
+/// Built from the item's <see cref="WorkItemSourceRevision"/>s, not raised by Wayd: writing a period
+/// raises no domain event. A revision that arrives out of order rebuilds the item's periods. The rows
+/// are deleted with their work item.
 /// </remarks>
 public sealed class WorkItemStateHistory : BaseEntity<long>
 {
@@ -42,8 +43,9 @@ public sealed class WorkItemStateHistory : BaseEntity<long>
     public Guid WorkItemId { get; private init; }
 
     /// <summary>
-    /// The workspace whose sync wrote the period. An item that moved workspace keeps the periods
-    /// written before the move under the workspace it was in.
+    /// The workspace whose sync read the revision that opened the period. An item that moved between
+    /// synced workspaces keeps the periods from before the move under the workspace it was in; time in
+    /// a project no workspace syncs is recorded under the workspace the item is in.
     /// </summary>
     public Guid WorkspaceId { get; private init; }
 

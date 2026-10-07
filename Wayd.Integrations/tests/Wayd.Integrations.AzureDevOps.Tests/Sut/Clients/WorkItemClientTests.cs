@@ -163,6 +163,118 @@ public class WorkItemClientTests
         _handler.Requests.Should().HaveCount(2);
     }
 
+    [Fact]
+    public async Task GetWorkItemRevisions_WithNoContinuationToken_RequestsFieldsTypesAndIdentityRefsFromTheStart()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.OK, RevisionBatchJson(isLastBatch: true, continuationToken: "watermark-1"));
+
+        // Act
+        await _sut.GetWorkItemRevisions(ProjectName, null, ["System.Id", "System.State"], ["User Story", "Bug"], TestContext.Current.CancellationToken);
+
+        // Assert
+        var request = _handler.Requests.Should().ContainSingle().Subject;
+        request.Uri!.AbsolutePath.Should().Be($"/acme/{ProjectName}/_apis/wit/reporting/workitemrevisions");
+        var query = Uri.UnescapeDataString(request.Uri.Query);
+        query.Should().Contain("fields=System.Id,System.State");
+        query.Should().Contain("types=User Story,Bug");
+        query.Should().Contain("includeIdentityRef=true");
+        query.Should().NotContain("continuationToken");
+    }
+
+    [Fact]
+    public async Task GetWorkItemRevisions_WithContinuationToken_ResumesFromIt()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.OK, RevisionBatchJson(isLastBatch: false, continuationToken: "watermark-2"));
+
+        // Act
+        await _sut.GetWorkItemRevisions(ProjectName, "watermark-1", ["System.Id"], [], TestContext.Current.CancellationToken);
+
+        // Assert
+        var request = _handler.Requests.Should().ContainSingle().Subject;
+        request.Uri!.Query.Should().Contain("continuationToken=watermark-1");
+        request.Uri.Query.Should().NotContain("types=");
+    }
+
+    [Fact]
+    public async Task GetWorkItemRevisions_ReturnsOnePageWithItsTokenAndRevisionFields()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.OK, RevisionBatchJson(isLastBatch: false, continuationToken: "watermark-2"));
+
+        // Act
+        var result = await _sut.GetWorkItemRevisions(ProjectName, "watermark-1", ["System.Id"], [], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsLastBatch.Should().BeFalse();
+        result.ContinuationToken.Should().Be("watermark-2");
+        var revision = result.Values.Should().ContainSingle().Subject;
+        revision.Id.Should().Be(101);
+        revision.Rev.Should().Be(3);
+        revision.Fields!.ChangedDate.Should().Be(new DateTimeOffset(2026, 1, 2, 10, 0, 0, TimeSpan.Zero));
+        revision.Fields.WorkItemType.Should().Be("User Story");
+        revision.Fields.State.Should().Be("Active");
+        revision.Fields.IterationId.Should().Be(5);
+        revision.Fields.AssignedTo!.Id.Should().Be("8c8c7d32-6b1b-47f4-b2e9-30b477b5ab3d");
+        revision.Fields.StoryPoints.Should().Be(3);
+        revision.Fields.Effort.Should().BeNull();
+        _handler.Requests.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetWorkItemRevisions_WithFailedResponse_ThrowsWithStatusAndBodyDetail()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.BadRequest, """{"message":"bad continuation token"}""");
+
+        // Act
+        var act = () => _sut.GetWorkItemRevisions(ProjectName, "watermark-1", ["System.Id"], [], TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<Exception>()
+            .WithMessage($"*revisions*{ProjectName}*400*bad continuation token*");
+    }
+
+    [Fact]
+    public async Task GetRevisionsOfWorkItem_PagesUntilAShortPage()
+    {
+        // Arrange - a full page of 200 forces a second request
+        _handler.EnqueueResponse(HttpStatusCode.OK, RevisionListJson(1, 200));
+        _handler.EnqueueResponse(HttpStatusCode.OK, RevisionListJson(201, 3));
+
+        // Act
+        var result = await _sut.GetRevisionsOfWorkItem(101, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().HaveCount(203);
+        _handler.Requests.Should().HaveCount(2);
+        _handler.Requests[0].Uri!.AbsolutePath.Should().Be("/acme/_apis/wit/workItems/101/revisions");
+        _handler.Requests[0].Uri!.Query.Should().Contain("%24skip=0");
+        _handler.Requests[1].Uri!.Query.Should().Contain("%24skip=200");
+    }
+
+    [Fact]
+    public async Task GetRevisionsOfWorkItem_ForAnItemThatNoLongerExists_ReturnsNone()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.NotFound, """{"message":"TF401232: Work item 101 does not exist"}""");
+
+        // Act
+        var result = await _sut.GetRevisionsOfWorkItem(101, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    private static string RevisionListJson(int firstRevision, int count)
+    {
+        var items = string.Join(",", Enumerable.Range(firstRevision, count).Select(rev => $$$"""
+            {"id":101,"rev":{{{rev}}},"fields":{"System.ChangedDate":"2026-01-02T10:00:00Z","System.WorkItemType":"User Story","System.State":"Active"}}
+            """));
+        return $$"""{"count":{{count}},"value":[{{items}}]}""";
+    }
+
     private static int CountIdsInBody(string body)
     {
         using var document = JsonDocument.Parse(body);
@@ -198,6 +310,37 @@ public class WorkItemClientTests
                             "changedOperation": "create",
                             "sourceProjectId": "6ff2ee2f-9d9b-40b1-9502-e4c00a318c00",
                             "targetProjectId": "6ff2ee2f-9d9b-40b1-9502-e4c00a318c00"
+                        }
+                    }
+                ],
+                "isLastBatch": {{(isLastBatch ? "true" : "false")}},
+                "continuationToken": "{{continuationToken}}",
+                "nextLink": "https://dev.azure.com/acme/next"
+            }
+            """;
+    }
+
+    private static string RevisionBatchJson(bool isLastBatch, string continuationToken)
+    {
+        return $$"""
+            {
+                "values": [
+                    {
+                        "id": 101,
+                        "rev": 3,
+                        "fields": {
+                            "System.Id": 101,
+                            "System.Rev": 3,
+                            "System.ChangedDate": "2026-01-02T10:00:00Z",
+                            "System.WorkItemType": "User Story",
+                            "System.State": "Active",
+                            "System.IterationId": 5,
+                            "System.AssignedTo": {
+                                "id": "8c8c7d32-6b1b-47f4-b2e9-30b477b5ab3d",
+                                "displayName": "Dev One",
+                                "uniqueName": "dev@acme.example"
+                            },
+                            "Microsoft.VSTS.Scheduling.StoryPoints": 3
                         }
                     }
                 ],

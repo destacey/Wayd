@@ -21,7 +21,9 @@ public sealed class WorkItemStateTimeline
     /// <param name="workItemId">The work item.</param>
     /// <param name="workspaceId">The workspace being synced.</param>
     /// <param name="openPeriod">The item's current period, tracked so closing it is saved; null when it has none.</param>
-    /// <param name="lastRevision">The highest revision that opened any of the item's periods; 0 when it has none.</param>
+    /// <param name="lastRevision">
+    /// The highest revision already applied, including those merged into a period; 0 when none was.
+    /// </param>
     public WorkItemStateTimeline(Guid workItemId, Guid workspaceId, WorkItemStateHistory? openPeriod, int lastRevision)
     {
         _workItemId = workItemId;
@@ -34,7 +36,8 @@ public sealed class WorkItemStateTimeline
     /// Applies a revision, returning the period it opened, or null when it was already applied or
     /// changed no tracked field.
     /// </summary>
-    public WorkItemStateHistory? Apply(int revision, Instant changed, WorkItemTrackedState state)
+    /// <param name="workspaceId">The workspace whose sync read the revision; the timeline's when null.</param>
+    public WorkItemStateHistory? Apply(int revision, Instant changed, WorkItemTrackedState state, Guid? workspaceId = null)
     {
         if (revision <= _lastRevision)
             return null;
@@ -51,7 +54,7 @@ public sealed class WorkItemStateTimeline
         var validFrom = _open is not null && changed < _open.ValidFrom ? _open.ValidFrom : changed;
 
         _open?.Close(validFrom);
-        _open = WorkItemStateHistory.Open(_workItemId, _workspaceId, revision, validFrom, state);
+        _open = WorkItemStateHistory.Open(_workItemId, workspaceId ?? _workspaceId, revision, validFrom, state);
 
         return _open;
     }

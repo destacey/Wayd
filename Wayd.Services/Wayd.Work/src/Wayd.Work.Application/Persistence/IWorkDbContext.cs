@@ -10,6 +10,8 @@ public interface IWorkDbContext : IWaydDbContext
     DbSet<WorkItemDependency> WorkItemDependencies { get; }
     DbSet<WorkItemHierarchy> WorkItemHierarchies { get; }
     DbSet<WorkItemStateHistory> WorkItemStateHistory { get; }
+    DbSet<WorkItemSourceRevision> WorkItemSourceRevisions { get; }
+    DbSet<WorkItemRevisionFill> WorkItemRevisionFills { get; }
     DbSet<WorkProcess> WorkProcesses { get; }
     DbSet<WorkProject> WorkProjects { get; }
     DbSet<Workspace> Workspaces { get; }

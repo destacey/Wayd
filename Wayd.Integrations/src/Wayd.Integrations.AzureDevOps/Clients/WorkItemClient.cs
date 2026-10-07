@@ -163,6 +163,69 @@ internal sealed class WorkItemClient : BaseClient
         return workItemLinks;
     }
 
+    /// <summary>
+    /// Reads one page of the project's work item revisions, continuing from
+    /// <paramref name="continuationToken"/>, or from the project's first revision when it is null.
+    /// </summary>
+    internal async Task<BatchResponse<ReportingWorkItemRevisionResponse>> GetWorkItemRevisions(string projectName, string? continuationToken, string[] fields, string[] workItemTypes, CancellationToken cancellationToken)
+    {
+        Guard.Against.NullOrWhiteSpace(projectName, nameof(projectName));
+
+        var request = new RestRequest($"/{projectName}/_apis/wit/reporting/workitemrevisions", Method.Get);
+        SetupRequest(request);
+
+        request.AddQueryParameter("fields", string.Join(",", fields));
+        if (workItemTypes.Length > 0)
+        {
+            request.AddQueryParameter("types", string.Join(",", workItemTypes));
+        }
+        // Without it, identity fields arrive as "Name <address>" strings, which carry no identity id to map on.
+        request.AddQueryParameter("includeIdentityRef", "true");
+        if (!string.IsNullOrEmpty(continuationToken))
+        {
+            request.AddQueryParameter("continuationToken", continuationToken);
+        }
+
+        var response = await ExecuteAsync<BatchResponse<ReportingWorkItemRevisionResponse>>(request, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessful)
+        {
+            throw new Exception($"Error getting work item revisions for project {projectName} from Azure DevOps: {response.GetErrorText()}");
+        }
+
+        return response.Data ?? throw new Exception($"Successful response, but no work item revision data returned for project {projectName} from Azure DevOps");
+    }
+
+    /// <summary>
+    /// Reads every revision of one work item, whichever projects it was in. Empty when the item no
+    /// longer exists.
+    /// </summary>
+    internal async Task<List<ReportingWorkItemRevisionResponse>> GetRevisionsOfWorkItem(int workItemId, CancellationToken cancellationToken)
+    {
+        const int pageSize = 200;
+
+        var revisions = new List<ReportingWorkItemRevisionResponse>();
+        while (true)
+        {
+            // The organization-level route: an item's revisions are not scoped to the project it is in now.
+            var request = new RestRequest($"/_apis/wit/workItems/{workItemId}/revisions", Method.Get);
+            SetupRequest(request);
+            request.AddQueryParameter("$top", pageSize);
+            request.AddQueryParameter("$skip", revisions.Count);
+
+            var response = await ExecuteAsync<ListResponse<ReportingWorkItemRevisionResponse>>(request, cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return [];
+            if (!response.IsSuccessful)
+                throw new Exception($"Error getting revisions of work item {workItemId} from Azure DevOps: {response.GetErrorText()}");
+
+            var page = response.Data?.Value ?? [];
+            revisions.AddRange(page);
+
+            if (page.Count < pageSize)
+                return revisions;
+        }
+    }
+
     internal async Task<int[]> GetDeletedWorkItemIds(string projectName, CancellationToken cancellationToken)
     {
         Guard.Against.NullOrWhiteSpace(projectName, nameof(projectName));

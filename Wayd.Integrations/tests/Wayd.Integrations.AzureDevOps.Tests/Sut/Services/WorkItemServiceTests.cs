@@ -117,6 +117,23 @@ public class WorkItemServiceTests
             "Microsoft.VSTS.Scheduling.Size"]);
     }
 
+    [Fact]
+    public async Task GetRevisionsOfWorkItems_WithAnItemThatFails_SkipsItAndReturnsTheRest()
+    {
+        // Arrange - the first item is forbidden; the second reads normally
+        _handler.EnqueueResponse(HttpStatusCode.Forbidden, """{"message":"TF237111: access denied"}""");
+        _handler.EnqueueResponse(HttpStatusCode.OK, """
+            {"count":1,"value":[{"id":102,"rev":1,"fields":{"System.ChangedDate":"2026-01-02T10:00:00Z","System.WorkItemType":"Bug","System.State":"New"}}]}
+            """);
+
+        // Act
+        var result = await _sut.GetRevisionsOfWorkItems([101, 102], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().ContainSingle().Which.Id.Should().Be(102);
+    }
+
     private static string GetWiqlQuery(string requestBody)
     {
         using var document = JsonDocument.Parse(requestBody);

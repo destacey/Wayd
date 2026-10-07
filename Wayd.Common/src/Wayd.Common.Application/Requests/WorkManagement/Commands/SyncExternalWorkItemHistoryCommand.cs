@@ -4,18 +4,26 @@ using Wayd.Common.Application.Validators;
 namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 
 /// <summary>
-/// Applies one batch of a workspace's work item revisions to its effective-dated history, and
-/// records the watermark the batch ends at in the same save.
+/// Stores one batch of work item revisions and brings the affected items' effective-dated history
+/// up to date, recording the watermark the batch ends at in the same save. Returns the number of
+/// history periods written.
 /// </summary>
 /// <param name="ConnectionId">The connection whose sync produced the revisions. Scopes external identity mappings.</param>
-/// <param name="WorkspaceId">The workspace the revisions belong to.</param>
+/// <param name="WorkspaceId">The workspace whose sync read the revisions.</param>
 /// <param name="Revisions">The batch's revisions, in any order.</param>
 /// <param name="Watermark">The source's token for where this batch ends.</param>
+/// <param name="FilledWorkItemIds">
+/// Set when the revisions were fetched from these items to fill their missing revision numbers:
+/// they lie outside the workspace's stream, so the watermark stays where it was, and each item is
+/// recorded as filled so one whose gap cannot be closed is not fetched again until it changes.
+/// The source's ids, which may include items it returned no revisions for.
+/// </param>
 public sealed record SyncExternalWorkItemHistoryCommand(
     Guid ConnectionId,
     Guid WorkspaceId,
     IReadOnlyList<IExternalWorkItemRevision> Revisions,
-    string? Watermark) : ICommand, ILongRunningRequest;
+    string? Watermark,
+    IReadOnlyCollection<int>? FilledWorkItemIds = null) : ICommand<int>, ILongRunningRequest;
 
 public sealed class SyncExternalWorkItemHistoryCommandValidator : CustomValidator<SyncExternalWorkItemHistoryCommand>
 {

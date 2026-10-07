@@ -535,6 +535,119 @@ public class AzureDevOpsWorkItemSourceTests
         result.Value.PartialFailureMessage.Should().BeNull();
     }
 
+    // -------- GetWorkItemHistory --------
+
+    [Fact]
+    public async Task GetWorkItemHistory_ReadsRevisionsOfSyncedTypesFromTheWatermark()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+        StubWorkspaceWorkTypes("User Story", "Bug");
+        var revisions = new List<IExternalWorkItemRevision> { Mock.Of<IExternalWorkItemRevision>() };
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkItemRevisions(It.IsAny<AzureDevOpsConnectionContext>(), "Project", "watermark-1", new[] { "User Story", "Bug" }, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new AzureDevOpsWorkItemRevisionsBatch(revisions, "watermark-2", false)));
+
+        // Act
+        var result = await _sut.GetWorkItemHistory(target, "watermark-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Revisions.Should().BeSameAs(revisions);
+        result.Value.NextWatermark.Should().Be("watermark-2");
+        result.Value.IsLastBatch.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetWorkItemHistory_WithNoContinuationToken_KeepsTheWatermark()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+        StubWorkspaceWorkTypes("User Story");
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkItemRevisions(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new AzureDevOpsWorkItemRevisionsBatch([], null, true)));
+
+        // Act
+        var result = await _sut.GetWorkItemHistory(target, "watermark-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.NextWatermark.Should().Be("watermark-1");
+        result.Value.IsLastBatch.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetWorkItemHistory_WhenAzureDevOpsFails_ReturnsFailure()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+        StubWorkspaceWorkTypes("User Story");
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkItemRevisions(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<AzureDevOpsWorkItemRevisionsBatch>("AzDO returned 500"));
+
+        // Act
+        var result = await _sut.GetWorkItemHistory(target, null, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("AzDO returned 500");
+    }
+
+    [Fact]
+    public async Task GetWorkItemHistory_ReadsTheWorkspaceWorkTypesOncePerBind()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+        StubWorkspaceWorkTypes("User Story");
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkItemRevisions(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new AzureDevOpsWorkItemRevisionsBatch([], "watermark-2", false)));
+
+        // Act
+        await _sut.GetWorkItemHistory(target, null, TestContext.Current.CancellationToken);
+        await _sut.GetWorkItemHistory(target, "watermark-2", TestContext.Current.CancellationToken);
+
+        // Assert
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<GetWorkspaceWorkTypesQuery>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllRevisions_ReadsTheRevisionsOfTheGivenItems()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+        var revisions = new List<IExternalWorkItemRevision> { Mock.Of<IExternalWorkItemRevision>() };
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetRevisionsOfWorkItems(It.IsAny<AzureDevOpsConnectionContext>(), It.Is<IReadOnlyCollection<int>>(ids => ids.SequenceEqual(new[] { 7, 9 })), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(revisions));
+
+        // Act
+        var result = await _sut.GetAllRevisions(target, [7, 9], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeSameAs(revisions);
+    }
+
+    private void StubWorkspaceWorkTypes(params string[] names)
+    {
+        var workTypes = names
+            .Select(name => Mock.Of<IWorkTypeDto>(t => t.Name == name))
+            .ToList();
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetWorkspaceWorkTypesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(workTypes.AsReadOnly() as IReadOnlyList<IWorkTypeDto>));
+    }
+
     // -------- RefreshOrganizationConfiguration delegates to init manager --------
 
     [Fact]

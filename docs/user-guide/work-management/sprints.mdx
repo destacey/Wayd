@@ -84,7 +84,8 @@ The sprint detail page shows:
 - **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), and the sprint's length in days
 - **Team** link and timeline progress bar
 - **Sprint Metrics** (for Active/Completed sprints) — see [Sprint Metrics](#sprint-metrics) below
-- **Backlog grid** — [Work items](./work-items.mdx#work-items) in the sprint with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team
+- **Scope** (for Active/Completed sprints) — committed, added, completed, carried over and descoped work, and the say/do ratio. See [Sprint Scope](#sprint-scope) below
+- **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only
 - **Activity** — the sprint's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx)
 - **Links** section
 
@@ -105,6 +106,7 @@ Each card shows:
 - **Sprint health indicator**
 - **Timeline progress** — Days elapsed and percentage complete
 - **Completion Rate**, **Velocity**, **In Progress**, and **Avg Cycle Time** metrics
+- **Say/Do so far** — the share of the sprint's committed work completed so far (see [Sprint Scope](#sprint-scope)), when anything was committed and the sprint's history is complete
 - **Predictability** — If the sprint is mapped to a Planning Interval and the team has objectives, a predictability card appears per PI (links to the team's plan review page)
 
 The panel is only visible if you have at least one active team sprint.
@@ -160,3 +162,33 @@ When viewing a [PI iteration](../planning/planning-intervals.mdx#pi-iteration-de
 - **Estimates** are summed only when every sprint is measured in the same sizing method. When teams size in different units, estimates are never added together: the iteration's totals are counts, and each team's sprint card shows its own unit
 - **Average Cycle Time** is the average of each sprint's average cycle time (simple average, not weighted)
 - **Team Count** and **Sprint Count** show how many teams and sprints are included
+
+## Sprint Scope
+
+The metrics above count what is in the sprint **now**. An item carried over to the next sprint disappears from them, and an item added mid-sprint looks as if it was planned. **Sprint Scope** answers what the team committed to and what became of it, from each work item's history: where it was, its status and its estimate at every moment since it was created. History comes from the [Azure DevOps sync](../../reference/integrations/azure-devops.mdx).
+
+Scope is measured between the sprint's **commitment point** — when the team started it, or the end of the [commitment grace period](#starting-completing-and-reopening-a-sprint) after its planned start — and its **effective end** — when the team completed it, or the end of its last planned day. The page says which each one is, and shows their times in the team's zone. Only requirement-tier work counts: tasks are excluded, and bugs count only where the process puts them at the requirement level. A change of work type out of that tier counts as leaving the sprint, and one into it as entering.
+
+Each item that was in the sprint has one way in and one outcome:
+
+| Category | Rule |
+|---|---|
+| **Committed** | In the sprint at the commitment point. An item taken out and put back is still committed. |
+| **Added** | Entered the sprint after the commitment point and before the effective end. |
+| **Completed** | In a Done-category status when it was last in the sprint — at the effective end, or when it left. |
+| **Completed as Removed** | Reached a Removed-category status while in the sprint. It counts as completed and the team gets credit, and is shown as a sub-count of Completed. |
+| **Carried Over** | Unfinished and still in the sprint at the effective end, or moved to the team's next sprint on or after the sprint's last day. |
+| **Descoped** | Unfinished and taken out of the sprint before its last day — or on it, for somewhere other than the team's next sprint. |
+| **Remaining** | Unfinished and still in a sprint that has not ended yet. |
+
+**The sprint's last day** is its last planned day, or the day the team completed it if that came first. So a team that plans the Friday before a Monday holiday — moving its unfinished work to the next sprint and starting it that afternoon — carries that work over rather than descoping it.
+
+**Say/Do** is the committed work that was completed, divided by the committed work. Work added after the commitment point doesn't count either way. In estimates, both sides use the estimate each item had at the commitment point, so re-estimating an item during the sprint doesn't move the ratio. While the sprint runs it shows as **Say/Do so far**.
+
+Like the metrics, scope is measured in the team's sizing method, with a selector to count work items instead. An item's estimate is the one it had when it came in for Committed and Added, and the one it had when it was last in the sprint for the outcomes. A sprint whose team is not mapped to a Wayd team uses the system default time zone and grace period and counts work items, and the page says so.
+
+Scope is worked out each time it is shown, never stored. A late sync, a corrected actual date or a full sync changes past sprints' scope the next time you look.
+
+**Deleted work items** don't appear. A work item deleted in Azure DevOps is deleted from Wayd with its history, so it drops out of every sprint's scope. To take work out of a sprint and keep the record, move it or set it to a Removed status.
+
+**History incomplete.** Until a workspace's history has been read through to the end once — the first sync after upgrading, or after the workspace is added — its history is missing its most recent changes. A sprint holding work from such a workspace shows **History incomplete — run a full sync** instead of its scope. A full sync of the connection completes it; Current Items still shows what is in the sprint meanwhile.

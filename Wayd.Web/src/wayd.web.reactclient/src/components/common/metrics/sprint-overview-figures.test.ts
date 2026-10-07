@@ -63,7 +63,34 @@ describe('sprintOverviewFigures', () => {
       carriedOver: 8,
       descoped: 4,
       sayDo: 6 / 18,
+      predictability: 11 / 18,
     })
+  })
+
+  it('caps predictability at 100% when velocity passes the commitment', () => {
+    // Arrange / Act
+    const result = sprintOverviewFigures(
+      metrics,
+      { ...scope, totals: { ...scope.totals, completed: measure(6, 25) } },
+      false,
+      afterCommitment,
+    )
+
+    // Assert
+    expect(result.scope?.predictability).toBe(1)
+  })
+
+  it('has no predictability when nothing was committed', () => {
+    // Arrange / Act
+    const result = sprintOverviewFigures(
+      metrics,
+      { ...scope, totals: { ...scope.totals, committed: measure(0, 0) } },
+      false,
+      afterCommitment,
+    )
+
+    // Assert
+    expect(result.scope?.predictability).toBeNull()
   })
 
   it('takes work in progress and not started from the current items', () => {

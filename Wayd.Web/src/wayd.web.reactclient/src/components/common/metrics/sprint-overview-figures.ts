@@ -10,6 +10,12 @@ export interface SprintScopeFigures {
   descoped: number
   /** Completed of committed ÷ committed; null when nothing was committed. */
   sayDo: number | null
+  /**
+   * Velocity ÷ committed, capped at 1: how much of what the team committed to
+   * it delivered, letting finished added work stand in for committed work.
+   * Null when nothing was committed.
+   */
+  predictability: number | null
 }
 
 /**
@@ -76,6 +82,10 @@ export const sprintOverviewFigures = (
       carriedOver: value(totals.carriedOver),
       descoped: value(totals.descoped),
       sayDo: (byCount ? totals.sayDoCount : totals.sayDoEstimate) ?? null,
+      predictability:
+        value(totals.committed) > 0
+          ? Math.min(value(totals.completed) / value(totals.committed), 1)
+          : null,
     },
   }
 }

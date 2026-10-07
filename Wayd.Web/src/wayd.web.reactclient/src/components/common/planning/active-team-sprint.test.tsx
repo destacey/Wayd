@@ -185,7 +185,7 @@ describe('ActiveTeamSprint', () => {
     )
   })
 
-  it('measures completion on the scope once the sprint has one, and shows say/do', () => {
+  it('shows predictability and say/do once the sprint has a commitment', () => {
     // Arrange
     const measure = (count: number, estimate: number) => ({ count, estimate })
     ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({
@@ -214,9 +214,11 @@ describe('ActiveTeamSprint', () => {
     render(<ActiveTeamSprint teamId="team-1" />)
 
     // Assert
-    expect(screen.getByTestId('completion-rate-metric')).toHaveTextContent(
-      '30/40 Effort',
-    )
+    // Velocity 30 of 40 committed.
+    expect(screen.getByTestId('metric-Predictability')).toHaveTextContent('75')
+    expect(
+      screen.queryByTestId('completion-rate-metric'),
+    ).not.toBeInTheDocument()
     expect(screen.getByTestId('iteration-health-indicator')).toHaveTextContent(
       'Health: 30/40',
     )

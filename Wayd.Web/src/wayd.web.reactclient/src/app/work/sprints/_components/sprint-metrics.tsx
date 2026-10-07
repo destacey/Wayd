@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  CompletionRateMetric,
   CycleTimeMetric,
   DaysCountdownMetric,
   HealthMetric,
@@ -71,7 +70,6 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
   const measure = sizingMethodMeasure(
     showsCount ? SizingMethod.Count : sizingMethod,
   )
-  const tooltipUnit = showsCount ? SizingMethod.Count : sizingMethod
 
   const figures = sprintOverviewFigures(metrics, scope, showsCount)
   const scopeFigures = figures.scope
@@ -147,11 +145,15 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
             endDate={activeDays.end}
           />
         )}
-        <CompletionRateMetric
-          completed={figures.completed}
-          total={figures.completionBase}
-          tooltip={tooltipUnit}
-        />
+        {scopeFigures?.predictability != null && (
+          <MetricCard
+            title="Predictability"
+            value={scopeFigures.predictability * 100}
+            precision={0}
+            suffix="%"
+            tooltip={`Velocity ÷ the ${measure} committed at the commitment point, up to 100%. Finished work added after the commitment point counts toward it.`}
+          />
+        )}
         <MetricCard
           title="Velocity"
           value={figures.completed}

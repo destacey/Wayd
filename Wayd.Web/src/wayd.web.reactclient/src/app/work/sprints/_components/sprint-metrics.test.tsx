@@ -206,8 +206,9 @@ describe('SprintMetrics', () => {
       expect(screen.getByTestId('value-Committed')).toHaveTextContent('90')
       expect(screen.getByTestId('value-Added')).toHaveTextContent('30')
       expect(screen.getByTestId('value-Velocity')).toHaveTextContent('60')
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent(
-        '60/110',
+      // Velocity 60 of 90 committed.
+      expect(screen.getByTestId('value-Predictability')).toHaveTextContent(
+        '66.6',
       )
       expect(screen.getByTestId('value-Say/Do so far')).toHaveTextContent('50')
       expect(screen.getByTestId('value-Descoped')).toHaveTextContent('10')
@@ -235,7 +236,7 @@ describe('SprintMetrics', () => {
         )
       expect(titlesIn(rowOf('Velocity'))).toEqual([
         'countdown-metric',
-        'metric-Completion Rate',
+        'metric-Predictability',
         'metric-Velocity',
         'metric-In Progress',
         'metric-Not Started',
@@ -314,9 +315,9 @@ describe('SprintMetrics', () => {
         screen.getByText('History incomplete — run a full sync'),
       ).toBeInTheDocument()
       expect(screen.getByTestId('value-Velocity')).toHaveTextContent('50')
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent(
-        '50/100',
-      )
+      expect(
+        screen.queryByTestId('metric-Predictability'),
+      ).not.toBeInTheDocument()
       expect(screen.queryByTestId('metric-Committed')).not.toBeInTheDocument()
       expect(screen.queryByTestId('metric-Descoped')).not.toBeInTheDocument()
       expect(
@@ -419,7 +420,7 @@ describe('SprintMetrics', () => {
   })
 
   describe('health indicator', () => {
-    it('measures health on the same completion as the Completion Rate card', async () => {
+    it('measures health on work done against everything in the sprint but descoped work', async () => {
       // Arrange
       const onHealthIndicatorReady = jest.fn()
 

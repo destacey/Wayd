@@ -105,11 +105,22 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         />
         <Row gutter={[8, 8]}>
           <Col xs={12}>
-            <CompletionRateMetric
-              completed={figures.completed}
-              total={figures.completionBase}
-              tooltip={sizingMethod}
-            />
+            {figures.scope?.predictability != null ? (
+              <MetricCard
+                title="Predictability"
+                value={figures.scope.predictability * 100}
+                precision={0}
+                suffix="%"
+                tooltip={`Velocity ÷ the ${measure} committed at the commitment point, up to 100%.`}
+              />
+            ) : (
+              // Before the sprint has a commitment there is nothing to divide by.
+              <CompletionRateMetric
+                completed={figures.completed}
+                total={figures.completionBase}
+                tooltip={sizingMethod}
+              />
+            )}
           </Col>
           <Col xs={12}>
             <MetricCard

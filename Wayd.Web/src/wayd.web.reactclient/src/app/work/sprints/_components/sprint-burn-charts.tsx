@@ -38,6 +38,9 @@ interface BurnChartProps {
   colors: string[]
   timeZone: string
   measure: string
+  /** The sprint's span, which both charts share so their days line up; a running sprint's lines stop at now. */
+  start: Date
+  end: Date
   isLoading: boolean
 }
 
@@ -49,6 +52,8 @@ const BurnChart: FC<BurnChartProps> = ({
   colors,
   timeZone,
   measure,
+  start,
+  end,
   isLoading,
 }) => {
   const { antDesignChartsTheme } = useTheme()
@@ -77,8 +82,10 @@ const BurnChart: FC<BurnChartProps> = ({
     xField: 'at',
     yField: 'value',
     colorField: 'series',
+    shapeField: 'shape',
     scale: {
-      x: { type: 'time' },
+      x: { type: 'time', domain: [start, end] },
+      shape: { type: 'identity' },
       y: { nice: true, domainMin: 0 },
       color: { domain: series, range: colors },
     },
@@ -96,7 +103,7 @@ const BurnChart: FC<BurnChartProps> = ({
       y: { title: measure, gridStrokeOpacity: 0.2 },
     },
     legend: {
-      color: { layout: { justifyContent: 'center' }, itemMarker: 'line' },
+      color: { layout: { justifyContent: 'center' }, itemMarker: 'square' },
     },
     interaction: { tooltip: { crosshairs: true, shared: true } },
     tooltip: {
@@ -155,6 +162,8 @@ const SprintBurnCharts: FC<SprintBurnChartsProps> = ({
     byCount ? SizingMethod.Count : sizingMethod,
   )
   const timeZone = burn?.timeZone ?? 'UTC'
+  const start = new Date(burn?.effectiveStart ?? 0)
+  const end = new Date(burn?.effectiveEnd ?? 0)
 
   return (
     <div style={CHARTS_GRID}>
@@ -166,6 +175,8 @@ const SprintBurnCharts: FC<SprintBurnChartsProps> = ({
         colors={[token.colorTextTertiary, token.colorSuccess]}
         timeZone={timeZone}
         measure={measure}
+        start={start}
+        end={end}
         isLoading={isLoading}
       />
       <BurnChart
@@ -176,6 +187,8 @@ const SprintBurnCharts: FC<SprintBurnChartsProps> = ({
         colors={[token.colorPrimary, token.colorTextQuaternary]}
         timeZone={timeZone}
         measure={measure}
+        start={start}
+        end={end}
         isLoading={isLoading}
       />
     </div>

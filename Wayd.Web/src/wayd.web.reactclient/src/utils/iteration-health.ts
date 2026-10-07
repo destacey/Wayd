@@ -3,7 +3,6 @@ import {
   calendarDaysBetween,
   CalendarDate,
 } from './calendar-date'
-import { percentageElapsed } from './dates'
 
 /**
  * Represents the health status of an iteration (sprint or PI iteration).
@@ -152,45 +151,49 @@ export function calculateIterationHealth(
  * Parameters for measuring a sprint's health against its commitment.
  */
 export interface CommitmentHealthParams {
-  /** First day of the sprint */
-  startDate: CalendarDate
-  /** Last day of the sprint */
-  endDate: CalendarDate
+  /** The commitment point: where the burn-down's ideal line starts */
+  start: Date | string
+  /** The effective end: where the ideal line reaches zero */
+  end: Date | string
   /** The work committed at the commitment point */
   committed: number
   /** The work completed so far: the sprint's velocity */
   delivered: number
-  /** Optional reference day (defaults to today in the viewer's calendar) */
-  referenceDate?: CalendarDate | Date
+  /** Optional moment to measure at (defaults to now) */
+  now?: Date
 }
 
 /**
  * A sprint's health measured against what the team committed to: its velocity
- * as a share of the commitment, against the share of the sprint elapsed (day 9
- * of 14 is 64%), on the same thresholds as {@link calculateIterationHealth}.
- * Work added or re-estimated after the commitment point doesn't count against
- * the team, matching the burn-down's ideal line from the committed work to zero.
- * Delivery past the commitment isn't capped, so it always reads as on track.
+ * as a share of the commitment, against the share of the time elapsed from the
+ * commitment point to the effective end, on the same thresholds as
+ * {@link calculateIterationHealth}. Those are the instants the burn-down's
+ * ideal line runs between, so health asks for exactly the progress the line
+ * shows. Work added or re-estimated after the commitment point doesn't count
+ * against the team; delivery past the commitment isn't capped, so it always
+ * reads as on track.
  */
 export function calculateCommitmentHealth(
   params: CommitmentHealthParams,
 ): IterationHealthResult {
-  const { startDate, endDate, committed, delivered, referenceDate } = params
+  const { committed, delivered } = params
+  const start = new Date(params.start).getTime()
+  const end = new Date(params.end).getTime()
+  const now = (params.now ?? new Date()).getTime()
 
-  const now = referenceDate ?? new Date()
-  if (calendarDaysBetween(startDate, now) < 0) {
+  if (now < start) {
     return { status: IterationHealthStatus.NotStarted, variancePercent: 0 }
   }
-  if (calendarDaysBetween(endDate, now) > 0) {
+  if (now >= end) {
     return { status: IterationHealthStatus.Completed, variancePercent: 0 }
   }
-  if (committed <= 0) {
+  if (committed <= 0 || end <= start) {
     return { status: IterationHealthStatus.Unknown, variancePercent: 0 }
   }
 
   // Positive is behind: less delivered than the time elapsed calls for.
-  const variancePercent =
-    percentageElapsed(startDate, endDate, now) - (delivered / committed) * 100
+  const elapsedPercent = ((now - start) / (end - start)) * 100
+  const variancePercent = elapsedPercent - (delivered / committed) * 100
 
   if (variancePercent <= 10) {
     return { status: IterationHealthStatus.OnTrack, variancePercent }

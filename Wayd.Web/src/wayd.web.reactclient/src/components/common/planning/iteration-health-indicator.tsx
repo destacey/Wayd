@@ -14,7 +14,8 @@ import { PresetStatusColorType } from 'antd/es/_util/colors'
 const commitmentHealthTooltip = (
   <div>
     Health compares the work completed, as a share of what the team committed
-    to, with the share of the sprint elapsed:
+    to, with the share of the time elapsed from the commitment point to the end
+    of the sprint — where the ideal line on the burn-down expects it:
     <br />• On Track: Within 10% of the time elapsed
     <br />• At Risk: 10-25% behind
     <br />• Off Track: More than 25% behind
@@ -41,12 +42,13 @@ export interface IterationHealthIndicatorProps {
   /** Completed points/items */
   completed: number
   /**
-   * The work committed at the sprint's commitment point. When given, health is
-   * measured against it — completed as a share of committed, against the time
-   * elapsed — so work added or re-estimated later doesn't count against the
-   * team. Without it, health is measured against `total`.
+   * The sprint's commitment, and the instants its burn-down's ideal line runs
+   * between. When given, health is measured against it — completed as a share
+   * of committed, against the time elapsed between those instants — so work
+   * added or re-estimated later doesn't count against the team. Without it,
+   * health is measured against `total` over the iteration's days.
    */
-  committed?: number
+  commitment?: { committed: number; start: Date; end: Date }
   /** Show the label text (default: true) */
   showLabel?: boolean
 }
@@ -69,15 +71,15 @@ const IterationHealthIndicator: FC<IterationHealthIndicatorProps> = ({
   endDate,
   total,
   completed,
-  committed,
+  commitment,
   showLabel = true,
 }) => {
-  const byCommitment = committed !== undefined && committed > 0
+  const byCommitment = !!commitment && commitment.committed > 0
   const healthResult = byCommitment
     ? calculateCommitmentHealth({
-        startDate,
-        endDate,
-        committed,
+        start: commitment.start,
+        end: commitment.end,
+        committed: commitment.committed,
         delivered: completed,
       })
     : calculateIterationHealth({

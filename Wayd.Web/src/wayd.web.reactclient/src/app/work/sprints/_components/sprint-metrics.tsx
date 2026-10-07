@@ -89,7 +89,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
           endDate={activeDays.end}
           total={figures.completionBase}
           completed={figures.completed}
-          committed={figures.scope?.committed}
+          commitment={figures.scope?.commitment}
         />,
       )
     }
@@ -98,7 +98,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
     activeDays.start,
     figures.completed,
     figures.completionBase,
-    figures.scope?.committed,
+    figures.scope?.commitment,
     isLoading,
     metrics,
     onHealthIndicatorReady,

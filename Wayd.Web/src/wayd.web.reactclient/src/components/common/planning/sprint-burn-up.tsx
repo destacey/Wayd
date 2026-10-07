@@ -20,12 +20,33 @@ export interface SprintBurnUpProps {
  */
 const SprintBurnUp: FC<SprintBurnUpProps> = ({ sprintKey, sizingMethod }) => {
   const { token } = theme.useToken()
-  const { data: burn } = useGetSprintBurnQuery(sprintKey)
+  const { data: burn, isLoading } = useGetSprintBurnQuery(sprintKey)
+  const measure = sizingMethodMeasure(sizingMethod)
+  const series = [BurnSeries.Scope, BurnSeries.Completed]
+  const colors = [token.colorTextTertiary, token.colorSuccess]
+
+  // Drawn at its full height while loading, so the card doesn't grow when the
+  // chart arrives.
+  if (isLoading)
+    return (
+      <BurnChart
+        compact
+        title="Burn-up"
+        tooltip=""
+        data={[]}
+        series={series}
+        colors={colors}
+        timeZone="UTC"
+        measure={measure}
+        start={new Date(0)}
+        end={new Date(0)}
+        isLoading
+      />
+    )
 
   if (!burn || burn.historyIncomplete || burn.points.length === 0) return null
 
   const { burnUp } = sprintBurnSeries(burn, sizingMethod === SizingMethod.Count)
-  const measure = sizingMethodMeasure(sizingMethod)
 
   return (
     <BurnChart
@@ -33,8 +54,8 @@ const SprintBurnUp: FC<SprintBurnUpProps> = ({ sprintKey, sizingMethod }) => {
       title="Burn-up"
       tooltip={`The ${measure} in the sprint and the part of it completed, day by day. A rising scope line is work added or re-estimated.`}
       data={burnUp}
-      series={[BurnSeries.Scope, BurnSeries.Completed]}
-      colors={[token.colorTextTertiary, token.colorSuccess]}
+      series={series}
+      colors={colors}
       timeZone={burn.timeZone}
       measure={measure}
       start={new Date(burn.effectiveStart)}

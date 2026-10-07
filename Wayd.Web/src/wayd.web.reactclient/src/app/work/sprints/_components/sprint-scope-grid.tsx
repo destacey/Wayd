@@ -122,7 +122,7 @@ const SprintScopeGrid = ({
           } satisfies ColumnDef<SprintScopeItemDto, any>,
         ]),
     // The instant is the value, so sorting and filtering compare moments; only
-    // the cell shows it, on the team's clock.
+    // the cell shows it, on the viewer's clock.
     {
       id: 'addedAt',
       accessorKey: 'addedAt',

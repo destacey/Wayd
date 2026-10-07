@@ -87,7 +87,7 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         endDate={activeDays.end}
         total={figures.completionBase}
         completed={figures.completed}
-        committed={figures.scope?.committed}
+        commitment={figures.scope?.commitment}
       />
     </Flex>
   )

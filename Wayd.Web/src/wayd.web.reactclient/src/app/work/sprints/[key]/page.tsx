@@ -1,6 +1,7 @@
 'use client'
 
 import { IconMenu, PageActions, WaydTooltip } from '@/src/components/common'
+import { scopeIsReadable } from '@/src/components/common/metrics'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -93,11 +94,13 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     skip: !onBacklog || !scopeAvailable,
   })
 
-  // Incomplete history leaves nothing to show in the scope view, so the
-  // current items stand in for it.
+  // Incomplete history leaves nothing to show in the scope view, and so does a
+  // sprint still in its commitment grace period: it is Active from its planned
+  // start, but has no scope until its commitment point. The current items stand
+  // in for it until then.
   const historyIncomplete = !!scope?.historyIncomplete
-  const showsScope =
-    scopeAvailable && !historyIncomplete && backlogView === BacklogView.Scope
+  const offersScope = scopeAvailable && (!scope || scopeIsReadable(scope))
+  const showsScope = offersScope && backlogView === BacklogView.Scope
 
   const {
     data: workItems,
@@ -225,7 +228,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 description="This sprint's scope comes from work item history, which has not yet been read in full for every workspace holding its work. A full sync of the connection completes it; until then, these are the items in the sprint now."
               />
             )}
-            {scopeAvailable && !historyIncomplete && (
+            {offersScope && (
               <div style={{ marginBottom: 8 }}>
                 <Segmented<BacklogView>
                   value={backlogView}

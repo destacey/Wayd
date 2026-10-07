@@ -27,7 +27,8 @@ export interface SprintBurnChartsProps {
 
 /**
  * A sprint's burn-up and burn-down, from work item history. Nothing while the
- * sprint's history is incomplete: the overview already says so.
+ * sprint's history is incomplete — the overview already says so — or when the
+ * burn could not be read.
  */
 const SprintBurnCharts: FC<SprintBurnChartsProps> = ({
   sprintKey,
@@ -35,9 +36,11 @@ const SprintBurnCharts: FC<SprintBurnChartsProps> = ({
   sizingMethod,
 }) => {
   const { token } = theme.useToken()
-  const { data: burn, isLoading } = useGetSprintBurnQuery(sprintKey)
+  const { data: burn, isLoading, isError } = useGetSprintBurnQuery(sprintKey)
 
-  if (burn?.historyIncomplete) return null
+  // A failed read shows nothing rather than an empty chart that would read as
+  // a sprint not yet started.
+  if (isError || burn?.historyIncomplete) return null
 
   const { burnUp, burnDown } = sprintBurnSeries(burn, byCount)
   const measure = sizingMethodMeasure(

@@ -106,7 +106,7 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
                 endDate={activeDays.end}
                 total={figures.completionBase}
                 completed={figures.completed}
-                committed={figures.scope?.committed}
+                commitment={figures.scope?.commitment}
               />
               {unitTag}
             </Flex>
@@ -137,7 +137,7 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
                 endDate={activeDays.end}
                 total={figures.completionBase}
                 completed={figures.completed}
-                committed={figures.scope?.committed}
+                commitment={figures.scope?.commitment}
               />
               {unitTag}
             </Flex>

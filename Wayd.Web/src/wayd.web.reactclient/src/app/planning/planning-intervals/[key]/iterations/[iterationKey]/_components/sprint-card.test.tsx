@@ -67,14 +67,14 @@ jest.mock('@/src/components/common/planning', () => ({
   IterationHealthIndicator: ({
     total,
     completed,
-    committed,
+    commitment,
   }: {
     total: number
     completed: number
-    committed?: number
+    commitment?: { committed: number }
   }) => (
     <div data-testid="iteration-health-indicator">
-      Health: {completed}/{committed ?? total}
+      Health: {completed}/{commitment?.committed ?? total}
     </div>
   ),
   SprintSayDoMetric: () => <div data-testid="metric-Say/Do" />,

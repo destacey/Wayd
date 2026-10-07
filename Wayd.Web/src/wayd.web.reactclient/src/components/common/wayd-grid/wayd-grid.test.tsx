@@ -286,7 +286,7 @@ describe('WaydGrid', () => {
         key: 1,
         name: 'Alpha',
         status: { name: 'Active' },
-        team: { name: 'Juice' },
+        team: { name: 'Nova' },
       },
       { key: 2, name: 'Beta', status: { name: 'Closed' }, team: null },
     ]
@@ -319,7 +319,7 @@ describe('WaydGrid', () => {
       // Assert — nested values are present, not blank
       expect(csv).toContain('Active')
       expect(csv).toContain('Closed')
-      expect(csv).toContain('Juice')
+      expect(csv).toContain('Nova')
     })
 
     it('excludes hidden columns (meta.unavailable) from the export', () => {
@@ -487,7 +487,7 @@ describe('WaydGrid', () => {
         team: string | null
       }
       const data: Item[] = [
-        { id: 1, name: 'alpha', team: 'Juice' },
+        { id: 1, name: 'alpha', team: 'Nova' },
         { id: 2, name: 'beta', team: null },
       ]
       const cols: ColumnDef<Item, unknown>[] = [
@@ -506,7 +506,7 @@ describe('WaydGrid', () => {
       act(() => {
         ref
           .current!.table.getColumn('team')!
-          .setFilterValue({ type: 'set', values: ['Juice'] })
+          .setFilterValue({ type: 'set', values: ['Nova'] })
       })
       expect(bodyCells('name').map((c) => c.textContent)).toEqual(['alpha'])
 
@@ -1134,7 +1134,7 @@ describe('WaydGrid', () => {
     }
 
     const rows: Row[] = [
-      { id: 1, name: 'alpha', team: { name: 'Juice' } },
+      { id: 1, name: 'alpha', team: { name: 'Nova' } },
       { id: 2, name: 'beta' }, // no team — the hop TanStack would warn on
     ]
 
@@ -1152,7 +1152,7 @@ describe('WaydGrid', () => {
         render(<WaydGrid<Row> data={rows} columns={cols} />)
 
         // Assert — value renders, and no "deeply nested key" warning fired
-        expect(screen.getByText('Juice')).toBeInTheDocument()
+        expect(screen.getByText('Nova')).toBeInTheDocument()
         const deepWarnings = warnSpy.mock.calls.filter((call) =>
           String(call[0]).includes('deeply nested'),
         )

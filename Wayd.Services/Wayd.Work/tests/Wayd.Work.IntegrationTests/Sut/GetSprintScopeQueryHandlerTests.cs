@@ -4,13 +4,8 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Models;
-using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.WorkItems.Queries;
-using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Models.SprintScope;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
@@ -39,23 +34,23 @@ public sealed class GetSprintScopeQueryHandlerTests(SqlServerDbContextFixture fi
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetWorkData(ct);
         var workspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "SCOPE", ct);
-        await MarkHistoryReadToEnd(workspaceId, ct);
-        var sprintId = await SeedSprint(ct);
+        await WorkItemHistorySeeder.MarkHistoryReadToEnd(_fixture, workspaceId, ct);
+        var sprintId = await WorkItemHistorySeeder.SeedSprint(_fixture, SprintStart, SprintEnd, ct);
 
         var committed = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 1, ct);
-        await SeedPeriod(committed, workspaceId, 1, Day(-4), Day(6), sprintId, "Active", ct);
-        await SeedPeriod(committed, workspaceId, 2, Day(6), null, sprintId, "Done", ct);
+        await WorkItemHistorySeeder.SeedPeriod(_fixture, committed, workspaceId, 1, Day(-4), Day(6), sprintId, "Active", ct);
+        await WorkItemHistorySeeder.SeedPeriod(_fixture, committed, workspaceId, 2, Day(6), null, sprintId, "Done", ct);
 
         var added = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 2, ct);
-        await SeedPeriod(added, workspaceId, 1, Day(-4), Day(3), null, "Proposed", ct);
-        await SeedPeriod(added, workspaceId, 2, Day(3), null, sprintId, "Active", ct);
+        await WorkItemHistorySeeder.SeedPeriod(_fixture, added, workspaceId, 1, Day(-4), Day(3), null, "Proposed", ct);
+        await WorkItemHistorySeeder.SeedPeriod(_fixture, added, workspaceId, 2, Day(3), null, sprintId, "Active", ct);
 
         var descoped = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 3, ct);
-        await SeedPeriod(descoped, workspaceId, 1, Day(-4), Day(4), sprintId, "Active", ct);
-        await SeedPeriod(descoped, workspaceId, 2, Day(4), null, null, "Active", ct);
+        await WorkItemHistorySeeder.SeedPeriod(_fixture, descoped, workspaceId, 1, Day(-4), Day(4), sprintId, "Active", ct);
+        await WorkItemHistorySeeder.SeedPeriod(_fixture, descoped, workspaceId, 2, Day(4), null, null, "Active", ct);
 
         var neverIn = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 4, ct);
-        await SeedPeriod(neverIn, workspaceId, 1, Day(-4), null, null, "Active", ct);
+        await WorkItemHistorySeeder.SeedPeriod(_fixture, neverIn, workspaceId, 1, Day(-4), null, null, "Active", ct);
 
         // Act
         var result = await Handle(sprintId, ct);
@@ -86,7 +81,7 @@ public sealed class GetSprintScopeQueryHandlerTests(SqlServerDbContextFixture fi
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetWorkData(ct);
         var workspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "SCOPE", ct);
-        var sprintId = await SeedSprint(ct);
+        var sprintId = await WorkItemHistorySeeder.SeedSprint(_fixture, SprintStart, SprintEnd, ct);
         var workItemId = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 1, ct);
         await PutInSprint(workItemId, sprintId, ct);
 
@@ -129,48 +124,10 @@ public sealed class GetSprintScopeQueryHandlerTests(SqlServerDbContextFixture fi
         return await handler.Handle(new GetSprintScopeQuery(new IdOrKey(sprintId.ToString())), ct);
     }
 
-    private async Task<Guid> SeedSprint(CancellationToken ct)
-    {
-        var sprint = Iteration.Create("Scope Sprint", IterationType.Sprint,
-            new IterationDateRange(SprintStart, SprintEnd), null,
-            OwnershipInfo.CreateWaydOwned(), [], EventActor.System, SqlServerDbContextFixture.FixedNow);
-
-        await using var accessor = new WaydDbContextAccessor(_fixture);
-        accessor.Context.Iterations.Add(sprint);
-        await accessor.Context.SaveChangesAsync(ct);
-
-        return sprint.Id;
-    }
-
-    private async Task MarkHistoryReadToEnd(Guid workspaceId, CancellationToken ct)
-    {
-        await using var context = _fixture.CreateContext();
-        await context.Database.ExecuteSqlInterpolatedAsync(
-            $"UPDATE [Work].[Workspaces] SET [WorkItemHistoryBackfilledOn] = SYSUTCDATETIME() WHERE [Id] = {workspaceId};", ct);
-    }
-
     private async Task PutInSprint(Guid workItemId, Guid sprintId, CancellationToken ct)
     {
         await using var context = _fixture.CreateContext();
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE [Work].[WorkItems] SET [IterationId] = {sprintId} WHERE [Id] = {workItemId};", ct);
-    }
-
-    private async Task SeedPeriod(Guid workItemId, Guid workspaceId, int revision, Instant from, Instant? to, Guid? iterationId, string statusCategory, CancellationToken ct)
-    {
-        var validFrom = from.ToDateTimeUtc();
-        var validTo = to?.ToDateTimeUtc();
-
-        await using var context = _fixture.CreateContext();
-        await context.Database.ExecuteSqlInterpolatedAsync(
-            $"""
-            INSERT INTO [Work].[WorkItemStateHistory]
-                ([WorkItemId], [WorkspaceId], [Revision], [ValidFrom], [ValidTo], [IterationId],
-                 [StatusName], [StatusCategory], [WorkTypeId], [WorkTypeName])
-            SELECT {workItemId}, {workspaceId}, {revision}, {validFrom}, {validTo}, {iterationId},
-                   {statusCategory}, {statusCategory}, [Id], [Name]
-            FROM [Work].[WorkTypes] WHERE [Name] = {WorkItemHistorySeeder.WorkTypeName};
-            """,
-            ct);
     }
 }

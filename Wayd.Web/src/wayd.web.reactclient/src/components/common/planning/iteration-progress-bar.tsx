@@ -2,8 +2,9 @@
 
 import useTheme from '@/src/components/contexts/theme'
 import {
-  calculateIterationHealth,
+  calculateSprintHealth,
   IterationHealthStatus,
+  SprintCommitment,
 } from '@/src/utils/iteration-health'
 import { CalendarDate } from '@/src/utils/calendar-date'
 import { Progress } from 'antd'
@@ -18,6 +19,12 @@ export interface IterationProgressBarProps {
   total: number
   /** Completed points/items */
   completed: number
+  /**
+   * The sprint's commitment. When given, the bar fills to the share of the
+   * commitment delivered and takes its colour from health against it, matching
+   * the sprint's health tag.
+   */
+  commitment?: SprintCommitment
   /** Size of the progress bar (default: 'small') */
   size?: 'small' | 'medium'
   /** Whether to show the percentage info (default: false) */
@@ -44,18 +51,25 @@ const IterationProgressBar: FC<IterationProgressBarProps> = ({
   endDate,
   total,
   completed,
+  commitment,
   size = 'small',
   showInfo = false,
 }) => {
   const { token } = useTheme()
 
-  const completionPercent = total > 0 ? (completed / total) * 100 : 0
+  const byCommitment = !!commitment && commitment.committed > 0
+  const completionPercent = byCommitment
+    ? Math.min((completed / commitment.committed) * 100, 100)
+    : total > 0
+      ? (completed / total) * 100
+      : 0
 
-  const healthResult = calculateIterationHealth({
+  const healthResult = calculateSprintHealth({
     startDate,
     endDate,
     total,
     completed,
+    commitment,
   })
 
   const getProgressBarColor = (): string => {

@@ -16,7 +16,7 @@ const sprint: SprintDetailsDto = {
   state: { id: 2, name: 'Active' },
   start: '2026-08-17',
   end: '2026-08-30',
-  team: { id: 't1', key: 14, name: 'Core Services', code: 'CS', type: 'Team' },
+  team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   canManageSprint: false,
@@ -64,7 +64,7 @@ describe('SprintFacts', () => {
     render(<SprintFacts sprint={sprint} />)
 
     // Assert
-    expect(screen.getByRole('link', { name: 'Core Services' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Team Atlas' })).toHaveAttribute(
       'href',
       '/organizations/teams/14',
     )

@@ -22,6 +22,11 @@ export interface SprintScopeFigures {
    * committed or added. Zero by count, where every item counts one.
    */
   reestimated: number
+  /**
+   * The committed work and the instants the burn-down's ideal line runs
+   * between, which the sprint's health is measured against.
+   */
+  commitment: { committed: number; start: Date; end: Date }
 }
 
 /**
@@ -94,6 +99,11 @@ export const sprintOverviewFigures = (
           : null,
       reestimated:
         value(totals.total) - value(totals.committed) - value(totals.added),
+      commitment: {
+        committed: value(totals.committed),
+        start: new Date(scope.effectiveStart),
+        end: new Date(scope.effectiveEnd),
+      },
     },
   }
 }

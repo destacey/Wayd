@@ -1,5 +1,7 @@
 import {
+  calculateCommitmentHealth,
   calculateIterationHealth,
+  calculateSprintHealth,
   IterationHealthStatus,
   sprintActiveDays,
 } from './iteration-health'
@@ -196,5 +198,135 @@ describe('sprintActiveDays', () => {
 
     // Assert
     expect(result).toEqual({ start: '2026-09-28', end: '2026-10-08' })
+  })
+})
+
+describe('calculateCommitmentHealth', () => {
+  // Committed at noon on Sep 28; ends at the end of Oct 11 (midnight UTC here):
+  // 13.5 days, the span the burn-down's ideal line runs over.
+  const sprint = {
+    start: '2026-09-28T12:00:00Z',
+    end: '2026-10-12T00:00:00Z',
+  }
+  const at = (iso: string) => new Date(iso)
+
+  it('is on track when velocity keeps pace with the commitment, whatever was added', () => {
+    // Arrange / Act — 19 of 25 (76%) at noon Oct 6, 8 of 13.5 days (59%) elapsed
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 25,
+      delivered: 19,
+      now: at('2026-10-06T12:00:00Z'),
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.OnTrack)
+    expect(Math.round(result.variancePercent)).toBe(-17)
+  })
+
+  it('asks for the progress the ideal line shows at that moment', () => {
+    // Arrange / Act — the morning of the last day: 13 of 13.5 days (96%)
+    // elapsed, so 74% delivered is 22 points behind, at risk rather than off track
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 100,
+      delivered: 74,
+      now: at('2026-10-11T12:00:00Z'),
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.AtRisk)
+    expect(Math.round(result.variancePercent)).toBe(22)
+  })
+
+  it('is off track more than 25 points behind', () => {
+    // Arrange / Act — 5 of 25 (20%) at noon Oct 6
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 25,
+      delivered: 5,
+      now: at('2026-10-06T12:00:00Z'),
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.OffTrack)
+  })
+
+  it('is not started before the commitment point and completed from the end', () => {
+    // Arrange / Act / Assert
+    expect(
+      calculateCommitmentHealth({
+        ...sprint,
+        committed: 25,
+        delivered: 0,
+        now: at('2026-09-28T09:00:00Z'),
+      }).status,
+    ).toBe(IterationHealthStatus.NotStarted)
+    expect(
+      calculateCommitmentHealth({
+        ...sprint,
+        committed: 25,
+        delivered: 25,
+        now: at('2026-10-12T00:00:00Z'),
+      }).status,
+    ).toBe(IterationHealthStatus.Completed)
+  })
+
+  it('is unknown with nothing committed', () => {
+    // Arrange / Act
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 0,
+      delivered: 3,
+      now: at('2026-10-06T12:00:00Z'),
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.Unknown)
+  })
+})
+
+describe('calculateSprintHealth', () => {
+  const days = { startDate: '2026-09-28', endDate: '2026-10-11' }
+  const now = new Date('2026-10-06T12:00:00Z')
+
+  it('measures against the commitment when the sprint has one', () => {
+    // Arrange / Act — 19 of 25 committed delivered, though only half of a
+    // grown 40-point scope is done
+    const result = calculateSprintHealth({
+      ...days,
+      total: 40,
+      completed: 19,
+      referenceDate: now,
+      commitment: {
+        committed: 25,
+        start: new Date('2026-09-28T12:00:00Z'),
+        end: new Date('2026-10-12T00:00:00Z'),
+      },
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.OnTrack)
+  })
+
+  it('measures against the total without a commitment', () => {
+    // Arrange / Act — the same 19 of 40 on day 9, by the total
+    const result = calculateSprintHealth({
+      ...days,
+      total: 40,
+      completed: 19,
+      referenceDate: now,
+    })
+
+    // Assert
+    expect(result.status).toBe(
+      calculateIterationHealth({
+        ...days,
+        total: 40,
+        completed: 19,
+        referenceDate: now,
+      }).status,
+    )
+    expect(result.status).not.toBe(IterationHealthStatus.OnTrack)
   })
 })

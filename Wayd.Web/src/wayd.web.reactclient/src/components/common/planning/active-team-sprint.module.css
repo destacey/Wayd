@@ -1,0 +1,21 @@
+/*
+ * The card's metrics, two across or four — never three, which would leave one
+ * alone on a second row. Sized by the card, not the screen: the card sits in a
+ * narrow column on Home and runs wide on a team's page.
+ */
+.metricsContainer {
+  container-type: inline-size;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* Four cards at their 180px minimum, with the gaps between them. */
+@container (min-width: 744px) {
+  .metrics {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

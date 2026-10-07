@@ -109,8 +109,8 @@ const mockCategories = [
     totalCount: 1,
     items: [
       {
-        title: 'Juice Team',
-        key: 'JUICE',
+        title: 'Nova Team',
+        key: 'NOVA',
         entityType: 'Team',
         auxKey: 'team-uuid',
       },

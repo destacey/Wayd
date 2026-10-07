@@ -30733,6 +30733,67 @@ export class SprintsClient {
     }
 
     /**
+     * Get sprint burn-up and burn-down.
+     */
+    getSprintBurn(idOrKey: string, cancelToken?: CancelToken): Promise<SprintBurnDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/burn";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintBurn(_response);
+        });
+    }
+
+    protected processGetSprintBurn(response: AxiosResponse): Promise<SprintBurnDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintBurnDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintBurnDto>(null as any);
+    }
+
+    /**
      * Start a sprint.
      */
     start(id: string, request: StartSprintRequest, cancelToken?: CancelToken): Promise<void> {
@@ -49697,6 +49758,24 @@ export enum SprintScopeOutcome {
     CarriedOver = "CarriedOver",
     Descoped = "Descoped",
     Remaining = "Remaining",
+}
+
+export interface SprintBurnDto {
+    sprintId: string;
+    sizingMethod: SizingMethod;
+    effectiveStart: Date;
+    effectiveEnd: Date;
+    timeZone: string;
+    historyIncomplete: boolean;
+    committed: SprintScopeMeasureDto;
+    points: SprintBurnPointDto[];
+}
+
+export interface SprintBurnPointDto {
+    at: Date;
+    day: string;
+    scope: SprintScopeMeasureDto;
+    completed: SprintScopeMeasureDto;
 }
 
 /** Starts a sprint. */

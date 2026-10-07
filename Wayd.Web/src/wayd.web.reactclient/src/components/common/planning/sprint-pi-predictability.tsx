@@ -33,7 +33,7 @@ const PiPredictabilityCard: FC<PiPredictabilityCardProps> = ({ pi, teamId }) => 
     <Link href={href} style={{ display: 'block' }}>
     <MetricCard
       hoverable
-      title={`Predictability - ${pi.name}`}
+      title={`PI Objectives - ${pi.name}`}
       value={teamMetrics?.predictability ?? 0}
       precision={0}
       suffix="%"

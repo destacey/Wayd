@@ -103,6 +103,20 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
             : NotFound();
     }
 
+    [HttpGet("{idOrKey}/burn")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
+    [OpenApiOperation("Get sprint burn-up and burn-down.", "The sprint's requirement-tier scope and completed work at its commitment point, at the end of each of its days in the team's zone, and at its effective end — or now, for a sprint that has not ended — as counts and estimates, worked out from work item history. Agrees with the sprint scope report at the commitment point and the end. Not found when the sprint has no planned dates.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SprintBurnDto>> GetSprintBurn(string idOrKey, CancellationToken cancellationToken)
+    {
+        var burn = await _dispatcher.Send(new GetSprintBurnQuery(idOrKey), cancellationToken);
+
+        return burn is not null
+            ? Ok(burn)
+            : NotFound();
+    }
+
     [HttpPost("{id}/start")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
     [OpenApiOperation("Start a sprint.", "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.")]

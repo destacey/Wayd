@@ -6,9 +6,10 @@ import {
   useGetSprintScopeQuery,
 } from '@/src/store/features/work-management/sprints-api'
 import { SizingMethod } from '@/src/services/wayd-api'
-import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd'
+import { Card, Flex, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
 import { FC } from 'react'
+import styles from './active-team-sprint.module.css'
 import {
   CompletionRateMetric,
   CycleTimeMetric,
@@ -17,6 +18,7 @@ import {
   sprintOverviewFigures,
 } from '../metrics'
 import SprintSayDoMetric from './sprint-say-do-metric'
+import SprintBurnUp from './sprint-burn-up'
 import useTheme from '@/src/components/contexts/theme'
 import SprintPiPredictability from './sprint-pi-predictability'
 import TimelineProgress from './timeline-progress'
@@ -85,6 +87,7 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         endDate={activeDays.end}
         total={figures.completionBase}
         completed={figures.completed}
+        commitment={figures.scope?.commitment}
       />
     </Flex>
   )
@@ -103,8 +106,8 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
           size="small"
           style={{ width: '100%' }}
         />
-        <Row gutter={[8, 8]}>
-          <Col xs={12}>
+        <div className={styles.metricsContainer}>
+          <div className={styles.metrics}>
             {figures.scope?.predictability != null ? (
               <MetricCard
                 title="Predictability"
@@ -121,16 +124,12 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
                 tooltip={sizingMethod}
               />
             )}
-          </Col>
-          <Col xs={12}>
             <MetricCard
               title="Velocity"
               value={figures.completed}
               valueStyle={{ color: token.colorSuccess }}
               tooltip={`The ${measure} completed while in the sprint. Unlike most tools' velocity, work moved to a Removed status in the sprint counts too.`}
             />
-          </Col>
-          <Col xs={12}>
             <StatusMetric
               title="In Progress"
               value={figures.inProgress}
@@ -138,8 +137,6 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
               color={token.colorInfo}
               tooltip={`The ${measure} in the sprint now that are in progress (Status Category: Active). The percentage is their share of the sprint's work now.`}
             />
-          </Col>
-          <Col xs={12}>
             {/* Until the sprint has a say/do ratio, its cycle time fills the slot. */}
             {scope && figures.scope?.sayDo != null ? (
               <SprintSayDoMetric scope={scope} />
@@ -148,12 +145,13 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
                 value={metrics?.cycleTime?.averageCycleTimeDays ?? 0}
               />
             )}
-          </Col>
-        </Row>
+          </div>
+        </div>
         <SprintPiPredictability
           sprintKey={sprintData.key}
           teamId={sprintData.team.id}
         />
+        <SprintBurnUp sprintKey={sprintData.key} sizingMethod={sizingMethod} />
       </Flex>
     </Card>
   )

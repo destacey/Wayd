@@ -38,6 +38,14 @@ jest.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintScopeQuery: jest.fn(),
 }))
 
+// The charts read their own query; the overview only places them.
+jest.mock('./sprint-burn-charts', () => ({
+  __esModule: true,
+  default: ({ byCount }: { byCount: boolean }) => (
+    <div data-testid="burn-charts">{byCount ? 'count' : 'estimate'}</div>
+  ),
+}))
+
 // Mock useTheme
 jest.mock('@/src/components/contexts/theme', () => ({
   __esModule: true,
@@ -195,7 +203,12 @@ describe('SprintMetrics', () => {
       (option) => option.textContent,
     )
 
-  beforeEach(() => mockQueries(metrics, scope))
+  beforeEach(() => {
+    // The unit switch is remembered in local storage, stubbed in jest.setup; start each test with nothing stored.
+    ;(localStorage.getItem as jest.Mock).mockReset()
+    ;(localStorage.setItem as jest.Mock).mockClear()
+    mockQueries(metrics, scope)
+  })
 
   describe('with scope', () => {
     it('shows what the sprint committed to and completed, in its estimate', () => {
@@ -385,6 +398,41 @@ describe('SprintMetrics', () => {
       expect(
         container.querySelector('.ant-segmented-disabled'),
       ).toBeInTheDocument()
+      expect(screen.getByTestId('value-Committed')).toHaveTextContent('9')
+    })
+  })
+
+  describe('burn charts', () => {
+    it('follow the unit switch, and the choice is stored for the viewer', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(<SprintMetrics sprint={activeSprint} />)
+      expect(screen.getByTestId('burn-charts')).toHaveTextContent('estimate')
+
+      // Act
+      await user.click(screen.getByText('Count'))
+
+      // Assert
+      await waitFor(() =>
+        expect(screen.getByTestId('burn-charts')).toHaveTextContent('count'),
+      )
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'sprint-overview-by-count',
+        'true',
+      )
+    })
+
+    it('open in the unit the viewer last chose', () => {
+      // Arrange
+      ;(localStorage.getItem as jest.Mock).mockImplementation((key: string) =>
+        key === 'sprint-overview-by-count' ? 'true' : null,
+      )
+
+      // Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(screen.getByTestId('burn-charts')).toHaveTextContent('count')
       expect(screen.getByTestId('value-Committed')).toHaveTextContent('9')
     })
   })

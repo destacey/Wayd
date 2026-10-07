@@ -4,7 +4,7 @@ import * as iterationHealthUtils from '../../../utils/iteration-health'
 
 // Mock the iteration health utility
 jest.mock('../../../utils/iteration-health', () => ({
-  calculateIterationHealth: jest.fn(),
+  calculateSprintHealth: jest.fn(),
   IterationHealthStatus: {
     NotStarted: 'Not Started',
     OnTrack: 'On Track',
@@ -27,7 +27,7 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('renders with On Track status', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -38,7 +38,7 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('renders with At Risk status', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.AtRisk,
       variancePercent: -15,
     })
@@ -49,7 +49,7 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('renders with Off Track status', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OffTrack,
       variancePercent: -30,
     })
@@ -60,7 +60,7 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('renders with Not Started status', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.NotStarted,
       variancePercent: 0,
     })
@@ -71,7 +71,7 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('renders with Completed status', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.Completed,
       variancePercent: 0,
     })
@@ -82,7 +82,7 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('hides label when showLabel is false', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -93,7 +93,7 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('renders with tooltip wrapper', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -106,14 +106,14 @@ describe('IterationHealthIndicator', () => {
   })
 
   it('recalculates health when props change', () => {
-    jest.mocked(iterationHealthUtils.calculateIterationHealth).mockReturnValue({
+    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
 
     const { rerender } = render(<IterationHealthIndicator {...baseProps} />)
 
-    expect(iterationHealthUtils.calculateIterationHealth).toHaveBeenCalledWith({
+    expect(iterationHealthUtils.calculateSprintHealth).toHaveBeenCalledWith({
       startDate: baseProps.startDate,
       endDate: baseProps.endDate,
       total: 100,
@@ -123,7 +123,7 @@ describe('IterationHealthIndicator', () => {
     // Update completed value
     rerender(<IterationHealthIndicator {...baseProps} completed={75} />)
 
-    expect(iterationHealthUtils.calculateIterationHealth).toHaveBeenCalledWith({
+    expect(iterationHealthUtils.calculateSprintHealth).toHaveBeenCalledWith({
       startDate: baseProps.startDate,
       endDate: baseProps.endDate,
       total: 100,

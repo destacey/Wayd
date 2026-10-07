@@ -1,4 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using NodaTime;
+using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Models.Planning.Iterations;
+using Wayd.Common.Domain.Models;
+using Wayd.Work.Domain.Models;
 
 namespace Wayd.Work.IntegrationTests.Infrastructure;
 
@@ -96,5 +102,46 @@ public static class WorkItemHistorySeeder
             ct);
 
         return workItemId;
+    }
+
+    /// <summary>A Wayd-owned sprint with no team, planned from <paramref name="start"/> to <paramref name="end"/>.</summary>
+    public static async Task<Guid> SeedSprint(SqlServerDbContextFixture fixture, LocalDate start, LocalDate end, CancellationToken ct)
+    {
+        var sprint = Iteration.Create("History Sprint", IterationType.Sprint,
+            new IterationDateRange(start, end), null,
+            OwnershipInfo.CreateWaydOwned(), [], EventActor.System, SqlServerDbContextFixture.FixedNow);
+
+        await using var accessor = new WaydDbContextAccessor(fixture);
+        accessor.Context.Iterations.Add(sprint);
+        await accessor.Context.SaveChangesAsync(ct);
+
+        return sprint.Id;
+    }
+
+    /// <summary>Records that the workspace's history has been read through to the end.</summary>
+    public static async Task MarkHistoryReadToEnd(SqlServerDbContextFixture fixture, Guid workspaceId, CancellationToken ct)
+    {
+        await using var context = fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [Work].[Workspaces] SET [WorkItemHistoryBackfilledOn] = SYSUTCDATETIME() WHERE [Id] = {workspaceId};", ct);
+    }
+
+    /// <summary>One history period of a "History Story" item, with the status category as its status name.</summary>
+    public static async Task SeedPeriod(SqlServerDbContextFixture fixture, Guid workItemId, Guid workspaceId, int revision, Instant from, Instant? to, Guid? iterationId, string statusCategory, CancellationToken ct, double? storyPoints = null)
+    {
+        var validFrom = from.ToDateTimeUtc();
+        var validTo = to?.ToDateTimeUtc();
+
+        await using var context = fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO [Work].[WorkItemStateHistory]
+                ([WorkItemId], [WorkspaceId], [Revision], [ValidFrom], [ValidTo], [IterationId],
+                 [StatusName], [StatusCategory], [WorkTypeId], [WorkTypeName], [StoryPoints])
+            SELECT {workItemId}, {workspaceId}, {revision}, {validFrom}, {validTo}, {iterationId},
+                   {statusCategory}, {statusCategory}, [Id], [Name], {storyPoints}
+            FROM [Work].[WorkTypes] WHERE [Name] = {WorkTypeName};
+            """,
+            ct);
     }
 }

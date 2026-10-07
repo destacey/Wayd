@@ -127,7 +127,7 @@ describe('FloatingFilter', () => {
       // read `.conditions` off the set descriptor (regression: TypeError).
       const setDescriptor: ColumnFilterModel = {
         type: 'set',
-        values: ['Team Juice'],
+        values: ['Team Nova'],
       }
 
       // Act / Assert — no throw; the text input renders empty

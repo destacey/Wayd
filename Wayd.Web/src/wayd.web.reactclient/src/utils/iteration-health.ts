@@ -146,3 +146,91 @@ export function calculateIterationHealth(
     return { status: IterationHealthStatus.OffTrack, variancePercent }
   }
 }
+
+/**
+ * Parameters for measuring a sprint's health against its commitment.
+ */
+export interface CommitmentHealthParams {
+  /** The commitment point: where the burn-down's ideal line starts */
+  start: Date | string
+  /** The effective end: where the ideal line reaches zero */
+  end: Date | string
+  /** The work committed at the commitment point */
+  committed: number
+  /** The work completed so far: the sprint's velocity */
+  delivered: number
+  /** Optional moment to measure at (defaults to now) */
+  now?: Date
+}
+
+/**
+ * A sprint's health measured against what the team committed to: its velocity
+ * as a share of the commitment, against the share of the time elapsed from the
+ * commitment point to the effective end, on the same thresholds as
+ * {@link calculateIterationHealth}. Those are the instants the burn-down's
+ * ideal line runs between, so health asks for exactly the progress the line
+ * shows. Work added or re-estimated after the commitment point doesn't count
+ * against the team; delivery past the commitment isn't capped, so it always
+ * reads as on track.
+ */
+export function calculateCommitmentHealth(
+  params: CommitmentHealthParams,
+): IterationHealthResult {
+  const { committed, delivered } = params
+  const start = new Date(params.start).getTime()
+  const end = new Date(params.end).getTime()
+  const now = (params.now ?? new Date()).getTime()
+
+  if (now < start) {
+    return { status: IterationHealthStatus.NotStarted, variancePercent: 0 }
+  }
+  if (now >= end) {
+    return { status: IterationHealthStatus.Completed, variancePercent: 0 }
+  }
+  if (committed <= 0 || end <= start) {
+    return { status: IterationHealthStatus.Unknown, variancePercent: 0 }
+  }
+
+  // Positive is behind: less delivered than the time elapsed calls for.
+  const elapsedPercent = ((now - start) / (end - start)) * 100
+  const variancePercent = elapsedPercent - (delivered / committed) * 100
+
+  if (variancePercent <= 10) {
+    return { status: IterationHealthStatus.OnTrack, variancePercent }
+  } else if (variancePercent <= 25) {
+    return { status: IterationHealthStatus.AtRisk, variancePercent }
+  } else {
+    return { status: IterationHealthStatus.OffTrack, variancePercent }
+  }
+}
+
+/** A sprint's commitment and the instants its burn-down's ideal line runs between. */
+export interface SprintCommitment {
+  committed: number
+  start: Date
+  end: Date
+}
+
+/**
+ * A sprint's health: against its commitment when it has one, as
+ * {@link calculateCommitmentHealth}, or else against its total over its days,
+ * as {@link calculateIterationHealth}. Everything that shows a sprint's health
+ * reads it here, so a tag and a progress bar never disagree.
+ */
+export function calculateSprintHealth(
+  params: IterationHealthParams & { commitment?: SprintCommitment },
+): IterationHealthResult {
+  const { commitment, ...iteration } = params
+  return commitment && commitment.committed > 0
+    ? calculateCommitmentHealth({
+        start: commitment.start,
+        end: commitment.end,
+        committed: commitment.committed,
+        delivered: iteration.completed,
+        now:
+          iteration.referenceDate instanceof Date
+            ? iteration.referenceDate
+            : undefined,
+      })
+    : calculateIterationHealth(iteration)
+}

@@ -772,7 +772,7 @@ describe('buildProductDependencyNeighbourhood with expansions', () => {
   })
 
   it('runs a link back toward the subject from left side to right side', () => {
-    // Arrange — Directory is two hops out, and relies on Identity, which the subject also relies on.
+    // Arrange — Directory is two steps out, and relies on Identity, which the subject also relies on.
     const gateway = nav('30', 'Gateway', 19)
     const directory = nav('40', 'Directory', 20)
     const expansions = noExpansions()
@@ -1028,7 +1028,7 @@ describe('buildProductDependencyNeighbourhood with expansions', () => {
   })
 
   it('draws a platform once per column it holds products in', () => {
-    // Arrange — one of the platform's services is depended on directly, another two hops out.
+    // Arrange — one of the platform's services is depended on directly, another two steps out.
     const platform = nav('20', 'Core Platform', 30)
     const search = nav('23', 'Search Service', 13)
     const expansions = noExpansions()

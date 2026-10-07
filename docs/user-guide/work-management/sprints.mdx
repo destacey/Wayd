@@ -104,8 +104,9 @@ Each card shows:
 - **Team code** (links to the team page) and **sprint name** (links to the sprint page)
 - **Sprint health indicator**
 - **Timeline progress** — Days elapsed and percentage complete
-- **Predictability**, **Velocity**, **In Progress** and **Say/Do so far** (see [The Sprint Overview](#the-sprint-overview)). Until the sprint has a commitment — before its commitment point, or while its history is incomplete — **Completion Rate** stands in for Predictability and **Avg Cycle Time** for Say/Do
-- **Predictability** — If the sprint is mapped to a Planning Interval and the team has objectives, a predictability card appears per PI (links to the team's plan review page)
+- **Predictability**, **Velocity**, **In Progress** and **Say/Do so far** (see [The Sprint Overview](#the-sprint-overview)), four across on a wide card and two on a narrow one. Until the sprint has a commitment — before its commitment point, or while its history is incomplete — **Completion Rate** stands in for Predictability and **Avg Cycle Time** for Say/Do
+- **PI Objectives** — If the sprint is mapped to a Planning Interval and the team has objectives, a card per PI shows the team's objective predictability: completed objectives over committed (non-stretch) ones (links to the team's plan review page)
+- **Burn-up** — a small version of the sprint page's [burn-up](#burn-up-and-burn-down), in the team's sizing method, once the sprint has passed its commitment point and its history is complete
 
 The panel is only visible if you have at least one active team sprint.
 
@@ -119,7 +120,7 @@ Sprint metrics provide quantitative insight into a sprint's progress and deliver
 
 ### The Sprint Overview
 
-The sprint page's Overview shows two rows of cards, then where the sprint's commitment point and end came from and the time zone they're in.
+The sprint page's Overview shows two rows of cards, the [burn charts](#burn-up-and-burn-down), then where the sprint's commitment point and end came from and the time zone they're in. The **Story Points / Count** switch above the cards changes the cards and both charts together, and Wayd remembers your choice.
 
 **Progress** — how the sprint's work is going:
 
@@ -146,7 +147,16 @@ The sprint page's Overview shows two rows of cards, then where the sprint's comm
 
 **Predictability and Say/Do** both compare delivery with the commitment, and read differently on purpose. Predictability asks whether the team delivered *as much as* it committed: finished added work stands in for committed work it didn't finish. Say/Do asks whether it delivered *what* it committed: only the committed items count. A team that swaps committed stories for new ones keeps its Predictability and loses Say/Do.
 
-Velocity comes from the sprint's scope, so carried-over work stays in the measure after it has moved on. Until the sprint has a scope — before its commitment point, or while its [history is incomplete](#sprint-scope) — Velocity is measured on the items in the sprint now, the commitment cards and Predictability are hidden, and a warning says why. The page header's health indicator compares Velocity with everything in the sprint but descoped work, against the time elapsed.
+Velocity comes from the sprint's scope, so carried-over work stays in the measure after it has moved on. Until the sprint has a scope — before its commitment point, or while its [history is incomplete](#sprint-scope) — Velocity is measured on the items in the sprint now, the commitment cards and Predictability are hidden, and a warning says why. **Sprint health** — the tag in the page header and on the Home page's sprint card — measures delivery against the commitment: Velocity as a share of Committed, against the share of the time elapsed from the commitment point to the sprint's end — exactly where the burn-down's ideal line expects it to be. Within 10 points is **On Track**, 10–25 behind is **At Risk**, more is **Off Track**, and delivering more than was committed always reads On Track. Work added or re-estimated after the commitment point doesn't count against the team, as on the burn-down's ideal line. Until the sprint has a commitment, health compares the work done with everything in the sprint instead.
+
+### Burn-up and Burn-down
+
+Under the cards, two charts show the sprint day by day, from the same work item history as [Sprint Scope](#sprint-scope):
+
+- **Burn-up** — **Scope**, the work in the sprint, and **Completed**, the part of it in a Done or Removed status category. Work added after the commitment point steps scope up, descoped work steps it down, and re-estimating an item moves it on the day it was re-estimated. Work completed and then moved out of the sprint stays in both lines.
+- **Burn-down** — **Remaining** (scope less completed), and a dashed **Ideal** line falling evenly from the committed work at the commitment point to zero at the sprint's end. Reopened work counts as remaining again.
+
+Each chart has a reading at the commitment point, at the end of each day in the team's time zone, and at the sprint's end — or now, for a sprint still running, whose lines stop there. A day's changes show on that day. Both charts span the whole sprint, so their days line up, and they agree with the scope cards: at the start, Scope equals **Committed**; at the end, Completed equals **Velocity**. Weekends and team days off aren't skipped yet. While the sprint's [history is incomplete](#sprint-scope) the charts are hidden.
 
 **Correcting the commitment point.** The commitment point is the team's recorded start, so committed points are the estimates at that moment. If the team was still sizing work after pressing Start, correct the start to when sizing finished. The date pickers in **Start**, **Complete** and **Correct Actual Dates** use your time zone and name it, along with the team's when it differs. Azure DevOps shows work item history in your profile's time zone too.
 

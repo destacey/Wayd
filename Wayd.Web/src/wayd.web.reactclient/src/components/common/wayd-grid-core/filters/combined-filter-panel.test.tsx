@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import CombinedFilterPanel from './combined-filter-panel'
 import type { ColumnFilterModel } from './filter-model'
 
-const ALL = ['Core Services', 'Team Juice', 'Team Sauce']
+const ALL = ['Team Atlas', 'Team Nova', 'Team Vega']
 
 const setRow = (label: string) =>
   screen.getByText(label).closest('label') as HTMLLabelElement
@@ -20,7 +20,7 @@ describe('CombinedFilterPanel', () => {
     // Assert — Text Filter header + set values both present
     expect(screen.getByText('Text Filter')).toBeInTheDocument()
     expect(screen.getByText('(Select All)')).toBeInTheDocument()
-    expect(screen.getByText('Team Juice')).toBeInTheDocument()
+    expect(screen.getByText('Team Nova')).toBeInTheDocument()
   })
 
   it('collapses the text section by default when unfiltered', () => {
@@ -89,7 +89,7 @@ describe('CombinedFilterPanel', () => {
 
     // Act — uncheck a set value (set side reads as all-checked since the active
     // descriptor is text), which emits a set descriptor
-    fireEvent.click(checkboxIn(setRow('Team Juice')))
+    fireEvent.click(checkboxIn(setRow('Team Nova')))
 
     // Assert — now a set descriptor (text is gone → last-wins/clear)
     const next = onChange.mock.calls.at(-1)?.[0] as ColumnFilterModel

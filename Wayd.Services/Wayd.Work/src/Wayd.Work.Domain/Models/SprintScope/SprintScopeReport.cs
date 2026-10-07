@@ -55,20 +55,31 @@ public sealed class SprintScopeReport
     /// <param name="now">When the report is read; a sprint that has not ended is measured up to here.</param>
     public static SprintScopeReport Build(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> periods, Instant now)
     {
-        if (now <= window.Start)
-            return new SprintScopeReport(window, sizingMethod, []);
-
-        var asOf = now < window.End ? now : window.End;
-        var items = periods
-            .GroupBy(p => p.WorkItemId)
-            .Select(g => Classify(window, asOf, sizingMethod, g))
-            .OfType<SprintScopeItem>()
+        var items = Assess(window, sizingMethod, periods, now)
+            .Select(a => a.Item)
             .ToList();
 
         return new SprintScopeReport(window, sizingMethod, items);
     }
 
-    private static SprintScopeItem? Classify(SprintScopeWindow window, Instant asOf, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> itemPeriods)
+    /// <summary>
+    /// Each item that was in the sprint's scope as of <paramref name="now"/>, with the in-sprint periods it was
+    /// judged on. The scope report and the sprint's burn charts both read it, so they count the same work.
+    /// </summary>
+    internal static List<AssessedItem> Assess(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> periods, Instant now)
+    {
+        if (now <= window.Start)
+            return [];
+
+        var asOf = now < window.End ? now : window.End;
+        return periods
+            .GroupBy(p => p.WorkItemId)
+            .Select(g => Classify(window, asOf, sizingMethod, g))
+            .OfType<AssessedItem>()
+            .ToList();
+    }
+
+    private static AssessedItem? Classify(SprintScopeWindow window, Instant asOf, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> itemPeriods)
     {
         // A zero-length period, left by clock skew between revisions, holds at no instant.
         var periods = itemPeriods
@@ -107,7 +118,7 @@ public sealed class SprintScopeReport
             _ => SprintScopeOutcome.Descoped,
         };
 
-        return new SprintScopeItem(
+        var item = new SprintScopeItem(
             periods[0].WorkItemId,
             entry,
             addedAt,
@@ -115,6 +126,8 @@ public sealed class SprintScopeReport
             removedAt,
             EstimateOf(entryPeriod),
             EstimateOf(last));
+
+        return new AssessedItem(item, inSprint);
     }
 
     /// <summary>
@@ -141,6 +154,12 @@ public sealed class SprintScopeReport
 
         return finishedSince;
     }
+
+    /// <param name="InSprint">
+    /// The item's periods in the sprint that count toward its scope, in order: in the sprint's iteration, in
+    /// the requirement tier, overlapping the window, and not finished before the sprint.
+    /// </param>
+    internal sealed record AssessedItem(SprintScopeItem Item, IReadOnlyList<SprintScopePeriod> InSprint);
 
     private static bool MovedToNextSprint(SprintScopeWindow window, Instant removedAt, SprintScopePeriod? after) =>
         window.NextSprintId is not null

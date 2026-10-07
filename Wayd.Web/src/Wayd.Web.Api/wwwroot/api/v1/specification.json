@@ -27180,6 +27180,54 @@
         ]
       }
     },
+    "/api/work/sprints/{idOrKey}/burn": {
+      "get": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Get sprint burn-up and burn-down.",
+        "description": "The sprint's requirement-tier scope and completed work at its commitment point, at the end of each of its days in the team's zone, and at its effective end — or now, for a sprint that has not ended — as counts and estimates, worked out from work item history. Agrees with the sprint scope report at the commitment point and the end. Not found when the sprint has no planned dates.",
+        "operationId": "Sprints_GetSprintBurn",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintBurnDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/{id}/start": {
       "post": {
         "tags": [
@@ -57701,6 +57749,80 @@
           "Descoped",
           "Remaining"
         ]
+      },
+      "SprintBurnDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timeZone",
+          "committed",
+          "points",
+          "sprintId",
+          "sizingMethod",
+          "effectiveStart",
+          "effectiveEnd",
+          "historyIncomplete"
+        ],
+        "properties": {
+          "sprintId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
+          "effectiveStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "historyIncomplete": {
+            "type": "boolean"
+          },
+          "committed": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintBurnPointDto"
+            }
+          }
+        }
+      },
+      "SprintBurnPointDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scope",
+          "completed",
+          "at",
+          "day"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "completed": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          }
+        }
       },
       "StartSprintRequest": {
         "type": "object",

@@ -3,13 +3,27 @@ jest.unmock('dayjs')
 import { render, screen } from '@testing-library/react'
 import SprintCard from './sprint-card'
 import { IterationState } from '@/src/components/types'
-import { SizingMethod, SprintMetricsSummary } from '@/src/services/wayd-api'
+import {
+  SizingMethod,
+  SprintMetricsSummary,
+  SprintScopeDto,
+} from '@/src/services/wayd-api'
+import { useGetSprintScopeQuery } from '@/src/store/features/work-management/sprints-api'
 
-// Mock Metrics components; sprintMetricValues stays real so the figures shown can be asserted.
+jest.mock('@/src/store/features/work-management/sprints-api', () => ({
+  useGetSprintScopeQuery: jest.fn(),
+}))
+
+jest.mock('@/src/components/contexts/theme', () => ({
+  __esModule: true,
+  default: () => ({ token: { colorSuccess: '#52c41a' } }),
+}))
+
+// Mock Metrics components; the figures stay real so what is shown can be asserted.
 jest.mock('@/src/components/common/metrics', () => ({
-  sprintMetricValues: jest.requireActual(
-    '@/src/components/common/metrics/sprint-metric-values',
-  ).sprintMetricValues,
+  sprintOverviewFigures: jest.requireActual(
+    '@/src/components/common/metrics/sprint-overview-figures',
+  ).sprintOverviewFigures,
   MetricCard: ({
     title,
     value,
@@ -25,19 +39,6 @@ jest.mock('@/src/components/common/metrics', () => ({
       {secondaryValue && (
         <span data-testid={`secondary-${title}`}>{secondaryValue}</span>
       )}
-    </div>
-  ),
-  VelocityMetric: ({
-    completed,
-    tooltip,
-  }: {
-    completed: number
-    tooltip?: string
-  }) => (
-    <div data-testid="metric-Velocity">
-      <span>Velocity</span>
-      <span data-testid="value-Velocity">{completed}</span>
-      {tooltip && <span data-testid="tooltip-Velocity">{tooltip}</span>}
     </div>
   ),
   CompletionRateMetric: ({
@@ -66,14 +67,17 @@ jest.mock('@/src/components/common/planning', () => ({
   IterationHealthIndicator: ({
     total,
     completed,
+    commitment,
   }: {
     total: number
     completed: number
+    commitment?: { committed: number }
   }) => (
     <div data-testid="iteration-health-indicator">
-      Health: {completed}/{total}
+      Health: {completed}/{commitment?.committed ?? total}
     </div>
   ),
+  SprintSayDoMetric: () => <div data-testid="metric-Say/Do" />,
   IterationProgressBar: ({
     total,
     completed,
@@ -88,6 +92,11 @@ jest.mock('@/src/components/common/planning', () => ({
 }))
 
 describe('SprintCard', () => {
+  beforeEach(() => {
+    // No scope unless a test gives one: the card falls back to the sprint's current items.
+    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({ data: undefined })
+  })
+
   const mockSprint: SprintMetricsSummary = {
     sprintId: 'sprint-1',
     sprintKey: 101,
@@ -131,9 +140,6 @@ describe('SprintCard', () => {
       expect(screen.getByTestId('secondary-In Progress')).toHaveTextContent(
         '20 not started',
       )
-      expect(screen.getByTestId('tooltip-Velocity')).toHaveTextContent(
-        SizingMethod.Effort,
-      )
     })
   })
 
@@ -148,9 +154,6 @@ describe('SprintCard', () => {
       expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
       expect(screen.getByTestId('secondary-In Progress')).toHaveTextContent(
         '2 not started',
-      )
-      expect(screen.getByTestId('tooltip-Velocity')).toHaveTextContent(
-        SizingMethod.Count,
       )
     })
   })
@@ -295,6 +298,90 @@ describe('SprintCard', () => {
       expect(screen.getByTestId('metric-Velocity')).toBeInTheDocument()
       expect(screen.getByTestId('metric-In Progress')).toBeInTheDocument()
       expect(screen.getByTestId('metric-Cycle Time')).toBeInTheDocument()
+    })
+  })
+
+  describe('with scope', () => {
+    const measure = (count: number, estimate: number) => ({ count, estimate })
+    const scope = {
+      effectiveStart: '2025-01-02T00:00:00Z',
+      historyIncomplete: false,
+      totals: {
+        total: measure(12, 120),
+        committed: measure(9, 90),
+        added: measure(3, 30),
+        completed: measure(6, 60),
+        removed: measure(0, 0),
+        carriedOver: measure(0, 0),
+        descoped: measure(1, 10),
+        remaining: measure(5, 50),
+        completedOfCommitted: measure(4, 45),
+        sayDoCount: 4 / 9,
+        sayDoEstimate: 0.5,
+        unestimated: 0,
+      },
+    } as unknown as SprintScopeDto
+
+    beforeEach(() =>
+      (useGetSprintScopeQuery as jest.Mock).mockReturnValue({ data: scope }),
+    )
+
+    it('shows predictability, velocity and say/do from the scope', () => {
+      // Arrange / Act
+      render(<SprintCard sprint={mockSprint} byCount={false} />)
+
+      // Assert — velocity 60 of 90 committed
+      expect(screen.getByTestId('value-Predictability')).toHaveTextContent(
+        '66.6',
+      )
+      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('60')
+      expect(screen.getByTestId('metric-Say/Do')).toBeInTheDocument()
+      expect(
+        screen.queryByTestId('metric-Completion Rate'),
+      ).not.toBeInTheDocument()
+    })
+
+    it('measures health against the commitment', () => {
+      // Arrange / Act
+      render(<SprintCard sprint={mockSprint} byCount={false} />)
+
+      // Assert
+      expect(
+        screen.getByTestId('iteration-health-indicator'),
+      ).toHaveTextContent('Health: 60/90')
+    })
+
+    it('shows carried-over work instead of work in progress once the sprint has ended', () => {
+      // Arrange / Act
+      render(
+        <SprintCard
+          sprint={{
+            ...mockSprint,
+            state: { id: IterationState.Completed, name: 'Completed' },
+          }}
+          byCount={false}
+        />,
+      )
+
+      // Assert
+      expect(screen.getByTestId('value-Carried Over')).toHaveTextContent('0')
+      expect(screen.queryByTestId('metric-In Progress')).not.toBeInTheDocument()
+    })
+
+    it('does not read scope for a future sprint', () => {
+      // Arrange / Act
+      render(
+        <SprintCard
+          sprint={{
+            ...mockSprint,
+            state: { id: IterationState.Future, name: 'Future' },
+          }}
+          byCount={false}
+        />,
+      )
+
+      // Assert
+      expect(useGetSprintScopeQuery).toHaveBeenCalledWith(101, { skip: true })
     })
   })
 

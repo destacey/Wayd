@@ -196,7 +196,7 @@ describe('csv-utils', () => {
       const BOM = '\uFEFF'
       try {
         // Act — content with a multibyte character (rocket emoji)
-        downloadCsv('Team\nCore Services 🚀', 'test.csv')
+        downloadCsv('Team\nTeam Atlas 🚀', 'test.csv')
 
         // Assert — the blob's first part is the UTF-8 BOM, and the content
         // (with the emoji intact) follows.

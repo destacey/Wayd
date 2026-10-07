@@ -160,7 +160,7 @@ describe('AllocationReportView', () => {
     // Arrange
     const allocation = createAllocation()
     allocation.summary.excludedTeams = [
-      { id: 'j', code: 'JUICE', name: 'Team Juice' },
+      { id: 'j', code: 'NOVA', name: 'Team Nova' },
     ]
 
     // Act
@@ -176,7 +176,7 @@ describe('AllocationReportView', () => {
 
     // Assert
     expect(
-      screen.getByText("Team Juice doesn't size in points"),
+      screen.getByText("Team Nova doesn't size in points"),
     ).toBeInTheDocument()
   })
 

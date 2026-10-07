@@ -98,6 +98,7 @@ export enum QueryTags {
   SprintBacklog = 'Planning.Sprint.Backlog',
   SprintMetrics = 'Planning.Sprint.Metrics',
   SprintScope = 'Planning.Sprint.Scope',
+  SprintBurn = 'Planning.Sprint.Burn',
   SprintPlanningIntervals = 'Planning.Sprint.PlanningIntervals',
 
   // PRODUCT MANAGEMENT

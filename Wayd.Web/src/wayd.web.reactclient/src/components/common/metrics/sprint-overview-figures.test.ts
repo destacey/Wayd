@@ -65,6 +65,11 @@ describe('sprintOverviewFigures', () => {
       sayDo: 6 / 18,
       predictability: 11 / 18,
       reestimated: 0,
+      commitment: {
+        committed: 18,
+        start: new Date('2026-09-15T05:00:00Z'),
+        end: new Date('2026-09-26T05:00:00Z'),
+      },
     })
   })
 

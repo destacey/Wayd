@@ -16,6 +16,12 @@ export interface SprintScopeFigures {
    * Null when nothing was committed.
    */
   predictability: number | null
+  /**
+   * How much the sprint's work grew (or shrank) by being estimated or
+   * re-estimated after it came in: its estimate now less its estimate when
+   * committed or added. Zero by count, where every item counts one.
+   */
+  reestimated: number
 }
 
 /**
@@ -86,6 +92,8 @@ export const sprintOverviewFigures = (
         value(totals.committed) > 0
           ? Math.min(value(totals.completed) / value(totals.committed), 1)
           : null,
+      reestimated:
+        value(totals.total) - value(totals.committed) - value(totals.added),
     },
   }
 }

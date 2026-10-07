@@ -278,6 +278,30 @@ describe('SprintMetrics', () => {
       expect(screen.getByTestId('value-Carried Over')).toHaveTextContent('8')
     })
 
+    it('shows how much the work grew by being estimated after it came in', () => {
+      // Arrange — 120 points came in, and the work is 130 points now
+      mockQueries(metrics, {
+        ...scope,
+        totals: { ...scope.totals, total: measure(12, 130) },
+      })
+
+      // Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(screen.getByTestId('value-Re-estimated')).toHaveTextContent('+10')
+    })
+
+    it('hides re-estimation when the estimates did not change', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(
+        screen.queryByTestId('metric-Re-estimated'),
+      ).not.toBeInTheDocument()
+    })
+
     it('shows the outcome of a completed sprint, not its work in progress', () => {
       // Arrange / Act
       render(<SprintMetrics sprint={completedSprint} />)

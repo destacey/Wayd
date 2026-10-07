@@ -207,6 +207,13 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
                 value={scopeFigures.added}
                 tooltip={`The ${measure} that entered the sprint after its commitment point, as estimated when added.`}
               />
+              {scopeFigures.reestimated !== 0 && (
+                <MetricCard
+                  title="Re-estimated"
+                  value={`${scopeFigures.reestimated > 0 ? '+' : ''}${scopeFigures.reestimated.toLocaleString()}`}
+                  tooltip={`How much the sprint's ${measure} changed by being estimated or re-estimated after the work was committed or added: everything in scope now, less what was committed and added. The Backlog's Sprint Scope view shows which items, where their estimate in and out differ.`}
+                />
+              )}
               {(!isActive || scopeFigures.carriedOver > 0) && (
                 <MetricCard
                   title="Carried Over"

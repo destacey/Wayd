@@ -64,7 +64,31 @@ describe('sprintOverviewFigures', () => {
       descoped: 4,
       sayDo: 6 / 18,
       predictability: 11 / 18,
+      reestimated: 0,
     })
+  })
+
+  it('reports how much the work grew by being estimated after it came in', () => {
+    // Arrange — 26 points came in, and the work is 36 points now
+    const grown = { ...scope.totals, total: measure(7, 36) }
+
+    // Act
+    const byEstimate = sprintOverviewFigures(
+      metrics,
+      { ...scope, totals: grown },
+      false,
+      afterCommitment,
+    )
+    const byCount = sprintOverviewFigures(
+      metrics,
+      { ...scope, totals: grown },
+      true,
+      afterCommitment,
+    )
+
+    // Assert
+    expect(byEstimate.scope?.reestimated).toBe(10)
+    expect(byCount.scope?.reestimated).toBe(0)
   })
 
   it('caps predictability at 100% when velocity passes the commitment', () => {

@@ -5,7 +5,8 @@ namespace Wayd.Work.Application.WorkItems.Dtos;
 
 /// <summary>
 /// What a sprint committed to and what became of it, worked out from work item history between the sprint's
-/// effective start and end. Only requirement-tier work counts.
+/// effective start and end. Only requirement-tier work counts. A sprint that has not ended is measured up to
+/// now, and one that has not reached its commitment point has no scope yet.
 /// </summary>
 public sealed record SprintScopeDto
 {
@@ -84,6 +85,9 @@ public sealed record SprintScopeTotalsDto
 
     public required SprintScopeMeasureDto Descoped { get; init; }
 
+    /// <summary>Unfinished work still in a sprint that has not ended.</summary>
+    public required SprintScopeMeasureDto Remaining { get; init; }
+
     /// <summary>
     /// Committed items that were completed, measured with their committed estimate so it compares with
     /// <see cref="Committed"/>.
@@ -108,6 +112,7 @@ public sealed record SprintScopeTotalsDto
         Removed = SprintScopeMeasureDto.From(totals.Removed),
         CarriedOver = SprintScopeMeasureDto.From(totals.CarriedOver),
         Descoped = SprintScopeMeasureDto.From(totals.Descoped),
+        Remaining = SprintScopeMeasureDto.From(totals.Remaining),
         CompletedOfCommitted = SprintScopeMeasureDto.From(totals.CompletedOfCommitted),
         SayDoCount = totals.SayDoCount,
         SayDoEstimate = totals.SayDoEstimate,
@@ -128,7 +133,10 @@ public sealed record SprintScopeItemDto
     /// <summary>When an added item entered the sprint; null for a committed one.</summary>
     public Instant? EnteredAt { get; init; }
 
-    /// <summary>When the item last left the sprint; null if it was still in at the effective end.</summary>
+    /// <summary>
+    /// When the item last left the sprint; null if it was still in at the effective end, or is still in a
+    /// sprint that has not ended.
+    /// </summary>
     public Instant? LeftAt { get; init; }
 
     /// <summary>The item's estimate when it was committed or added.</summary>

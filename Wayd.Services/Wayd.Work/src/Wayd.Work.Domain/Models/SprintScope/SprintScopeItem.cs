@@ -4,7 +4,10 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 
 /// <summary>A work item that was in a sprint's scope: how it came in, and what became of it.</summary>
 /// <param name="EnteredAt">When an added item entered the sprint; null for a committed one.</param>
-/// <param name="LeftAt">When the item last left the sprint; null if it was still in at the effective end.</param>
+/// <param name="LeftAt">
+/// When the item last left the sprint; null if it was still in at the effective end, or is still in a sprint
+/// that has not ended.
+/// </param>
 /// <param name="EntryEstimate">The item's estimate when it was committed or added.</param>
 /// <param name="OutcomeEstimate">The item's estimate when it was last in the sprint.</param>
 public sealed record SprintScopeItem(

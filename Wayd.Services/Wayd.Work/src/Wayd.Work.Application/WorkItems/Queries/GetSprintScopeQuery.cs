@@ -29,12 +29,14 @@ public sealed record GetSprintScopeQuery : IQuery<SprintScopeDto?>
 public sealed class GetSprintScopeQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
-    ISettings<SchedulingSettings> schedulingSettings)
+    ISettings<SchedulingSettings> schedulingSettings,
+    IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetSprintScopeQuery, SprintScopeDto?>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<SprintScopeDto?> Handle(GetSprintScopeQuery request, CancellationToken cancellationToken)
     {
@@ -48,7 +50,7 @@ public sealed class GetSprintScopeQueryHandler(
 
         var (window, sizingMethod) = await LoadWindow(sprint, cancellationToken);
 
-        var report = SprintScopeReport.Build(window, sizingMethod, await LoadPeriods(window, cancellationToken));
+        var report = SprintScopeReport.Build(window, sizingMethod, await LoadPeriods(window, cancellationToken), _dateTimeProvider.Now);
 
         var workItemIds = report.Items.Select(i => i.WorkItemId).ToList();
         var workItems = await _workDbContext.WorkItems

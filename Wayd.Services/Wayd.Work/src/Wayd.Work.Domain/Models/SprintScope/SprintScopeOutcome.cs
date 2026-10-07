@@ -16,4 +16,7 @@ public enum SprintScopeOutcome
 
     [Display(Name = "Descoped", Description = "Unfinished, and left the sprint before its last day, or on it for somewhere other than the team's next sprint.", Order = 4)]
     Descoped = 4,
+
+    [Display(Name = "Remaining", Description = "Unfinished, and still in a sprint that has not ended yet.", Order = 5)]
+    Remaining = 5,
 }

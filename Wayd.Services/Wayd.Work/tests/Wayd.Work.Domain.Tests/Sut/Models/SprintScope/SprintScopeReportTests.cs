@@ -43,8 +43,55 @@ public class SprintScopeReportTests
         return (sprint1, sprint2, SprintScopeWindow.For(Timeline(sprint1, sprint2), sprint1));
     }
 
+    // Read well after every sprint here has ended, unless a test is about one still running.
+    private static readonly Instant Later = At(new LocalDate(2027, 1, 4));
+
     private static SprintScopeReport Build(SprintScopeWindow window, params ItemHistory[] items) =>
-        SprintScopeReport.Build(window, SizingMethod.StoryPoints, items.SelectMany(i => i.Periods));
+        BuildAt(window, Later, items);
+
+    private static SprintScopeReport BuildAt(SprintScopeWindow window, Instant now, params ItemHistory[] items) =>
+        SprintScopeReport.Build(window, SizingMethod.StoryPoints, items.SelectMany(i => i.Periods), now);
+
+    [Fact]
+    public void Build_SprintStillRunning_UnfinishedWorkIsRemainingAndDoneWorkCompleted()
+    {
+        // Arrange
+        var (sprint1, _, window) = TwoSprints();
+        var now = At(Sprint1Start.PlusDays(6), 12);
+        var unfinished = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active);
+        var done = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active)
+            .Then(At(Sprint1Start.PlusDays(3)), sprint1.Id, WorkStatusCategory.Done);
+        var addedAfterNow = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(8)), sprint1.Id, WorkStatusCategory.Active);
+
+        // Act
+        var report = BuildAt(window, now, unfinished, done, addedAfterNow);
+
+        // Assert
+        report.Items.Should().HaveCount(2);
+        report.Items.Single(i => i.WorkItemId == unfinished.WorkItemId).Outcome.Should().Be(SprintScopeOutcome.Remaining);
+        report.Items.Single(i => i.WorkItemId == done.WorkItemId).Outcome.Should().Be(SprintScopeOutcome.Completed);
+        report.Totals.Remaining.Count.Should().Be(1);
+        report.Totals.CarriedOver.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void Build_BeforeTheCommitmentPoint_HasNoScope()
+    {
+        // Arrange — planned work, read during the grace period
+        var (sprint1, _, window) = TwoSprints();
+        var item = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Proposed);
+
+        // Act
+        var report = BuildAt(window, At(Sprint1Start, 10), item);
+
+        // Assert
+        report.Items.Should().BeEmpty();
+        report.Totals.Total.Count.Should().Be(0);
+    }
 
     [Fact]
     public void Build_ItemInTheSprintAtTheStartAndDoneAtTheEnd_IsCommittedAndCompleted()

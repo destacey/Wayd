@@ -20,6 +20,8 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 /// Removed</b>. Unfinished work still in, or moved to the team's next sprint on or after the sprint's last
 /// day, is <b>Carried Over</b>; unfinished work that left any other way is <b>Descoped</b>.</item>
 /// </list>
+/// A report on a sprint that has not ended is worked out as of now: unfinished work still in it is
+/// <b>Remaining</b>, since it may yet be completed. One that has not reached its commitment point has no scope.
 /// A deleted item's history is deleted with it, so it is in no category.
 /// </remarks>
 public sealed class SprintScopeReport
@@ -45,18 +47,23 @@ public sealed class SprintScopeReport
     /// The history of every item that may have been in the sprint, in any order. Periods outside the window
     /// are ignored, so an item's whole history may be passed.
     /// </param>
-    public static SprintScopeReport Build(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> periods)
+    /// <param name="now">When the report is read; a sprint that has not ended is measured up to here.</param>
+    public static SprintScopeReport Build(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> periods, Instant now)
     {
+        if (now <= window.Start)
+            return new SprintScopeReport(window, sizingMethod, []);
+
+        var asOf = now < window.End ? now : window.End;
         var items = periods
             .GroupBy(p => p.WorkItemId)
-            .Select(g => Classify(window, sizingMethod, g))
+            .Select(g => Classify(window, asOf, sizingMethod, g))
             .OfType<SprintScopeItem>()
             .ToList();
 
         return new SprintScopeReport(window, sizingMethod, items);
     }
 
-    private static SprintScopeItem? Classify(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> itemPeriods)
+    private static SprintScopeItem? Classify(SprintScopeWindow window, Instant asOf, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> itemPeriods)
     {
         // A zero-length period, left by clock skew between revisions, holds at no instant.
         var periods = itemPeriods
@@ -70,7 +77,7 @@ public sealed class SprintScopeReport
 
         var atStart = At(window.Start);
         var inSprint = periods
-            .Where(p => InSprint(p) && p.ValidFrom < window.End && (p.ValidTo is null || p.ValidTo > window.Start))
+            .Where(p => InSprint(p) && p.ValidFrom < asOf && (p.ValidTo is null || p.ValidTo > window.Start))
             .ToList();
         if (inSprint.Count == 0)
             return null;
@@ -92,13 +99,14 @@ public sealed class SprintScopeReport
         }
 
         var last = inSprint[^1];
-        var stillIn = last.Covers(window.End);
+        var stillIn = last.Covers(asOf);
         var leftAt = stillIn ? null : last.ValidTo;
 
         var outcome = last.StatusCategory switch
         {
             WorkStatusCategory.Done => SprintScopeOutcome.Completed,
             WorkStatusCategory.Removed => SprintScopeOutcome.Removed,
+            _ when stillIn && asOf < window.End => SprintScopeOutcome.Remaining,
             _ when stillIn => SprintScopeOutcome.CarriedOver,
             _ when MovedToNextSprint(window, leftAt!.Value, At(leftAt.Value)) => SprintScopeOutcome.CarriedOver,
             _ => SprintScopeOutcome.Descoped,

@@ -57566,6 +57566,7 @@
           "removed",
           "carriedOver",
           "descoped",
+          "remaining",
           "completedOfCommitted",
           "unestimated"
         ],
@@ -57589,6 +57590,9 @@
             "$ref": "#/components/schemas/SprintScopeMeasureDto"
           },
           "descoped": {
+            "$ref": "#/components/schemas/SprintScopeMeasureDto"
+          },
+          "remaining": {
             "$ref": "#/components/schemas/SprintScopeMeasureDto"
           },
           "completedOfCommitted": {
@@ -57687,13 +57691,15 @@
           "Completed",
           "Removed",
           "CarriedOver",
-          "Descoped"
+          "Descoped",
+          "Remaining"
         ],
         "enum": [
           "Completed",
           "Removed",
           "CarriedOver",
-          "Descoped"
+          "Descoped",
+          "Remaining"
         ]
       },
       "StartSprintRequest": {

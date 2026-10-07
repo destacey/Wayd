@@ -49664,6 +49664,7 @@ export interface SprintScopeTotalsDto {
     removed: SprintScopeMeasureDto;
     carriedOver: SprintScopeMeasureDto;
     descoped: SprintScopeMeasureDto;
+    remaining: SprintScopeMeasureDto;
     completedOfCommitted: SprintScopeMeasureDto;
     sayDoCount?: number | undefined;
     sayDoEstimate?: number | undefined;
@@ -49695,6 +49696,7 @@ export enum SprintScopeOutcome {
     Removed = "Removed",
     CarriedOver = "CarriedOver",
     Descoped = "Descoped",
+    Remaining = "Remaining",
 }
 
 /** Starts a sprint. */

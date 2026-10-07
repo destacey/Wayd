@@ -64,6 +64,7 @@ public sealed record SprintScopeDto
 /// <param name="Estimate">The sum of their estimates in the report's sizing method.</param>
 public sealed record SprintScopeMeasureDto(int Count, double Estimate)
 {
+    /// <summary>The API shape of a domain <see cref="SprintScopeMeasure"/>.</summary>
     public static SprintScopeMeasureDto From(SprintScopeMeasure measure) => new(measure.Count, measure.Estimate);
 }
 

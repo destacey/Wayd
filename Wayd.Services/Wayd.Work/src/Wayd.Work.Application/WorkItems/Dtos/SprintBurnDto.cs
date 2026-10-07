@@ -56,6 +56,7 @@ public sealed record SprintBurnPointDto
     /// <summary>The part of the scope in a Done- or Removed-category status at the reading.</summary>
     public required SprintScopeMeasureDto Completed { get; init; }
 
+    /// <summary>The API shape of a domain <see cref="SprintBurnPoint"/>.</summary>
     public static SprintBurnPointDto From(SprintBurnPoint point) => new()
     {
         At = point.At,

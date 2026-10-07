@@ -24,6 +24,10 @@ public sealed record SprintScopeHistory(
     List<SprintScopePeriod> Periods,
     bool HistoryIncomplete);
 
+/// <summary>
+/// Loads what sprint scope and the sprint's burn are worked out from, so the two read the same window and the
+/// same work item history.
+/// </summary>
 public static class SprintScopeHistoryLoader
 {
     /// <summary>Loads the sprint matching <paramref name="sprintFilter"/>; null when there is none, or it has no planned dates.</summary>

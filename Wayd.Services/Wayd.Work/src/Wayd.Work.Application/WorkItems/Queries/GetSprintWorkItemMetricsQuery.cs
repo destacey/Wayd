@@ -2,6 +2,7 @@
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Iterations.Sprints;
 using Wayd.Work.Application.Persistence;
@@ -52,8 +53,10 @@ public sealed class GetSprintWorkItemMetricsQueryHandler(
             [(sprint.Id, sprint.TeamId, sprint.Start)],
             cancellationToken);
 
+        // Requirement-tier work only, as sprint scope counts it, so the two agree.
         var workItems = await _workDbContext.WorkItems
             .Where(w => w.IterationId == sprint.Id)
+            .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
             .ToListAsync(cancellationToken);
 
         return SprintWorkItemMetricsDto.FromWorkItems(sprint.Id, schedules[sprint.Id].SizingMethod, workItems);

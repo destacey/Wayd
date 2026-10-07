@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Iterations.Sprints;
 using Wayd.Work.Application.Persistence;
@@ -46,9 +47,10 @@ public sealed class GetSprintsWorkItemMetricsQueryHandler(
             [.. sprints.Select(s => (s.Id, s.TeamId, s.Start))],
             cancellationToken);
 
-        // Get all work items for the sprints in a single query
+        // Requirement-tier work only, as sprint scope counts it, so the two agree.
         var workItemsBySprintId = await _workDbContext.WorkItems
             .Where(w => w.IterationId.HasValue && sprintIdsList.Contains(w.IterationId.Value))
+            .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
             .GroupBy(w => w.IterationId!.Value)
             .ToDictionaryAsync(
                 g => g.Key,

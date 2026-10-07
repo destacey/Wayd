@@ -74,6 +74,12 @@ jest.mock('./iteration-health-indicator', () => ({
   ),
 }))
 
+// The burn-up reads its own query; the card only places it.
+jest.mock('./sprint-burn-up', () => ({
+  __esModule: true,
+  default: () => <div data-testid="sprint-burn-up" />,
+}))
+
 // Mock SprintPiPredictability
 jest.mock('./sprint-pi-predictability', () => ({
   __esModule: true,
@@ -224,6 +230,14 @@ describe('ActiveTeamSprint', () => {
     )
     expect(screen.getByTestId('say-do-metric')).toBeInTheDocument()
     expect(screen.queryByTestId('cycle-time-metric')).not.toBeInTheDocument()
+  })
+
+  it('ends with a burn-up of the sprint', () => {
+    // Arrange / Act
+    render(<ActiveTeamSprint teamId="team-1" />)
+
+    // Assert
+    expect(screen.getByTestId('sprint-burn-up')).toBeInTheDocument()
   })
 
   it('fetches metrics for the active sprint', () => {

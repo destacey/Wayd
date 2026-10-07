@@ -1,4 +1,5 @@
 import {
+  calculateCommitmentHealth,
   calculateIterationHealth,
   IterationHealthStatus,
   sprintActiveDays,
@@ -196,5 +197,83 @@ describe('sprintActiveDays', () => {
 
     // Assert
     expect(result).toEqual({ start: '2026-09-28', end: '2026-10-08' })
+  })
+})
+
+describe('calculateCommitmentHealth', () => {
+  // A 14-day sprint, Sep 28 to Oct 11; Oct 6 is day 9 of 14, 64% elapsed.
+  const sprint = { startDate: '2026-09-28', endDate: '2026-10-11' }
+
+  it('is on track when velocity keeps pace with the commitment, whatever was added', () => {
+    // Arrange / Act — 19 of 25 committed points delivered on day 9
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 25,
+      delivered: 19,
+      referenceDate: '2026-10-06',
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.OnTrack)
+    expect(Math.round(result.variancePercent)).toBe(-12)
+  })
+
+  it('is at risk 10 to 25 points behind the share of the sprint elapsed', () => {
+    // Arrange / Act — 12 of 25 on day 9: 48% delivered against 64% elapsed
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 25,
+      delivered: 12,
+      referenceDate: '2026-10-06',
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.AtRisk)
+  })
+
+  it('is off track more than 25 points behind', () => {
+    // Arrange / Act — 5 of 25 on day 9
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 25,
+      delivered: 5,
+      referenceDate: '2026-10-06',
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.OffTrack)
+  })
+
+  it('counts the first day as started', () => {
+    // Arrange / Act
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 25,
+      delivered: 0,
+      referenceDate: '2026-09-28',
+    })
+
+    // Assert — day 1 of 14 is 7% elapsed, within the on-track band
+    expect(result.status).toBe(IterationHealthStatus.OnTrack)
+  })
+
+  it('is completed after the last day and unknown with nothing committed', () => {
+    // Arrange / Act / Assert
+    expect(
+      calculateCommitmentHealth({
+        ...sprint,
+        committed: 25,
+        delivered: 25,
+        referenceDate: '2026-10-12',
+      }).status,
+    ).toBe(IterationHealthStatus.Completed)
+    expect(
+      calculateCommitmentHealth({
+        ...sprint,
+        committed: 0,
+        delivered: 3,
+        referenceDate: '2026-10-06',
+      }).status,
+    ).toBe(IterationHealthStatus.Unknown)
   })
 })

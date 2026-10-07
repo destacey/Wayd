@@ -34,9 +34,11 @@ export {
   nextUnusedPersonaColor,
 } from './color-helper'
 export {
+  calculateCommitmentHealth,
   calculateIterationHealth,
   sprintActiveDays,
   IterationHealthStatus,
+  type CommitmentHealthParams,
   type IterationHealthParams,
   type IterationHealthResult,
 } from './iteration-health'

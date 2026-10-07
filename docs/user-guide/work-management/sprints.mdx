@@ -83,8 +83,7 @@ The sprint detail page shows:
 - **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), and [Correct Actual Dates](#correcting-actual-dates)
 - **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), and the sprint's length in days
 - **Team** link and timeline progress bar
-- **Sprint Metrics** (for Active/Completed sprints) — see [Sprint Metrics](#sprint-metrics) below
-- **Scope** (for Active/Completed sprints) — committed, added, completed, carried over and descoped work, and the say/do ratio. See [Sprint Scope](#sprint-scope) below
+- **Sprint Metrics** (for Active/Completed sprints) — a progress row and a commitment row, with one switch between the team's estimate and counting work items. See [Sprint Metrics](#sprint-metrics) below
 - **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only
 - **Activity** — the sprint's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx)
 - **Links** section
@@ -105,8 +104,7 @@ Each card shows:
 - **Team code** (links to the team page) and **sprint name** (links to the sprint page)
 - **Sprint health indicator**
 - **Timeline progress** — Days elapsed and percentage complete
-- **Completion Rate**, **Velocity**, **In Progress**, and **Avg Cycle Time** metrics
-- **Say/Do so far** — the share of the sprint's committed work completed so far (see [Sprint Scope](#sprint-scope)), when anything was committed and the sprint's history is complete
+- **Completion Rate**, **Velocity**, **In Progress** and **Say/Do so far** — the share of the sprint's committed work completed so far (see [Sprint Scope](#sprint-scope)). Until the sprint has a say/do ratio — nothing committed yet, or its history incomplete — **Avg Cycle Time** takes that place
 - **Predictability** — If the sprint is mapped to a Planning Interval and the team has objectives, a predictability card appears per PI (links to the team's plan review page)
 
 The panel is only visible if you have at least one active team sprint.
@@ -115,29 +113,44 @@ The panel is only visible if you have at least one active team sprint.
 
 Sprint metrics provide quantitative insight into a sprint's progress and delivery. Metrics are available for both individual sprints and [PI iterations](../planning/planning-intervals.mdx#pi-iteration-detail-page) (which aggregate across all mapped sprints).
 
-**Metrics are measured in the team's sizing method.** A sprint uses the [sizing method](../organizations/index.mdx#operating-model) of the operating model in effect on its planned start — Story Points, Effort, Size or Count — so a team that changes how it sizes keeps its earlier sprints in the old unit. A sprint whose team is not mapped to a Wayd team counts work items. A selector switches the metrics between the team's sizing method and counting work items; for a team that sizes by count the two are the same, so the selector is disabled.
+**Metrics are measured in the team's sizing method.** A sprint uses the [sizing method](../organizations/index.mdx#operating-model) of the operating model in effect on its planned start — Story Points, Effort, Size or Count — so a team that changes how it sizes keeps its earlier sprints in the old unit. A sprint whose team is not mapped to a Wayd team counts work items. One switch above the cards moves every card between the team's sizing method and counting work items; for a team that sizes by count the two are the same, so the switch is disabled.
 
-### Metric Definitions
+**Only requirement-tier work counts.** Tasks are left out, since they break a story down and counting them would count the work twice, and bugs count only where the process puts them at the requirement level. This applies to the sprint page, the Home page's active sprint cards and PI iteration metrics alike.
 
-| Metric | Formula | Description |
-|--------|---------|-------------|
-| **Total** | Sum of every work item's estimate in the team's sizing method (or the number of work items) | Everything committed to the sprint |
-| **Completed** | Items where status category is **Done** or **Removed** | Work that is finished or removed from scope |
-| **In Progress** | Items where status category is **Active** | Work currently being performed |
-| **Not Started** | Items where status category is **Proposed** | Work that hasn't begun yet |
-| **Remaining** | Total − Completed | Work still to be done |
-| **Completion Rate** | `(Completed / Total) × 100` | Percentage of sprint work completed. Target: 80% |
-| **Velocity** | Completed estimate (or the number of completed work items) | How much work the team delivered. Percentage of total shown alongside. |
-| **Avg Cycle Time** | `Sum(Done − Activated) / Count` for Done items with both timestamps | Average days from start to completion. Only includes items that moved through Active to Done. |
-| **Unestimated** | Count of items with no value in the team's sizing method | Indicates estimation gaps. Highlighted red if any exist. An estimate of 0 is an estimate, and another estimate never stands in: a Story Points team's item with only an Effort is unestimated. Not shown when counting work items. |
+### The Sprint Overview
 
-### How "Completed" Is Defined
+The sprint page's Overview shows two rows of cards, then where the sprint's commitment point and end came from and the time zone they're in.
 
-**Completed** includes both **Done** and **Removed** [status categories](./work-configuration.mdx#work-status-categories). Removed items are counted as completed because they represent work that has been resolved (even if by removal from scope) and is no longer in progress.
+**Progress** — how the sprint's work is going:
 
-This means:
-- `Remaining = Total − (Done + Removed)`
-- `Completion Rate = (Done + Removed) / Total × 100`
+| Card | Shown | What it is |
+|------|-------|------------|
+| **Days Remaining** | Active | Days left in the sprint |
+| **Completion Rate** | Active, Completed | Velocity ÷ everything that was in the sprint except descoped work. Target: 80% |
+| **Velocity** | Active, Completed | The work completed while in the sprint, including work completed and then moved out. Work moved to a Removed status in the sprint counts too, unlike most tools' velocity, and is shown beneath as "x as Removed" |
+| **In Progress** | Active | Work in the sprint now in an **Active** status category, with its share of the sprint's work now |
+| **Not Started** | Active | Work in the sprint now in a **Proposed** status category, with its share of the sprint's work now |
+| **Avg Cycle Time** | Active, Completed | See [below](#cycle-time-in-sprint-context) |
+| **Unestimated** | When showing estimates | Items with no value in the team's sizing method, shown as a warning if any exist. An estimate of 0 is an estimate, and another estimate never stands in: a Story Points team's item with only an Effort is unestimated |
+
+**Commitment** — what the sprint committed to and what became of it, from [Sprint Scope](#sprint-scope): **Committed**, **Added**, **Carried Over** (on an Active sprint, only once there is some), **Descoped** and **Say/Do** (**Say/Do so far** while the sprint runs).
+
+Velocity and Completion Rate come from the sprint's scope, so carried-over work stays in the measure after it has moved on. Until the sprint has a scope — before its commitment point, or while its [history is incomplete](#sprint-scope) — they're measured on the items in the sprint now, the commitment row is hidden, and a warning says why. The page header's health indicator uses the same figures as Completion Rate.
+
+### Metric Definitions on PI Iterations
+
+[PI iteration](../planning/planning-intervals.mdx#pi-iteration-detail-page) pages measure the items in each mapped sprint now:
+
+| Metric | Formula |
+|--------|---------|
+| **Total** | Sum of every work item's estimate in the team's sizing method (or the number of work items) |
+| **Completed** | Items where status category is **Done** or **Removed** |
+| **In Progress** | Items where status category is **Active** |
+| **Not Started** | Items where status category is **Proposed** |
+| **Completion Rate** | `(Completed / Total) × 100` |
+| **Velocity** | Completed estimate (or the number of completed work items) |
+
+**Completed** includes both **Done** and **Removed** [status categories](./work-configuration.mdx#work-status-categories): removed work has been resolved, even if by removal from scope, and is no longer in progress.
 
 ### Cycle Time in Sprint Context
 

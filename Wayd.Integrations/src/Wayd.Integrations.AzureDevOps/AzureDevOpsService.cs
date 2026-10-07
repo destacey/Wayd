@@ -181,6 +181,28 @@ public class AzureDevOpsService(
             : Result.Failure<int[]>(result.Error);
     }
 
+    public async Task<Result<AzureDevOpsWorkItemRevisionsBatch>> GetWorkItemRevisions(AzureDevOpsConnectionContext connection, string projectName, string? continuationToken, string[] workItemTypes, CancellationToken cancellationToken)
+    {
+        var workItemService = CreateWorkItemService(connection);
+
+        var result = await workItemService.GetWorkItemRevisions(projectName, continuationToken, workItemTypes, cancellationToken).ConfigureAwait(false);
+
+        return result.IsSuccess
+            ? new AzureDevOpsWorkItemRevisionsBatch(result.Value.Values.ToIExternalWorkItemRevisions(), result.Value.ContinuationToken, result.Value.IsLastBatch)
+            : Result.Failure<AzureDevOpsWorkItemRevisionsBatch>(result.Error);
+    }
+
+    public async Task<Result<List<IExternalWorkItemRevision>>> GetRevisionsOfWorkItems(AzureDevOpsConnectionContext connection, IReadOnlyCollection<int> workItemIds, CancellationToken cancellationToken)
+    {
+        var workItemService = CreateWorkItemService(connection);
+
+        var result = await workItemService.GetRevisionsOfWorkItems(workItemIds, cancellationToken).ConfigureAwait(false);
+
+        return result.IsSuccess
+            ? result.Value.ToIExternalWorkItemRevisions()
+            : Result.Failure<List<IExternalWorkItemRevision>>(result.Error);
+    }
+
     private async Task<Result<ProjectDetailsDto>> GetProject(AzureDevOpsConnectionContext connection, string projectIdOrName, CancellationToken cancellationToken)
     {
         var projectService = CreateProjectService(connection);

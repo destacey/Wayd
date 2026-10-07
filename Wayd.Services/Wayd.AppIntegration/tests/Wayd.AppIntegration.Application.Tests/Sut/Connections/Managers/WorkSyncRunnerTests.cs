@@ -154,7 +154,10 @@ public class WorkSyncRunnerTests
             .ReturnsAsync(Result.Success<string?>(null));
         dispatcher
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+            .ReturnsAsync(Result.Success(0));
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<GetWorkItemsMissingRevisionsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success<IReadOnlyList<int>>([]));
     }
 
     private static Result<WorkItemHistoryBatch> HistoryBatch(int revisionCount, string? nextWatermark, bool isLastBatch) =>
@@ -287,8 +290,8 @@ public class WorkSyncRunnerTests
         var applied = new List<SyncExternalWorkItemHistoryCommand>();
         dispatcher
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
-            .Callback((ICommand command, CancellationToken _) => applied.Add((SyncExternalWorkItemHistoryCommand)command))
-            .ReturnsAsync(Result.Success());
+            .Callback((ICommand<int> command, CancellationToken _) => applied.Add((SyncExternalWorkItemHistoryCommand)command))
+            .ReturnsAsync(() => Result.Success(applied.Count * 2));
 
         // Act
         await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
@@ -297,7 +300,140 @@ public class WorkSyncRunnerTests
         applied.Select(c => (c.ConnectionId, c.Revisions.Count, c.Watermark)).Should().Equal(
             (connection.Id, 3, "w1"),
             (connection.Id, 2, "w2"));
-        _db.SyncRuns.Single().DetailsJson.Should().Contain("\"workItemRevisionsProcessed\":5");
+        var details = _db.SyncRuns.Single().DetailsJson;
+        details.Should().Contain("\"workItemRevisionsProcessed\":5");
+        details.Should().Contain("\"workItemHistoryPeriodsWritten\":6");
+    }
+
+    [Fact]
+    public async Task Run_ItemsMissingRevisions_AreFilledFromTheItemsWithoutMovingTheWatermark()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HistoryBatch(2, "w1", isLastBatch: true));
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<GetWorkItemsMissingRevisionsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success<IReadOnlyList<int>>([7, 9]));
+        _source.Setup(s => s.GetAllRevisions(It.IsAny<WorkspaceSyncTarget>(), It.Is<IReadOnlyCollection<int>>(ids => ids.SequenceEqual(new[] { 7, 9 })), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success<IReadOnlyList<IExternalWorkItemRevision>>(
+                [.. Enumerable.Range(1, 4).Select(_ => Mock.Of<IExternalWorkItemRevision>())]));
+        var applied = new List<SyncExternalWorkItemHistoryCommand>();
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .Callback((ICommand<int> command, CancellationToken _) => applied.Add((SyncExternalWorkItemHistoryCommand)command))
+            .ReturnsAsync(Result.Success(1));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        // Assert
+        applied.Select(c => (c.Revisions.Count, c.Watermark, c.FilledWorkItemIds?.ToArray())).Should().BeEquivalentTo(
+            new (int, string?, int[]?)[] { (2, "w1", null), (4, null, [7, 9]) },
+            o => o.WithStrictOrdering());
+        var details = _db.SyncRuns.Single().DetailsJson;
+        details.Should().Contain("\"workItemRevisionsProcessed\":6");
+        details.Should().Contain("\"workItemHistoryPeriodsWritten\":2");
+    }
+
+    [Fact]
+    public async Task Run_FillsMissingRevisionsOnlyAfterEveryWorkspacesStream()
+    {
+        // Arrange — a revision made in the second workspace must arrive through its stream, not be
+        // fetched from the item by the first workspace's fill
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource(workspaceCount: 2);
+        var calls = new List<string>();
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("stream"))
+            .ReturnsAsync(HistoryBatch(0, "w1", isLastBatch: true));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetWorkItemsMissingRevisionsQuery>(), It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("fill"))
+            .ReturnsAsync(Result.Success<IReadOnlyList<int>>([]));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        // Assert
+        calls.Should().Equal("stream", "stream", "fill", "fill");
+    }
+
+    [Fact]
+    public async Task Run_FillFailsPartWay_KeepsWhatEarlierBatchesAppliedAndReportsTheError()
+    {
+        // Arrange — two batches of items to fill; the second cannot be read
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HistoryBatch(2, "w1", isLastBatch: true));
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<GetWorkItemsMissingRevisionsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success<IReadOnlyList<int>>([.. Enumerable.Range(1, 60)]));
+        _source.SetupSequence(s => s.GetAllRevisions(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success<IReadOnlyList<IExternalWorkItemRevision>>([.. Enumerable.Range(1, 3).Select(_ => Mock.Of<IExternalWorkItemRevision>())]))
+            .ReturnsAsync(Result.Failure<IReadOnlyList<IExternalWorkItemRevision>>("Revisions unavailable"));
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(1));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        // Assert
+        var run = _db.SyncRuns.Single();
+        run.Status.Should().Be(SyncRunStatus.Succeeded);
+        run.ErrorsCount.Should().Be(1);
+        run.DetailsJson.Should().Contain("\"workItemRevisionsProcessed\":5");
+        run.DetailsJson.Should().Contain("\"workItemHistoryPeriodsWritten\":2");
+        run.DetailsJson.Should().Contain("\"hadPartialFailure\":true");
+        run.DetailsJson.Should().Contain("Filling missing work item revisions: Revisions unavailable");
+    }
+
+    [Fact]
+    public async Task Run_NoItemsMissingRevisions_FetchesNothingFromTheItems()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        // Assert
+        _source.Verify(s => s.GetAllRevisions(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_HistoryFailsPartWay_RecordsWhatWasAppliedBeforeTheFailure()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HistoryBatch(3, "w1", isLastBatch: false));
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), "w1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<WorkItemHistoryBatch>("Revisions unavailable"));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(2));
+
+        // Act
+        await _sut.Run(SyncType.Full, SyncTriggerSource.Manual, CancellationToken.None);
+
+        // Assert
+        var details = _db.SyncRuns.Single().DetailsJson;
+        details.Should().Contain("\"workItemRevisionsProcessed\":3");
+        details.Should().Contain("\"workItemHistoryPeriodsWritten\":2");
+        details.Should().Contain("Work item history: Revisions unavailable");
     }
 
     [Fact]

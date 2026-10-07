@@ -6,6 +6,7 @@ using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Application.Logging;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Dtos;
@@ -43,6 +44,7 @@ public sealed class AzureDevOpsWorkItemSource(
     // integration state without re-querying. Cleared on Bind().
     private List<AzureDevOpsWorkProcessDto>? _planWorkProcesses;
     private readonly HashSet<Guid> _workProcessesSynced = [];
+    private readonly Dictionary<Guid, string[]> _workTypeNames = [];
 
     public Connector Connector => Connector.AzureDevOps;
 
@@ -59,6 +61,7 @@ public sealed class AzureDevOpsWorkItemSource(
         _teamCfg = descriptor.TeamConfiguration as AzureDevOpsBoardsTeamConfiguration;
         _planWorkProcesses = null;
         _workProcessesSynced.Clear();
+        _workTypeNames.Clear();
         return Result.Success();
     }
 
@@ -302,12 +305,42 @@ public sealed class AzureDevOpsWorkItemSource(
     }
 
     /// <summary>
-    /// Returns no revisions until the reporting revisions API is mapped onto the contract (#921),
-    /// leaving the watermark where it was.
+    /// Returns one page of the project's reporting revisions, of the workspace's synced work types.
+    /// The watermark is Azure DevOps' continuation token.
     /// </summary>
-    public Task<Result<WorkItemHistoryBatch>> GetWorkItemHistory(WorkspaceSyncTarget target, string? watermark, CancellationToken cancellationToken)
+    /// <remarks>
+    /// The type filter applies to each revision, so an item that changed into a synced type has
+    /// revisions this stream skips; the runner reads them from the item through
+    /// <see cref="GetAllRevisions"/>.
+    /// </remarks>
+    public async Task<Result<WorkItemHistoryBatch>> GetWorkItemHistory(WorkspaceSyncTarget target, string? watermark, CancellationToken cancellationToken)
     {
-        return Task.FromResult(Result.Success(WorkItemHistoryBatch.Empty(watermark)));
+        var ctx = RequireBound();
+
+        var workTypeNamesResult = await GetWorkTypeNames(target.InternalWorkspaceId, cancellationToken);
+        if (workTypeNamesResult.IsFailure)
+            return workTypeNamesResult.ConvertFailure<WorkItemHistoryBatch>();
+
+        var revisionsResult = await _azureDevOpsService.GetWorkItemRevisions(ctx.Connection, target.WorkspaceName, watermark, workTypeNamesResult.Value, cancellationToken);
+        if (revisionsResult.IsFailure)
+            return revisionsResult.ConvertFailure<WorkItemHistoryBatch>();
+
+        var batch = revisionsResult.Value;
+        return new WorkItemHistoryBatch(batch.Revisions, batch.ContinuationToken ?? watermark, batch.IsLastBatch);
+    }
+
+    /// <summary>
+    /// Reads each item's revisions from the item itself, which Azure DevOps answers whichever
+    /// projects the item was in and whatever its type was.
+    /// </summary>
+    public async Task<Result<IReadOnlyList<IExternalWorkItemRevision>>> GetAllRevisions(WorkspaceSyncTarget target, IReadOnlyCollection<int> workItemIds, CancellationToken cancellationToken)
+    {
+        var ctx = RequireBound();
+
+        var result = await _azureDevOpsService.GetRevisionsOfWorkItems(ctx.Connection, workItemIds, cancellationToken);
+        return result.IsSuccess
+            ? result.Value
+            : result.ConvertFailure<IReadOnlyList<IExternalWorkItemRevision>>();
     }
 
     // ----- helpers -----
@@ -431,6 +464,24 @@ public sealed class AzureDevOpsWorkItemSource(
         workProcessExternalId = workProcess.ExternalId;
         workProcessInternalId = workProcess.IntegrationState.InternalId;
         return true;
+    }
+
+    /// <summary>
+    /// The workspace's work type names, read once per bind: the history sync asks for them on
+    /// every page, and a backfill reads thousands of pages.
+    /// </summary>
+    private async Task<Result<string[]>> GetWorkTypeNames(Guid workspaceId, CancellationToken cancellationToken)
+    {
+        if (_workTypeNames.TryGetValue(workspaceId, out var cached))
+            return cached;
+
+        var workTypesResult = await _dispatcher.Send(new GetWorkspaceWorkTypesQuery(workspaceId), cancellationToken);
+        if (workTypesResult.IsFailure)
+            return workTypesResult.ConvertFailure<string[]>();
+
+        var names = workTypesResult.Value.Select(t => t.Name).ToArray();
+        _workTypeNames[workspaceId] = names;
+        return names;
     }
 
     private async Task<DateTime> GetWorkspaceMostRecentChangeDate(Guid workspaceId, CancellationToken cancellationToken)

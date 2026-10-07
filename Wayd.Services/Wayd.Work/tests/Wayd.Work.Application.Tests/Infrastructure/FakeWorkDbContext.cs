@@ -33,6 +33,8 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     private readonly List<WorkItemHierarchy> _workItemHierarchies = [];
     private readonly List<WorkItemDependency> _workItemDependencies = [];
     private readonly List<WorkItemStateHistory> _workItemStateHistory = [];
+    private readonly List<WorkItemSourceRevision> _workItemSourceRevisions = [];
+    private readonly List<WorkItemRevisionFill> _workItemRevisionFills = [];
 
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -58,6 +60,8 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public DbSet<WorkItemHierarchy> WorkItemHierarchies => _workItemHierarchies.AsDbSet();
     public DbSet<WorkItemDependency> WorkItemDependencies => _workItemDependencies.AsDbSet();
     public DbSet<WorkItemStateHistory> WorkItemStateHistory => _workItemStateHistory.AsDbSet();
+    public DbSet<WorkItemSourceRevision> WorkItemSourceRevisions => _workItemSourceRevisions.AsDbSet();
+    public DbSet<WorkItemRevisionFill> WorkItemRevisionFills => _workItemRevisionFills.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
     public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();

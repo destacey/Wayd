@@ -63,7 +63,7 @@ internal static class WorkItemResponseExtensions
     }
 
     /// <summary>An estimate with negative values clamped to 0, which Wayd rejects.</summary>
-    private static double? ClampEstimate(double? value) => value < 0 ? 0 : value;
+    internal static double? ClampEstimate(double? value) => value < 0 ? 0 : value;
 
     public static List<IExternalWorkItem> ToIExternalWorkItems(this List<WorkItemResponse> workItems, List<IterationDto> iterations, ILogger logger)
     {

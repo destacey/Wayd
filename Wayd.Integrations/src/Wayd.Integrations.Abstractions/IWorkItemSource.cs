@@ -1,4 +1,6 @@
-﻿namespace Wayd.Integrations.Abstractions;
+﻿using Wayd.Common.Application.Interfaces.ExternalWork;
+
+namespace Wayd.Integrations.Abstractions;
 
 /// <summary>
 /// Connector-neutral contract for pulling work items from an external system. One implementation
@@ -70,5 +72,20 @@ public interface IWorkItemSource
     Task<Result<WorkItemHistoryBatch>> GetWorkItemHistory(
         WorkspaceSyncTarget target,
         string? watermark,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns every revision of the given work items, wherever each was made: in another project
+    /// or workspace, or while the item was of a work type the workspace's history skips. The runner
+    /// calls it for items whose stored revisions have gaps that
+    /// <see cref="GetWorkItemHistory"/> cannot fill.
+    /// </summary>
+    /// <remarks>
+    /// An item the source no longer holds is left out rather than failing the call. A connector that
+    /// cannot read an item's revisions returns none.
+    /// </remarks>
+    Task<Result<IReadOnlyList<IExternalWorkItemRevision>>> GetAllRevisions(
+        WorkspaceSyncTarget target,
+        IReadOnlyCollection<int> workItemIds,
         CancellationToken cancellationToken);
 }

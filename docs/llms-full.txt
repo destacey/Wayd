@@ -299,7 +299,7 @@ Enables cross-workflow metrics (cycle time, throughput, completion rates).
 
 ### Work Item History
 
-Effective-dated state imported from the source's revisions: one period per stretch of time during which the tracked fields (iteration, status, work type, team, assignee, Story Points, Effort, Size) didn't change. "What was true at time T" is a range filter (`ValidFrom <= T AND (ValidTo IS NULL OR ValidTo > T)`). Source values (status and type names, the source's iteration id) are kept beside the resolved ones. History is deleted with its work item. A full sync replays the source's revisions onto it without deleting anything; revisions already applied are skipped.
+Effective-dated state imported from the source's revisions: one period per stretch of time during which the tracked fields (iteration, status, work type, team, assignee, Story Points, Effort, Size) didn't change. "What was true at time T" is a range filter (`ValidFrom <= T AND (ValidTo IS NULL OR ValidTo > T)`). Source values (status and type names, the source's iteration id) are kept beside the resolved ones. History is deleted with its work item. Every revision read is also kept as a source revision, and periods are built from them: a revision that arrives out of order (an item that moved between projects) rebuilds the item's periods, and revisions an item is missing are fetched from the item itself. A full sync replays the source's revisions onto it without deleting anything; revisions already stored are skipped.
 
 ---
 

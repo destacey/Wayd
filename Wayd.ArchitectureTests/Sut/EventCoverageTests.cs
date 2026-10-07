@@ -197,6 +197,8 @@ public partial class EventCoverageTests
         [typeof(ImportProcess)] = "The state of an import run, advanced per chunk; it is the record of the run.",
         [typeof(SyncRun)] = "The state of a sync run; it is the record of the run.",
         [typeof(WorkItemStateHistory)] = "A work item's history imported from the source's revisions; it is the record.",
+        [typeof(WorkItemSourceRevision)] = "A work item's revisions as the source recorded them; it is the record.",
+        [typeof(WorkItemRevisionFill)] = "Sync bookkeeping: when an item's missing revisions were last fetched.",
 
         // Derived or side-effect data with no meaning of its own.
         [typeof(ExternalEmployeeBlacklistItem)] =

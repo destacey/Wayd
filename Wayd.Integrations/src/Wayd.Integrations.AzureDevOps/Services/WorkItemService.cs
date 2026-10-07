@@ -1,6 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using Wayd.Integrations.AzureDevOps.Clients;
+using Wayd.Integrations.AzureDevOps.Models;
 using Wayd.Integrations.AzureDevOps.Models.WorkItems;
 
 namespace Wayd.Integrations.AzureDevOps.Services;
@@ -120,6 +121,73 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
             _logger.LogError(ex, "Exception thrown getting dependency link changes for project {Project} from Azure DevOps", projectName);
             return Result.Failure<List<ReportingWorkItemLinkResponse>>(ex.Message);
         }
+    }
+
+    /// <summary>The fields Wayd keeps history for, plus those that place a revision.</summary>
+    private static readonly string[] _revisionFields =
+    [
+        "System.Id",
+        "System.Rev",
+        "System.ChangedDate",
+        "System.WorkItemType",
+        "System.State",
+        "System.IterationId",
+        "System.AssignedTo",
+        "Microsoft.VSTS.Scheduling.StoryPoints",
+        "Microsoft.VSTS.Scheduling.Effort",
+        "Microsoft.VSTS.Scheduling.Size",
+    ];
+
+    public async Task<Result<BatchResponse<ReportingWorkItemRevisionResponse>>> GetWorkItemRevisions(string projectName, string? continuationToken, string[] workItemTypes, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var batch = await _workItemClient.GetWorkItemRevisions(projectName, continuationToken, _revisionFields, workItemTypes, cancellationToken).ConfigureAwait(false);
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("{RevisionCount} work item revisions found for project {Project}", batch.Values.Count, projectName);
+
+            return Result.Success(batch);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting work item revisions for project {Project} from Azure DevOps", projectName);
+            return Result.Failure<BatchResponse<ReportingWorkItemRevisionResponse>>(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads each item's revisions. An item that fails, after the HTTP client's own retries, is
+    /// logged and left out rather than failing the rest: the caller records every item as tried, so
+    /// one unreadable item cannot block the others on every sync.
+    /// </summary>
+    public async Task<Result<List<ReportingWorkItemRevisionResponse>>> GetRevisionsOfWorkItems(IReadOnlyCollection<int> workItemIds, CancellationToken cancellationToken)
+    {
+        var revisions = new List<ReportingWorkItemRevisionResponse>();
+        foreach (var workItemId in workItemIds)
+        {
+            try
+            {
+                revisions.AddRange(await _workItemClient.GetRevisionsOfWorkItem(workItemId, cancellationToken).ConfigureAwait(false));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Skipping the revisions of work item {WorkItemId}: Azure DevOps did not return them", workItemId);
+            }
+        }
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("{RevisionCount} revisions found for {WorkItemCount} work items", revisions.Count, workItemIds.Count);
+
+        return Result.Success(revisions);
     }
 
     public async Task<Result<int[]>> GetDeletedWorkItemIds(string projectName, DateTime lastChangedDate, string[] syncedWorkItemTypes, CancellationToken cancellationToken)

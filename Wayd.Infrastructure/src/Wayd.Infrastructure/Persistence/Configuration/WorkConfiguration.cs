@@ -310,6 +310,59 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
     }
 }
 
+public class WorkItemSourceRevisionConfig : IEntityTypeConfiguration<WorkItemSourceRevision>
+{
+    public void Configure(EntityTypeBuilder<WorkItemSourceRevision> builder)
+    {
+        builder.ToTable("WorkItemSourceRevisions", SchemaNames.Work);
+
+        // An identity key: the table grows with every revision read, and a GUID key would scatter
+        // those inserts across the clustered index.
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Id).ValueGeneratedOnAdd();
+
+        // A revision is stored once, and building an item's periods reads its revisions in order.
+        builder.HasIndex(r => new { r.WorkItemId, r.Revision })
+            .IsUnique();
+
+        // Properties
+        builder.Property(r => r.Changed).IsRequired();
+        builder.Property(r => r.StatusName).IsRequired().HasMaxLength(128);
+        builder.Property(r => r.WorkTypeName).IsRequired().HasMaxLength(128);
+        builder.Property(r => r.TeamKey).HasMaxLength(128);
+        builder.Property(r => r.AssignedToExternalId).HasMaxLength(128);
+
+        builder.Ignore(r => r.Values);
+
+        // Relationships
+        builder.HasOne<WorkItem>()
+            .WithMany()
+            .HasForeignKey(r => r.WorkItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Workspace>()
+            .WithMany()
+            .HasForeignKey(r => r.WorkspaceId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class WorkItemRevisionFillConfig : IEntityTypeConfiguration<WorkItemRevisionFill>
+{
+    public void Configure(EntityTypeBuilder<WorkItemRevisionFill> builder)
+    {
+        builder.ToTable("WorkItemRevisionFills", SchemaNames.Work);
+
+        builder.HasKey(f => f.WorkItemId);
+        builder.Property(f => f.WorkItemId).ValueGeneratedNever();
+
+        builder.HasOne<WorkItem>()
+            .WithOne()
+            .HasForeignKey<WorkItemRevisionFill>(f => f.WorkItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class WorkItemStateHistoryConfig : IEntityTypeConfiguration<WorkItemStateHistory>
 {
     public void Configure(EntityTypeBuilder<WorkItemStateHistory> builder)

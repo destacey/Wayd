@@ -29,6 +29,10 @@ public sealed class WorkSyncRunner(
     private readonly IAppIntegrationDbContext _db = db;
     private readonly IDateTimeProvider _clock = clock;
     private readonly IReadOnlyDictionary<Connector, ISyncableConnectionDescriptorBuilder> _descriptorBuilders = descriptorBuilders.ToDictionary(b => b.Connector);
+    // Each item costs a call of its own, so these bound how long one sync spends filling gaps.
+    private const int MaxItemsFilledPerSync = 500;
+    private const int ItemsFilledPerBatch = 50;
+
     private static readonly Action<ILogger, Exception?> _runStarted = LoggerMessage.Define(LogLevel.Information,
         AppEventId.AppIntegration_WorkSyncRunner_RunStarted.ToEventId(),
         "WorkSyncRunner starting");
@@ -200,6 +204,31 @@ public sealed class WorkSyncRunner(
                 }
             }
 
+            // After every workspace's own revisions: an item that moved between two synced projects
+            // gets the revisions made in each through that project's stream, so only what no stream
+            // holds is left to fetch from the item.
+            for (var i = 0; i < workspaceDetails.Count; i++)
+            {
+                var detail = workspaceDetails[i];
+                if (!detail.Succeeded)
+                    continue;
+
+                cancellationToken.ThrowIfCancellationRequested();
+                var target = planResult.Value.First(t => t.InternalWorkspaceId == detail.InternalWorkspaceId);
+                using (_logger.BeginScope(new Dictionary<string, object> { ["WorkspaceId"] = target.InternalWorkspaceId }))
+                {
+                    var fill = await FillMissingRevisions(source, target, connectionId, cancellationToken);
+                    if (fill.Error is not null)
+                    {
+                        _logger.LogError("Filling missing work item revisions failed for workspace {WorkspaceId}: {Error}", target.InternalWorkspaceId, fill.Error);
+                        if (!detail.HadPartialFailure)
+                            run.RecordError();
+                    }
+
+                    workspaceDetails[i] = detail.WithRevisionFill(fill.RevisionsProcessed, fill.PeriodsWritten, fill.Error);
+                }
+            }
+
             var dependenciesResult = await _dispatcher.Send(new ProcessDependenciesCommand(descriptorResult.Value.SystemId!), cancellationToken);
             if (dependenciesResult.IsFailure)
             {
@@ -253,11 +282,11 @@ public sealed class WorkSyncRunner(
         // before its revisions are applied. A failure here leaves the items synced, so the workspace
         // is degraded rather than failed.
         var items = itemsResult.Value;
-        var historyResult = await SyncWorkItemHistory(source, target, connectionId, syncType, cancellationToken);
-        if (historyResult.IsFailure)
+        var history = await SyncWorkItemHistory(source, target, connectionId, syncType, cancellationToken);
+        if (history.Error is not null)
         {
-            _logger.LogError("Work item history sync failed for workspace {WorkspaceId}: {Error}", target.InternalWorkspaceId, historyResult.Error);
-            var message = $"Work item history: {historyResult.Error}";
+            _logger.LogError("Work item history sync failed for workspace {WorkspaceId}: {Error}", target.InternalWorkspaceId, history.Error);
+            var message = $"Work item history: {history.Error}";
             items = items with
             {
                 HadPartialFailure = true,
@@ -265,7 +294,7 @@ public sealed class WorkSyncRunner(
             };
         }
 
-        return WorkspaceSyncDetail.FromSuccess(target, items, historyResult.IsSuccess ? historyResult.Value : 0);
+        return WorkspaceSyncDetail.FromSuccess(target, items, history.RevisionsProcessed, history.PeriodsWritten);
     }
 
     /// <summary>
@@ -274,8 +303,11 @@ public sealed class WorkSyncRunner(
     /// the history already stored: revisions already applied are skipped, so it fills gaps and
     /// changes nothing it already holds.
     /// </summary>
-    /// <returns>The number of revisions received.</returns>
-    private async Task<Result<int>> SyncWorkItemHistory(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, SyncType syncType, CancellationToken cancellationToken)
+    /// <returns>
+    /// What was applied, counted up to a failure too: each batch is saved as it is applied, so a
+    /// backfill that fails part way has still stored what it read.
+    /// </returns>
+    private async Task<HistorySyncOutcome> SyncWorkItemHistory(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, SyncType syncType, CancellationToken cancellationToken)
     {
         string? watermark;
         if (syncType == SyncType.Full)
@@ -286,19 +318,20 @@ public sealed class WorkSyncRunner(
         {
             var watermarkResult = await _dispatcher.Send(new GetWorkItemHistoryWatermarkQuery(target.InternalWorkspaceId), cancellationToken);
             if (watermarkResult.IsFailure)
-                return Result.Failure<int>(watermarkResult.Error);
+                return new HistorySyncOutcome(0, 0, watermarkResult.Error);
 
             watermark = watermarkResult.Value;
         }
 
-        var processed = 0;
+        var revisions = 0;
+        var periods = 0;
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var batchResult = await source.GetWorkItemHistory(target, watermark, cancellationToken);
             if (batchResult.IsFailure)
-                return Result.Failure<int>(batchResult.Error);
+                return new HistorySyncOutcome(revisions, periods, batchResult.Error);
 
             var batch = batchResult.Value;
             var advanced = batch.NextWatermark != watermark;
@@ -309,23 +342,69 @@ public sealed class WorkSyncRunner(
                     new SyncExternalWorkItemHistoryCommand(connectionId, target.InternalWorkspaceId, batch.Revisions, batch.NextWatermark),
                     cancellationToken);
                 if (applyResult.IsFailure)
-                    return Result.Failure<int>(applyResult.Error);
+                    return new HistorySyncOutcome(revisions, periods, applyResult.Error);
 
-                processed += batch.Revisions.Count;
+                revisions += batch.Revisions.Count;
+                periods += applyResult.Value;
             }
 
             if (batch.IsLastBatch)
-                return processed;
+                return new HistorySyncOutcome(revisions, periods, null);
 
             // A source that stays where it was would be asked for the same batch forever, holding the
             // sync job and every later one queued behind it. Revisions do not count as progress: a
             // repeated batch is skipped as already applied.
             if (!advanced)
-                return Result.Failure<int>("The source returned a batch without advancing its watermark.");
+                return new HistorySyncOutcome(revisions, periods, "The source returned a batch without advancing its watermark.");
 
             watermark = batch.NextWatermark;
         }
     }
+
+    /// <summary>
+    /// Fetches the revisions the workspace's items are missing from the items themselves. A
+    /// workspace's own history covers only revisions made in it, of the types it syncs, so an item
+    /// that came from another project or work type has gaps that only the item can fill.
+    /// </summary>
+    /// <remarks>
+    /// Bounded per run so a first sync of a large, much-moved workspace cannot hold the job; the next
+    /// sync continues where this one stopped.
+    /// </remarks>
+    private async Task<HistorySyncOutcome> FillMissingRevisions(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, CancellationToken cancellationToken)
+    {
+        var outcome = new HistorySyncOutcome(0, 0, null);
+
+        var missingResult = await _dispatcher.Send(new GetWorkItemsMissingRevisionsQuery(target.InternalWorkspaceId, MaxItemsFilledPerSync), cancellationToken);
+        if (missingResult.IsFailure)
+            return outcome with { Error = missingResult.Error };
+
+        foreach (var workItemIds in missingResult.Value.Chunk(ItemsFilledPerBatch))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var revisionsResult = await source.GetAllRevisions(target, workItemIds, cancellationToken);
+            if (revisionsResult.IsFailure)
+                return outcome with { Error = revisionsResult.Error };
+
+            // Applied even when nothing came back, so the items are recorded as filled.
+            var applyResult = await _dispatcher.Send(
+                new SyncExternalWorkItemHistoryCommand(connectionId, target.InternalWorkspaceId, revisionsResult.Value, null, FilledWorkItemIds: workItemIds),
+                cancellationToken);
+            if (applyResult.IsFailure)
+                return outcome with { Error = applyResult.Error };
+
+            outcome = outcome with
+            {
+                RevisionsProcessed = outcome.RevisionsProcessed + revisionsResult.Value.Count,
+                PeriodsWritten = outcome.PeriodsWritten + applyResult.Value,
+            };
+        }
+
+        return outcome;
+    }
+
+    /// <summary>What one workspace's history sync applied, and why it stopped early if it did.</summary>
+    private sealed record HistorySyncOutcome(int RevisionsProcessed, int PeriodsWritten, string? Error);
 
     private Task<Result<SyncableConnectionDescriptor>> BuildDescriptor(Guid connectionId, Connector connector, CancellationToken cancellationToken)
     {

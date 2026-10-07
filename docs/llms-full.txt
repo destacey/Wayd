@@ -203,6 +203,8 @@ What a sprint committed to and what became of it, worked out when read (never st
 - Work already Done or Removed before `FinishedWorkCutoff` (the recorded start, else the start of the first planned day) is out of scope while it stays finished; reopened in the sprint, it is Added from then on
 - Last day = the earlier of the last planned day and the day the sprint actually ended, in the team's zone
 - Say/do = completed of committed ÷ committed, by count and by the estimate at the commitment point
+- The sprint page shows Predictability = velocity ÷ committed, capped at 100% (finished added work counts), and Re-estimated = scope total at final estimates − committed − added. Each item carries `AddedAt` and `RemovedAt` (removed from the sprint, not a Removed status) and its original and final estimate
+- Sprint metrics (`SprintWorkItemMetricsDto`) count requirement-tier work only, matching scope
 - A sprint is read up to now: before its commitment point it has no scope
 - Deleted work items take their history with them, so they appear in no category
 - `HistoryIncomplete` when any workspace holding the sprint's work (in history or currently) has no `Workspace.WorkItemHistoryBackfilledOn`, set the first time a history sync reads to the source's last batch

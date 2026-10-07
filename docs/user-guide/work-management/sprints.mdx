@@ -84,7 +84,7 @@ The sprint detail page shows:
 - **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), and the sprint's length in days
 - **Team** link and timeline progress bar
 - **Sprint Metrics** (for Active/Completed sprints) — a progress row and a commitment row, with one switch between the team's estimate and counting work items. See [Sprint Metrics](#sprint-metrics) below
-- **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only
+- **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, its **Original** and **Final** estimate (**Original SP** and **Final SP** for a Story Points team: the estimate when it came in, and when it was last in the sprint), and when it was **Added to Sprint** or **Removed from Sprint**, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only
 - **Activity** — the sprint's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx)
 - **Links** section
 
@@ -104,7 +104,7 @@ Each card shows:
 - **Team code** (links to the team page) and **sprint name** (links to the sprint page)
 - **Sprint health indicator**
 - **Timeline progress** — Days elapsed and percentage complete
-- **Completion Rate**, **Velocity**, **In Progress** and **Say/Do so far** — the share of the sprint's committed work completed so far (see [Sprint Scope](#sprint-scope)). Until the sprint has a say/do ratio — nothing committed yet, or its history incomplete — **Avg Cycle Time** takes that place
+- **Predictability**, **Velocity**, **In Progress** and **Say/Do so far** (see [The Sprint Overview](#the-sprint-overview)). Until the sprint has a commitment — before its commitment point, or while its history is incomplete — **Completion Rate** stands in for Predictability and **Avg Cycle Time** for Say/Do
 - **Predictability** — If the sprint is mapped to a Planning Interval and the team has objectives, a predictability card appears per PI (links to the team's plan review page)
 
 The panel is only visible if you have at least one active team sprint.
@@ -126,16 +126,29 @@ The sprint page's Overview shows two rows of cards, then where the sprint's comm
 | Card | Shown | What it is |
 |------|-------|------------|
 | **Days Remaining** | Active | Days left in the sprint |
-| **Completion Rate** | Active, Completed | Velocity ÷ everything that was in the sprint except descoped work. Target: 80% |
+| **Predictability** | Once the sprint has a commitment | Velocity ÷ Committed, up to 100%. Finished work added after the commitment point counts toward it |
 | **Velocity** | Active, Completed | The work completed while in the sprint, including work completed and then moved out. Work moved to a Removed status in the sprint counts too, unlike most tools' velocity, and is shown beneath as "x as Removed" |
 | **In Progress** | Active | Work in the sprint now in an **Active** status category, with its share of the sprint's work now |
 | **Not Started** | Active | Work in the sprint now in a **Proposed** status category, with its share of the sprint's work now |
 | **Avg Cycle Time** | Active, Completed | See [below](#cycle-time-in-sprint-context) |
-| **Unestimated** | When showing estimates | Items with no value in the team's sizing method, shown as a warning if any exist. An estimate of 0 is an estimate, and another estimate never stands in: a Story Points team's item with only an Effort is unestimated |
 
-**Commitment** — what the sprint committed to and what became of it, from [Sprint Scope](#sprint-scope): **Committed**, **Added**, **Carried Over** (on an Active sprint, only once there is some), **Descoped** and **Say/Do** (**Say/Do so far** while the sprint runs).
+**Commitment** — what the sprint committed to and what became of it, from [Sprint Scope](#sprint-scope):
 
-Velocity and Completion Rate come from the sprint's scope, so carried-over work stays in the measure after it has moved on. Until the sprint has a scope — before its commitment point, or while its [history is incomplete](#sprint-scope) — they're measured on the items in the sprint now, the commitment row is hidden, and a warning says why. The page header's health indicator uses the same figures as Completion Rate.
+| Card | Shown | What it is |
+|------|-------|------------|
+| **Say/Do** | Once the sprint has a commitment | Of the committed items, the share completed: their committed points ÷ all committed points. **Say/Do so far** while the sprint runs |
+| **Committed** | | The work in the sprint at its commitment point, at its estimate then |
+| **Added** | | The work added after the commitment point, at its estimate when added |
+| **Descoped** | | See [Sprint Scope](#sprint-scope) |
+| **Re-estimated** | When showing estimates and not zero | How much the work grew (+) or shrank (−) by being estimated or re-estimated after it came in: everything in scope now, less Committed and Added. Backlog → Sprint Scope shows which items, where **Original SP** and **Final SP** differ |
+| **Carried Over** | Completed, or Active once there is some | See [Sprint Scope](#sprint-scope) |
+| **Unestimated** | When showing estimates | Items in the sprint now with no value in the team's sizing method, shown as a warning if any exist. An estimate of 0 is an estimate, and another estimate never stands in: a Story Points team's item with only an Effort is unestimated |
+
+**Predictability and Say/Do** both compare delivery with the commitment, and read differently on purpose. Predictability asks whether the team delivered *as much as* it committed: finished added work stands in for committed work it didn't finish. Say/Do asks whether it delivered *what* it committed: only the committed items count. A team that swaps committed stories for new ones keeps its Predictability and loses Say/Do.
+
+Velocity comes from the sprint's scope, so carried-over work stays in the measure after it has moved on. Until the sprint has a scope — before its commitment point, or while its [history is incomplete](#sprint-scope) — Velocity is measured on the items in the sprint now, the commitment cards and Predictability are hidden, and a warning says why. The page header's health indicator compares Velocity with everything in the sprint but descoped work, against the time elapsed.
+
+**Correcting the commitment point.** The commitment point is the team's recorded start, so committed points are the estimates at that moment. If the team was still sizing work after pressing Start, correct the start to when sizing finished. The date pickers in **Start**, **Complete** and **Correct Actual Dates** use your time zone and name it, along with the team's when it differs. Azure DevOps shows work item history in your profile's time zone too.
 
 ### Metric Definitions on PI Iterations
 

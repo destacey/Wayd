@@ -4,13 +4,15 @@ import {
   CompletionRateMetric,
   CycleTimeMetric,
   MetricCard,
-  VelocityMetric,
-  sprintMetricValues,
+  sprintOverviewFigures,
 } from '@/src/components/common/metrics'
 import {
   IterationHealthIndicator,
   IterationProgressBar,
+  SprintSayDoMetric,
 } from '@/src/components/common/planning'
+import useTheme from '@/src/components/contexts/theme'
+import { useGetSprintScopeQuery } from '@/src/store/features/work-management/sprints-api'
 import { IterationState } from '@/src/components/types'
 import { SizingMethod, SprintMetricsSummary } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Grid, Row, Tag, Typography } from 'antd'
@@ -41,12 +43,17 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
   const effectiveSizingMethod = byCount
     ? SizingMethod.Count
     : sprint.sizingMethod
-  const {
-    total: displayTotal,
-    completed: displayCompleted,
-    inProgress: displayInProgress,
-    notStarted: displayNotStarted,
-  } = sprintMetricValues(sprint, byCount)
+  const isFuture = sprint.state.id === IterationState.Future
+  const isCompleted = sprint.state.id === IterationState.Completed
+  const { token } = useTheme()
+
+  // A started sprint is measured on its scope, as on the sprint page and Home:
+  // velocity and completion keep carried-over work, and health is measured
+  // against the commitment.
+  const { data: scope } = useGetSprintScopeQuery(sprint.sprintKey, {
+    skip: isFuture,
+  })
+  const figures = sprintOverviewFigures(sprint, scope, byCount)
   const measure = sizingMethodMeasure(effectiveSizingMethod)
 
   const unitTag = (
@@ -60,7 +67,6 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
   const formatDateRange = () =>
     `${formatCalendarDate(sprint.start)} - ${formatCalendarDate(sprint.end)}`
 
-  const isFuture = sprint.state.id === IterationState.Future
   const activeDays = sprintActiveDays(sprint)
 
   const metricCardStyle: React.CSSProperties = {
@@ -98,8 +104,9 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
               <IterationHealthIndicator
                 startDate={activeDays.start}
                 endDate={activeDays.end}
-                total={displayTotal}
-                completed={displayCompleted}
+                total={figures.completionBase}
+                completed={figures.completed}
+                committed={figures.scope?.committed}
               />
               {unitTag}
             </Flex>
@@ -128,8 +135,9 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
               <IterationHealthIndicator
                 startDate={activeDays.start}
                 endDate={activeDays.end}
-                total={displayTotal}
-                completed={displayCompleted}
+                total={figures.completionBase}
+                completed={figures.completed}
+                committed={figures.scope?.committed}
               />
               {unitTag}
             </Flex>
@@ -141,8 +149,8 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
           <IterationProgressBar
             startDate={activeDays.start}
             endDate={activeDays.end}
-            total={displayTotal}
-            completed={displayCompleted}
+            total={figures.completionBase}
+            completed={figures.completed}
           />
         )}
 
@@ -152,7 +160,7 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
             <Col xs={12} sm={8} md={6}>
               <MetricCard
                 title="Total"
-                value={displayTotal}
+                value={figures.currentTotal}
                 tooltip={`Total ${measure} planned for this sprint`}
                 cardStyle={metricCardStyle}
               />
@@ -160,35 +168,67 @@ const SprintCard: FC<SprintCardProps> = ({ sprint, byCount }) => {
           ) : (
             <>
               <Col xs={12} sm={8} md={6}>
-                <CompletionRateMetric
-                  completed={displayCompleted}
-                  total={displayTotal}
-                  cardStyle={metricCardStyle}
-                  tooltip={effectiveSizingMethod}
-                />
-              </Col>
-              <Col xs={12} sm={8} md={6}>
-                <VelocityMetric
-                  completed={displayCompleted}
-                  total={displayTotal}
-                  cardStyle={metricCardStyle}
-                  tooltip={effectiveSizingMethod}
-                />
+                {figures.scope?.predictability != null ? (
+                  <MetricCard
+                    title="Predictability"
+                    value={figures.scope.predictability * 100}
+                    precision={0}
+                    suffix="%"
+                    tooltip={`Velocity ÷ the ${measure} committed at the commitment point, up to 100%.`}
+                    cardStyle={metricCardStyle}
+                  />
+                ) : (
+                  // Before the sprint has a commitment there is nothing to divide by.
+                  <CompletionRateMetric
+                    completed={figures.completed}
+                    total={figures.completionBase}
+                    cardStyle={metricCardStyle}
+                    tooltip={effectiveSizingMethod}
+                  />
+                )}
               </Col>
               <Col xs={12} sm={8} md={6}>
                 <MetricCard
-                  title="In Progress"
-                  value={displayInProgress}
-                  secondaryValue={`${displayNotStarted} not started`}
-                  tooltip={`Total ${measure} currently in progress`}
+                  title="Velocity"
+                  value={figures.completed}
+                  valueStyle={{ color: token.colorSuccess }}
+                  tooltip={`The ${measure} completed while in the sprint. Work moved to a Removed status in the sprint counts too.`}
                   cardStyle={metricCardStyle}
                 />
               </Col>
               <Col xs={12} sm={8} md={6}>
-                <CycleTimeMetric
-                  value={sprint.cycleTime?.averageCycleTimeDays ?? 0}
-                  cardStyle={metricCardStyle}
-                />
+                {/* Once the sprint has ended, its unfinished work is carried over, not in progress. */}
+                {isCompleted && figures.scope ? (
+                  <MetricCard
+                    title="Carried Over"
+                    value={figures.scope.carriedOver}
+                    tooltip={`Unfinished ${measure} still in the sprint at its end, or moved to the team's next sprint on its last day.`}
+                    cardStyle={metricCardStyle}
+                  />
+                ) : (
+                  <MetricCard
+                    title="In Progress"
+                    value={figures.inProgress}
+                    secondaryValue={`${figures.notStarted} not started`}
+                    tooltip={`The ${measure} in the sprint now that are in progress`}
+                    cardStyle={metricCardStyle}
+                  />
+                )}
+              </Col>
+              <Col xs={12} sm={8} md={6}>
+                {/* Until the sprint has a say/do ratio, its cycle time fills the slot. */}
+                {scope && figures.scope?.sayDo != null ? (
+                  <SprintSayDoMetric
+                    scope={scope}
+                    byCount={byCount}
+                    cardStyle={metricCardStyle}
+                  />
+                ) : (
+                  <CycleTimeMetric
+                    value={sprint.cycleTime?.averageCycleTimeDays ?? 0}
+                    cardStyle={metricCardStyle}
+                  />
+                )}
               </Col>
             </>
           )}

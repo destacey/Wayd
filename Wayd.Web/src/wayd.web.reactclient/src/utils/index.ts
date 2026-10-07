@@ -3,6 +3,7 @@ export {
   daysRemaining,
   formatInstantInZone,
   percentageElapsed,
+  pickerTimeZoneNote,
 } from './dates'
 export {
   type CalendarDate,

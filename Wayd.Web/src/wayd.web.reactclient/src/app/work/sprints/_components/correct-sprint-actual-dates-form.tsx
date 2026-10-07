@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
 import { SprintDetailsDto, SprintListDto } from '@/src/services/wayd-api'
 import { useCorrectSprintActualDatesMutation } from '@/src/store/features/work-management/sprints-api'
-import { isApiError } from '@/src/utils'
+import { isApiError, pickerTimeZoneNote } from '@/src/utils'
 import { disabledTimeAfter } from './past-moment'
 import { DatePicker, Flex, Form, Modal, Space, Typography } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
@@ -192,10 +192,10 @@ const CorrectSprintActualDatesForm = ({
     >
       <Space vertical style={{ width: '100%' }}>
         <div>
-          Corrects when the team actually started and completed the sprint, in
-          your time zone. Clear a value to have the sprint follow its planned
-          date. Correct a neighbouring sprint as well when moving one past the
-          other.
+          Corrects when the team actually started and completed the sprint, in{' '}
+          {pickerTimeZoneNote(sprint.timeZone)}. Clear a value to have the
+          sprint follow its planned date. Correct a neighbouring sprint as well
+          when moving one past the other.
         </div>
         <Form layout="vertical" size="small">
           {previousSprint && renderSprint(previousSprint, 'previous sprint')}

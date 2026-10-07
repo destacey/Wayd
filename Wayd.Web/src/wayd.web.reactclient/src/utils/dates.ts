@@ -53,6 +53,31 @@ export function percentageElapsed(
 }
 
 /**
+ * Says which clock a picker of moments reads — the viewer's, which is what
+ * antd's pickers use — and, when the team counts its days on another, which
+ * one that is: "your time zone, PDT (America/Los_Angeles); the team's is
+ * America/Chicago". A moment entered on the wrong clock is off by hours.
+ */
+export function pickerTimeZoneNote(
+  teamTimeZone?: string | null,
+  viewerTimeZone: string = Intl.DateTimeFormat().resolvedOptions().timeZone,
+  at: Date = new Date(),
+): string {
+  const abbreviation =
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: viewerTimeZone,
+      timeZoneName: 'short',
+    })
+      .formatToParts(at)
+      .find((part) => part.type === 'timeZoneName')?.value ?? viewerTimeZone
+
+  const viewer = `your time zone, ${abbreviation} (${viewerTimeZone})`
+  return teamTimeZone && teamTimeZone !== viewerTimeZone
+    ? `${viewer}; the team's is ${teamTimeZone}`
+    : viewer
+}
+
+/**
  * An instant as the clock read in `timeZone`, an IANA id such as a team's,
  * with the zone's abbreviation so the reader knows which clock it is. Takes
  * the ISO string a `Date`-typed field really holds as well as a `Date`.

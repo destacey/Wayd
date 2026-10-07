@@ -3,7 +3,28 @@ import {
   daysRemaining,
   formatInstantInZone,
   percentageElapsed,
+  pickerTimeZoneNote,
 } from './dates'
+
+describe('pickerTimeZoneNote', () => {
+  const at = new Date('2026-09-28T17:00:00Z')
+
+  it('names the viewer’s zone and the team’s when they differ', () => {
+    // Arrange / Act / Assert
+    expect(
+      pickerTimeZoneNote('America/Chicago', 'America/Los_Angeles', at),
+    ).toBe(
+      "your time zone, PDT (America/Los_Angeles); the team's is America/Chicago",
+    )
+  })
+
+  it('names only the viewer’s zone when the team shares it', () => {
+    // Arrange / Act / Assert
+    expect(pickerTimeZoneNote('UTC', 'UTC', at)).toBe(
+      'your time zone, UTC (UTC)',
+    )
+  })
+})
 
 describe('formatInstantInZone', () => {
   it('shows the clock in the given zone, with its abbreviation', () => {

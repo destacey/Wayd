@@ -89,6 +89,20 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
             : NotFound();
     }
 
+    [HttpGet("{idOrKey}/scope")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
+    [OpenApiOperation("Get sprint scope.", "What the sprint committed to and what became of it, worked out from work item history between its effective start and end: each requirement-tier item that was in the sprint, whether it was committed or added, and whether it was completed, completed as Removed, carried over or descoped. Not found when the sprint has no planned dates.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SprintScopeDto>> GetSprintScope(string idOrKey, CancellationToken cancellationToken)
+    {
+        var scope = await _dispatcher.Send(new GetSprintScopeQuery(idOrKey), cancellationToken);
+
+        return scope is not null
+            ? Ok(scope)
+            : NotFound();
+    }
+
     [HttpPost("{id}/start")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
     [OpenApiOperation("Start a sprint.", "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.")]

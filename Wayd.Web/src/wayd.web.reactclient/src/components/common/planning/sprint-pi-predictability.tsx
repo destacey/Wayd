@@ -23,19 +23,11 @@ interface PiPredictabilityCardProps {
   teamId: string
 }
 
-const PiPredictabilityCard: FC<PiPredictabilityCardProps> = ({
-  pi,
-  teamId,
-}) => {
-  const { data: metrics } = useGetPlanningIntervalMetricsQuery(pi.key, {
-    skip: !pi.key,
-  })
+const PiPredictabilityCard: FC<PiPredictabilityCardProps> = ({ pi, teamId }) => {
+  const { data: metrics } = useGetPlanningIntervalMetricsQuery(pi.key, { skip: !pi.key })
 
   const teamMetrics = metrics?.teamMetrics?.find((tm) => tm.team.id === teamId)
-  const hasTeamObjectives =
-    (teamMetrics?.regularObjectivesCount ?? 0) +
-      (teamMetrics?.stretchObjectivesCount ?? 0) >
-    0
+  const hasTeamObjectives = (teamMetrics?.regularObjectivesCount ?? 0) + (teamMetrics?.stretchObjectivesCount ?? 0) > 0
 
   if (!teamMetrics || !hasTeamObjectives) return null
 
@@ -43,39 +35,39 @@ const PiPredictabilityCard: FC<PiPredictabilityCardProps> = ({
 
   return (
     <Link href={href} style={{ display: 'block' }}>
-      <MetricCard
-        hoverable
-        title={`Predictability - ${pi.name}`}
-        value={teamMetrics?.predictability ?? 0}
-        precision={0}
-        suffix="%"
-        tooltip="The team's predictability for this planning interval — completed objectives over committed (non-stretch) objectives."
-        tooltipTarget="title"
-        secondaryValue={
-          teamMetrics ? (
-            <span style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-              <WaydTooltip title="Completed">
-                <span>
-                  <CheckCircleOutlined style={{ marginRight: 4 }} />
-                  {teamMetrics.completedObjectivesCount}
-                </span>
-              </WaydTooltip>
-              <WaydTooltip title="Regular (non-stretch)">
-                <span>
-                  <AimOutlined style={{ marginRight: 4 }} />
-                  {teamMetrics.regularObjectivesCount}
-                </span>
-              </WaydTooltip>
-              <WaydTooltip title="Stretch">
-                <span>
-                  <PlusCircleOutlined style={{ marginRight: 4 }} />
-                  {teamMetrics.stretchObjectivesCount}
-                </span>
-              </WaydTooltip>
-            </span>
-          ) : undefined
-        }
-      />
+    <MetricCard
+      hoverable
+      title={`Predictability - ${pi.name}`}
+      value={teamMetrics?.predictability ?? 0}
+      precision={0}
+      suffix="%"
+      tooltip="The team's predictability for this planning interval — completed objectives over committed (non-stretch) objectives."
+      tooltipTarget="title"
+      secondaryValue={
+        teamMetrics ? (
+          <span style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+            <WaydTooltip title="Completed">
+              <span>
+                <CheckCircleOutlined style={{ marginRight: 4 }} />
+                {teamMetrics.completedObjectivesCount}
+              </span>
+            </WaydTooltip>
+            <WaydTooltip title="Regular (non-stretch)">
+              <span>
+                <AimOutlined style={{ marginRight: 4 }} />
+                {teamMetrics.regularObjectivesCount}
+              </span>
+            </WaydTooltip>
+            <WaydTooltip title="Stretch">
+              <span>
+                <PlusCircleOutlined style={{ marginRight: 4 }} />
+                {teamMetrics.stretchObjectivesCount}
+              </span>
+            </WaydTooltip>
+          </span>
+        ) : undefined
+      }
+    />
     </Link>
   )
 }
@@ -86,27 +78,26 @@ interface SprintPiPredictabilityProps {
 }
 
 /**
- * How reliably the team delivers what it commits to: the sprint's say/do ratio
- * from its scope, and the team's objective predictability in each planning
+ * How reliably the team delivers what it commits to, for an active sprint: its
+ * say/do ratio so far, and the team's objective predictability in each planning
  * interval the sprint belongs to.
  */
-const SprintPiPredictability: FC<SprintPiPredictabilityProps> = ({
-  sprintKey,
-  teamId,
-}) => {
-  const { data: planningIntervals } = useGetSprintPlanningIntervalsQuery(
-    sprintKey,
-    {
-      skip: !sprintKey,
-    },
-  )
+const SprintPiPredictability: FC<SprintPiPredictabilityProps> = ({ sprintKey, teamId }) => {
+  const { data: planningIntervals } = useGetSprintPlanningIntervalsQuery(sprintKey, {
+    skip: !sprintKey,
+  })
   const { data: scope } = useGetSprintScopeQuery(sprintKey, {
     skip: !sprintKey,
   })
 
+  // Mirrors when SprintSayDoMetric draws anything, so an empty row is never left behind.
+  const showsSayDo =
+    !!scope && !scope.historyIncomplete && scope.totals.sayDoEstimate != null
+  if (!showsSayDo && !planningIntervals?.length) return null
+
   return (
     <Row gutter={[8, 8]}>
-      {scope && (
+      {showsSayDo && (
         <Col xs={24}>
           <SprintSayDoMetric scope={scope} />
         </Col>

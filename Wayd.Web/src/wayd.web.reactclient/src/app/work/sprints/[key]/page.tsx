@@ -81,8 +81,23 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     sprint?.state.id === IterationState.Active ||
     sprint?.state.id === IterationState.Completed
   const [backlogView, setBacklogView] = useState(BacklogView.Scope)
-  const showsScope = scopeAvailable && backlogView === BacklogView.Scope
   const onBacklog = !!sprintKey && activeSection === SprintSections.Backlog
+
+  // Read whenever scope could show, so incomplete history is known before
+  // choosing the view; the Overview's summary shares the cached result.
+  const {
+    data: scope,
+    isLoading: scopeLoading,
+    refetch: refetchScope,
+  } = useGetSprintScopeQuery(sprintKey, {
+    skip: !onBacklog || !scopeAvailable,
+  })
+
+  // Incomplete history leaves nothing to show in the scope view, so the
+  // current items stand in for it.
+  const historyIncomplete = !!scope?.historyIncomplete
+  const showsScope =
+    scopeAvailable && !historyIncomplete && backlogView === BacklogView.Scope
 
   const {
     data: workItems,
@@ -95,14 +110,6 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // The sprint's sizing method on its planned start, which its metrics report.
   const { data: sprintMetrics } = useGetSprintMetricsQuery(sprintKey, {
     skip: !onBacklog || showsScope,
-  })
-
-  const {
-    data: scope,
-    isLoading: scopeLoading,
-    refetch: refetchScope,
-  } = useGetSprintScopeQuery(sprintKey, {
-    skip: !onBacklog || !showsScope,
   })
 
   const activitiesQuery = useGetSprintActivitiesQuery(
@@ -209,7 +216,16 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         // Block-level children: the grid collapses as a flex item.
         return (
           <>
-            {scopeAvailable && (
+            {historyIncomplete && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 8 }}
+                title="History incomplete — run a full sync"
+                description="This sprint's scope comes from work item history, which has not yet been read in full for every workspace holding its work. A full sync of the connection completes it; until then, these are the items in the sprint now."
+              />
+            )}
+            {scopeAvailable && !historyIncomplete && (
               <div style={{ marginBottom: 8 }}>
                 <Segmented<BacklogView>
                   value={backlogView}
@@ -236,21 +252,12 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               </div>
             )}
             {showsScope ? (
-              scope?.historyIncomplete ? (
-                <Alert
-                  type="warning"
-                  showIcon
-                  title="History incomplete — run a full sync"
-                  description="This sprint's scope comes from work item history, which has not yet been read in full for every workspace holding its work. A full sync of the connection completes it; until then, Current Items shows what is in the sprint now."
-                />
-              ) : (
-                <SprintScopeGrid
-                  scope={scope}
-                  isLoading={scopeLoading}
-                  refetch={refetchScope}
-                  persistStateKey="sprint-scope"
-                />
-              )
+              <SprintScopeGrid
+                scope={scope}
+                isLoading={scopeLoading}
+                refetch={refetchScope}
+                persistStateKey="sprint-scope"
+              />
             ) : (
               <SprintBacklogGrid
                 workItems={workItems ?? []}

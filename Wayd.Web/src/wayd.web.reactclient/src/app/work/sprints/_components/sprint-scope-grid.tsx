@@ -118,23 +118,29 @@ const SprintScopeGrid = ({
             },
           } satisfies ColumnDef<SprintScopeItemDto, any>,
         ]),
+    // The instant is the value, so sorting and filtering compare moments; only
+    // the cell shows it, on the team's clock.
     {
       id: 'enteredAt',
-      accessorFn: (row) => formatInstant(row.enteredAt),
+      accessorKey: 'enteredAt',
       header: 'Added At',
       size: 190,
       meta: {
+        columnType: 'dateTime',
         headerTooltip: `When an added item entered the sprint, in ${timeZone}`,
       },
+      cell: ({ row }) => formatInstant(row.original.enteredAt),
     },
     {
       id: 'leftAt',
-      accessorFn: (row) => formatInstant(row.leftAt),
+      accessorKey: 'leftAt',
       header: 'Left At',
       size: 190,
       meta: {
+        columnType: 'dateTime',
         headerTooltip: `When the item last left the sprint, in ${timeZone}`,
       },
+      cell: ({ row }) => formatInstant(row.original.leftAt),
     },
     {
       id: 'status',

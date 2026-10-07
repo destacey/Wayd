@@ -10,10 +10,14 @@ import SprintMetrics from './sprint-metrics'
 import { IterationState } from '@/src/components/types'
 import {
   SprintDetailsDto,
+  SprintScopeDto,
   SprintWorkItemMetricsDto,
   SizingMethod,
 } from '@/src/services/wayd-api'
-import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
+import {
+  useGetSprintMetricsQuery,
+  useGetSprintScopeQuery,
+} from '@/src/store/features/work-management/sprints-api'
 
 // Mock dayjs
 jest.mock('dayjs', () => {
@@ -31,6 +35,7 @@ jest.mock('dayjs', () => {
 // Mock the API hooks
 jest.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintMetricsQuery: jest.fn(),
+  useGetSprintScopeQuery: jest.fn(),
 }))
 
 // Mock useTheme
@@ -45,63 +50,56 @@ jest.mock('@/src/components/contexts/theme', () => ({
   }),
 }))
 
-// Mock Metrics components; sprintMetricValues stays real so the figures shown can be asserted.
+const card = (title: string, value: unknown) => (
+  <div data-testid={`metric-${title}`}>
+    <span>{title}</span>
+    <span data-testid={`value-${title}`}>{String(value)}</span>
+  </div>
+)
+
+// Mock Metrics components; the figures stay real so what is shown can be asserted.
 jest.mock('@/src/components/common/metrics', () => ({
-  sprintMetricValues: jest.requireActual(
-    '@/src/components/common/metrics/sprint-metric-values',
-  ).sprintMetricValues,
-  MetricCard: ({ title, value }: { title: string; value: any }) => (
-    <div data-testid={`metric-${title}`}>
-      <span>{title}</span>
-      <span data-testid={`value-${title}`}>{value}</span>
-    </div>
-  ),
-  DaysCountdownMetric: ({ state }: { state: number }) => (
-    <div data-testid="countdown-metric">
-      <span>State: {state}</span>
-    </div>
-  ),
-  VelocityMetric: ({ completed }: { completed: number }) => (
-    <div data-testid="metric-Velocity">
-      <span>Velocity</span>
-      <span data-testid="value-Velocity">{completed}</span>
-    </div>
-  ),
-  CompletionRateMetric: ({ completed }: { completed: number }) => (
-    <div data-testid="metric-Completion Rate">
-      <span>Completion Rate</span>
-      <span data-testid="value-Completion Rate">{completed}</span>
-    </div>
-  ),
-  StatusMetric: ({ title, value }: { title: string; value: number }) => (
-    <div data-testid={`metric-${title}`}>
-      <span>{title}</span>
-      <span data-testid={`value-${title}`}>{value}</span>
-    </div>
-  ),
-  HealthMetric: ({ title, value }: { title: string; value: number }) => (
-    <div data-testid={`metric-${title}`}>
-      <span>{title}</span>
-      <span data-testid={`value-${title}`}>{value}</span>
-    </div>
-  ),
-  CycleTimeMetric: ({ value }: { value: number }) => (
-    <div data-testid="metric-Avg Cycle Time">
-      <span>Avg Cycle Time</span>
-      <span data-testid="value-Avg Cycle Time">{value}</span>
-    </div>
-  ),
+  sprintOverviewFigures: jest.requireActual(
+    '@/src/components/common/metrics/sprint-overview-figures',
+  ).sprintOverviewFigures,
+  METRIC_CARD_FLEX: {},
+  MetricCard: ({ title, value }: { title: string; value: number }) =>
+    card(title, value),
+  DaysCountdownMetric: () => <div data-testid="countdown-metric" />,
+  CompletionRateMetric: ({
+    completed,
+    total,
+  }: {
+    completed: number
+    total: number
+  }) => card('Completion Rate', `${completed}/${total}`),
+  StatusMetric: ({ title, value }: { title: string; value: number }) =>
+    card(title, value),
+  HealthMetric: ({ title, value }: { title: string; value: number }) =>
+    card(title, value),
+  CycleTimeMetric: ({ value }: { value: number }) =>
+    card('Avg Cycle Time', value),
 }))
 
 // Mock IterationHealthIndicator
 jest.mock('@/src/components/common/planning', () => ({
-  IterationHealthIndicator: () => (
-    <div data-testid="iteration-health-indicator">Health Indicator</div>
+  IterationHealthIndicator: ({
+    completed,
+    total,
+  }: {
+    completed: number
+    total: number
+  }) => (
+    <div data-testid="iteration-health-indicator">
+      {completed}/{total}
+    </div>
   ),
 }))
 
+const measure = (count: number, estimate: number) => ({ count, estimate })
+
 describe('SprintMetrics', () => {
-  const mockSprint: SprintDetailsDto = {
+  const activeSprint: SprintDetailsDto = {
     id: 'sprint-1',
     key: 1,
     name: 'Sprint 1',
@@ -123,7 +121,13 @@ describe('SprintMetrics', () => {
     canReopen: false,
   }
 
-  const mockMetrics: SprintWorkItemMetricsDto = {
+  const completedSprint: SprintDetailsDto = {
+    ...activeSprint,
+    state: { id: IterationState.Completed, name: 'Completed' },
+  }
+
+  // What is in the sprint now.
+  const metrics: SprintWorkItemMetricsDto = {
     sprintId: 'sprint-1',
     sizingMethod: SizingMethod.Effort,
     totalWorkItems: 10,
@@ -142,21 +146,48 @@ describe('SprintMetrics', () => {
     },
   }
 
-  beforeEach(() => {
-    ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
-      data: mockMetrics,
-      isLoading: false,
-    })
-  })
+  // Everything that was in the sprint, from history; its commitment point has passed.
+  const scope: SprintScopeDto = {
+    sprintId: 'sprint-1',
+    sizingMethod: SizingMethod.Effort,
+    effectiveStart: '2025-01-02T00:00:00Z' as unknown as Date,
+    startIsActual: false,
+    effectiveEnd: '2025-01-15T00:00:00Z' as unknown as Date,
+    endIsActual: false,
+    lastDay: '2025-01-14T00:00:00Z' as unknown as Date,
+    timeZone: 'UTC',
+    hasTeam: true,
+    historyIncomplete: false,
+    totals: {
+      total: measure(12, 120),
+      committed: measure(9, 90),
+      added: measure(3, 30),
+      completed: measure(6, 60),
+      removed: measure(1, 5),
+      carriedOver: measure(0, 0),
+      descoped: measure(1, 10),
+      remaining: measure(5, 50),
+      completedOfCommitted: measure(4, 45),
+      sayDoCount: 4 / 9,
+      sayDoEstimate: 0.5,
+      unestimated: 0,
+    },
+    items: [],
+  }
 
-  const countSizedMetrics: SprintWorkItemMetricsDto = {
-    ...mockMetrics,
-    sizingMethod: SizingMethod.Count,
-    totalEstimate: 10,
-    completedEstimate: 5,
-    inProgressEstimate: 3,
-    notStartedEstimate: 2,
-    unestimatedWorkItems: 0,
+  const mockQueries = (
+    metricsData: SprintWorkItemMetricsDto | undefined,
+    scopeData: SprintScopeDto | undefined,
+    isLoading = false,
+  ) => {
+    ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
+      data: metricsData,
+      isLoading,
+    })
+    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({
+      data: scopeData,
+      isLoading,
+    })
   }
 
   const segmentedOptions = (container: HTMLElement) =>
@@ -164,244 +195,265 @@ describe('SprintMetrics', () => {
       (option) => option.textContent,
     )
 
-  describe("Default (sprint's sizing method) mode", () => {
-    it("renders all metrics in the sprint's sizing method by default", () => {
+  beforeEach(() => mockQueries(metrics, scope))
+
+  describe('with scope', () => {
+    it('shows what the sprint committed to and completed, in its estimate', () => {
       // Arrange / Act
-      render(<SprintMetrics sprint={mockSprint} />)
+      render(<SprintMetrics sprint={activeSprint} />)
 
       // Assert
+      expect(screen.getByTestId('value-Committed')).toHaveTextContent('90')
+      expect(screen.getByTestId('value-Added')).toHaveTextContent('30')
+      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('60')
       expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent(
-        '50',
+        '60/110',
       )
-      expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('50')
+      expect(screen.getByTestId('value-Say/Do so far')).toHaveTextContent('50')
+      expect(screen.getByTestId('value-Descoped')).toHaveTextContent('10')
+    })
+
+    it('leaves out the cards the scope makes redundant', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      for (const title of ['Total', 'Completed', 'Remaining', 'WIP'])
+        expect(screen.queryByTestId(`metric-${title}`)).not.toBeInTheDocument()
+    })
+
+    it('puts progress in the first row and the commitment in the second', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      const rowOf = (title: string) =>
+        screen.getByTestId(`metric-${title}`).parentElement
+      const titlesIn = (row: HTMLElement | null) =>
+        Array.from(row?.children ?? []).map((c) =>
+          c.getAttribute('data-testid'),
+        )
+      expect(titlesIn(rowOf('Velocity'))).toEqual([
+        'countdown-metric',
+        'metric-Completion Rate',
+        'metric-Velocity',
+        'metric-In Progress',
+        'metric-Not Started',
+        'metric-Avg Cycle Time',
+        'metric-Unestimated',
+      ])
+      expect(titlesIn(rowOf('Committed'))).toEqual([
+        'metric-Committed',
+        'metric-Added',
+        'metric-Descoped',
+        'metric-Say/Do so far',
+      ])
+    })
+
+    it('shows the work in the sprint now while it runs', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(screen.getByTestId('countdown-metric')).toBeInTheDocument()
       expect(screen.getByTestId('value-In Progress')).toHaveTextContent('30')
       expect(screen.getByTestId('value-Not Started')).toHaveTextContent('20')
-    })
-
-    it('offers the sizing method and Count, with the sizing method selected', () => {
-      // Arrange / Act
-      const { container } = render(<SprintMetrics sprint={mockSprint} />)
-
-      // Assert
-      expect(segmentedOptions(container)).toEqual(['Effort', 'Count'])
       expect(
-        container.querySelector('.ant-segmented-item-selected'),
-      ).toHaveTextContent('Effort')
-      expect(container.querySelector('.ant-segmented-disabled')).toBeNull()
-    })
-  })
-
-  describe('Switching between modes', () => {
-    it('switches to counts when Count is clicked', async () => {
-      // Arrange
-      const user = userEvent.setup()
-      render(<SprintMetrics sprint={mockSprint} />)
-      expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
-
-      // Act
-      await user.click(screen.getByText('Count'))
-
-      // Assert
-      await waitFor(() => {
-        expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
-      })
-      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
-      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
-      expect(screen.getByTestId('value-Not Started')).toHaveTextContent('2')
+        screen.queryByTestId('metric-Carried Over'),
+      ).not.toBeInTheDocument()
     })
 
-    it('switches back to the sizing method from Count', async () => {
+    it('shows carried-over work on a running sprint once there is some', () => {
       // Arrange
-      const user = userEvent.setup()
-      render(<SprintMetrics sprint={mockSprint} />)
-      await user.click(screen.getByText('Count'))
-      await waitFor(() => {
-        expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
+      mockQueries(metrics, {
+        ...scope,
+        totals: { ...scope.totals, carriedOver: measure(1, 8) },
       })
 
       // Act
-      await user.click(screen.getByText('Effort'))
+      render(<SprintMetrics sprint={activeSprint} />)
 
       // Assert
-      await waitFor(() => {
-        expect(screen.getByTestId('value-Total')).toHaveTextContent('100')
-      })
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('50')
-    })
-  })
-
-  describe('Count-sized sprint', () => {
-    beforeEach(() => {
-      ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
-        data: countSizedMetrics,
-        isLoading: false,
-      })
+      expect(screen.getByTestId('value-Carried Over')).toHaveTextContent('8')
     })
 
-    it('offers only Count, and disables the toggle', () => {
+    it('shows the outcome of a completed sprint, not its work in progress', () => {
       // Arrange / Act
-      const { container } = render(<SprintMetrics sprint={mockSprint} />)
+      render(<SprintMetrics sprint={completedSprint} />)
+
+      // Assert
+      expect(screen.getByTestId('value-Say/Do')).toHaveTextContent('50')
+      expect(screen.getByTestId('metric-Carried Over')).toBeInTheDocument()
+      expect(screen.queryByTestId('countdown-metric')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('metric-In Progress')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('metric-Not Started')).not.toBeInTheDocument()
+    })
+
+    it('says where the commitment point and end came from', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(
+        screen.getByText('Times are in the team’s zone, UTC.'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('with incomplete history', () => {
+    beforeEach(() =>
+      mockQueries(metrics, { ...scope, historyIncomplete: true }),
+    )
+
+    it('warns, and measures completion on the items in the sprint now', () => {
+      // Arrange / Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(
+        screen.getByText('History incomplete — run a full sync'),
+      ).toBeInTheDocument()
+      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('50')
+      expect(screen.getByTestId('value-Completion Rate')).toHaveTextContent(
+        '50/100',
+      )
+      expect(screen.queryByTestId('metric-Committed')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('metric-Descoped')).not.toBeInTheDocument()
+      expect(
+        screen.queryByTestId('metric-Say/Do so far'),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('switching to Count', () => {
+    it('counts every card with the one switch', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      const { container } = render(<SprintMetrics sprint={activeSprint} />)
+      expect(segmentedOptions(container)).toEqual(['Effort', 'Count'])
+
+      // Act
+      await user.click(screen.getByText('Count'))
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByTestId('value-Committed')).toHaveTextContent('9')
+      })
+      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('6')
+      expect(screen.getByTestId('value-In Progress')).toHaveTextContent('3')
+      expect(screen.queryByTestId('metric-Unestimated')).not.toBeInTheDocument()
+      expect(container.querySelectorAll('.ant-segmented')).toHaveLength(1)
+    })
+
+    it('offers only Count for a Count-sized sprint', () => {
+      // Arrange
+      mockQueries(
+        { ...metrics, sizingMethod: SizingMethod.Count },
+        { ...scope, sizingMethod: SizingMethod.Count },
+      )
+
+      // Act
+      const { container } = render(<SprintMetrics sprint={activeSprint} />)
 
       // Assert
       expect(segmentedOptions(container)).toEqual(['Count'])
       expect(
         container.querySelector('.ant-segmented-disabled'),
       ).toBeInTheDocument()
-    })
-
-    it('renders counts', () => {
-      // Arrange / Act
-      render(<SprintMetrics sprint={mockSprint} />)
-
-      // Assert
-      expect(screen.getByTestId('value-Total')).toHaveTextContent('10')
-      expect(screen.getByTestId('value-Velocity')).toHaveTextContent('5')
+      expect(screen.getByTestId('value-Committed')).toHaveTextContent('9')
     })
   })
 
   describe('Average Cycle Time', () => {
     it('renders average cycle time when available', () => {
-      render(<SprintMetrics sprint={mockSprint} />)
+      // Arrange / Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
       expect(screen.getByTestId('value-Avg Cycle Time')).toHaveTextContent(
         '4.5',
       )
     })
 
-    it('does not render cycle time when null', () => {
-      ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
-        data: {
-          ...mockMetrics,
+    it('does not render cycle time without done work', () => {
+      // Arrange
+      mockQueries(
+        {
+          ...metrics,
           cycleTime: {
             workItemsCount: 0,
             totalCycleTimeDays: 0,
-            averageCycleTimeDays: null,
+            averageCycleTimeDays: undefined,
           },
         },
-        isLoading: false,
-      })
-      render(<SprintMetrics sprint={mockSprint} />)
+        scope,
+      )
+
+      // Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
       expect(
         screen.queryByTestId('metric-Avg Cycle Time'),
       ).not.toBeInTheDocument()
     })
   })
 
-  describe('Loading State', () => {
-    it('renders skeleton when loading', () => {
-      ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
-        data: undefined,
-        isLoading: true,
-      })
-      const { container } = render(<SprintMetrics sprint={mockSprint} />)
-      expect(container.querySelector('.ant-skeleton')).toBeInTheDocument()
-    })
+  it('renders a skeleton while loading', () => {
+    // Arrange
+    mockQueries(undefined, undefined, true)
+
+    // Act
+    const { container } = render(<SprintMetrics sprint={activeSprint} />)
+
+    // Assert
+    expect(container.querySelector('.ant-skeleton')).toBeInTheDocument()
   })
 
-  describe('WIP', () => {
-    it('renders WIP when active', () => {
-      render(<SprintMetrics sprint={mockSprint} />)
-      expect(screen.getByTestId('metric-WIP')).toBeInTheDocument()
-      // WIP is always count of items (3)
-      expect(screen.getByTestId('value-WIP')).toHaveTextContent('3')
-    })
+  it('renders the unestimated item count when showing estimates', () => {
+    // Arrange / Act
+    render(<SprintMetrics sprint={activeSprint} />)
+
+    // Assert
+    expect(screen.getByTestId('value-Unestimated')).toHaveTextContent('1')
   })
 
-  describe('Unestimated', () => {
-    it('renders the unestimated item count when showing estimates', () => {
-      // Arrange / Act
-      render(<SprintMetrics sprint={mockSprint} />)
-
-      // Assert
-      expect(screen.getByTestId('value-Unestimated')).toHaveTextContent('1')
-    })
-
-    it('hides unestimated after switching to Count', async () => {
+  describe('health indicator', () => {
+    it('measures health on the same completion as the Completion Rate card', async () => {
       // Arrange
-      const user = userEvent.setup()
-      render(<SprintMetrics sprint={mockSprint} />)
-
-      // Act
-      await user.click(screen.getByText('Count'))
-
-      // Assert
-      await waitFor(() => {
-        expect(
-          screen.queryByTestId('metric-Unestimated'),
-        ).not.toBeInTheDocument()
-      })
-    })
-
-    it('does not render unestimated for a Count-sized sprint', () => {
-      // Arrange
-      ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
-        data: { ...countSizedMetrics, unestimatedWorkItems: 3 },
-        isLoading: false,
-      })
-
-      // Act
-      render(<SprintMetrics sprint={mockSprint} />)
-
-      // Assert
-      expect(screen.queryByTestId('metric-Unestimated')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('Health Indicator Callback', () => {
-    it('calls onHealthIndicatorReady when metrics are loaded', async () => {
       const onHealthIndicatorReady = jest.fn()
+
+      // Act
       render(
         <SprintMetrics
-          sprint={mockSprint}
+          sprint={activeSprint}
           onHealthIndicatorReady={onHealthIndicatorReady}
         />,
       )
 
-      await waitFor(() => {
-        expect(onHealthIndicatorReady).toHaveBeenCalled()
-      })
+      // Assert
+      await waitFor(() => expect(onHealthIndicatorReady).toHaveBeenCalled())
+      render(onHealthIndicatorReady.mock.calls.at(-1)[0])
+      expect(
+        screen.getByTestId('iteration-health-indicator'),
+      ).toHaveTextContent('60/110')
     })
 
-    it('does not call onHealthIndicatorReady when loading', () => {
-      ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
-        data: undefined,
-        isLoading: true,
-      })
-
+    it('is not reported while loading', () => {
+      // Arrange
+      mockQueries(undefined, undefined, true)
       const onHealthIndicatorReady = jest.fn()
+
+      // Act
       render(
         <SprintMetrics
-          sprint={mockSprint}
+          sprint={activeSprint}
           onHealthIndicatorReady={onHealthIndicatorReady}
         />,
       )
 
+      // Assert
       expect(onHealthIndicatorReady).not.toHaveBeenCalled()
-    })
-
-    it('updates health indicator when switching modes', async () => {
-      const onHealthIndicatorReady = jest.fn()
-      const user = userEvent.setup()
-      render(
-        <SprintMetrics
-          sprint={mockSprint}
-          onHealthIndicatorReady={onHealthIndicatorReady}
-        />,
-      )
-
-      // Should be called initially (in the sprint's sizing method)
-      await waitFor(() => {
-        expect(onHealthIndicatorReady).toHaveBeenCalledTimes(1)
-      })
-
-      // Switch to Count mode
-      await user.click(screen.getByText('Count'))
-
-      // Should be called again with updated values
-      await waitFor(() => {
-        expect(onHealthIndicatorReady).toHaveBeenCalledTimes(2)
-      })
     })
   })
 })

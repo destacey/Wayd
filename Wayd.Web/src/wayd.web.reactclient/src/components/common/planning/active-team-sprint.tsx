@@ -1,7 +1,10 @@
 'use client'
 
 import { useGetActiveSprintQuery } from '@/src/store/features/organizations/team-api'
-import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
+import {
+  useGetSprintMetricsQuery,
+  useGetSprintScopeQuery,
+} from '@/src/store/features/work-management/sprints-api'
 import { SizingMethod } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
@@ -9,10 +12,11 @@ import { FC } from 'react'
 import {
   CompletionRateMetric,
   CycleTimeMetric,
+  MetricCard,
   StatusMetric,
-  VelocityMetric,
-  sprintMetricValues,
+  sprintOverviewFigures,
 } from '../metrics'
+import SprintSayDoMetric from './sprint-say-do-metric'
 import useTheme from '@/src/components/contexts/theme'
 import SprintPiPredictability from './sprint-pi-predictability'
 import TimelineProgress from './timeline-progress'
@@ -41,9 +45,15 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
       skip: !sprintKey,
     })
 
+  const { data: scope, isLoading: scopeIsLoading } = useGetSprintScopeQuery(
+    sprintKey!,
+    { skip: !sprintKey },
+  )
+
   // Shown in the sizing method the sprint is measured in, which the metrics report.
   const sizingMethod = metrics?.sizingMethod ?? SizingMethod.Count
-  const displayValues = sprintMetricValues(metrics, false)
+  const measure = sizingMethodMeasure(sizingMethod)
+  const figures = sprintOverviewFigures(metrics, scope, false)
 
   if (sprintIsLoading) {
     return <Skeleton active paragraph={{ rows: 3 }} />
@@ -73,14 +83,18 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
       <IterationHealthIndicator
         startDate={activeDays.start}
         endDate={activeDays.end}
-        total={displayValues.total}
-        completed={displayValues.completed}
+        total={figures.completionBase}
+        completed={figures.completed}
       />
     </Flex>
   )
 
   return (
-    <Card title={title} size="small" loading={metricsIsLoading}>
+    <Card
+      title={title}
+      size="small"
+      loading={metricsIsLoading || scopeIsLoading}
+    >
       <Flex vertical gap="small">
         <TimelineProgress
           start={activeDays.start}
@@ -92,31 +106,36 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         <Row gutter={[8, 8]}>
           <Col xs={12}>
             <CompletionRateMetric
-              completed={displayValues.completed}
-              total={displayValues.total}
+              completed={figures.completed}
+              total={figures.completionBase}
               tooltip={sizingMethod}
             />
           </Col>
           <Col xs={12}>
-            <VelocityMetric
-              completed={displayValues.completed}
-              total={displayValues.total}
-              tooltip={sizingMethod}
+            <MetricCard
+              title="Velocity"
+              value={figures.completed}
+              tooltip={`The ${measure} completed while in the sprint. Unlike most tools' velocity, work moved to a Removed status in the sprint counts too.`}
             />
           </Col>
           <Col xs={12}>
             <StatusMetric
               title="In Progress"
-              value={displayValues.inProgress}
-              total={displayValues.total}
+              value={figures.inProgress}
+              total={figures.currentTotal}
               color={token.colorInfo}
-              tooltip={`Total ${sizingMethodMeasure(sizingMethod)} currently in the sprint that are in progress (Status Category: Active). Percentage shown represents the portion of total sprint work that is in progress.`}
+              tooltip={`The ${measure} in the sprint now that are in progress (Status Category: Active). The percentage is their share of the sprint's work now.`}
             />
           </Col>
           <Col xs={12}>
-            <CycleTimeMetric
-              value={metrics?.cycleTime?.averageCycleTimeDays ?? 0}
-            />
+            {/* Until the sprint has a say/do ratio, its cycle time fills the slot. */}
+            {scope && figures.scope?.sayDo != null ? (
+              <SprintSayDoMetric scope={scope} />
+            ) : (
+              <CycleTimeMetric
+                value={metrics?.cycleTime?.averageCycleTimeDays ?? 0}
+              />
+            )}
           </Col>
         </Row>
         <SprintPiPredictability

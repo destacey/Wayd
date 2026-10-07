@@ -9,6 +9,12 @@ export { default as WaydStatisticNumber } from './wayd-statistic-number'
 export { default as StatusMetric } from './status-metric'
 export { default as VelocityMetric } from './velocity-metric'
 export {
+  scopeIsReadable,
+  sprintOverviewFigures,
+  type SprintOverviewFigures,
+  type SprintScopeFigures,
+} from './sprint-overview-figures'
+export {
   sprintMetricValues,
   type SprintMetricFigures,
   type SprintMetricValues,

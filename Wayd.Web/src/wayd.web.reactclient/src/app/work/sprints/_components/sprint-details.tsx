@@ -4,7 +4,6 @@ import { IterationState } from '@/src/components/types'
 import { SprintDetailsDto } from '@/src/services/wayd-api'
 import { Alert, Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
-import SprintScopeSummary from './sprint-scope-summary'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import { sprintActiveDays } from '@/src/utils'
 import { FC, ReactNode } from 'react'
@@ -75,7 +74,6 @@ const SprintDetails: FC<SprintDetailsProps> = ({
           onHealthIndicatorReady={onHealthIndicatorReady}
         />
       )}
-      {showMetrics && <SprintScopeSummary sprint={sprint} />}
     </Flex>
   )
 }

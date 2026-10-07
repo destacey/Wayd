@@ -2,11 +2,7 @@
 
 import { MetricCard } from '../metrics'
 import WaydTooltip from '../wayd-tooltip'
-import {
-  useGetSprintPlanningIntervalsQuery,
-  useGetSprintScopeQuery,
-} from '@/src/store/features/work-management/sprints-api'
-import SprintSayDoMetric from './sprint-say-do-metric'
+import { useGetSprintPlanningIntervalsQuery } from '@/src/store/features/work-management/sprints-api'
 import { useGetPlanningIntervalMetricsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { NavigationDto } from '@/src/services/wayd-api'
 import { Col, Row } from 'antd'
@@ -77,32 +73,16 @@ interface SprintPiPredictabilityProps {
   teamId: string
 }
 
-/**
- * How reliably the team delivers what it commits to, for an active sprint: its
- * say/do ratio so far, and the team's objective predictability in each planning
- * interval the sprint belongs to.
- */
 const SprintPiPredictability: FC<SprintPiPredictabilityProps> = ({ sprintKey, teamId }) => {
   const { data: planningIntervals } = useGetSprintPlanningIntervalsQuery(sprintKey, {
     skip: !sprintKey,
   })
-  const { data: scope } = useGetSprintScopeQuery(sprintKey, {
-    skip: !sprintKey,
-  })
 
-  // Mirrors when SprintSayDoMetric draws anything, so an empty row is never left behind.
-  const showsSayDo =
-    !!scope && !scope.historyIncomplete && scope.totals.sayDoEstimate != null
-  if (!showsSayDo && !planningIntervals?.length) return null
+  if (!planningIntervals || planningIntervals.length === 0) return null
 
   return (
     <Row gutter={[8, 8]}>
-      {showsSayDo && (
-        <Col xs={24}>
-          <SprintSayDoMetric scope={scope} />
-        </Col>
-      )}
-      {planningIntervals?.map((pi) => (
+      {planningIntervals.map((pi) => (
         <Col key={pi.id} xs={24}>
           <PiPredictabilityCard pi={pi} teamId={teamId} />
         </Col>

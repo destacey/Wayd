@@ -37,7 +37,7 @@ public sealed class PlanningIntervalsControllerBacklogTests
         {
             Id = Guid.NewGuid(),
             Key = 1,
-            Name = "Core Services",
+            Name = "Team Atlas",
             Code = "CORE",
             Type = "Team"
         }

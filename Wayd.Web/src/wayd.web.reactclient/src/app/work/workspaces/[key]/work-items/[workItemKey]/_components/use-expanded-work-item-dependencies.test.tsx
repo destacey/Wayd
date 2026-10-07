@@ -76,7 +76,7 @@ describe('useExpandedWorkItemDependencies', () => {
     expect(result.current['w-2'].workItem.key).toBe('ID-7')
   })
 
-  it('reaches an item two hops out once the one before it has loaded', async () => {
+  it('reaches an item two steps out once the one before it has loaded', async () => {
     // Arrange
     getWorkItemDependencies.mockImplementation(
       async (_: string, key: string) =>

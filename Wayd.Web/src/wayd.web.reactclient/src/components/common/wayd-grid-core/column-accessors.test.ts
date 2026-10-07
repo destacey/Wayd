@@ -35,7 +35,7 @@ describe('applySafeAccessor', () => {
     // Assert
     expect((result as { accessorKey?: string }).accessorKey).toBeUndefined()
     const accessorFn = getAccessorFn(result)!
-    expect(accessorFn({ name: 'a', team: { name: 'Juice' } }, 0)).toBe('Juice')
+    expect(accessorFn({ name: 'a', team: { name: 'Nova' } }, 0)).toBe('Nova')
   })
 
   it('returns undefined (without throwing) when an intermediate hop is missing', () => {

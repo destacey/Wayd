@@ -30,10 +30,10 @@ jest.mock('next/link', () => {
 describe('renderTeamLink', () => {
   it('renders a link to a Team using its name', () => {
     // Arrange / Act
-    render(<>{renderTeamLink({ key: 12, name: 'Team Juice', type: 'Team' })}</>)
+    render(<>{renderTeamLink({ key: 12, name: 'Team Nova', type: 'Team' })}</>)
 
     // Assert
-    const link = screen.getByRole('link', { name: 'Team Juice' })
+    const link = screen.getByRole('link', { name: 'Team Nova' })
     expect(link).toHaveAttribute('href', '/organizations/teams/12')
   })
 

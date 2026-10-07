@@ -84,7 +84,7 @@ public class ClassificationNodeResponseTests : CommonResponseOptions
                                 "path": "\\Wayd\\Area\\Core\\Integrations"
                             }
                         ],
-                        "path": "\\Wayd\\Area\\Core Services"
+                        "path": "\\Wayd\\Area\\Foundation"
                     },
                     {
                         "id": 123,

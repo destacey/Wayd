@@ -69,13 +69,13 @@ describe('getSearchResultUrl', () => {
     })
 
     it('returns PI team plan review url naming both the section and the team', () => {
-      expect(getSearchResultUrl(item('PiTeam', 'JUICE', '3|juice'))).toBe(
-        '/planning/planning-intervals/3?section=plan-review&team=juice',
+      expect(getSearchResultUrl(item('PiTeam', 'NOVA', '3|nova'))).toBe(
+        '/planning/planning-intervals/3?section=plan-review&team=nova',
       )
     })
 
     it('returns PI team url with missing auxKey gracefully', () => {
-      expect(getSearchResultUrl(item('PiTeam', 'JUICE', undefined))).toBe(
+      expect(getSearchResultUrl(item('PiTeam', 'NOVA', undefined))).toBe(
         '/planning/planning-intervals',
       )
     })

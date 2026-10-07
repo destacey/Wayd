@@ -38,7 +38,7 @@ jest.mock('@/src/store/features/work-management/sprints-api', () => ({
 const team = {
   id: 't1',
   key: 14,
-  name: 'Core Services',
+  name: 'Team Atlas',
   code: 'CS',
   type: 'Team',
 }

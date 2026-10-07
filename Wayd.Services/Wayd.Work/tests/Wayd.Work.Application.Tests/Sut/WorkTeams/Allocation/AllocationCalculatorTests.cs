@@ -23,7 +23,7 @@ public sealed class AllocationCalculatorTests
     private static readonly PpmRecordReference ThemeTrust = new(Guid.NewGuid(), 21, "Trust & compliance");
 
     private static readonly TeamStructureTeam Root = new(Guid.NewGuid(), 1, "ART", "Platform ART", TeamType.TeamOfTeams);
-    private static readonly TeamStructureTeam CoreServices = new(Guid.NewGuid(), 2, "CORE", "Core Services", TeamType.TeamOfTeams);
+    private static readonly TeamStructureTeam Engineering = new(Guid.NewGuid(), 2, "ENG", "Engineering", TeamType.TeamOfTeams);
     private static readonly TeamStructureTeam Experience = new(Guid.NewGuid(), 3, "EXP", "Experience", TeamType.TeamOfTeams);
     private static readonly TeamStructureTeam Payments = new(Guid.NewGuid(), 4, "PAY", "Payments Team", TeamType.Team);
     private static readonly TeamStructureTeam Mobile = new(Guid.NewGuid(), 5, "MOB", "Mobile Team", TeamType.Team);
@@ -42,16 +42,16 @@ public sealed class AllocationCalculatorTests
 
     private readonly Dictionary<Guid, ProjectClassification> _projects = [];
 
-    /// <summary>Payments sizes in points and Mobile by count; both sit under Core Services the whole window.</summary>
+    /// <summary>Payments sizes in points and Mobile by count; both sit under Engineering the whole window.</summary>
     private static TeamStructure Structure(IEnumerable<TeamStructureMembership>? memberships = null) => new(
         Root.Id,
-        [Root, CoreServices, Experience, Payments, Mobile],
+        [Root, Engineering, Experience, Payments, Mobile],
         memberships?.ToList() ??
         [
-            new(CoreServices.Id, Root.Id, From.PlusYears(-1), null),
+            new(Engineering.Id, Root.Id, From.PlusYears(-1), null),
             new(Experience.Id, Root.Id, From.PlusYears(-1), null),
-            new(Payments.Id, CoreServices.Id, From.PlusYears(-1), null),
-            new(Mobile.Id, CoreServices.Id, From.PlusYears(-1), null),
+            new(Payments.Id, Engineering.Id, From.PlusYears(-1), null),
+            new(Mobile.Id, Engineering.Id, From.PlusYears(-1), null),
         ],
         [
             new(Payments.Id, From.PlusYears(-1), null, SizingMethod.StoryPoints),
@@ -103,9 +103,9 @@ public sealed class AllocationCalculatorTests
 
         // Assert
         result.Teams.Select(r => (r.Name, r.Level)).Should().Equal(
-            ("Platform ART", 0), ("Core Services", 1), ("Mobile Team", 2), ("Payments Team", 2), ("Experience", 1));
+            ("Platform ART", 0), ("Engineering", 1), ("Mobile Team", 2), ("Payments Team", 2), ("Experience", 1));
         result.Teams.Single(r => r.TeamId == Root.Id).Items.Should().Be(3);
-        result.Teams.Single(r => r.TeamId == CoreServices.Id).Items.Should().Be(3);
+        result.Teams.Single(r => r.TeamId == Engineering.Id).Items.Should().Be(3);
         result.Teams.Single(r => r.TeamId == Mobile.Id).Cells.Select(c => c.Share).Should().Equal(50, 50);
     }
 
@@ -116,10 +116,10 @@ public sealed class AllocationCalculatorTests
         var moveDate = new LocalDate(2026, 8, 15);
         var structure = Structure(
         [
-            new(CoreServices.Id, Root.Id, From.PlusYears(-1), null),
+            new(Engineering.Id, Root.Id, From.PlusYears(-1), null),
             new(Experience.Id, Root.Id, From.PlusYears(-1), null),
-            new(Payments.Id, CoreServices.Id, From.PlusYears(-1), null),
-            new(Mobile.Id, CoreServices.Id, From.PlusYears(-1), moveDate.PlusDays(-1)),
+            new(Payments.Id, Engineering.Id, From.PlusYears(-1), null),
+            new(Mobile.Id, Engineering.Id, From.PlusYears(-1), moveDate.PlusDays(-1)),
             new(Mobile.Id, Experience.Id, moveDate, null),
         ]);
         List<AllocationWorkItem> items = [Item(Mobile, doneOn: Early), Item(Mobile, doneOn: Late), Item(Mobile, doneOn: Late)];
@@ -128,7 +128,7 @@ public sealed class AllocationCalculatorTests
         var result = Calculate(items, structure: structure);
 
         // Assert
-        result.Teams.Single(r => r.TeamId == CoreServices.Id).Items.Should().Be(1);
+        result.Teams.Single(r => r.TeamId == Engineering.Id).Items.Should().Be(1);
         result.Teams.Single(r => r.TeamId == Experience.Id).Items.Should().Be(2);
         result.Teams.Single(r => r.TeamId == Mobile.Id).ParentId.Should().Be(Experience.Id);
     }
@@ -161,8 +161,8 @@ public sealed class AllocationCalculatorTests
         var joined = new LocalDate(2026, 8, 1);
         var structure = Structure(
         [
-            new(CoreServices.Id, Root.Id, From.PlusYears(-1), null),
-            new(Payments.Id, CoreServices.Id, joined, null),
+            new(Engineering.Id, Root.Id, From.PlusYears(-1), null),
+            new(Payments.Id, Engineering.Id, joined, null),
         ]);
         List<AllocationWorkItem> items = [Item(Payments, doneOn: Early), Item(Payments, doneOn: Late)];
 
@@ -258,7 +258,7 @@ public sealed class AllocationCalculatorTests
         result.Summary.EstimatedItems.Should().Be(1);
         result.Summary.ExcludedTeams.Select(t => t.Id).Should().Equal(Mobile.Id);
         result.Teams.Single(r => r.TeamId == Mobile.Id).Excluded.Should().BeTrue();
-        result.Teams.Single(r => r.TeamId == CoreServices.Id).Excluded.Should().BeFalse();
+        result.Teams.Single(r => r.TeamId == Engineering.Id).Excluded.Should().BeFalse();
     }
 
     [Fact]

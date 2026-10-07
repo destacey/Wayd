@@ -43,7 +43,7 @@ type Result = ReturnType<ExpansionSelector>
  * Finds every expanded item that can be fetched yet, and what the store holds for each.
  *
  * An expansion is stored by id alone, but fetching one takes the item's workspace and key, which only a
- * loaded dependency list carries. An item two hops out is known once the one before it has loaded, so the
+ * loaded dependency list carries. An item two steps out is known once the one before it has loaded, so the
  * ids are resolved in rounds, and one still unknown is simply fetched on a later render.
  */
 const resolve = (

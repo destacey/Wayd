@@ -58,7 +58,7 @@ const sprint: SprintDetailsDto = {
   state: { id: 1, name: 'Future' },
   start: '2026-08-31',
   end: '2026-09-13',
-  team: { id: 't1', key: 14, name: 'Core Services', code: 'CS', type: 'Team' },
+  team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   canManageSprint: true,

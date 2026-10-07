@@ -200,6 +200,7 @@ What a sprint committed to and what became of it, worked out when read (never st
 
 - Entry: **Committed** (in the sprint at the commitment point; taken out and put back stays committed) or **Added** (entered after it, before the effective end)
 - Outcome, from the item's state when last in the sprint: **Completed** (Done), **Removed** (Removed-category, counts as completed), **CarriedOver** (unfinished and still in at the effective end, or moved to the team's next sprint on or after the last day), **Descoped** (unfinished and left before the last day, or on it for anywhere but the next sprint), **Remaining** (unfinished in a sprint not yet ended)
+- Work already Done or Removed before `FinishedWorkCutoff` (the recorded start, else the start of the first planned day) is out of scope while it stays finished; reopened in the sprint, it is Added from then on
 - Last day = the earlier of the last planned day and the day the sprint actually ended, in the team's zone
 - Say/do = completed of committed ÷ committed, by count and by the estimate at the commitment point
 - A sprint is read up to now: before its commitment point it has no scope

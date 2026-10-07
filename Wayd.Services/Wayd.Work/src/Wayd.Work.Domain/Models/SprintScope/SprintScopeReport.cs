@@ -91,11 +91,11 @@ public sealed class SprintScopeReport
         var entryPeriod = inSprint[0];
         var committed = entryPeriod.Covers(window.Start);
         var entry = committed ? SprintScopeEntry.Committed : SprintScopeEntry.Added;
-        Instant? enteredAt = committed ? null : entryPeriod.ValidFrom;
+        Instant? addedAt = committed ? null : entryPeriod.ValidFrom;
 
         var last = inSprint[^1];
         var stillIn = last.Covers(asOf);
-        var leftAt = stillIn ? null : last.ValidTo;
+        var removedAt = stillIn ? null : last.ValidTo;
 
         var outcome = last.StatusCategory switch
         {
@@ -103,16 +103,16 @@ public sealed class SprintScopeReport
             WorkStatusCategory.Removed => SprintScopeOutcome.Removed,
             _ when stillIn && asOf < window.End => SprintScopeOutcome.Remaining,
             _ when stillIn => SprintScopeOutcome.CarriedOver,
-            _ when MovedToNextSprint(window, leftAt!.Value, At(leftAt.Value)) => SprintScopeOutcome.CarriedOver,
+            _ when MovedToNextSprint(window, removedAt!.Value, At(removedAt.Value)) => SprintScopeOutcome.CarriedOver,
             _ => SprintScopeOutcome.Descoped,
         };
 
         return new SprintScopeItem(
             periods[0].WorkItemId,
             entry,
-            enteredAt,
+            addedAt,
             outcome,
-            leftAt,
+            removedAt,
             EstimateOf(entryPeriod),
             EstimateOf(last));
     }
@@ -142,8 +142,8 @@ public sealed class SprintScopeReport
         return finishedSince;
     }
 
-    private static bool MovedToNextSprint(SprintScopeWindow window, Instant leftAt, SprintScopePeriod? after) =>
+    private static bool MovedToNextSprint(SprintScopeWindow window, Instant removedAt, SprintScopePeriod? after) =>
         window.NextSprintId is not null
-            && leftAt >= window.LastDay
+            && removedAt >= window.LastDay
             && after?.IterationId == window.NextSprintId;
 }

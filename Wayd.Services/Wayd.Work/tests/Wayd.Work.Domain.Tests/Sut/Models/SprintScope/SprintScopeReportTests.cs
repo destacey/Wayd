@@ -163,7 +163,7 @@ public class SprintScopeReportTests
         // Assert
         var result = report.Items.Should().ContainSingle().Subject;
         result.Entry.Should().Be(SprintScopeEntry.Added);
-        result.EnteredAt.Should().Be(reopened);
+        result.AddedAt.Should().Be(reopened);
         result.Outcome.Should().Be(SprintScopeOutcome.CarriedOver);
     }
 
@@ -199,7 +199,7 @@ public class SprintScopeReportTests
         var result = report.Items.Should().ContainSingle().Subject;
         result.Entry.Should().Be(SprintScopeEntry.Committed);
         result.Outcome.Should().Be(SprintScopeOutcome.Completed);
-        result.LeftAt.Should().BeNull();
+        result.RemovedAt.Should().BeNull();
         report.Totals.SayDoCount.Should().Be(1);
     }
 
@@ -219,7 +219,7 @@ public class SprintScopeReportTests
         // Assert
         var result = report.Items.Should().ContainSingle().Subject;
         result.Entry.Should().Be(SprintScopeEntry.Added);
-        result.EnteredAt.Should().Be(added);
+        result.AddedAt.Should().Be(added);
         result.Outcome.Should().Be(SprintScopeOutcome.CarriedOver);
         report.Totals.Added.Count.Should().Be(1);
         report.Totals.Committed.Count.Should().Be(0);
@@ -243,7 +243,7 @@ public class SprintScopeReportTests
         var result = report.Items.Should().ContainSingle().Subject;
         result.Entry.Should().Be(SprintScopeEntry.Committed);
         result.Outcome.Should().Be(SprintScopeOutcome.Descoped);
-        result.LeftAt.Should().Be(left);
+        result.RemovedAt.Should().Be(left);
         report.Totals.SayDoCount.Should().Be(0);
     }
 
@@ -263,7 +263,7 @@ public class SprintScopeReportTests
         var report = Build(window, items);
 
         // Assert
-        report.Items.Should().HaveCount(3).And.OnlyContain(i => i.Outcome == SprintScopeOutcome.CarriedOver && i.LeftAt == moved);
+        report.Items.Should().HaveCount(3).And.OnlyContain(i => i.Outcome == SprintScopeOutcome.CarriedOver && i.RemovedAt == moved);
         report.Totals.CarriedOver.Count.Should().Be(3);
     }
 

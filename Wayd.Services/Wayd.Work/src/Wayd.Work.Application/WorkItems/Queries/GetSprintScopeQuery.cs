@@ -80,8 +80,8 @@ public sealed class GetSprintScopeQueryHandler(
                     WorkItem = workItems[i.WorkItemId],
                     Entry = i.Entry,
                     Outcome = i.Outcome,
-                    EnteredAt = i.EnteredAt,
-                    LeftAt = i.LeftAt,
+                    AddedAt = i.AddedAt,
+                    RemovedAt = i.RemovedAt,
                     EntryEstimate = i.EntryEstimate,
                     OutcomeEstimate = i.OutcomeEstimate,
                 })

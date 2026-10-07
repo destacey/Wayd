@@ -151,14 +151,15 @@ public sealed record SprintScopeItemDto
     /// <summary>What became of the item: completed, completed as Removed, carried over, descoped or remaining.</summary>
     public SprintScopeOutcome Outcome { get; init; }
 
-    /// <summary>When an added item entered the sprint; null for a committed one.</summary>
-    public Instant? EnteredAt { get; init; }
+    /// <summary>When an added item was added to the sprint; null for a committed one.</summary>
+    public Instant? AddedAt { get; init; }
 
     /// <summary>
-    /// When the item last left the sprint; null if it was still in at the effective end, or is still in a
-    /// sprint that has not ended.
+    /// When the item was last removed from the sprint — moved to another iteration or out of the requirement
+    /// tier; not when it reached a Removed status. Null if it was still in at the effective end, or is still
+    /// in a sprint that has not ended.
     /// </summary>
-    public Instant? LeftAt { get; init; }
+    public Instant? RemovedAt { get; init; }
 
     /// <summary>The item's estimate when it was committed or added.</summary>
     public double? EntryEstimate { get; init; }

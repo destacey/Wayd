@@ -20,6 +20,8 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 /// Removed</b>. Unfinished work still in, or moved to the team's next sprint on or after the sprint's last
 /// day, is <b>Carried Over</b>; unfinished work that left any other way is <b>Descoped</b>.</item>
 /// </list>
+/// Work already Done or Removed before <see cref="SprintScopeWindow.FinishedWorkCutoff"/> is not in scope while
+/// it stays finished: no work on it happened in the sprint. Reopened in the sprint, it is added from then on.
 /// A report on a sprint that has not ended is worked out as of now: unfinished work still in it is
 /// <b>Remaining</b>, since it may yet be completed. One that has not reached its commitment point has no scope.
 /// A deleted item's history is deleted with it, so it is in no category.
@@ -34,13 +36,16 @@ public sealed class SprintScopeReport
         Totals = SprintScopeTotals.Of(items);
     }
 
+    /// <summary>The instants the scope is measured between.</summary>
     public SprintScopeWindow Window { get; }
 
     /// <summary>The estimate the report is measured in.</summary>
     public SizingMethod SizingMethod { get; }
 
+    /// <summary>Each work item that was in the sprint's scope, in no particular order.</summary>
     public IReadOnlyList<SprintScopeItem> Items { get; }
 
+    /// <summary>The items summed by category.</summary>
     public SprintScopeTotals Totals { get; }
 
     /// <param name="periods">
@@ -75,28 +80,18 @@ public sealed class SprintScopeReport
         double? EstimateOf(SprintScopePeriod p) => WorkItemEstimate.Of(sizingMethod, p.StoryPoints, p.Effort, p.Size);
         SprintScopePeriod? At(Instant instant) => periods.FirstOrDefault(p => p.Covers(instant));
 
-        var atStart = At(window.Start);
+        var finishedSince = FinishedSince(periods);
         var inSprint = periods
             .Where(p => InSprint(p) && p.ValidFrom < asOf && (p.ValidTo is null || p.ValidTo > window.Start))
+            .Where(p => !(finishedSince.TryGetValue(p, out var finished) && finished < window.FinishedWorkCutoff))
             .ToList();
         if (inSprint.Count == 0)
             return null;
 
-        SprintScopeEntry entry;
-        Instant? enteredAt;
-        SprintScopePeriod entryPeriod;
-        if (atStart is not null && InSprint(atStart))
-        {
-            entry = SprintScopeEntry.Committed;
-            enteredAt = null;
-            entryPeriod = atStart;
-        }
-        else
-        {
-            entry = SprintScopeEntry.Added;
-            entryPeriod = inSprint[0];
-            enteredAt = entryPeriod.ValidFrom;
-        }
+        var entryPeriod = inSprint[0];
+        var committed = entryPeriod.Covers(window.Start);
+        var entry = committed ? SprintScopeEntry.Committed : SprintScopeEntry.Added;
+        Instant? enteredAt = committed ? null : entryPeriod.ValidFrom;
 
         var last = inSprint[^1];
         var stillIn = last.Covers(asOf);
@@ -120,6 +115,31 @@ public sealed class SprintScopeReport
             leftAt,
             EstimateOf(entryPeriod),
             EstimateOf(last));
+    }
+
+    /// <summary>
+    /// For each period in a Done or Removed status, when the item last became finished: the start of the
+    /// unbroken run of finished periods holding it. Moving a finished item between sprints does not restart it.
+    /// </summary>
+    private static Dictionary<SprintScopePeriod, Instant> FinishedSince(List<SprintScopePeriod> periods)
+    {
+        var finishedSince = new Dictionary<SprintScopePeriod, Instant>();
+        SprintScopePeriod? previous = null;
+        foreach (var period in periods)
+        {
+            if (period.StatusCategory is WorkStatusCategory.Done or WorkStatusCategory.Removed)
+            {
+                finishedSince[period] = previous is not null
+                    && previous.ValidTo == period.ValidFrom
+                    && finishedSince.TryGetValue(previous, out var since)
+                        ? since
+                        : period.ValidFrom;
+            }
+
+            previous = period;
+        }
+
+        return finishedSince;
     }
 
     private static bool MovedToNextSprint(SprintScopeWindow window, Instant leftAt, SprintScopePeriod? after) =>

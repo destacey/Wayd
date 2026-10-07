@@ -14,6 +14,11 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 /// it was descoped. The day it actually ended counts so that a team which plans the next sprint early — on the
 /// Friday before a Monday holiday — carries its work over rather than descoping it.
 /// </param>
+/// <param name="FinishedWorkCutoff">
+/// Work already Done or Removed before this is not in the sprint's scope: no work on it happened in the
+/// sprint. The team's recorded start, or else the start of the first planned day, so work finished on day one,
+/// before the default commitment point at the end of the grace period, still counts.
+/// </param>
 /// <param name="NextSprintId">The team's next sprint; null for its last sprint or a sprint with no team.</param>
 /// <param name="StartIsActual">Whether <paramref name="Start"/> is the team's recorded start rather than the default.</param>
 /// <param name="EndIsActual">Whether <paramref name="End"/> is the team's recorded completion rather than the default.</param>
@@ -23,6 +28,7 @@ public sealed record SprintScopeWindow(
     Instant Start,
     Instant End,
     Instant LastDay,
+    Instant FinishedWorkCutoff,
     Guid? NextSprintId,
     bool StartIsActual,
     bool EndIsActual,
@@ -39,6 +45,7 @@ public sealed record SprintScopeWindow(
             timeline.EffectiveStart(sprint),
             end,
             LastDayOf(sprint, end, zone),
+            sprint.Started ?? timeline.PlannedStart(sprint),
             timeline.Next(sprint)?.Id,
             sprint.Started is not null,
             sprint.Completed is not null,
@@ -63,6 +70,7 @@ public sealed record SprintScopeWindow(
             start,
             end,
             LastDayOf(sprint, end, zone),
+            sprint.Started ?? plannedStart.AtStartOfDayInZone(zone).ToInstant(),
             null,
             sprint.Started is not null,
             sprint.Completed is not null,

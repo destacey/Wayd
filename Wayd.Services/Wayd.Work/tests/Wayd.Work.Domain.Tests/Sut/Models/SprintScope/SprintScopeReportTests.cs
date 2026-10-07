@@ -77,6 +77,96 @@ public class SprintScopeReportTests
         report.Totals.CarriedOver.Count.Should().Be(0);
     }
 
+    [Theory]
+    [InlineData(WorkStatusCategory.Done)]
+    [InlineData(WorkStatusCategory.Removed)]
+    public void Build_StartedSprint_WorkFinishedBeforeTheStartIsNotInScope(WorkStatusCategory finished)
+    {
+        // Arrange — cut or finished during planning, before the team pressed Start, but left in the sprint
+        var started = At(Sprint1Start, 11);
+        var sprint1 = NewSprint(Sprint1Start, Sprint1LastDay, 1, started: started);
+        var window = SprintScopeWindow.For(Timeline(sprint1), sprint1);
+        var item = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Proposed)
+            .Then(At(Sprint1Start, 10), sprint1.Id, finished);
+
+        // Act
+        var report = Build(window, item);
+
+        // Assert
+        report.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Build_SprintNotStarted_WorkFinishedOnDayOneIsCommittedAndCompleted()
+    {
+        // Arrange — finished on the first planned day, before the default commitment point at its end
+        var (sprint1, _, window) = TwoSprints();
+        var item = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active)
+            .Then(At(Sprint1Start, 15), sprint1.Id, WorkStatusCategory.Done);
+
+        // Act
+        var report = Build(window, item);
+
+        // Assert
+        var result = report.Items.Should().ContainSingle().Subject;
+        result.Entry.Should().Be(SprintScopeEntry.Committed);
+        result.Outcome.Should().Be(SprintScopeOutcome.Completed);
+    }
+
+    [Fact]
+    public void Build_SprintNotStarted_WorkFinishedBeforeDayOneIsNotInScope()
+    {
+        // Arrange
+        var (sprint1, _, window) = TwoSprints();
+        var item = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-3)), sprint1.Id, WorkStatusCategory.Active)
+            .Then(At(Sprint1Start.PlusDays(-1), 17), sprint1.Id, WorkStatusCategory.Removed);
+
+        // Act
+        var report = Build(window, item);
+
+        // Assert
+        report.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Build_ItemAddedAlreadyDone_IsNotInScope()
+    {
+        // Arrange — finished in the backlog before the sprint, then moved in mid-sprint
+        var (sprint1, _, window) = TwoSprints();
+        var item = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-5)), null, WorkStatusCategory.Done)
+            .Then(At(Sprint1Start.PlusDays(3)), sprint1.Id, WorkStatusCategory.Done);
+
+        // Act
+        var report = Build(window, item);
+
+        // Assert
+        report.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Build_WorkFinishedBeforeTheSprintAndReopenedInIt_IsAddedWhenReopened()
+    {
+        // Arrange
+        var (sprint1, _, window) = TwoSprints();
+        var reopened = At(Sprint1Start.PlusDays(3), 9);
+        var item = new ItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-5)), sprint1.Id, WorkStatusCategory.Removed)
+            .Then(reopened, sprint1.Id, WorkStatusCategory.Active);
+
+        // Act
+        var report = Build(window, item);
+
+        // Assert
+        var result = report.Items.Should().ContainSingle().Subject;
+        result.Entry.Should().Be(SprintScopeEntry.Added);
+        result.EnteredAt.Should().Be(reopened);
+        result.Outcome.Should().Be(SprintScopeOutcome.CarriedOver);
+    }
+
     [Fact]
     public void Build_BeforeTheCommitmentPoint_HasNoScope()
     {

@@ -3,8 +3,7 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 /// <summary>How many items, and how much estimate, fall in one category. A missing estimate adds nothing.</summary>
 public sealed record SprintScopeMeasure(int Count, double Estimate)
 {
-    public static readonly SprintScopeMeasure None = new(0, 0);
-
+    /// <summary>The number of <paramref name="items"/> and the sum of their <paramref name="estimate"/>.</summary>
     public static SprintScopeMeasure Of(IEnumerable<SprintScopeItem> items, Func<SprintScopeItem, double?> estimate)
     {
         var list = items.ToList();
@@ -16,9 +15,18 @@ public sealed record SprintScopeMeasure(int Count, double Estimate)
 /// A sprint's scope summed by category. Committed and Added are measured with the estimate each item had
 /// when it came in; the outcomes with the estimate it had when it was last in the sprint.
 /// </summary>
-/// <param name="Total">Every item that was in scope: committed and added.</param>
+/// <param name="Total">
+/// Every item that was in scope, measured like the outcomes, so it is the sum of Completed, Carried Over,
+/// Descoped and Remaining. By count it also equals Committed plus Added; by estimate it need not, since an
+/// item re-estimated during the sprint comes in at one estimate and leaves at another.
+/// </param>
+/// <param name="Committed">Items in the sprint at its commitment point, at their estimate then.</param>
+/// <param name="Added">Items that entered the sprint after its commitment point, at their estimate when added.</param>
 /// <param name="Completed">Completed items, including those completed as Removed.</param>
 /// <param name="Removed">The part of <paramref name="Completed"/> completed as Removed.</param>
+/// <param name="CarriedOver">Unfinished items carried over to the team's next sprint.</param>
+/// <param name="Descoped">Unfinished items taken out of the sprint.</param>
+/// <param name="Remaining">Unfinished items still in a sprint that has not ended.</param>
 /// <param name="CompletedOfCommitted">
 /// Committed items that were completed, measured with their committed estimate so that it compares with
 /// <paramref name="Committed"/>: re-estimating an item during the sprint does not move the say/do ratio.
@@ -40,6 +48,7 @@ public sealed record SprintScopeTotals(
     double? SayDoEstimate,
     int Unestimated)
 {
+    /// <summary>Sums <paramref name="items"/> by category.</summary>
     public static SprintScopeTotals Of(IReadOnlyCollection<SprintScopeItem> items)
     {
         var committed = items.Where(i => i.Entry == SprintScopeEntry.Committed).ToList();

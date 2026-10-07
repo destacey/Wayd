@@ -10,6 +10,7 @@ namespace Wayd.Work.Application.WorkItems.Dtos;
 /// </summary>
 public sealed record SprintScopeDto
 {
+    /// <summary>The sprint the scope is of.</summary>
     public Guid SprintId { get; init; }
 
     /// <summary>
@@ -51,12 +52,16 @@ public sealed record SprintScopeDto
     /// </summary>
     public bool HistoryIncomplete { get; init; }
 
+    /// <summary>The items summed by category.</summary>
     public required SprintScopeTotalsDto Totals { get; init; }
 
+    /// <summary>Each requirement-tier work item that was in the sprint's scope, in backlog order.</summary>
     public required List<SprintScopeItemDto> Items { get; init; }
 }
 
 /// <summary>How many items, and how much estimate, fall in one category. A missing estimate adds nothing.</summary>
+/// <param name="Count">The number of items.</param>
+/// <param name="Estimate">The sum of their estimates in the report's sizing method.</param>
 public sealed record SprintScopeMeasureDto(int Count, double Estimate)
 {
     public static SprintScopeMeasureDto From(SprintScopeMeasure measure) => new(measure.Count, measure.Estimate);
@@ -68,11 +73,17 @@ public sealed record SprintScopeMeasureDto(int Count, double Estimate)
 /// </summary>
 public sealed record SprintScopeTotalsDto
 {
-    /// <summary>Every item that was in scope: committed and added.</summary>
+    /// <summary>
+    /// Every item that was in scope, measured like the outcomes: the sum of Completed, Carried Over, Descoped
+    /// and Remaining. By count it also equals Committed plus Added; by estimate it need not, since an item
+    /// re-estimated during the sprint comes in at one estimate and leaves at another.
+    /// </summary>
     public required SprintScopeMeasureDto Total { get; init; }
 
+    /// <summary>Items in the sprint at its commitment point, at their estimate then.</summary>
     public required SprintScopeMeasureDto Committed { get; init; }
 
+    /// <summary>Items that entered the sprint after its commitment point, at their estimate when added.</summary>
     public required SprintScopeMeasureDto Added { get; init; }
 
     /// <summary>Completed items, including those completed as Removed.</summary>
@@ -81,8 +92,16 @@ public sealed record SprintScopeTotalsDto
     /// <summary>The part of <see cref="Completed"/> completed as Removed.</summary>
     public required SprintScopeMeasureDto Removed { get; init; }
 
+    /// <summary>
+    /// Unfinished items still in the sprint at its effective end, or moved to the team's next sprint on or
+    /// after its last day.
+    /// </summary>
     public required SprintScopeMeasureDto CarriedOver { get; init; }
 
+    /// <summary>
+    /// Unfinished items taken out of the sprint before its last day, or on it for somewhere other than the
+    /// team's next sprint.
+    /// </summary>
     public required SprintScopeMeasureDto Descoped { get; init; }
 
     /// <summary>Unfinished work still in a sprint that has not ended.</summary>
@@ -126,8 +145,10 @@ public sealed record SprintScopeItemDto
     /// <summary>The work item as it is now; its current sprint may be another one.</summary>
     public required SprintBacklogItemDto WorkItem { get; init; }
 
+    /// <summary>Whether the item was committed or added.</summary>
     public SprintScopeEntry Entry { get; init; }
 
+    /// <summary>What became of the item: completed, completed as Removed, carried over, descoped or remaining.</summary>
     public SprintScopeOutcome Outcome { get; init; }
 
     /// <summary>When an added item entered the sprint; null for a committed one.</summary>

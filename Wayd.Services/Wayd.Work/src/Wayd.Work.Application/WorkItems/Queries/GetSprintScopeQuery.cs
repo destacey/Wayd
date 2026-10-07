@@ -58,6 +58,9 @@ public sealed class GetSprintScopeQueryHandler(
             .ProjectToType<SprintBacklogItemDto>()
             .ToDictionaryAsync(w => w.Id, cancellationToken);
 
+        // An item deleted between the two reads is left out of the totals too, so they add up to the rows.
+        var items = report.Items.Where(i => workItems.ContainsKey(i.WorkItemId)).ToList();
+
         return new SprintScopeDto
         {
             SprintId = sprint.Id,
@@ -70,9 +73,8 @@ public sealed class GetSprintScopeQueryHandler(
             TimeZone = window.TimeZone.Id,
             HasTeam = sprint.TeamId is not null,
             HistoryIncomplete = await IsHistoryIncomplete(sprint.Id, workItemIds, cancellationToken),
-            Totals = SprintScopeTotalsDto.From(report.Totals),
-            Items = [.. report.Items
-                .Where(i => workItems.ContainsKey(i.WorkItemId))
+            Totals = SprintScopeTotalsDto.From(SprintScopeTotals.Of(items)),
+            Items = [.. items
                 .Select(i => new SprintScopeItemDto
                 {
                     WorkItem = workItems[i.WorkItemId],
@@ -127,6 +129,7 @@ public sealed class GetSprintScopeQueryHandler(
                 h.ValidFrom,
                 h.ValidTo,
                 h.IterationId,
+                // The type's tier now, not when the period was written: history keeps the type, not its level.
                 _workDbContext.WorkTypes.Any(t => t.Id == h.WorkTypeId && t.Level!.Tier == WorkTypeTier.Requirement),
                 h.StatusCategory,
                 h.StoryPoints,

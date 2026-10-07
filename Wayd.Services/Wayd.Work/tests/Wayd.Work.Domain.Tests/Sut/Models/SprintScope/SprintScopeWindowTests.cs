@@ -48,6 +48,7 @@ public class SprintScopeWindowTests
         result.Start.Should().Be(At(Sprint1Start.PlusDays(1)));
         result.End.Should().Be(At(Sprint1LastDay.PlusDays(1)));
         result.LastDay.Should().Be(At(Sprint1LastDay));
+        result.FinishedWorkCutoff.Should().Be(At(Sprint1Start));
         result.NextSprintId.Should().Be(sprint2.Id);
         result.StartIsActual.Should().BeFalse();
         result.EndIsActual.Should().BeFalse();
@@ -67,6 +68,7 @@ public class SprintScopeWindowTests
         // Assert
         result.End.Should().Be(completed);
         result.LastDay.Should().Be(At(Sprint1LastDay.PlusDays(-2)));
+        result.FinishedWorkCutoff.Should().Be(At(Sprint1Start, 9));
         result.StartIsActual.Should().BeTrue();
         result.EndIsActual.Should().BeTrue();
         result.NextSprintId.Should().BeNull();

@@ -23,7 +23,9 @@ import {
   sizingMethodMeasure,
   sprintActiveDays,
 } from '@/src/utils'
-import { CSSProperties, FC, ReactNode, useEffect, useState } from 'react'
+import { CSSProperties, FC, ReactNode, useEffect } from 'react'
+import { useLocalStorageState } from '@/src/hooks'
+import SprintBurnCharts from './sprint-burn-charts'
 import { sprintScopeWindowText } from './sprint-scope-window-text'
 
 const { Text } = Typography
@@ -50,7 +52,11 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
   sprint,
   onHealthIndicatorReady,
 }) => {
-  const [byCount, setByCount] = useState(false)
+  // Remembered per viewer, so the cards and the burn charts stay in the unit last chosen.
+  const [byCount, setByCount] = useLocalStorageState(
+    'sprint-overview-by-count',
+    false,
+  )
   const { token } = useTheme()
 
   const { data: metrics, isLoading: metricsLoading } = useGetSprintMetricsQuery(
@@ -247,6 +253,11 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
           )}
         </div>
       )}
+      <SprintBurnCharts
+        sprintKey={sprint.key}
+        byCount={showsCount}
+        sizingMethod={sizingMethod}
+      />
       {scopeFigures && scope && (
         <Flex vertical>
           {sprintScopeWindowText(scope).map((line) => (

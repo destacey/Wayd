@@ -7,6 +7,7 @@ import {
   SprintBacklogItemDto,
   SprintDetailsDto,
   SprintListDto,
+  SprintBurnDto,
   SprintScopeDto,
   SprintWorkItemMetricsDto,
   PagedResponseOfActivityLogDto,
@@ -88,6 +89,23 @@ export const sprintsApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, sprintKey) => [
         { type: QueryTags.SprintScope, id: sprintKey },
+      ],
+    }),
+
+    getSprintBurn: builder.query<SprintBurnDto, number>({
+      queryFn: async (sprintKey: number) => {
+        try {
+          const data = await getSprintsClient().getSprintBurn(
+            sprintKey.toString(),
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, sprintKey) => [
+        { type: QueryTags.SprintBurn, id: sprintKey },
       ],
     }),
 
@@ -240,6 +258,7 @@ function sprintLifecycleTags(id: string, key: number) {
     // The sprint's actual dates bound its scope, so every team sprint's report
     // can move with them — a start completes the previous sprint too.
     QueryTags.SprintScope,
+    QueryTags.SprintBurn,
     { type: QueryTags.ActivityLog, id },
     QueryTags.TeamSprint,
     QueryTags.ActiveSprint,
@@ -253,6 +272,7 @@ export const {
   useGetSprintBacklogQuery,
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
+  useGetSprintBurnQuery,
   useGetSprintPlanningIntervalsQuery,
   useGetSprintActivitiesQuery,
   useLazyGetSprintActivitiesQuery,

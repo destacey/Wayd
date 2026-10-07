@@ -243,10 +243,10 @@ describe('SprintMetrics', () => {
         'metric-Avg Cycle Time',
       ])
       expect(titlesIn(rowOf('Committed'))).toEqual([
+        'metric-Say/Do so far',
         'metric-Committed',
         'metric-Added',
         'metric-Descoped',
-        'metric-Say/Do so far',
         'metric-Unestimated',
       ])
     })

@@ -46,13 +46,16 @@ const SprintScopeGrid = ({
   const [category, setCategory] = useState(SprintScopeCategory.All)
 
   const items = scope?.items ?? []
-  const timeZone = scope?.timeZone ?? 'UTC'
   const sizingMethod = scope?.sizingMethod ?? SizingMethod.Count
   const countSized = sizingMethod === SizingMethod.Count
   const unit = sizingMethodLabel(sizingMethod)
+  // Column headers are narrow, so Story Points goes by its usual abbreviation.
+  const shortUnit = sizingMethod === SizingMethod.StoryPoints ? 'SP' : unit
 
+  // On the viewer's clock, as the sprint's details and the overview show recorded moments.
+  const viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const formatInstant = (instant: Date | undefined) =>
-    instant ? formatInstantInZone(instant, timeZone) : null
+    instant ? formatInstantInZone(instant, viewerZone) : null
 
   const columns: ColumnDef<SprintScopeItemDto, any>[] = [
     {
@@ -102,45 +105,47 @@ const SprintScopeGrid = ({
           {
             id: 'entryEstimate',
             accessorKey: 'entryEstimate',
-            header: `${unit} In`,
+            header: `Original ${shortUnit}`,
             size: 110,
             meta: {
-              headerTooltip: `${unit} when the item was committed or added`,
+              headerTooltip: `${unit} when the item came in: at the commitment point if committed, or when it was added`,
             },
           } satisfies ColumnDef<SprintScopeItemDto, any>,
           {
             id: 'outcomeEstimate',
             accessorKey: 'outcomeEstimate',
-            header: `${unit} Out`,
+            header: `Final ${shortUnit}`,
             size: 110,
             meta: {
-              headerTooltip: `${unit} when the item was last in the sprint`,
+              headerTooltip: `${unit} when the item was last in the sprint: now if it still is, or when it was completed, removed or the sprint ended`,
             },
           } satisfies ColumnDef<SprintScopeItemDto, any>,
         ]),
     // The instant is the value, so sorting and filtering compare moments; only
     // the cell shows it, on the team's clock.
     {
-      id: 'enteredAt',
-      accessorKey: 'enteredAt',
-      header: 'Added At',
+      id: 'addedAt',
+      accessorKey: 'addedAt',
+      header: 'Added to Sprint',
       size: 190,
       meta: {
         columnType: 'dateTime',
-        headerTooltip: `When an added item entered the sprint, in ${timeZone}`,
+        headerTooltip:
+          'When an added item was added to the sprint, on your clock',
       },
-      cell: ({ row }) => formatInstant(row.original.enteredAt),
+      cell: ({ row }) => formatInstant(row.original.addedAt),
     },
     {
-      id: 'leftAt',
-      accessorKey: 'leftAt',
-      header: 'Left At',
+      id: 'removedAt',
+      accessorKey: 'removedAt',
+      header: 'Removed from Sprint',
       size: 190,
       meta: {
         columnType: 'dateTime',
-        headerTooltip: `When the item last left the sprint, in ${timeZone}`,
+        headerTooltip:
+          'When the item was last removed from the sprint — moved elsewhere, not set to a Removed status — on your clock',
       },
-      cell: ({ row }) => formatInstant(row.original.leftAt),
+      cell: ({ row }) => formatInstant(row.original.removedAt),
     },
     {
       id: 'status',

@@ -197,6 +197,15 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
         <div style={METRIC_GRID}>
           {scopeFigures && (
             <>
+              {scopeFigures.sayDo !== null && (
+                <MetricCard
+                  title={isActive ? 'Say/Do so far' : 'Say/Do'}
+                  value={scopeFigures.sayDo * 100}
+                  precision={0}
+                  suffix="%"
+                  tooltip="Of the work in the sprint at its commitment point, the share completed by its end. Work added later does not count, and an item completed as Removed counts as completed."
+                />
+              )}
               <MetricCard
                 title="Committed"
                 value={scopeFigures.committed}
@@ -207,11 +216,16 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
                 value={scopeFigures.added}
                 tooltip={`The ${measure} that entered the sprint after its commitment point, as estimated when added.`}
               />
+              <MetricCard
+                title="Descoped"
+                value={scopeFigures.descoped}
+                tooltip={`Unfinished ${measure} taken out of the sprint before its last day, or on it for somewhere other than the team's next sprint.`}
+              />
               {scopeFigures.reestimated !== 0 && (
                 <MetricCard
                   title="Re-estimated"
                   value={`${scopeFigures.reestimated > 0 ? '+' : ''}${scopeFigures.reestimated.toLocaleString()}`}
-                  tooltip={`How much the sprint's ${measure} changed by being estimated or re-estimated after the work was committed or added: everything in scope now, less what was committed and added. The Backlog's Sprint Scope view shows which items, where their estimate in and out differ.`}
+                  tooltip={`How much the sprint's ${measure} changed by being estimated or re-estimated after the work was committed or added: everything in scope now, less what was committed and added. The Backlog's Sprint Scope view shows which items, where their Original and Final estimates differ.`}
                 />
               )}
               {(!isActive || scopeFigures.carriedOver > 0) && (
@@ -219,20 +233,6 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
                   title="Carried Over"
                   value={scopeFigures.carriedOver}
                   tooltip={`Unfinished ${measure} still in the sprint at its end, or moved to the team's next sprint on its last day.`}
-                />
-              )}
-              <MetricCard
-                title="Descoped"
-                value={scopeFigures.descoped}
-                tooltip={`Unfinished ${measure} taken out of the sprint before its last day, or on it for somewhere other than the team's next sprint.`}
-              />
-              {scopeFigures.sayDo !== null && (
-                <MetricCard
-                  title={isActive ? 'Say/Do so far' : 'Say/Do'}
-                  value={scopeFigures.sayDo * 100}
-                  precision={0}
-                  suffix="%"
-                  tooltip="Of the work in the sprint at its commitment point, the share completed by its end. Work added later does not count, and an item completed as Removed counts as completed."
                 />
               )}
             </>

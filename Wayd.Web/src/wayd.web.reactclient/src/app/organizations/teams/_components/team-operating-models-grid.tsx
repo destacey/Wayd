@@ -12,6 +12,8 @@ import {
 import { TeamOperatingModelDetailsDto } from '@/src/services/wayd-api'
 import { sizingMethodLabel } from '@/src/utils'
 import { formatWorkingDays } from '@/src/components/common/scheduling'
+import useAuth from '@/src/components/contexts/auth'
+import { useGetHolidayCalendarsQuery } from '@/src/store/features/organization/holiday-calendars-api'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
@@ -92,6 +94,14 @@ const TeamOperatingModelsGrid = ({
   } = useGetTeamOperatingModelsQuery(teamId)
   const [deleteOperatingModel] = useDeleteTeamOperatingModelMutation()
 
+  const { hasPermissionClaim } = useAuth()
+  const canViewCalendars = hasPermissionClaim(
+    'Permissions.HolidayCalendars.View',
+  )
+  const { data: calendars } = useGetHolidayCalendarsQuery(undefined, {
+    skip: !canViewCalendars,
+  })
+
   const refresh = () => {
     refetch()
   }
@@ -171,6 +181,16 @@ const TeamOperatingModelsGrid = ({
         meta: { filterType: 'set' },
       },
       {
+        id: 'holidayCalendar',
+        accessorFn: (row) =>
+          row.holidayCalendarId
+            ? (calendars?.find((c) => c.id === row.holidayCalendarId)?.name ??
+              'Custom')
+            : 'System default',
+        header: 'Holiday Calendar',
+        meta: { filterType: 'set' },
+      },
+      {
         id: 'isCurrent',
         accessorFn: (row) => (row.isCurrent ? 'Current' : 'Historical'),
         header: 'Status',
@@ -178,7 +198,7 @@ const TeamOperatingModelsGrid = ({
         cell: ({ row }) => <StatusCellRenderer data={row.original} />,
       },
     ]
-  }, [canUpdate, totalModelsCount])
+  }, [calendars, canUpdate, totalModelsCount])
 
   return (
     <>

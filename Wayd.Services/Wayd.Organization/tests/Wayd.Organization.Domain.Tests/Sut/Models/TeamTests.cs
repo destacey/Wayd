@@ -1091,7 +1091,7 @@ public class TeamTests
         var team = _teamFaker.WithOperatingModel(operatingModelFaker, teamActiveDate).Generate();
 
         // Act - Create second operating model
-        var setResult = team.SetOperatingModel(secondStartDate, methodology2, sizingMethod2, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var setResult = team.SetOperatingModel(secondStartDate, methodology2, sizingMethod2, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         setResult.IsSuccess.Should().BeTrue();
@@ -1127,7 +1127,7 @@ public class TeamTests
         var secondStartDate = team.ActiveDate.PlusMonths(-1); // Before first
 
         // Act - Try to create second operating model with earlier start date
-        var result = team.SetOperatingModel(secondStartDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result = team.SetOperatingModel(secondStartDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1156,8 +1156,8 @@ public class TeamTests
         var team = _teamFaker.WithOperatingModel(operatingModelFaker, date1).Generate();
 
         // Act - Create additional operating models over time
-        var result2 = team.SetOperatingModel(date2, methodology2, sizingMethod2, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
-        var result3 = team.SetOperatingModel(date3, methodology3, sizingMethod3, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result2 = team.SetOperatingModel(date2, methodology2, sizingMethod2, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
+        var result3 = team.SetOperatingModel(date3, methodology3, sizingMethod3, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result2.IsSuccess.Should().BeTrue();
@@ -1227,8 +1227,8 @@ public class TeamTests
         var date1 = new LocalDate(2023, 1, 1);
         var date2 = new LocalDate(2024, 1, 1);
 
-        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
-        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
+        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Set unique IDs for the models (simulating what EF Core would do)
         var model1Id = Guid.NewGuid();
@@ -1261,9 +1261,9 @@ public class TeamTests
         var date2 = new LocalDate(2023, 7, 1);
         var date3 = new LocalDate(2024, 1, 1);
 
-        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
-        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
-        var result3 = team.SetOperatingModel(date3, Methodology.Scrum, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
+        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
+        var result3 = team.SetOperatingModel(date3, Methodology.Scrum, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Set unique IDs for the models (simulating what EF Core would do)
         var model1Id = Guid.NewGuid();
@@ -1326,11 +1326,11 @@ public class TeamTests
         var team = _teamFaker.Generate();
         var date1 = new LocalDate(2023, 1, 1);
         var date2 = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
         team.ClearDomainEvents();
 
         // Act
-        team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "Europe/London", 3, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "Europe/London", 3, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamOperatingModelSetEvent>().Subject;
@@ -1347,11 +1347,11 @@ public class TeamTests
         // Arrange
         var team = _teamFaker.Generate();
         var date1 = new LocalDate(2023, 1, 1);
-        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
         team.ClearDomainEvents();
 
         // Act
-        var result = team.SetOperatingModel(date1, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result = team.SetOperatingModel(date1, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1365,13 +1365,13 @@ public class TeamTests
         var team = _teamFaker.Generate();
         var date1 = new LocalDate(2023, 1, 1);
         var date2 = new LocalDate(2024, 1, 1);
-        var first = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now).Value;
-        team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var first = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now).Value;
+        team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
         first.SetPrivate(m => m.Id, Guid.NewGuid());
         team.ClearDomainEvents();
 
         // Act
-        var result = team.CorrectOperatingModel(first.Id, Methodology.Scrum, SizingMethod.Count, "America/Denver", 2, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result = team.CorrectOperatingModel(first.Id, Methodology.Scrum, SizingMethod.Count, "America/Denver", 2, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1387,12 +1387,12 @@ public class TeamTests
     {
         // Arrange
         var team = _teamFaker.Generate();
-        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now).Value;
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now).Value;
         model.SetPrivate(m => m.Id, Guid.NewGuid());
         team.ClearDomainEvents();
 
         // Act
-        var result = team.CorrectOperatingModel(model.Id, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result = team.CorrectOperatingModel(model.Id, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1404,13 +1404,13 @@ public class TeamTests
     {
         // Arrange
         var team = _teamFaker.Generate();
-        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now).Value;
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now).Value;
         model.SetPrivate(m => m.Id, Guid.NewGuid());
         team.ClearDomainEvents();
         var sundayToThursday = WorkingWeek.Create([IsoDayOfWeek.Sunday, IsoDayOfWeek.Monday, IsoDayOfWeek.Tuesday, IsoDayOfWeek.Wednesday, IsoDayOfWeek.Thursday]).Value;
 
         // Act
-        var result = team.CorrectOperatingModel(model.Id, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, sundayToThursday, EventActor.System, _dateTimeProvider.Now);
+        var result = team.CorrectOperatingModel(model.Id, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, sundayToThursday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1425,13 +1425,13 @@ public class TeamTests
     {
         // Arrange
         var team = _teamFaker.Generate();
-        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now).Value;
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now).Value;
         model.SetPrivate(m => m.Id, Guid.NewGuid());
         team.ClearDomainEvents();
         var sameDaysInAnotherOrder = WorkingWeek.Create([IsoDayOfWeek.Friday, IsoDayOfWeek.Thursday, IsoDayOfWeek.Wednesday, IsoDayOfWeek.Tuesday, IsoDayOfWeek.Monday]).Value;
 
         // Act
-        var result = team.CorrectOperatingModel(model.Id, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, sameDaysInAnotherOrder, EventActor.System, _dateTimeProvider.Now);
+        var result = team.CorrectOperatingModel(model.Id, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, sameDaysInAnotherOrder, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1443,12 +1443,12 @@ public class TeamTests
     {
         // Arrange
         var team = _teamFaker.Generate();
-        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now).Value;
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now).Value;
         model.SetPrivate(m => m.Id, Guid.NewGuid());
         team.ClearDomainEvents();
 
         // Act
-        var result = team.CorrectOperatingModel(model.Id, Methodology.Kanban, SizingMethod.StoryPoints, "Not/AZone", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var result = team.CorrectOperatingModel(model.Id, Methodology.Kanban, SizingMethod.StoryPoints, "Not/AZone", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1463,8 +1463,8 @@ public class TeamTests
         var team = _teamFaker.Generate();
         var date1 = new LocalDate(2023, 1, 1);
         var date2 = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
-        var second = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "Europe/London", 3, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now).Value;
+        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
+        var second = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "Europe/London", 3, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now).Value;
         second.SetPrivate(m => m.Id, Guid.NewGuid());
         team.ClearDomainEvents();
 
@@ -1483,7 +1483,7 @@ public class TeamTests
     {
         // Arrange
         var team = _teamFaker.Generate();
-        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now).Value;
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now).Value;
         model.SetPrivate(m => m.Id, Guid.NewGuid());
         team.ClearDomainEvents();
 

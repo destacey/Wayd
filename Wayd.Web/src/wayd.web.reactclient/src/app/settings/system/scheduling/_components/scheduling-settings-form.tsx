@@ -13,6 +13,7 @@ import { useUpdateSchedulingSettingsMutation } from '@/src/store/features/admin/
 import {
   MAX_COMMITMENT_GRACE_DAYS,
   timeZoneLabel,
+  HolidayCalendarSelect,
   WorkingDaysSelect,
   workingDaysRule,
 } from '@/src/components/common/scheduling'
@@ -21,6 +22,7 @@ interface SchedulingSettingsFormValues {
   defaultTimeZone: string
   defaultCommitmentGraceDays: number
   defaultWorkingDays: IsoDayOfWeek[]
+  defaultHolidayCalendarId?: string
 }
 
 export interface SchedulingSettingsFormProps {
@@ -48,6 +50,7 @@ const SchedulingSettingsForm = ({
       defaultTimeZone: settings.defaultTimeZone,
       defaultCommitmentGraceDays: settings.defaultCommitmentGraceDays,
       defaultWorkingDays: settings.defaultWorkingDays,
+      defaultHolidayCalendarId: settings.defaultHolidayCalendarId,
     })
     setIsDirty(false)
   }, [settings, form])
@@ -58,6 +61,7 @@ const SchedulingSettingsForm = ({
         defaultTimeZone: values.defaultTimeZone,
         defaultCommitmentGraceDays: values.defaultCommitmentGraceDays,
         defaultWorkingDays: values.defaultWorkingDays,
+        defaultHolidayCalendarId: values.defaultHolidayCalendarId,
       })
       if (response.error) {
         throw response.error
@@ -129,6 +133,16 @@ const SchedulingSettingsForm = ({
         rules={[workingDaysRule]}
       >
         <WorkingDaysSelect />
+      </Form.Item>
+      <Form.Item
+        name="defaultHolidayCalendarId"
+        label="Default holiday calendar"
+        extra="The holidays of every team operating model that names no calendar of its own. Unlike the defaults above, changing it changes those teams' holidays, including in past sprints."
+      >
+        <HolidayCalendarSelect
+          emptyLabel="No holidays"
+          aria-label="Default holiday calendar"
+        />
       </Form.Item>
       {canUpdate && (
         <Form.Item>

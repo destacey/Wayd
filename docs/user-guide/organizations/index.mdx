@@ -106,6 +106,7 @@ Each team has an **Operating Model** that defines how it works. The operating mo
 - **Time Zone** — The IANA time zone the team's sprint days are counted in, such as `America/Chicago`
 - **Commitment Grace Period** — How many days after a sprint's planned start its commitment is taken when the team does not start the sprint itself (1 is the end of the first planned day)
 - **Working Days** — The days of the week the team works, Monday to Friday by default. A sprint's [ideal burn-down line](../work-management/sprints.mdx) drops only on working days and stays flat on the rest
+- **Holiday Calendar** — The [holiday calendar](../settings/index.mdx#holiday-calendars) whose holidays the team takes off, or none to use the default calendar from the scheduling settings. The ideal burn-down line stays flat on holidays too
 
 Operating models have an effective date range, creating a history. When a team changes how it works (e.g., moving from Kanban to Scrum, relocating to another time zone, or changing its working week), a new operating model is added and the previous one is automatically closed the day before the new one starts.
 
@@ -260,7 +261,7 @@ Listed under **Reports** at the bottom of the section rail, this shows the full 
 - Methodology (Scrum or Kanban)
 - Sizing Method (Story Points, Effort, Size or Count)
 - Time Zone and Grace Days
-- Working Days
+- Working Days and Holiday Calendar
 - Status (Current or Historical)
 
 Only the current operating model can be edited or deleted (and deletion is only possible if there are multiple models — a team must always have at least one).
@@ -342,11 +343,11 @@ To add a team to a Team of Teams:
 1. Navigate to the team's detail page
 2. From the page actions menu, choose **Operating Model > Set Operating Model**
 3. Set the **Start Date** — the previous model will automatically close the day before
-4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period** and **Working Days**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
+4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period**, **Working Days** and **Holiday Calendar**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
 
 To correct the current model without creating a new one:
 1. From the page actions menu, choose **Operating Model > Update Operating Model**
-2. Change the **Methodology**, **Sizing Method**, **Time Zone**, **Commitment Grace Period** or **Working Days**
+2. Change the **Methodology**, **Sizing Method**, **Time Zone**, **Commitment Grace Period**, **Working Days** or **Holiday Calendar**
 
 A correction applies to the model's whole period, including past sprints. If the team actually moved to another time zone or changed its working week, set a new operating model from the date of the change instead.
 

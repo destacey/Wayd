@@ -49,7 +49,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create an operating model
         var startDate = new LocalDate(2024, 1, 1);
-        var createResult = team.SetOperatingModel(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var createResult = team.SetOperatingModel(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
         createResult.IsSuccess.Should().BeTrue();
         var operatingModelId = createResult.Value.Id;
 
@@ -92,7 +92,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
         _dbContext.AddTeam(team);
 
         // Create an operating model so the team has at least one
-        team.SetOperatingModel(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         var nonExistentOperatingModelId = Guid.NewGuid();
         var command = new DeleteTeamOperatingModelCommand(team.Id, nonExistentOperatingModelId);
@@ -117,7 +117,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create first operating model
         var firstStartDate = new LocalDate(2023, 1, 1);
-        var firstResult = team.SetOperatingModel(firstStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var firstResult = team.SetOperatingModel(firstStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
         firstResult.IsSuccess.Should().BeTrue();
         var firstModel = firstResult.Value;
         var firstModelId = Guid.NewGuid();
@@ -125,7 +125,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create second (current) operating model
         var secondStartDate = new LocalDate(2024, 1, 1);
-        var secondResult = team.SetOperatingModel(secondStartDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
+        var secondResult = team.SetOperatingModel(secondStartDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
         secondResult.IsSuccess.Should().BeTrue();
         var secondModel = secondResult.Value;
         var secondModelId = Guid.NewGuid();

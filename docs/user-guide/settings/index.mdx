@@ -201,12 +201,29 @@ Navigate to **Settings > System > Scheduling** to set:
 - **Default time zone** — the time zone new team operating models start with (default UTC). Only IANA time zones are accepted, such as `America/Chicago` or `Europe/London`; the list shows each zone's current offset from UTC.
 - **Default commitment grace period (days)** — how long after a sprint's planned start its commitment is taken when the team does not start the sprint itself (default 1, the end of the first planned day; 0 to 14).
 - **Default working days** — the days of the week new team operating models work (default Monday to Friday; at least one).
+- **Default holiday calendar** — the [holiday calendar](#holiday-calendars) of every team operating model that names none of its own (default none: no holidays).
 
-These are defaults only. They pre-fill new team operating models, and changing them does not change any existing team.
+The time zone, grace period and working days are defaults only. They pre-fill new team operating models, and changing them does not change any existing team. The default holiday calendar is different: it is read, not copied, so changing it changes the holidays of every team that uses the default, including in past sprints.
 
 Every change is recorded in the page's **Activity** section, with who made it and the values before and after.
 
 ## Organization Settings
+
+### Holiday Calendars
+
+A **Holiday Calendar** is a named set of days off, such as a country's public holidays. A team's [operating model](../organizations/index.mdx#operating-model) points at one, or uses the default calendar from the [scheduling settings](#scheduling). A sprint's ideal burn-down line stays flat on the team's holidays.
+
+A calendar holds only the days a **whole team** is off. A calendar is not tied to a team, so teams that share their days off share a calendar. A team spread across regions uses a calendar of the holidays its members share: a regional holiday that takes only some members out does not stop the team, which still burns, just more slowly.
+
+Managing calendars:
+1. Navigate to **Settings > Organization > Holiday Calendars**
+2. Use **Create Holiday Calendar** and give it a unique **Name** and, optionally, a **Description**
+3. Open the calendar and use **Add Holiday** to add a **Date** and **Name** for each day off. A calendar holds at most one holiday per date. Edit or remove a holiday from its row menu
+4. **Delete** a calendar, with its holidays, from the row menu or the calendar's actions. A calendar a team operating model uses, or the default calendar, cannot be deleted
+
+The calendar's **Activity** section records its creation, changes to its name or description, and every holiday added, changed or removed, with who made the change.
+
+Viewing calendars requires `Permissions.HolidayCalendars.View`; creating, updating (including adding, changing and removing holidays) and deleting them require `Permissions.HolidayCalendars.Create`, `.Update` and `.Delete`. Choosing a team's calendar on its operating model also needs `Permissions.HolidayCalendars.View`, to list the calendars.
 
 ### Team Member Roles
 

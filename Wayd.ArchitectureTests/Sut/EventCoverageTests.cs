@@ -78,6 +78,7 @@ public partial class EventCoverageTests
         typeof(WorkflowAssignment),
 
         // Organization
+        typeof(HolidayCalendar),
         typeof(Team),
         typeof(TeamOfTeams),
 

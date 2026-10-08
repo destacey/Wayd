@@ -16,8 +16,13 @@ public sealed record UpdateSchedulingSettingsRequest
     /// <summary>The days of the week new team operating models work. At least one.</summary>
     public List<IsoDayOfWeek> DefaultWorkingDays { get; set; } = [];
 
+    /// <summary>
+    /// The holiday calendar of every team operating model that has none of its own, or null for none.
+    /// </summary>
+    public Guid? DefaultHolidayCalendarId { get; set; }
+
     public UpdateSchedulingSettingsCommand ToUpdateSchedulingSettingsCommand() =>
-        new(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays);
+        new(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays, DefaultHolidayCalendarId);
 }
 
 public sealed class UpdateSchedulingSettingsRequestValidator : CustomValidator<UpdateSchedulingSettingsRequest>

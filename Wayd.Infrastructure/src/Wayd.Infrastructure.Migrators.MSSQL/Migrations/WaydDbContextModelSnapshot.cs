@@ -2011,6 +2011,88 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.UseTphMappingStrategy();
                 });
 
+            modelBuilder.Entity("Wayd.Organization.Domain.Models.Holiday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("HolidayCalendarId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HolidayCalendarId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("Holidays", "Organization");
+                });
+
+            modelBuilder.Entity("Wayd.Organization.Domain.Models.HolidayCalendar", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("HolidayCalendars", "Organization");
+                });
+
             modelBuilder.Entity("Wayd.Organization.Domain.Models.TeamMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2249,6 +2331,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<int>("CommitmentGraceDays")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("HolidayCalendarId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Methodology")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2301,6 +2386,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         });
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HolidayCalendarId");
 
                     b.HasIndex("TeamId")
                         .HasDatabaseName("IX_TeamOperatingModels_TeamId_Current")
@@ -7759,6 +7846,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Wayd.Organization.Domain.Models.Holiday", b =>
+                {
+                    b.HasOne("Wayd.Organization.Domain.Models.HolidayCalendar", null)
+                        .WithMany("Holidays")
+                        .HasForeignKey("HolidayCalendarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Organization.Domain.Models.TeamMember", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
@@ -7816,6 +7912,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Organization.Domain.Models.TeamOperatingModel", b =>
                 {
+                    b.HasOne("Wayd.Organization.Domain.Models.HolidayCalendar", null)
+                        .WithMany()
+                        .HasForeignKey("HolidayCalendarId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Wayd.Organization.Domain.Models.Team", null)
                         .WithMany("OperatingModels")
                         .HasForeignKey("TeamId")
@@ -9385,6 +9486,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("ParentMemberships");
+                });
+
+            modelBuilder.Entity("Wayd.Organization.Domain.Models.HolidayCalendar", b =>
+                {
+                    b.Navigation("Holidays");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningInterval", b =>

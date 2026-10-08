@@ -31,8 +31,8 @@ public class GetTeamScheduleHistoryQueryHandlerTests : IDisposable
     {
         // Arrange
         var team = _teamFaker.Generate();
-        team.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1, WorkingWeek.MondayToFriday, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.Effort, "America/Chicago", 2, WorkingWeek.MondayToFriday, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.Effort, "America/Chicago", 2, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
         _dbContext.AddTeam(team);
 
         // Act

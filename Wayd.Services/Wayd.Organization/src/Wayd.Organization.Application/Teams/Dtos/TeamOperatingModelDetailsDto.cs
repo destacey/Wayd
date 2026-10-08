@@ -64,6 +64,11 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
     public IReadOnlyList<IsoDayOfWeek> WorkingDays { get; set; } = [];
 
     /// <summary>
+    /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
+    /// </summary>
+    public Guid? HolidayCalendarId { get; set; }
+
+    /// <summary>
     /// Indicates whether this operating model is current (has no end date).
     /// </summary>
     [Required]

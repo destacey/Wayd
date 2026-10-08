@@ -131,6 +131,49 @@ public class TeamMemberRoleConfig : IEntityTypeConfiguration<TeamMemberRole>
     }
 }
 
+public class HolidayCalendarConfig : IEntityTypeConfiguration<HolidayCalendar>
+{
+    public void Configure(EntityTypeBuilder<HolidayCalendar> builder)
+    {
+        builder.ToTable("HolidayCalendars", SchemaNames.Organization);
+
+        builder.HasKey(c => c.Id);
+        builder.HasAlternateKey(c => c.Key);
+
+        builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.Property(c => c.Key).ValueGeneratedOnAdd();
+
+        builder.Property(c => c.Name).IsRequired().HasMaxLength(HolidayCalendar.NameMaxLength);
+        builder.HasIndex(c => c.Name).IsUnique();
+
+        builder.Property(c => c.Description).HasMaxLength(HolidayCalendar.DescriptionMaxLength);
+
+        builder.HasMany(c => c.Holidays)
+            .WithOne()
+            .HasForeignKey("HolidayCalendarId")
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class HolidayConfig : IEntityTypeConfiguration<Holiday>
+{
+    public void Configure(EntityTypeBuilder<Holiday> builder)
+    {
+        builder.ToTable("Holidays", SchemaNames.Organization);
+
+        builder.HasKey(h => h.Id);
+        builder.Property(h => h.Id).ValueGeneratedNever();
+
+        builder.Property<Guid>("HolidayCalendarId");
+
+        // One holiday per date in a calendar, and the reads are by calendar and date range.
+        builder.HasIndex("HolidayCalendarId", nameof(Holiday.Date)).IsUnique();
+
+        builder.Property(h => h.Date).IsRequired();
+        builder.Property(h => h.Name).IsRequired().HasMaxLength(HolidayCalendar.HolidayNameMaxLength);
+    }
+}
+
 public class TeamMemberConfig : IEntityTypeConfiguration<TeamMember>
 {
     public void Configure(EntityTypeBuilder<TeamMember> builder)
@@ -226,6 +269,12 @@ public class TeamOperatingModelConfig : IEntityTypeConfiguration<TeamOperatingMo
             options.Property(d => d.Start).HasColumnName("Start").IsRequired();
             options.Property(d => d.End).HasColumnName("End");
         });
+
+        // Restrict: a calendar in use cannot be deleted, so no model loses its holidays silently.
+        builder.HasOne<HolidayCalendar>()
+            .WithMany()
+            .HasForeignKey(m => m.HolidayCalendarId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Relationships using shadow property FK (no navigation property on TeamOperatingModel)
         builder.HasOne<Team>()

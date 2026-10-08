@@ -12,12 +12,17 @@ namespace Wayd.Common.Domain.Events.Organization;
 /// The days of the week the team works, Monday first. Null on payloads recorded before version 1.1, when every
 /// operating model worked Monday to Friday.
 /// </param>
+/// <param name="HolidayCalendarId">
+/// The holiday calendar the team takes off, or null for the system default calendar. Null on payloads recorded
+/// before version 1.2, when there were no holiday calendars.
+/// </param>
 public sealed record TeamOperatingModelSettings(
     Methodology Methodology,
     SizingMethod SizingMethod,
     string TimeZone,
     int CommitmentGraceDays,
-    IReadOnlyList<IsoDayOfWeek>? WorkingDays = null)
+    IReadOnlyList<IsoDayOfWeek>? WorkingDays = null,
+    Guid? HolidayCalendarId = null)
 {
     /// <summary>Compares the working days by value, so a correction that changes nothing raises nothing.</summary>
     public bool Equals(TeamOperatingModelSettings? other) =>
@@ -26,7 +31,8 @@ public sealed record TeamOperatingModelSettings(
         && SizingMethod == other.SizingMethod
         && TimeZone == other.TimeZone
         && CommitmentGraceDays == other.CommitmentGraceDays
+        && HolidayCalendarId == other.HolidayCalendarId
         && (WorkingDays is null ? other.WorkingDays is null : other.WorkingDays is not null && WorkingDays.SequenceEqual(other.WorkingDays));
 
-    public override int GetHashCode() => HashCode.Combine(Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays?.Count);
+    public override int GetHashCode() => HashCode.Combine(Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays?.Count, HolidayCalendarId);
 }

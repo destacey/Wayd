@@ -126,8 +126,8 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
     {
         // Arrange
         var team = NewTeam();
-        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(new LocalDate(2026, 8, 1), Methodology.Kanban, SizingMethod.Size, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(new LocalDate(2026, 8, 1), Methodology.Kanban, SizingMethod.Size, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamStructureQuery(team.Id, From, To), TestContext.Current.CancellationToken);
@@ -146,8 +146,8 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
     {
         // Arrange
         var team = NewTeam();
-        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(From, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(From, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamStructureQuery(team.Id, From, To), TestContext.Current.CancellationToken);

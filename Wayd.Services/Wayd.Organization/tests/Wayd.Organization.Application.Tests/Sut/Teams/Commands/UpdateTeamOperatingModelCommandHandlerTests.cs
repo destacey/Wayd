@@ -61,7 +61,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.Count,
             "America/Chicago",
             2,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -95,7 +96,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.StoryPoints,
             "UTC",
             1,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -127,7 +129,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.Count,
             "UTC",
             1,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -159,7 +162,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.StoryPoints,
             "UTC",
             1,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -185,7 +189,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.Count,
             "UTC",
             1,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -217,7 +222,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.Count,
             "UTC",
             1,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -258,7 +264,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.Count,
             "UTC",
             1,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -297,7 +304,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             SizingMethod.Count,
             "UTC",
             1,
-            WorkingWeek.MondayToFriday.Days);
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);

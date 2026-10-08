@@ -34,7 +34,7 @@ public sealed class SchedulingSettingsDispatchTests(WaydSqlServerApiFactory fact
         Assert.Equal(1, defaults.DefaultCommitmentGraceDays);
 
         // Act — a change
-        var saved = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days), ct);
+        var saved = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days, null), ct);
         var afterSave = await dispatcher.Send(new GetSchedulingSettingsQuery(), ct);
         var activities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(), ct);
 
@@ -52,8 +52,8 @@ public sealed class SchedulingSettingsDispatchTests(WaydSqlServerApiFactory fact
         Assert.Equal(2, payload.RootElement.GetProperty("current").GetProperty("defaultCommitmentGraceDays").GetInt32());
 
         // Act — saving the same values, then an id the tz database does not know
-        var unchanged = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days), ct);
-        var invalid = await dispatcher.Send(new UpdateSchedulingSettingsCommand("Mars/Olympus_Mons", 2, WorkingWeek.MondayToFriday.Days), ct);
+        var unchanged = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days, null), ct);
+        var invalid = await dispatcher.Send(new UpdateSchedulingSettingsCommand("Mars/Olympus_Mons", 2, WorkingWeek.MondayToFriday.Days, null), ct);
         var afterInvalid = await dispatcher.Send(new GetSchedulingSettingsQuery(), ct);
         var finalActivities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(), ct);
 

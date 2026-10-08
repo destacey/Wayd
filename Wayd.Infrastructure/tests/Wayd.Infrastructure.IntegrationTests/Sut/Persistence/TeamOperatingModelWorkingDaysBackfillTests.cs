@@ -40,7 +40,7 @@ public sealed class TeamOperatingModelWorkingDaysBackfillTests(SqlServerDbContex
         var code = new TeamCode($"W{Random.Shared.Next(10_000, 99_999)}");
         var team = Team.Create($"Backfill {code.Value} {Guid.NewGuid():N}", code, null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints,
             "America/Chicago", 1, WorkingWeek.MondayToFriday, EventActor.System, Now);
-        team.SetOperatingModel(ChangedOn, Methodology.Kanban, SizingMethod.Count, "Asia/Jerusalem", 2, SundayToThursday, EventActor.System, Now)
+        team.SetOperatingModel(ChangedOn, Methodology.Kanban, SizingMethod.Count, "Asia/Jerusalem", 2, SundayToThursday, null, EventActor.System, Now)
             .IsSuccess.Should().BeTrue();
         context.Teams.Add(team);
         await context.SaveChangesAsync(ct);
@@ -99,11 +99,18 @@ public sealed class TeamOperatingModelWorkingDaysBackfillTests(SqlServerDbContex
             };
             var expected = ActivityLogEntryFactory.CreateActivityLogEntry(liveEvent, liveEvent, 0, null);
 
+            // The migration is frozen at the 1.1 shape it shipped with; later minor versions only add fields, so
+            // the live payload less those fields is what it must have written.
+            var expectedPayload = JsonNode.Parse(expected.Payload)!;
+            expectedPayload["eventVersion"] = "1.1";
+            expectedPayload["settings"]!.AsObject().Remove("holidayCalendarId");
+            expectedPayload["previous"]!.AsObject().Remove("holidayCalendarId");
+
             entry.EventId.Should().NotBe(model.Id);
+            entry.EventVersion.Should().Be("1.1");
             entry.Should().BeEquivalentTo(expected, options => options
                 .Including(e => e.EventType)
                 .Including(e => e.Category)
-                .Including(e => e.EventVersion)
                 .Including(e => e.DomainArea)
                 .Including(e => e.AggregateType)
                 .Including(e => e.AggregateId)
@@ -113,8 +120,8 @@ public sealed class TeamOperatingModelWorkingDaysBackfillTests(SqlServerDbContex
                 .Including(e => e.Ordinal)
                 .Including(e => e.CorrelationId)
                 .Including(e => e.Summary));
-            JsonNode.DeepEquals(JsonNode.Parse(entry.Payload), JsonNode.Parse(expected.Payload))
-                .Should().BeTrue($"the backfilled payload {entry.Payload} should match the serialized event {expected.Payload}");
+            JsonNode.DeepEquals(JsonNode.Parse(entry.Payload), expectedPayload)
+                .Should().BeTrue($"the backfilled payload {entry.Payload} should match the serialized event {expectedPayload.ToJsonString()}");
         }
     }
 

@@ -93,6 +93,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<TeamOperatingModel> TeamOperatingModels => Set<TeamOperatingModel>();
     public DbSet<TeamMemberRole> TeamMemberRoles => Set<TeamMemberRole>();
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
+    public DbSet<HolidayCalendar> HolidayCalendars => Set<HolidayCalendar>();
 
     #endregion IOrganization
 

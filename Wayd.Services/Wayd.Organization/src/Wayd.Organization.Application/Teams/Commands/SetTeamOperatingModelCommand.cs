@@ -12,7 +12,8 @@ public sealed record SetTeamOperatingModelCommand(
     SizingMethod SizingMethod,
     string TimeZone,
     int CommitmentGraceDays,
-    IReadOnlyList<IsoDayOfWeek> WorkingDays) : ICommand<Guid>;
+    IReadOnlyList<IsoDayOfWeek> WorkingDays,
+    Guid? HolidayCalendarId) : ICommand<Guid>;
 
 public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetTeamOperatingModelCommand>
 {
@@ -74,7 +75,11 @@ public sealed class SetTeamOperatingModelCommandHandler(
             if (workingWeek.IsFailure)
                 return Result.Failure<Guid>(workingWeek.Error);
 
-            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            if (request.HolidayCalendarId is { } calendarId
+                && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
+                return Result.Failure<Guid>($"Holiday calendar {calendarId} not found.");
+
+            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, request.HolidayCalendarId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",

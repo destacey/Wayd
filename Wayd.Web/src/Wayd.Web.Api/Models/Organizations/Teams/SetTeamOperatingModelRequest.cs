@@ -36,9 +36,14 @@ public sealed record SetTeamOperatingModelRequest
     /// </summary>
     public List<IsoDayOfWeek> WorkingDays { get; set; } = [];
 
+    /// <summary>
+    /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
+    /// </summary>
+    public Guid? HolidayCalendarId { get; set; }
+
     public SetTeamOperatingModelCommand ToSetTeamOperatingModelCommand(Guid teamId)
     {
-        return new SetTeamOperatingModelCommand(teamId, StartDate, Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays);
+        return new SetTeamOperatingModelCommand(teamId, StartDate, Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays, HolidayCalendarId);
     }
 }
 

@@ -1,12 +1,14 @@
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Common.Application.SystemSettings.Scheduling.Commands;
 
-public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek> DefaultWorkingDays) : ICommand;
+public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek> DefaultWorkingDays, Guid? DefaultHolidayCalendarId) : ICommand;
 
 public sealed class UpdateSchedulingSettingsCommandHandler(
     ISystemSettingsStore store,
+    IDispatcher dispatcher,
     ICurrentUser currentUser,
     ILogger<UpdateSchedulingSettingsCommandHandler> logger)
     : ICommandHandler<UpdateSchedulingSettingsCommand>
@@ -14,6 +16,7 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
     private const string AppRequestName = nameof(UpdateSchedulingSettingsCommand);
 
     private readonly ISystemSettingsStore _store = store;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateSchedulingSettingsCommandHandler> _logger = logger;
 
@@ -21,6 +24,11 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
     {
         try
         {
+            // The calendar lives in Organization, so the section's validator cannot check it.
+            if (request.DefaultHolidayCalendarId is { } calendarId
+                && !await _dispatcher.Send(new HolidayCalendarExistsQuery(calendarId), cancellationToken))
+                return Result.Failure($"Holiday calendar {calendarId} not found.");
+
             // The store validates the section, so the rules hold for every caller, not just this command.
             var values = new SchedulingSettings
             {
@@ -30,6 +38,7 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
                 DefaultWorkingDays = WorkingWeek.Create(request.DefaultWorkingDays) is { IsSuccess: true } week
                     ? week.Value.Days
                     : request.DefaultWorkingDays,
+                DefaultHolidayCalendarId = request.DefaultHolidayCalendarId,
             };
 
             return await _store.Save(

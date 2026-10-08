@@ -16,6 +16,26 @@ jest.mock('@/src/store/features/admin/system-settings-api', () => ({
   useUpdateSchedulingSettingsMutation: () => [mockUpdate, { isLoading: false }],
 }))
 
+jest.mock('@/src/components/contexts/auth', () => ({
+  __esModule: true,
+  default: () => ({ hasPermissionClaim: () => true }),
+}))
+
+jest.mock('@/src/store/features/organization/holiday-calendars-api', () => ({
+  useGetHolidayCalendarsQuery: () => ({
+    data: [
+      {
+        id: 'cal-us',
+        key: 1,
+        name: 'United States',
+        holidayCount: 11,
+        isDefault: false,
+      },
+    ],
+    isLoading: false,
+  }),
+}))
+
 jest.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))

@@ -6,6 +6,8 @@ export {
   formatWorkingDays,
 } from './working-days-select'
 export type { WorkingDaysSelectProps } from './working-days-select'
+export { default as HolidayCalendarSelect } from './holiday-calendar-select'
+export type { HolidayCalendarSelectProps } from './holiday-calendar-select'
 
 // The server's bound (SchedulingSettingsValidator.MaxCommitmentGraceDays), which rejects anything past it.
 export const MAX_COMMITMENT_GRACE_DAYS = 14

@@ -24,6 +24,7 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
     private readonly List<TeamOperatingModel> _teamOperatingModels = [];
     private readonly List<TeamMemberRole> _teamMemberRoles = [];
     private readonly List<TeamMember> _teamMembers = [];
+    private readonly List<HolidayCalendar> _holidayCalendars = [];
 
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -41,6 +42,7 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
     public DbSet<TeamOperatingModel> TeamOperatingModels => _teamOperatingModels.AsDbSet();
     public DbSet<TeamMemberRole> TeamMemberRoles => _teamMemberRoles.AsDbSet();
     public DbSet<TeamMember> TeamMembers => _teamMembers.AsDbSet();
+    public DbSet<HolidayCalendar> HolidayCalendars => _holidayCalendars.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
     public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();
@@ -115,6 +117,9 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
 
     // TeamOperatingModel
     public void AddTeamOperatingModel(TeamOperatingModel operatingModel) => _teamOperatingModels.Add(operatingModel);
+
+    // HolidayCalendar
+    public void AddHolidayCalendar(HolidayCalendar calendar) => _holidayCalendars.Add(calendar);
     public void AddTeamOperatingModels(IEnumerable<TeamOperatingModel> operatingModels) => _teamOperatingModels.AddRange(operatingModels);
 
     // TeamMemberRole

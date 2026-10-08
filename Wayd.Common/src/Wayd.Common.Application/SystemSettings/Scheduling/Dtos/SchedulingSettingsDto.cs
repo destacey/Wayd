@@ -7,4 +7,7 @@ public sealed record SchedulingSettingsDto
 
     /// <summary>The days of the week new team operating models work, Monday first.</summary>
     public required IReadOnlyList<IsoDayOfWeek> DefaultWorkingDays { get; init; }
+
+    /// <summary>The holiday calendar of every team operating model that has none of its own, or null for none.</summary>
+    public Guid? DefaultHolidayCalendarId { get; init; }
 }

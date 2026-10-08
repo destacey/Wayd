@@ -13,7 +13,7 @@ public sealed record TeamOperatingModelCorrectedEvent : DomainEvent<TeamOperatin
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
     public TeamOperatingModelCorrectedEvent(Guid id, int key, FlexibleDateRange period, TeamOperatingModelSettings settings, TeamOperatingModelSettings previous, EventActor actor, Instant timestamp)
-        : base(actor, "1.1")
+        : base(actor, "1.2")
     {
         Id = id;
         Key = key;

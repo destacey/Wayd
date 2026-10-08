@@ -23,6 +23,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   MAX_COMMITMENT_GRACE_DAYS,
   TimeZoneSelect,
+  HolidayCalendarSelect,
   WorkingDaysSelect,
   workingDaysRule,
 } from '@/src/components/common/scheduling'
@@ -43,6 +44,7 @@ interface EditTeamOperatingModelFormValues {
   timeZone: string
   commitmentGraceDays: number
   workingDays: IsoDayOfWeek[]
+  holidayCalendarId?: string
 }
 
 const methodologyOptions = [
@@ -59,6 +61,7 @@ const mapToRequestValues = (
     timeZone: values.timeZone,
     commitmentGraceDays: values.commitmentGraceDays,
     workingDays: values.workingDays,
+    holidayCalendarId: values.holidayCalendarId,
   } as UpdateTeamOperatingModelRequest
 }
 
@@ -121,6 +124,7 @@ const EditTeamOperatingModelForm = ({
         timeZone: operatingModel.timeZone,
         commitmentGraceDays: operatingModel.commitmentGraceDays,
         workingDays: operatingModel.workingDays,
+        holidayCalendarId: operatingModel.holidayCalendarId,
       })
     }
   }, [operatingModel, isLoading, isFetching, form])
@@ -201,6 +205,16 @@ const EditTeamOperatingModelForm = ({
             rules={[workingDaysRule]}
           >
             <WorkingDaysSelect />
+          </FormItem>
+          <FormItem
+            name="holidayCalendarId"
+            label="Holiday Calendar"
+            extra="The days the whole team is off. Leave empty to use the system default calendar, which follows the scheduling settings."
+          >
+            <HolidayCalendarSelect
+              emptyLabel="System default"
+              aria-label="Holiday Calendar"
+            />
           </FormItem>
         </Form>
       </Spin>

@@ -21,6 +21,7 @@ import {
 import {
   MAX_COMMITMENT_GRACE_DAYS,
   TimeZoneSelect,
+  HolidayCalendarSelect,
   WorkingDaysSelect,
   workingDaysRule,
 } from '@/src/components/common/scheduling'
@@ -44,6 +45,7 @@ interface SetTeamOperatingModelFormValues {
   timeZone: string
   commitmentGraceDays: number
   workingDays: IsoDayOfWeek[]
+  holidayCalendarId?: string
 }
 
 const methodologyOptions = [
@@ -61,6 +63,7 @@ const mapToRequestValues = (
     timeZone: values.timeZone,
     commitmentGraceDays: values.commitmentGraceDays,
     workingDays: values.workingDays,
+    holidayCalendarId: values.holidayCalendarId,
   } as SetTeamOperatingModelRequest
 }
 
@@ -227,6 +230,16 @@ const SetTeamOperatingModelForm = ({
           rules={[workingDaysRule]}
         >
           <WorkingDaysSelect />
+        </FormItem>
+        <FormItem
+          name="holidayCalendarId"
+          label="Holiday Calendar"
+          extra="The days the whole team is off. Leave empty to use the system default calendar, which follows the scheduling settings."
+        >
+          <HolidayCalendarSelect
+            emptyLabel="System default"
+            aria-label="Holiday Calendar"
+          />
         </FormItem>
       </Form>
     </Modal>

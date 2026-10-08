@@ -47,6 +47,8 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
       invalidatesTags: [
         { type: QueryTags.SystemSettings, id: 'scheduling' },
         { type: QueryTags.ActivityLog, id: SCHEDULING_SETTINGS_ACTIVITY_ID },
+        // Which calendar is the default shows on the calendars themselves.
+        QueryTags.HolidayCalendar,
       ],
     }),
     // Takes the shared activity-log argument so useActivityLog can page it; the id is fixed.

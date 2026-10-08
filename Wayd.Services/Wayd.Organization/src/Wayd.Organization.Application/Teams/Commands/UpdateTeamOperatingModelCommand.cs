@@ -12,7 +12,8 @@ public sealed record UpdateTeamOperatingModelCommand(
     SizingMethod SizingMethod,
     string TimeZone,
     int CommitmentGraceDays,
-    IReadOnlyList<IsoDayOfWeek> WorkingDays) : ICommand;
+    IReadOnlyList<IsoDayOfWeek> WorkingDays,
+    Guid? HolidayCalendarId) : ICommand;
 
 public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<UpdateTeamOperatingModelCommand>
 {
@@ -83,6 +84,10 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
             if (workingWeek.IsFailure)
                 return Result.Failure(workingWeek.Error);
 
+            if (request.HolidayCalendarId is { } calendarId
+                && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
+                return Result.Failure($"Holiday calendar {calendarId} not found.");
+
             var updateResult = team.CorrectOperatingModel(
                 request.OperatingModelId,
                 request.Methodology,
@@ -90,6 +95,7 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
                 request.TimeZone,
                 request.CommitmentGraceDays,
                 workingWeek.Value,
+                request.HolidayCalendarId,
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
             if (updateResult.IsFailure)

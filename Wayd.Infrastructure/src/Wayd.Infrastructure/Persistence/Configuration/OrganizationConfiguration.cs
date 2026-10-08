@@ -213,6 +213,13 @@ public class TeamOperatingModelConfig : IEntityTypeConfiguration<TeamOperatingMo
         builder.Property(m => m.CommitmentGraceDays)
             .IsRequired();
 
+        builder.Property(m => m.WorkingWeek)
+            .HasColumnName("WorkingDays")
+            .IsRequired()
+            .HasConversion(w => w.ToString(), s => WorkingWeek.Parse(s))
+            .HasColumnType("varchar")
+            .HasMaxLength(64);
+
         // Value Object
         builder.ComplexProperty(m => m.DateRange, options =>
         {

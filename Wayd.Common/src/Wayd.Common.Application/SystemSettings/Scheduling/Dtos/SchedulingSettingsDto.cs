@@ -4,4 +4,7 @@ public sealed record SchedulingSettingsDto
 {
     public required string DefaultTimeZone { get; init; }
     public int DefaultCommitmentGraceDays { get; init; }
+
+    /// <summary>The days of the week new team operating models work, Monday first.</summary>
+    public required IReadOnlyList<IsoDayOfWeek> DefaultWorkingDays { get; init; }
 }

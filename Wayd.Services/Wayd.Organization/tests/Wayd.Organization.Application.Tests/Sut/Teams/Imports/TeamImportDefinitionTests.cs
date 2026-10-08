@@ -150,6 +150,7 @@ public sealed class TeamImportDefinitionTests : IDisposable
             "Existing", new TeamCode("PAY"), null, new LocalDate(2024, 1, 1),
             Methodology.Kanban,
             SizingMethod.Count, "UTC", 1,
+            WorkingWeek.MondayToFriday,
             Wayd.Common.Domain.Events.EventActor.System, Instant.FromUtc(2024, 1, 1, 0, 0));
         _dbContext.AddTeam(existing);
 

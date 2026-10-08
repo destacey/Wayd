@@ -31,9 +31,14 @@ public sealed record SetTeamOperatingModelRequest
     /// </summary>
     public int CommitmentGraceDays { get; set; }
 
+    /// <summary>
+    /// The days of the week the team works. At least one.
+    /// </summary>
+    public List<IsoDayOfWeek> WorkingDays { get; set; } = [];
+
     public SetTeamOperatingModelCommand ToSetTeamOperatingModelCommand(Guid teamId)
     {
-        return new SetTeamOperatingModelCommand(teamId, StartDate, Methodology, SizingMethod, TimeZone, CommitmentGraceDays);
+        return new SetTeamOperatingModelCommand(teamId, StartDate, Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays);
     }
 }
 
@@ -58,5 +63,8 @@ public sealed class SetTeamOperatingModelRequestValidator : CustomValidator<SetT
 
         RuleFor(r => r.CommitmentGraceDays)
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
+
+        RuleFor(r => r.WorkingDays)
+            .IsWorkingWeek();
     }
 }

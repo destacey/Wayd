@@ -18,6 +18,7 @@ public sealed class GetSchedulingSettingsQueryHandler(ISettings<SchedulingSettin
         {
             DefaultTimeZone = values.DefaultTimeZone,
             DefaultCommitmentGraceDays = values.DefaultCommitmentGraceDays,
+            DefaultWorkingDays = values.DefaultWorkingDays,
         };
     }
 }

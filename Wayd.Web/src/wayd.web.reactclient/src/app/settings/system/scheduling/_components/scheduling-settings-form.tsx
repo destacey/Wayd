@@ -4,16 +4,23 @@ import { Button, Form, InputNumber, Select, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { toFormErrors } from '@/src/utils'
-import { SchedulingSettingsDto, TimeZoneDto } from '@/src/services/wayd-api'
+import {
+  IsoDayOfWeek,
+  SchedulingSettingsDto,
+  TimeZoneDto,
+} from '@/src/services/wayd-api'
 import { useUpdateSchedulingSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 import {
   MAX_COMMITMENT_GRACE_DAYS,
   timeZoneLabel,
+  WorkingDaysSelect,
+  workingDaysRule,
 } from '@/src/components/common/scheduling'
 
 interface SchedulingSettingsFormValues {
   defaultTimeZone: string
   defaultCommitmentGraceDays: number
+  defaultWorkingDays: IsoDayOfWeek[]
 }
 
 export interface SchedulingSettingsFormProps {
@@ -40,6 +47,7 @@ const SchedulingSettingsForm = ({
     form.setFieldsValue({
       defaultTimeZone: settings.defaultTimeZone,
       defaultCommitmentGraceDays: settings.defaultCommitmentGraceDays,
+      defaultWorkingDays: settings.defaultWorkingDays,
     })
     setIsDirty(false)
   }, [settings, form])
@@ -49,6 +57,7 @@ const SchedulingSettingsForm = ({
       const response = await updateSchedulingSettings({
         defaultTimeZone: values.defaultTimeZone,
         defaultCommitmentGraceDays: values.defaultCommitmentGraceDays,
+        defaultWorkingDays: values.defaultWorkingDays,
       })
       if (response.error) {
         throw response.error
@@ -112,6 +121,14 @@ const SchedulingSettingsForm = ({
           precision={0}
           aria-label="Default commitment grace period (days)"
         />
+      </Form.Item>
+      <Form.Item
+        name="defaultWorkingDays"
+        label="Default working days"
+        extra="Pre-fills the working days of new team operating models. Changing it does not change any team."
+        rules={[workingDaysRule]}
+      >
+        <WorkingDaysSelect />
       </Form.Item>
       {canUpdate && (
         <Form.Item>

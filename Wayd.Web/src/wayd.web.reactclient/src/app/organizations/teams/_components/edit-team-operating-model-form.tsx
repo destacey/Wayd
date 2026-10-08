@@ -3,6 +3,7 @@
 import { Form, InputNumber, Modal, Radio, Spin } from 'antd'
 import { useEffect } from 'react'
 import {
+  IsoDayOfWeek,
   Methodology,
   SizingMethod,
   UpdateTeamOperatingModelRequest,
@@ -22,6 +23,8 @@ import { useModalForm } from '@/src/hooks'
 import {
   MAX_COMMITMENT_GRACE_DAYS,
   TimeZoneSelect,
+  WorkingDaysSelect,
+  workingDaysRule,
 } from '@/src/components/common/scheduling'
 
 const { Item: FormItem } = Form
@@ -39,6 +42,7 @@ interface EditTeamOperatingModelFormValues {
   sizingMethod: SizingMethod
   timeZone: string
   commitmentGraceDays: number
+  workingDays: IsoDayOfWeek[]
 }
 
 const methodologyOptions = [
@@ -54,6 +58,7 @@ const mapToRequestValues = (
     sizingMethod: values.sizingMethod,
     timeZone: values.timeZone,
     commitmentGraceDays: values.commitmentGraceDays,
+    workingDays: values.workingDays,
   } as UpdateTeamOperatingModelRequest
 }
 
@@ -115,6 +120,7 @@ const EditTeamOperatingModelForm = ({
         sizingMethod: operatingModel.sizingMethod,
         timeZone: operatingModel.timeZone,
         commitmentGraceDays: operatingModel.commitmentGraceDays,
+        workingDays: operatingModel.workingDays,
       })
     }
   }, [operatingModel, isLoading, isFetching, form])
@@ -187,6 +193,14 @@ const EditTeamOperatingModelForm = ({
               precision={0}
               aria-label="Commitment Grace Period (days)"
             />
+          </FormItem>
+          <FormItem
+            name="workingDays"
+            label="Working Days"
+            extra="Corrects the working week for this model's whole period, including past sprints. If the team changed how it works, set a new operating model instead."
+            rules={[workingDaysRule]}
+          >
+            <WorkingDaysSelect />
           </FormItem>
         </Form>
       </Spin>

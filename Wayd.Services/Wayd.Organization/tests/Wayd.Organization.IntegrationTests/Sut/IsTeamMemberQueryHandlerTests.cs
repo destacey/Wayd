@@ -46,7 +46,7 @@ public sealed class IsTeamMemberQueryHandlerTests(SqlServerDbContextFixture fixt
             var outsider = await OrganizationSeeder.SeedEmployee(seedContext, "E-1004", "edsger@acme.example", cancellationToken);
 
             var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, "UTC", actor, now);
-            var team = Team.Create("Cards", new TeamCode("CARDS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, actor, now);
+            var team = Team.Create("Cards", new TeamCode("CARDS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, actor, now);
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddAsync(team, cancellationToken);
             team.AddTeamMembership(art, new MembershipDateRange(JoinDate, LeaveDate), actor, now).IsSuccess.Should().BeTrue();

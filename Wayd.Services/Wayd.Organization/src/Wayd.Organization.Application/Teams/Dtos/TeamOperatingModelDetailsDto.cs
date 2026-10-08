@@ -58,6 +58,12 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
     public int CommitmentGraceDays { get; set; }
 
     /// <summary>
+    /// The days of the week the team works, Monday first.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<IsoDayOfWeek> WorkingDays { get; set; } = [];
+
+    /// <summary>
     /// Indicates whether this operating model is current (has no end date).
     /// </summary>
     [Required]
@@ -69,6 +75,7 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
         config.NewConfig<TeamOperatingModel, TeamOperatingModelDetailsDto>()
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
-            .Map(dest => dest.IsCurrent, src => src.IsCurrent);
+            .Map(dest => dest.IsCurrent, src => src.IsCurrent)
+            .Map(dest => dest.WorkingDays, src => src.WorkingWeek.Days);
     }
 }

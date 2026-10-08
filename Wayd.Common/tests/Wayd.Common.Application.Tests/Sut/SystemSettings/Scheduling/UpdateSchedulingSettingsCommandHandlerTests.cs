@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Models.Organizations;
 using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,7 +34,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand(" Europe/London ", 3), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand(" Europe/London ", 3, WorkingWeek.MondayToFriday.Days), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -52,7 +53,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand("Mars/Olympus_Mons", 1), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand("Mars/Olympus_Mons", 1, WorkingWeek.MondayToFriday.Days), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

@@ -1,8 +1,9 @@
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Common.Application.SystemSettings.Scheduling.Commands;
 
-public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays) : ICommand;
+public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek> DefaultWorkingDays) : ICommand;
 
 public sealed class UpdateSchedulingSettingsCommandHandler(
     ISystemSettingsStore store,
@@ -25,6 +26,10 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
             {
                 DefaultTimeZone = request.DefaultTimeZone.Trim(),
                 DefaultCommitmentGraceDays = request.DefaultCommitmentGraceDays,
+                // Stored in week order without repeats; an invalid set is kept as given for the store to reject.
+                DefaultWorkingDays = WorkingWeek.Create(request.DefaultWorkingDays) is { IsSuccess: true } week
+                    ? week.Value.Days
+                    : request.DefaultWorkingDays,
             };
 
             return await _store.Save(

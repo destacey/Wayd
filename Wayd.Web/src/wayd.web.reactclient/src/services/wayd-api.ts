@@ -50600,13 +50600,27 @@ export interface TeamOperatingModelDetailsDto {
     sizingMethod: SizingMethod;
     timeZone: string;
     commitmentGraceDays: number;
+    workingDays: IsoDayOfWeek[];
     isCurrent: boolean;
+}
+
+/** Equates the days of the week with their numerical value according to ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which is 7 in the ISO numbering and 0 in System.DayOfWeek. */
+export enum IsoDayOfWeek {
+    None = "None",
+    Monday = "Monday",
+    Tuesday = "Tuesday",
+    Wednesday = "Wednesday",
+    Thursday = "Thursday",
+    Friday = "Friday",
+    Saturday = "Saturday",
+    Sunday = "Sunday",
 }
 
 export interface OperatingModelDefaultsDto {
     timeZone: string;
     timeZoneSource?: string | undefined;
     commitmentGraceDays: number;
+    workingDays: IsoDayOfWeek[];
 }
 
 export interface SetTeamOperatingModelRequest {
@@ -50620,6 +50634,8 @@ export interface SetTeamOperatingModelRequest {
     timeZone: string;
     /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
     commitmentGraceDays: number;
+    /** The days of the week the team works. At least one. */
+    workingDays: IsoDayOfWeek[];
 }
 
 export interface UpdateTeamOperatingModelRequest {
@@ -50631,6 +50647,8 @@ export interface UpdateTeamOperatingModelRequest {
     timeZone: string;
     /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
     commitmentGraceDays: number;
+    /** The days of the week the team works. At least one. */
+    workingDays: IsoDayOfWeek[];
 }
 
 export interface FunctionalOrganizationChartDto {
@@ -51783,6 +51801,7 @@ export interface ReorderWorkflowStatusesRequest {
 export interface SchedulingSettingsDto {
     defaultTimeZone: string;
     defaultCommitmentGraceDays: number;
+    defaultWorkingDays: IsoDayOfWeek[];
 }
 
 export interface UpdateSchedulingSettingsRequest {
@@ -51790,6 +51809,8 @@ export interface UpdateSchedulingSettingsRequest {
     defaultTimeZone: string;
     /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
     defaultCommitmentGraceDays: number;
+    /** The days of the week new team operating models work. At least one. */
+    defaultWorkingDays: IsoDayOfWeek[];
 }
 
 export interface WorkflowAssignmentDto {

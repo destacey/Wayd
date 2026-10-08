@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Application.SystemSettings.Scheduling;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Models.Organizations;
 using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
@@ -10,7 +11,8 @@ public sealed record SetTeamOperatingModelCommand(
     Methodology Methodology,
     SizingMethod SizingMethod,
     string TimeZone,
-    int CommitmentGraceDays) : ICommand<Guid>;
+    int CommitmentGraceDays,
+    IReadOnlyList<IsoDayOfWeek> WorkingDays) : ICommand<Guid>;
 
 public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetTeamOperatingModelCommand>
 {
@@ -36,6 +38,9 @@ public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetT
 
         RuleFor(c => c.CommitmentGraceDays)
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
+
+        RuleFor(c => c.WorkingDays)
+            .IsWorkingWeek();
     }
 }
 
@@ -65,7 +70,11 @@ public sealed class SetTeamOperatingModelCommandHandler(
                 return Result.Failure<Guid>($"Team with Id {request.TeamId} not found.");
             }
 
-            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            var workingWeek = WorkingWeek.Create(request.WorkingDays);
+            if (workingWeek.IsFailure)
+                return Result.Failure<Guid>(workingWeek.Error);
+
+            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",

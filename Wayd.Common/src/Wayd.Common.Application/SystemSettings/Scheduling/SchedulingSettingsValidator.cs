@@ -14,5 +14,8 @@ public sealed class SchedulingSettingsValidator : AbstractValidator<SchedulingSe
 
         RuleFor(s => s.DefaultCommitmentGraceDays)
             .InclusiveBetween(0, MaxCommitmentGraceDays);
+
+        RuleFor(s => s.DefaultWorkingDays)
+            .IsWorkingWeek();
     }
 }

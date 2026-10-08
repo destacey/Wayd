@@ -35,7 +35,7 @@ public sealed class RemoveTeamMembershipCommandHandlerTests
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
-        var team = Team.Create("Removal Team", NewCode(), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, SqlServerDbContextFixture.FixedNow);
+        var team = Team.Create("Removal Team", NewCode(), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, SqlServerDbContextFixture.FixedNow);
         var membershipId = await SeedMembership(team, cancellationToken);
 
         await using var context = _fixture.CreateContext();

@@ -12,7 +12,7 @@ public sealed record TeamOperatingModelRemovedEvent : DomainEvent<TeamOperatingM
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
     public TeamOperatingModelRemovedEvent(Guid id, int key, FlexibleDateRange period, TeamOperatingModelSettings settings, FlexibleDateRange reinstatedPeriod, EventActor actor, Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;

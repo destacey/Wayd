@@ -98223,8 +98223,48 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("commitmentGraceDays")]
         public int CommitmentGraceDays { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
+
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
         public bool IsCurrent { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Equates the days of the week with their numerical value according to
+    /// <br/>ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which
+    /// <br/>is 7 in the ISO numbering and 0 in System.DayOfWeek.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum IsoDayOfWeek
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"None")]
+        None = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Monday")]
+        Monday = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Tuesday")]
+        Tuesday = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Wednesday")]
+        Wednesday = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Thursday")]
+        Thursday = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Friday")]
+        Friday = 5,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Saturday")]
+        Saturday = 6,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Sunday")]
+        Sunday = 7,
 
     }
 
@@ -98241,6 +98281,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("commitmentGraceDays")]
         public int CommitmentGraceDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
 
     }
 
@@ -98286,6 +98331,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Range(0, 14)]
         public int CommitmentGraceDays { get; set; } = default!;
 
+        /// <summary>
+        /// The days of the week the team works. At least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -98321,6 +98374,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("commitmentGraceDays")]
         [System.ComponentModel.DataAnnotations.Range(0, 14)]
         public int CommitmentGraceDays { get; set; } = default!;
+
+        /// <summary>
+        /// The days of the week the team works. At least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
 
     }
 
@@ -101693,6 +101754,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("defaultCommitmentGraceDays")]
         public int DefaultCommitmentGraceDays { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("defaultWorkingDays")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IsoDayOfWeek> DefaultWorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -101712,6 +101778,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("defaultCommitmentGraceDays")]
         [System.ComponentModel.DataAnnotations.Range(0, 14)]
         public int DefaultCommitmentGraceDays { get; set; } = default!;
+
+        /// <summary>
+        /// The days of the week new team operating models work. At least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaultWorkingDays")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IsoDayOfWeek> DefaultWorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
 
     }
 

@@ -61124,6 +61124,7 @@
           "sizingMethod",
           "timeZone",
           "commitmentGraceDays",
+          "workingDays",
           "isCurrent"
         ],
         "properties": {
@@ -61164,17 +61165,48 @@
             "type": "integer",
             "format": "int32"
           },
+          "workingDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
+          },
           "isCurrent": {
             "type": "boolean"
           }
         }
+      },
+      "IsoDayOfWeek": {
+        "type": "string",
+        "description": "Equates the days of the week with their numerical value according to\nISO-8601. This corresponds with System.DayOfWeek except for Sunday, which\nis 7 in the ISO numbering and 0 in System.DayOfWeek.",
+        "x-enumNames": [
+          "None",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "enum": [
+          "None",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ]
       },
       "OperatingModelDefaultsDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "timeZone",
-          "commitmentGraceDays"
+          "commitmentGraceDays",
+          "workingDays"
         ],
         "properties": {
           "timeZone": {
@@ -61188,6 +61220,12 @@
           "commitmentGraceDays": {
             "type": "integer",
             "format": "int32"
+          },
+          "workingDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
           }
         }
       },
@@ -61199,7 +61237,8 @@
           "methodology",
           "sizingMethod",
           "timeZone",
-          "commitmentGraceDays"
+          "commitmentGraceDays",
+          "workingDays"
         ],
         "properties": {
           "startDate": {
@@ -61237,6 +61276,13 @@
             "format": "int32",
             "maximum": 14.0,
             "minimum": 0.0
+          },
+          "workingDays": {
+            "type": "array",
+            "description": "The days of the week the team works. At least one.",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
           }
         }
       },
@@ -61247,7 +61293,8 @@
           "methodology",
           "sizingMethod",
           "timeZone",
-          "commitmentGraceDays"
+          "commitmentGraceDays",
+          "workingDays"
         ],
         "properties": {
           "methodology": {
@@ -61278,6 +61325,13 @@
             "format": "int32",
             "maximum": 14.0,
             "minimum": 0.0
+          },
+          "workingDays": {
+            "type": "array",
+            "description": "The days of the week the team works. At least one.",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
           }
         }
       },
@@ -65450,6 +65504,7 @@
         "additionalProperties": false,
         "required": [
           "defaultTimeZone",
+          "defaultWorkingDays",
           "defaultCommitmentGraceDays"
         ],
         "properties": {
@@ -65459,6 +65514,12 @@
           "defaultCommitmentGraceDays": {
             "type": "integer",
             "format": "int32"
+          },
+          "defaultWorkingDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
           }
         }
       },
@@ -65467,7 +65528,8 @@
         "additionalProperties": false,
         "required": [
           "defaultTimeZone",
-          "defaultCommitmentGraceDays"
+          "defaultCommitmentGraceDays",
+          "defaultWorkingDays"
         ],
         "properties": {
           "defaultTimeZone": {
@@ -65482,6 +65544,13 @@
             "format": "int32",
             "maximum": 14.0,
             "minimum": 0.0
+          },
+          "defaultWorkingDays": {
+            "type": "array",
+            "description": "The days of the week new team operating models work. At least one.",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
           }
         }
       },

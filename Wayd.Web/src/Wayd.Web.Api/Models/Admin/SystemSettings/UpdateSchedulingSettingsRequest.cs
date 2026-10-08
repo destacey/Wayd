@@ -13,8 +13,11 @@ public sealed record UpdateSchedulingSettingsRequest
     /// </summary>
     public int DefaultCommitmentGraceDays { get; set; }
 
+    /// <summary>The days of the week new team operating models work. At least one.</summary>
+    public List<IsoDayOfWeek> DefaultWorkingDays { get; set; } = [];
+
     public UpdateSchedulingSettingsCommand ToUpdateSchedulingSettingsCommand() =>
-        new(DefaultTimeZone, DefaultCommitmentGraceDays);
+        new(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays);
 }
 
 public sealed class UpdateSchedulingSettingsRequestValidator : CustomValidator<UpdateSchedulingSettingsRequest>
@@ -28,5 +31,8 @@ public sealed class UpdateSchedulingSettingsRequestValidator : CustomValidator<U
 
         RuleFor(r => r.DefaultCommitmentGraceDays)
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
+
+        RuleFor(r => r.DefaultWorkingDays)
+            .IsWorkingWeek();
     }
 }

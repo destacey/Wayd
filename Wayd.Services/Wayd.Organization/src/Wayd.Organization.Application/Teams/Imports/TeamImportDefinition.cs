@@ -121,7 +121,7 @@ public sealed class TeamImportDefinition(
                 var plainTeam = Team.Create(
                     data.Name, data.Code, data.Description, data.ActiveDate,
                     Methodology.Kanban, SizingMethod.Count,
-                    scheduling.DefaultTimeZone, scheduling.DefaultCommitmentGraceDays,
+                    scheduling.DefaultTimeZone, scheduling.DefaultCommitmentGraceDays, scheduling.DefaultWorkingWeek(),
                     actor, timestamp);
 
                 await _organizationDbContext.Teams.AddAsync(plainTeam, cancellationToken);

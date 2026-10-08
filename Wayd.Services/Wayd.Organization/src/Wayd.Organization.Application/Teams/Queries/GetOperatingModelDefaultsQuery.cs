@@ -47,6 +47,7 @@ public sealed class GetOperatingModelDefaultsQueryHandler(
             TimeZone = parent?.TimeZone ?? scheduling.DefaultTimeZone,
             TimeZoneSource = parent?.Name,
             CommitmentGraceDays = scheduling.DefaultCommitmentGraceDays,
+            WorkingDays = scheduling.DefaultWorkingWeek().Days,
         };
     }
 }

@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Models.Organizations;
 using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -51,7 +52,8 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Scrum,
             SizingMethod.StoryPoints,
             "America/Chicago",
-            2);
+            2,
+            WorkingWeek.MondayToFriday.Days);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -83,7 +85,8 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -107,7 +110,8 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Scrum,
             SizingMethod.StoryPoints,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -128,7 +132,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2023, 1, 1);
-        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
         initialResult.IsSuccess.Should().BeTrue();
         var initialModel = initialResult.Value;
 
@@ -140,7 +144,8 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -172,7 +177,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
 
         // Try to create a model with earlier start date
         var earlierStartDate = new LocalDate(2023, 12, 31);
@@ -182,7 +187,8 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -202,7 +208,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, _dateTimeProvider.Now);
 
         // Try to create a model with same start date
         var command = new SetTeamOperatingModelCommand(
@@ -211,7 +217,8 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);

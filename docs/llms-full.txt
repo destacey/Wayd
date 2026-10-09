@@ -88,7 +88,7 @@ PI Iteration detail pages aggregate metrics from all mapped team sprints (cross-
 
 ### Sprint Mapping
 
-Each team's sprint maps to a PI iteration (one sprint per team per iteration). Removing a team from PI removes its sprint mappings.
+Each team's sprint maps to a PI iteration (one sprint per team per iteration, and at most one iteration per sprint across all PIs). Removing a team from PI removes its sprint mappings. The iteration's category decides a mapped sprint's sprint type unless the team set one (see Sprints).
 
 PI Iteration metrics: counts/points summed across mapped sprints, cycle time averaged (simple, not weighted).
 
@@ -175,6 +175,7 @@ Short time-boxed periods (typically 2 weeks) owned by teams. Properties:
 - Start (after the previous sprint started, up to the planned end; first sprint from planned start − 3 days; only the team's next sprint), Complete (after its commitment point), Reopen (while no later sprint has started). One open sprint per team: starting the next completes the open one at the same instant, on confirmation; a filtered unique index backs it
 - Lifecycle changes need Permissions.Iterations.Update plus membership of the team or its direct team of teams; Permissions.Iterations.Administer waives the membership. Unmapped sprints cannot be started or completed
 - Events: SprintStartedEvent, SprintCompletedEvent, SprintReopenedEvent (carries the cleared Completed)
+- Sprint type: Standard / NonStandard (`SprintType`), whether the sprint is comparable with the team's others; rollups across a team's sprints leave NonStandard out, its own metrics still show. Worked out when read, never stored, in precedence order (`SprintTypeSource`): Team (the team's override, `Iteration.SprintTypeOverride`, set and cleared under the lifecycle permissions, events SprintTypeSetEvent / SprintTypeClearedEvent), PlanningInterval (the mapped PI iteration's category via `IterationCategory.ToSprintType()`: Development → Standard, InnovationAndPlanning → NonStandard), Default (Standard). Work reads the category through the cross-module `GetSprintIterationCategoriesQuery`; a mapping of a soft-deleted PI is ignored
 
 ### Sprint Metrics
 

@@ -33,7 +33,10 @@ import {
   SprintTeamDaysOffForm,
   SprintTypeForm,
 } from '@/src/app/work/sprints/_components'
-import { IterationStateTag } from '@/src/components/common/planning'
+import {
+  IterationStateTag,
+  sprintTypeLabels,
+} from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
 import { useGetTeamSprintsQuery } from '@/src/store/features/organizations/team-api'
 import { SwapOutlined } from '@ant-design/icons'
@@ -316,8 +319,8 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               {switchSprints}
               <IterationStateTag state={sprint.state.id as IterationState} />
               {sprint.sprintType === SprintType.NonStandard && (
-                <WaydTooltip title="Its own metrics still show, but rollups across the team's sprints leave it out.">
-                  <Tag>Non-standard</Tag>
+                <WaydTooltip title="Not comparable with the team's other sprints. Its own metrics still show, but it is marked to be left out when comparing them.">
+                  <Tag>{sprintTypeLabels[sprint.sprintType]}</Tag>
                 </WaydTooltip>
               )}
             </Space>

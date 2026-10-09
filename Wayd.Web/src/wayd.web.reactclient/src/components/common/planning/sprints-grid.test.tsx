@@ -23,15 +23,6 @@ jest.mock('../wayd-grid', () => ({
   renderTeamLink: jest.fn(() => null),
 }))
 
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
-  useGetSprintTypesQuery: () => ({
-    data: [
-      { id: 1, code: 'Standard', name: 'Standard', order: 1 },
-      { id: 2, code: 'NonStandard', name: 'Non-standard', order: 2 },
-    ],
-  }),
-}))
-
 // Note: useTheme and dayjs are mocked globally in jest.setup.ts
 
 import SprintsGrid from './sprints-grid'

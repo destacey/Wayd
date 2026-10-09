@@ -77,8 +77,9 @@ const SprintTypeForm = ({
       <Flex vertical gap={12}>
         <Text type="secondary">
           A non-standard sprint, such as an innovation and planning sprint, a
-          hackathon or a holiday period, keeps its own metrics but is left out
-          of velocity and other rollups across the team&apos;s sprints.
+          hackathon or a holiday period, isn&apos;t comparable with the
+          team&apos;s other sprints. It keeps its own metrics, and is marked to
+          be left out when comparing the team&apos;s sprints.
         </Text>
         <Radio.Group
           value={choice}

@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Dtos;
+﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Domain.Models;
@@ -72,8 +72,8 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
 
     /// <summary>
-    /// Whether the sprint is comparable with the team's other sprints. Rollups across sprints leave a
-    /// non-standard sprint out. Worked out when read: see <see cref="SprintTypeSource"/>.
+    /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is marked to be left
+    /// out when comparing the team's sprints. Worked out when read: see <see cref="SprintTypeSource"/>.
     /// </summary>
     public SprintType SprintType { get; set; }
 

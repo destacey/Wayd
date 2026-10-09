@@ -4,7 +4,7 @@ import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { SprintDetailsDto, SprintTypeSource } from '@/src/services/wayd-api'
-import { useGetSprintTypesQuery } from '@/src/store/features/work-management/sprints-api'
+import { sprintTypeLabels } from '@/src/components/common/planning/sprint-type-labels'
 import { Divider, Flex, Typography } from 'antd'
 import {
   calendarDaysBetween,
@@ -45,11 +45,6 @@ const SprintFacts = ({ sprint }: SprintFactsProps) => {
   const activeDays = sprintActiveDays(sprint)
   const days = calendarDaysBetween(activeDays.start, activeDays.end) + 1
 
-  const { data: sprintTypes } = useGetSprintTypesQuery()
-  const sprintTypeName =
-    sprintTypes?.find((t) => t.code === sprint.sprintType)?.name ??
-    sprint.sprintType
-
   return (
     <>
       <Flex vertical gap={10}>
@@ -81,7 +76,7 @@ const SprintFacts = ({ sprint }: SprintFactsProps) => {
         )}
 
         <LabeledContent label="Type">
-          {sprintTypeName}
+          {sprintTypeLabels[sprint.sprintType]}
           {sprintTypeSourceNote[sprint.sprintTypeSource] && (
             <Text type="secondary">
               {' '}

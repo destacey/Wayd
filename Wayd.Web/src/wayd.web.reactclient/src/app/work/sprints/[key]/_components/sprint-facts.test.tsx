@@ -8,14 +8,6 @@ import {
 import dayjs from 'dayjs'
 
 jest.unmock('dayjs')
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
-  useGetSprintTypesQuery: () => ({
-    data: [
-      { id: 1, code: 'Standard', name: 'Standard', order: 1 },
-      { id: 2, code: 'NonStandard', name: 'Non-standard', order: 2 },
-    ],
-  }),
-}))
 jest.mock('@/src/components/common/links/links-card', () => {
   const LinksCard = () => <div>Links Card</div>
   return LinksCard

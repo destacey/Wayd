@@ -185,7 +185,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPut("{id}/type")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Set or clear a sprint's type.", "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of rollups across sprints. Requires membership of the sprint's team or its team of teams.")]
+    [OpenApiOperation("Set or clear a sprint's type.", "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is marked to be left out when comparing the team's sprints. Requires membership of the sprint's team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetSprintType(Guid id, [FromBody] SetSprintTypeRequest request, CancellationToken cancellationToken)

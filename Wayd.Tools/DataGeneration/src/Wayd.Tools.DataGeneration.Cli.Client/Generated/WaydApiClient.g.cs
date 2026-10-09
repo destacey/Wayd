@@ -54995,7 +54995,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set or clear a sprint's type.
         /// </summary>
         /// <remarks>
-        /// Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of rollups across sprints. Requires membership of the sprint's team or its team of teams.
+        /// Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is marked to be left out when comparing the team's sprints. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetSprintTypeAsync(System.Guid id, SetSprintTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -56139,7 +56139,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set or clear a sprint's type.
         /// </summary>
         /// <remarks>
-        /// Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of rollups across sprints. Requires membership of the sprint's team or its team of teams.
+        /// Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is marked to be left out when comparing the team's sprints. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task SetSprintTypeAsync(System.Guid id, SetSprintTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))

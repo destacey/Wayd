@@ -27475,7 +27475,7 @@
           "Sprints"
         ],
         "summary": "Set or clear a sprint's type.",
-        "description": "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of rollups across sprints. Requires membership of the sprint's team or its team of teams.",
+        "description": "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is marked to be left out when comparing the team's sprints. Requires membership of the sprint's team or its team of teams.",
         "operationId": "Sprints_SetSprintType",
         "parameters": [
           {

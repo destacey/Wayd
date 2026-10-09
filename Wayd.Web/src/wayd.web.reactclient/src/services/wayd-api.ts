@@ -30973,6 +30973,67 @@ export class SprintsClient {
     }
 
     /**
+     * Set a sprint's team days off.
+     */
+    setTeamDaysOff(id: string, request: SetSprintTeamDaysOffRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/team-days-off";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTeamDaysOff(_response);
+        });
+    }
+
+    protected processSetTeamDaysOff(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Correct sprints' actual dates.
      */
     correctActualDates(request: CorrectSprintActualDatesRequest, cancelToken?: CancelToken): Promise<void> {
@@ -50237,6 +50298,7 @@ export interface SprintDetailsDto {
     activeFrom?: Date | undefined;
     activeUntil?: Date | undefined;
     timeZone?: string | undefined;
+    teamDaysOff: string[];
     overlapsPreviousSprint: boolean;
     overlapsNextSprint: boolean;
     canManageSprint: boolean;
@@ -50360,6 +50422,13 @@ export interface CompleteSprintRequest {
     /** When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall
 in the sprint's completion window, which the sprint details report. */
     completedAt?: Date | undefined;
+}
+
+/** Replaces a sprint's team days off. */
+export interface SetSprintTeamDaysOffRequest {
+    /** The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list
+clears them. Holidays from the team's calendar and days outside its working week need not be listed. */
+    teamDaysOff: string[];
 }
 
 /** Corrects the actual start and completion of one or more of a team's sprints. */

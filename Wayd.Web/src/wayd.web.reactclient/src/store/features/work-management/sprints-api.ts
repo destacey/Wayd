@@ -236,6 +236,29 @@ export const sprintsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { sprints }) =>
         sprints.flatMap(({ id, key }) => sprintLifecycleTags(id, key)),
     }),
+
+    setSprintTeamDaysOff: builder.mutation<
+      void,
+      { id: string; key: number; teamDaysOff: string[] }
+    >({
+      queryFn: async ({ id, teamDaysOff }) => {
+        try {
+          const data = await getSprintsClient().setTeamDaysOff(id, {
+            teamDaysOff,
+          })
+          return { data }
+        } catch (error) {
+          logUnlessRefused(error)
+          return { error }
+        }
+      },
+      // The burn's ideal line follows the days off.
+      invalidatesTags: (result, error, { id, key }) => [
+        { type: QueryTags.Sprint, id: key },
+        QueryTags.SprintBurn,
+        { type: QueryTags.ActivityLog, id },
+      ],
+    }),
   }),
 })
 
@@ -280,4 +303,5 @@ export const {
   useCompleteSprintMutation,
   useReopenSprintMutation,
   useCorrectSprintActualDatesMutation,
+  useSetSprintTeamDaysOffMutation,
 } = sprintsApi

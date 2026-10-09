@@ -61,6 +61,7 @@ const sprint: SprintDetailsDto = {
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
+  teamDaysOff: [],
   canManageSprint: true,
   canStart: true,
   canComplete: false,

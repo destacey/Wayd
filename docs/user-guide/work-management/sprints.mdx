@@ -77,11 +77,17 @@ The same rules as Start and Complete keep the team's sprints in order:
 
 A correction moves the sprint's commitment point, which changes its metrics, so each one is recorded in the sprint's [Activity](../activity-log.mdx) with the dates before and after. Who can correct is the same as who can start and complete.
 
+### Team Days Off
+
+Some days the whole team is off for a reason no calendar knows: an offsite, a hackathon, a company event. **Team Days Off** in the sprint's **Actions** menu lists the sprint's planned days; tick the ones the team is off. Days outside the team's [working days](../organizations/index.mdx#operating-model) and holidays from its [holiday calendar](../settings/index.mdx#holiday-calendars) are already off and need not be ticked.
+
+The [burn-down's ideal line](#burn-up-and-burn-down) stays flat on team days off. They are listed in the sprint's details, and each change is recorded in its [Activity](../activity-log.mdx) with the days added and removed. Who can change them is the same as who can start and complete the sprint.
+
 ### Sprint Detail Page
 
 The sprint detail page shows:
-- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), and [Correct Actual Dates](#correcting-actual-dates)
-- **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), and the sprint's length in days
+- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), [Correct Actual Dates](#correcting-actual-dates) and [Team Days Off](#team-days-off)
+- **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), the sprint's length in days, and its team days off
 - **Team** link and timeline progress bar
 - **Sprint Metrics** (for Active/Completed sprints) — a progress row and a commitment row, with one switch between the team's estimate and counting work items. See [Sprint Metrics](#sprint-metrics) below
 - **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, its **Original** and **Final** estimate (**Original SP** and **Final SP** for a Story Points team: the estimate when it came in, and when it was last in the sprint), and when it was **Added to Sprint** or **Removed from Sprint**, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only

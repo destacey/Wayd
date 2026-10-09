@@ -123,6 +123,7 @@ describe('SprintMetrics', () => {
     },
     overlapsPreviousSprint: false,
     overlapsNextSprint: false,
+    teamDaysOff: [],
     canManageSprint: false,
     canStart: false,
     canComplete: false,

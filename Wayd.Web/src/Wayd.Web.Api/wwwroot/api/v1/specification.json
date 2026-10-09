@@ -27384,6 +27384,62 @@
         ]
       }
     },
+    "/api/work/sprints/{id}/team-days-off": {
+      "put": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Set a sprint's team days off.",
+        "description": "Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.",
+        "operationId": "Sprints_SetTeamDaysOff",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSprintTeamDaysOffRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/actual-dates": {
       "put": {
         "tags": [
@@ -57821,6 +57877,7 @@
           "key",
           "start",
           "end",
+          "teamDaysOff",
           "overlapsPreviousSprint",
           "overlapsNextSprint",
           "canManageSprint",
@@ -57879,6 +57936,13 @@
           "timeZone": {
             "type": "string",
             "nullable": true
+          },
+          "teamDaysOff": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
           },
           "overlapsPreviousSprint": {
             "type": "boolean"
@@ -58326,6 +58390,24 @@
             "description": "When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall\nin the sprint's completion window, which the sprint details report.",
             "format": "date-time",
             "nullable": true
+          }
+        }
+      },
+      "SetSprintTeamDaysOffRequest": {
+        "type": "object",
+        "description": "Replaces a sprint's team days off.",
+        "additionalProperties": false,
+        "required": [
+          "teamDaysOff"
+        ],
+        "properties": {
+          "teamDaysOff": {
+            "type": "array",
+            "description": "The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list\nclears them. Holidays from the team's calendar and days outside its working week need not be listed.",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
           }
         }
       },

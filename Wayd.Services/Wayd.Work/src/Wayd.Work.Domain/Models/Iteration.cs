@@ -21,6 +21,7 @@ namespace Wayd.Work.Domain.Models;
 public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIteration, IHasOptionalWorkTeam
 {
     private readonly List<KeyValueObjectMetadata> _externalMetadata = [];
+    private List<LocalDate> _teamDaysOff = [];
 
     private Iteration() { }
 
@@ -82,6 +83,16 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// When the team completed the sprint, if it did. Recorded in Wayd and never synced.
     /// </summary>
     public Instant? Completed { get; private set; }
+
+    /// <summary>
+    /// Days within the sprint the whole team is off, beyond its working week and holiday calendar — an offsite,
+    /// a hackathon. Recorded in Wayd and never synced. In date order.
+    /// </summary>
+    /// <remarks>
+    /// Each was within the planned dates when set; a later change to those dates from the source can leave one
+    /// outside them, and a reader ignores it there.
+    /// </remarks>
+    public IReadOnlyList<LocalDate> TeamDaysOff => _teamDaysOff.AsReadOnly();
 
     /// <summary>
     /// The ownership information for this iteration.
@@ -205,6 +216,32 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
             return Result.Failure("Only an open sprint is completed when it moves to another team.");
 
         RecordCompleted(now, actor, now);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces the sprint's team days off with <paramref name="days"/>, ignoring repeats. Each must fall within
+    /// the sprint's planned dates. Raises nothing when the set is unchanged.
+    /// </summary>
+    public Result SetTeamDaysOff(IEnumerable<LocalDate> days, EventActor actor, Instant now)
+    {
+        if (Type != IterationType.Sprint)
+            return Result.Failure("Only a sprint has team days off.");
+
+        var requested = days.Distinct().Order().ToList();
+        var outside = requested.Where(d => !DateRange.Includes(d)).ToList();
+        if (DateRange.Start is null || DateRange.End is null || outside.Count > 0)
+            return Result.Failure("Team days off must fall within the sprint's planned dates.");
+
+        var previous = _teamDaysOff;
+        var added = requested.Except(previous).ToList();
+        var removed = previous.Except(requested).ToList();
+        if (added.Count == 0 && removed.Count == 0)
+            return Result.Success();
+
+        _teamDaysOff = requested;
+        AddDomainEvent(new SprintTeamDaysOffChangedEvent(Id, Key, added, removed, [.. requested], actor, now));
 
         return Result.Success();
     }

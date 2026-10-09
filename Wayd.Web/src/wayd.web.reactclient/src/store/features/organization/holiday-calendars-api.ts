@@ -8,14 +8,18 @@ import {
   PagedResponseOfActivityLogDto,
   UpdateHolidayCalendarRequest,
 } from '@/src/services/wayd-api'
+import { isApiError } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
+// A 400 or 422 is the server refusing the change, which the form that sent it
+// shows. Logged as an error, Next's dev overlay reports it as a crash.
 const run = async <T>(call: () => Promise<T>) => {
   try {
     return { data: await call() }
   } catch (error) {
-    console.error('API Error:', error)
+    if (!isApiError(error) || (error.status !== 400 && error.status !== 422))
+      console.error('API Error:', error)
     return { error }
   }
 }

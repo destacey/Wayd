@@ -77,6 +77,24 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithoutWorkingDays_KeepsTheModelsWorkingWeek()
+    {
+        // Arrange
+        var sundayToThursday = WorkingWeek.Create([NodaTime.IsoDayOfWeek.Sunday, NodaTime.IsoDayOfWeek.Monday, NodaTime.IsoDayOfWeek.Tuesday, NodaTime.IsoDayOfWeek.Wednesday, NodaTime.IsoDayOfWeek.Thursday]).Value;
+        var team = _teamFaker.WithOperatingModel(_operatingModelFaker.WithWorkingWeek(sundayToThursday)).Generate();
+        var operatingModel = team.OperatingModels.First();
+        _dbContext.AddTeam(team);
+        var command = new UpdateTeamOperatingModelCommand(team.Id, operatingModel.Id, Methodology.Kanban, SizingMethod.Count, "UTC", 1, null, null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        operatingModel.WorkingWeek.Should().Be(sundayToThursday);
+    }
+
+    [Fact]
     public async Task Handle_ShouldUpdateMethodologyOnly_WhenSizingMethodUnchanged()
     {
         // Arrange

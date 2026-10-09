@@ -13,8 +13,8 @@ public sealed record UpdateSchedulingSettingsRequest
     /// </summary>
     public int DefaultCommitmentGraceDays { get; set; }
 
-    /// <summary>The days of the week new team operating models work. At least one.</summary>
-    public List<IsoDayOfWeek> DefaultWorkingDays { get; set; } = [];
+    /// <summary>The days of the week new team operating models work. At least one. Omit to keep the saved value.</summary>
+    public List<IsoDayOfWeek>? DefaultWorkingDays { get; set; }
 
     /// <summary>
     /// The holiday calendar of every team operating model that has none of its own, or null for none.
@@ -38,6 +38,7 @@ public sealed class UpdateSchedulingSettingsRequestValidator : CustomValidator<U
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
 
         RuleFor(r => r.DefaultWorkingDays)
-            .IsWorkingWeek();
+            .IsWorkingWeek()
+            .When(r => r.DefaultWorkingDays is not null);
     }
 }

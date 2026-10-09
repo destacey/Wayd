@@ -34,5 +34,6 @@ public sealed record TeamOperatingModelSettings(
         && HolidayCalendarId == other.HolidayCalendarId
         && (WorkingDays is null ? other.WorkingDays is null : other.WorkingDays is not null && WorkingDays.SequenceEqual(other.WorkingDays));
 
-    public override int GetHashCode() => HashCode.Combine(Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays?.Count, HolidayCalendarId);
+    public override int GetHashCode() =>
+        HashCode.Combine(Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays?.Aggregate(0, (hash, day) => HashCode.Combine(hash, day)), HolidayCalendarId);
 }

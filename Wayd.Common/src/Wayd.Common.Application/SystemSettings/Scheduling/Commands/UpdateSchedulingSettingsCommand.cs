@@ -4,10 +4,14 @@ using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Common.Application.SystemSettings.Scheduling.Commands;
 
-public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek> DefaultWorkingDays, Guid? DefaultHolidayCalendarId) : ICommand;
+/// <summary>
+/// Saves the scheduling settings. <paramref name="DefaultWorkingDays"/> left null keeps the saved value.
+/// </summary>
+public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek>? DefaultWorkingDays, Guid? DefaultHolidayCalendarId) : ICommand;
 
 public sealed class UpdateSchedulingSettingsCommandHandler(
     ISystemSettingsStore store,
+    ISettings<SchedulingSettings> settings,
     IDispatcher dispatcher,
     ICurrentUser currentUser,
     ILogger<UpdateSchedulingSettingsCommandHandler> logger)
@@ -16,6 +20,7 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
     private const string AppRequestName = nameof(UpdateSchedulingSettingsCommand);
 
     private readonly ISystemSettingsStore _store = store;
+    private readonly ISettings<SchedulingSettings> _settings = settings;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateSchedulingSettingsCommandHandler> _logger = logger;
@@ -29,15 +34,17 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
                 && !await _dispatcher.Send(new HolidayCalendarExistsQuery(calendarId), cancellationToken))
                 return Result.Failure($"Holiday calendar {calendarId} not found.");
 
+            var workingDays = request.DefaultWorkingDays ?? (await _settings.Get(cancellationToken)).DefaultWorkingDays;
+
             // The store validates the section, so the rules hold for every caller, not just this command.
             var values = new SchedulingSettings
             {
                 DefaultTimeZone = request.DefaultTimeZone.Trim(),
                 DefaultCommitmentGraceDays = request.DefaultCommitmentGraceDays,
                 // Stored in week order without repeats; an invalid set is kept as given for the store to reject.
-                DefaultWorkingDays = WorkingWeek.Create(request.DefaultWorkingDays) is { IsSuccess: true } week
+                DefaultWorkingDays = WorkingWeek.Create(workingDays) is { IsSuccess: true } week
                     ? week.Value.Days
-                    : request.DefaultWorkingDays,
+                    : workingDays,
                 DefaultHolidayCalendarId = request.DefaultHolidayCalendarId,
             };
 

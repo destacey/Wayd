@@ -99570,6 +99570,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarName")]
+        public string? HolidayCalendarName { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
         public bool IsCurrent { get; set; } = default!;
 
@@ -99674,12 +99677,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int CommitmentGraceDays { get; set; } = default!;
 
         /// <summary>
-        /// The days of the week the team works. At least one.
+        /// The days of the week the team works. At least one. Omit to carry over the current model's working week.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
+        public System.Collections.Generic.ICollection<IsoDayOfWeek>? WorkingDays { get; set; } = default!;
 
         /// <summary>
         /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
@@ -99724,12 +99726,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int CommitmentGraceDays { get; set; } = default!;
 
         /// <summary>
-        /// The days of the week the team works. At least one.
+        /// The days of the week the team works. At least one. Omit to keep the model's working week.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
+        public System.Collections.Generic.ICollection<IsoDayOfWeek>? WorkingDays { get; set; } = default!;
 
         /// <summary>
         /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
@@ -103137,12 +103138,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int DefaultCommitmentGraceDays { get; set; } = default!;
 
         /// <summary>
-        /// The days of the week new team operating models work. At least one.
+        /// The days of the week new team operating models work. At least one. Omit to keep the saved value.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultWorkingDays")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<IsoDayOfWeek> DefaultWorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
+        public System.Collections.Generic.ICollection<IsoDayOfWeek>? DefaultWorkingDays { get; set; } = default!;
 
         /// <summary>
         /// The holiday calendar of every team operating model that has none of its own, or null for none.

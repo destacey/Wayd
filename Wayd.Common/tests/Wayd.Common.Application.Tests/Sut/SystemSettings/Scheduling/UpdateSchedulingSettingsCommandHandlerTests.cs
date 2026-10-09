@@ -2,6 +2,7 @@ using Wayd.Common.Domain.Models.Organizations;
 using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
@@ -15,6 +16,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 {
     private readonly Mock<ISystemSettingsStore> _store = new();
     private readonly Mock<IDispatcher> _dispatcher = new();
+    private readonly Mock<ISettings<SchedulingSettings>> _settings = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Guid _employeeId = Guid.NewGuid();
 
@@ -22,10 +24,11 @@ public class UpdateSchedulingSettingsCommandHandlerTests
     {
         _currentUser.Setup(u => u.GetUserId()).Returns("admin-1");
         _currentUser.Setup(u => u.GetEmployeeId()).Returns(_employeeId);
+        _settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
     }
 
     private UpdateSchedulingSettingsCommandHandler CreateHandler() =>
-        new(_store.Object, _dispatcher.Object, _currentUser.Object, NullLogger<UpdateSchedulingSettingsCommandHandler>.Instance);
+        new(_store.Object, _settings.Object, _dispatcher.Object, _currentUser.Object, NullLogger<UpdateSchedulingSettingsCommandHandler>.Instance);
 
     [Fact]
     public async Task Handle_SavesTheTrimmedValuesAsTheCurrentUser()
@@ -60,6 +63,28 @@ public class UpdateSchedulingSettingsCommandHandlerTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not a valid IANA time zone");
+    }
+
+    [Fact]
+    public async Task Handle_WithoutWorkingDays_KeepsTheSavedOnes()
+    {
+        // Arrange
+        IsoDayOfWeek[] saved = [IsoDayOfWeek.Sunday, IsoDayOfWeek.Monday, IsoDayOfWeek.Tuesday, IsoDayOfWeek.Wednesday, IsoDayOfWeek.Thursday];
+        _settings.Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SchedulingSettings { DefaultWorkingDays = saved });
+        _store.Setup(s => s.Save(It.IsAny<SchedulingSettings>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new UpdateSchedulingSettingsCommand("UTC", 1, null, null), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _store.Verify(s => s.Save(
+            It.Is<SchedulingSettings>(v => v.DefaultWorkingDays.SequenceEqual(WorkingWeek.Create(saved).Value.Days)),
+            It.IsAny<EventActor>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

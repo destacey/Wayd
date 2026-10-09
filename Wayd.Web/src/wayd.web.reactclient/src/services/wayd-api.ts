@@ -51292,6 +51292,7 @@ export interface TeamOperatingModelDetailsDto {
     commitmentGraceDays: number;
     workingDays: IsoDayOfWeek[];
     holidayCalendarId?: string | undefined;
+    holidayCalendarName?: string | undefined;
     isCurrent: boolean;
 }
 
@@ -51325,8 +51326,8 @@ export interface SetTeamOperatingModelRequest {
     timeZone: string;
     /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
     commitmentGraceDays: number;
-    /** The days of the week the team works. At least one. */
-    workingDays: IsoDayOfWeek[];
+    /** The days of the week the team works. At least one. Omit to carry over the current model's working week. */
+    workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
 }
@@ -51340,8 +51341,8 @@ export interface UpdateTeamOperatingModelRequest {
     timeZone: string;
     /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
     commitmentGraceDays: number;
-    /** The days of the week the team works. At least one. */
-    workingDays: IsoDayOfWeek[];
+    /** The days of the week the team works. At least one. Omit to keep the model's working week. */
+    workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
 }
@@ -52505,8 +52506,8 @@ export interface UpdateSchedulingSettingsRequest {
     defaultTimeZone: string;
     /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
     defaultCommitmentGraceDays: number;
-    /** The days of the week new team operating models work. At least one. */
-    defaultWorkingDays: IsoDayOfWeek[];
+    /** The days of the week new team operating models work. At least one. Omit to keep the saved value. */
+    defaultWorkingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar of every team operating model that has none of its own, or null for none. */
     defaultHolidayCalendarId?: string | undefined;
 }

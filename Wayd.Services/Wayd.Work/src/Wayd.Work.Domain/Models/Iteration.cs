@@ -89,10 +89,10 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// a hackathon. Recorded in Wayd and never synced. In date order.
     /// </summary>
     /// <remarks>
-    /// Each was within the planned dates when set; a later change to those dates from the source can leave one
-    /// outside them, and a reader ignores it there.
+    /// Only the days within the current planned dates: each was within them when set, and one a later change
+    /// to the dates from the source leaves outside is no longer listed. It is dropped on the next change.
     /// </remarks>
-    public IReadOnlyList<LocalDate> TeamDaysOff => _teamDaysOff.AsReadOnly();
+    public IReadOnlyList<LocalDate> TeamDaysOff => [.. _teamDaysOff.Where(d => DateRange.Includes(d))];
 
     /// <summary>
     /// The ownership information for this iteration.

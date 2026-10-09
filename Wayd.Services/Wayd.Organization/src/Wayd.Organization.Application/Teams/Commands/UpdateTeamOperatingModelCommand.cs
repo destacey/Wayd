@@ -5,6 +5,10 @@ using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
+/// <summary>
+/// Corrects one of a team's operating models for its whole period. <paramref name="WorkingDays"/> left null keeps
+/// the model's working week.
+/// </summary>
 public sealed record UpdateTeamOperatingModelCommand(
     Guid TeamId,
     Guid OperatingModelId,
@@ -12,7 +16,7 @@ public sealed record UpdateTeamOperatingModelCommand(
     SizingMethod SizingMethod,
     string TimeZone,
     int CommitmentGraceDays,
-    IReadOnlyList<IsoDayOfWeek> WorkingDays,
+    IReadOnlyList<IsoDayOfWeek>? WorkingDays,
     Guid? HolidayCalendarId) : ICommand;
 
 public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<UpdateTeamOperatingModelCommand>
@@ -41,7 +45,8 @@ public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<U
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
 
         RuleFor(c => c.WorkingDays)
-            .IsWorkingWeek();
+            .IsWorkingWeek()
+            .When(c => c.WorkingDays is not null);
     }
 }
 
@@ -80,7 +85,9 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
                 return Result.Failure($"Operating model with Id {request.OperatingModelId} for Team {request.TeamId} not found.");
             }
 
-            var workingWeek = WorkingWeek.Create(request.WorkingDays);
+            var workingWeek = request.WorkingDays is null
+                ? Result.Success(team.OperatingModels.Single(m => m.Id == request.OperatingModelId).WorkingWeek)
+                : WorkingWeek.Create(request.WorkingDays);
             if (workingWeek.IsFailure)
                 return Result.Failure(workingWeek.Error);
 

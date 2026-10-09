@@ -236,6 +236,24 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithoutWorkingDays_CarriesOverTheCurrentWorkingWeek()
+    {
+        // Arrange
+        var sundayToThursday = WorkingWeek.Create([NodaTime.IsoDayOfWeek.Sunday, NodaTime.IsoDayOfWeek.Monday, NodaTime.IsoDayOfWeek.Tuesday, NodaTime.IsoDayOfWeek.Wednesday, NodaTime.IsoDayOfWeek.Thursday]).Value;
+        var team = _teamFaker.Generate();
+        team.SetOperatingModel(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, sundayToThursday, null, EventActor.System, _dateTimeProvider.Now);
+        _dbContext.AddTeam(team);
+        var command = new SetTeamOperatingModelCommand(team.Id, new LocalDate(2025, 1, 1), Methodology.Kanban, SizingMethod.Count, "UTC", 1, null, null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.OperatingModels.Single(m => m.IsCurrent).WorkingWeek.Should().Be(sundayToThursday);
+    }
+
+    [Fact]
     public async Task Handle_WithAnUnknownHolidayCalendar_FailsWithoutSaving()
     {
         // Arrange

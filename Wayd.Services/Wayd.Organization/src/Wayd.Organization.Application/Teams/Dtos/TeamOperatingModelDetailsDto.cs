@@ -69,6 +69,11 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
     public Guid? HolidayCalendarId { get; set; }
 
     /// <summary>
+    /// The name of <see cref="HolidayCalendarId"/>'s calendar, or null for the system default calendar.
+    /// </summary>
+    public string? HolidayCalendarName { get; set; }
+
+    /// <summary>
     /// Indicates whether this operating model is current (has no end date).
     /// </summary>
     [Required]
@@ -81,6 +86,7 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.IsCurrent, src => src.IsCurrent)
-            .Map(dest => dest.WorkingDays, src => src.WorkingWeek.Days);
+            .Map(dest => dest.WorkingDays, src => src.WorkingWeek.Days)
+            .Ignore(dest => dest.HolidayCalendarName!);
     }
 }

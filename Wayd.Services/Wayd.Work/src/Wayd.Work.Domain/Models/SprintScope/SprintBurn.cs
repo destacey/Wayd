@@ -11,7 +11,6 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 /// <param name="Day">The team's calendar day the reading closes, in the sprint's zone.</param>
 public sealed record SprintBurnPoint(Instant At, LocalDate Day, SprintScopeMeasure Scope, SprintScopeMeasure Completed);
 
-
 /// <summary>
 /// A sprint's burn-up and burn-down, worked out from work item history: a reading at the commitment point, at
 /// the end of each of the sprint's days in the team's zone, and at the effective end — or now, for a sprint

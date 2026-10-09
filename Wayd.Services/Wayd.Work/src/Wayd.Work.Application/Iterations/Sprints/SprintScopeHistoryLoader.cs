@@ -91,7 +91,7 @@ public static class SprintScopeHistoryLoader
 
     /// <summary>
     /// The team's working week, less its calendar's holidays and the sprint's team days off, over the days the
-    /// window touches in the team's zone. Team days off are kept only within the planned dates they were set in.
+    /// window touches in the team's zone.
     /// </summary>
     private static async Task<SprintWorkingDays> LoadWorkingDays(
         IDispatcher dispatcher,
@@ -104,9 +104,7 @@ public static class SprintScopeHistoryLoader
         var to = window.End.InZone(window.TimeZone).Date;
 
         var holidays = await dispatcher.Send(new GetHolidayDatesQuery(schedule.HolidayCalendarId, from, to), cancellationToken);
-        var teamDaysOff = sprint.TeamDaysOff.Where(d => sprint.DateRange.Includes(d));
-
-        return new SprintWorkingDays(schedule.WorkingWeek, holidays.Concat(teamDaysOff));
+        return new SprintWorkingDays(schedule.WorkingWeek, holidays.Concat(sprint.TeamDaysOff));
     }
 
     /// <summary>

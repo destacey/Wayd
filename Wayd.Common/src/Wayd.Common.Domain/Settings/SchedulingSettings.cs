@@ -50,5 +50,6 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
         && DefaultWorkingDays.SequenceEqual(other.DefaultWorkingDays)
         && DefaultHolidayCalendarId == other.DefaultHolidayCalendarId;
 
-    public override int GetHashCode() => HashCode.Combine(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays.Count, DefaultHolidayCalendarId);
+    public override int GetHashCode() =>
+        HashCode.Combine(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays.Aggregate(0, (hash, day) => HashCode.Combine(hash, day)), DefaultHolidayCalendarId);
 }

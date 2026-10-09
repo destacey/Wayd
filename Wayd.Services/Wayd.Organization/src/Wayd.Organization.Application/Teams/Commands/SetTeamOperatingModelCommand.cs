@@ -5,6 +5,10 @@ using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
+/// <summary>
+/// Sets a new operating model for a team from <paramref name="StartDate"/>. <paramref name="WorkingDays"/> left
+/// null carries over the current model's working week, or Monday to Friday for a team with none.
+/// </summary>
 public sealed record SetTeamOperatingModelCommand(
     Guid TeamId,
     LocalDate StartDate,
@@ -12,7 +16,7 @@ public sealed record SetTeamOperatingModelCommand(
     SizingMethod SizingMethod,
     string TimeZone,
     int CommitmentGraceDays,
-    IReadOnlyList<IsoDayOfWeek> WorkingDays,
+    IReadOnlyList<IsoDayOfWeek>? WorkingDays,
     Guid? HolidayCalendarId) : ICommand<Guid>;
 
 public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetTeamOperatingModelCommand>
@@ -41,7 +45,8 @@ public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetT
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
 
         RuleFor(c => c.WorkingDays)
-            .IsWorkingWeek();
+            .IsWorkingWeek()
+            .When(c => c.WorkingDays is not null);
     }
 }
 
@@ -71,7 +76,9 @@ public sealed class SetTeamOperatingModelCommandHandler(
                 return Result.Failure<Guid>($"Team with Id {request.TeamId} not found.");
             }
 
-            var workingWeek = WorkingWeek.Create(request.WorkingDays);
+            var workingWeek = request.WorkingDays is null
+                ? Result.Success(team.OperatingModels.SingleOrDefault(m => m.IsCurrent)?.WorkingWeek ?? WorkingWeek.MondayToFriday)
+                : WorkingWeek.Create(request.WorkingDays);
             if (workingWeek.IsFailure)
                 return Result.Failure<Guid>(workingWeek.Error);
 

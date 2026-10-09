@@ -32,9 +32,9 @@ public sealed record SetTeamOperatingModelRequest
     public int CommitmentGraceDays { get; set; }
 
     /// <summary>
-    /// The days of the week the team works. At least one.
+    /// The days of the week the team works. At least one. Omit to carry over the current model's working week.
     /// </summary>
-    public List<IsoDayOfWeek> WorkingDays { get; set; } = [];
+    public List<IsoDayOfWeek>? WorkingDays { get; set; }
 
     /// <summary>
     /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
@@ -70,6 +70,7 @@ public sealed class SetTeamOperatingModelRequestValidator : CustomValidator<SetT
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
 
         RuleFor(r => r.WorkingDays)
-            .IsWorkingWeek();
+            .IsWorkingWeek()
+            .When(r => r.WorkingDays is not null);
     }
 }

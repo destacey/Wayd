@@ -252,10 +252,12 @@ export const sprintsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // The burn's ideal line follows the days off.
+      // The ideal line follows the days off, and the sprint's health is read
+      // against it from the scope report as well as drawn from the burn.
       invalidatesTags: (result, error, { id, key }) => [
         { type: QueryTags.Sprint, id: key },
-        QueryTags.SprintBurn,
+        { type: QueryTags.SprintScope, id: key },
+        { type: QueryTags.SprintBurn, id: key },
         { type: QueryTags.ActivityLog, id },
       ],
     }),

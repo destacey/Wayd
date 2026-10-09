@@ -403,6 +403,22 @@ public class IterationTests
     }
 
     [Fact]
+    public void TeamDaysOff_AfterTheSprintIsRedated_ListsOnlyTheDaysStillInIt()
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+        var firstMonday = DaysOffSprintStart;
+        var lastFriday = DaysOffSprintStart.PlusDays(11);
+        sprint.SetTeamDaysOff([firstMonday, lastFriday], EventActor.System, _dateTimeProvider.Now);
+
+        // Act — the source moves the sprint a week later
+        sprint.Update(sprint.Name, sprint.Type, new IterationDateRange(DaysOffSprintStart.PlusDays(7), DaysOffSprintStart.PlusDays(20)), sprint.TeamId, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sprint.TeamDaysOff.Should().Equal(lastFriday);
+    }
+
+    [Fact]
     public void SetTeamDaysOff_OutsideThePlannedDates_FailsAndChangesNothing()
     {
         // Arrange

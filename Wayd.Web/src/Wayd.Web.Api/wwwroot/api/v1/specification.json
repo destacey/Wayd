@@ -61953,6 +61953,10 @@
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
           },
+          "holidayCalendarName": {
+            "type": "string",
+            "nullable": true
+          },
           "isCurrent": {
             "type": "boolean"
           }
@@ -62019,8 +62023,7 @@
           "methodology",
           "sizingMethod",
           "timeZone",
-          "commitmentGraceDays",
-          "workingDays"
+          "commitmentGraceDays"
         ],
         "properties": {
           "startDate": {
@@ -62061,7 +62064,8 @@
           },
           "workingDays": {
             "type": "array",
-            "description": "The days of the week the team works. At least one.",
+            "description": "The days of the week the team works. At least one. Omit to carry over the current model's working week.",
+            "nullable": true,
             "items": {
               "$ref": "#/components/schemas/IsoDayOfWeek"
             }
@@ -62082,8 +62086,7 @@
           "methodology",
           "sizingMethod",
           "timeZone",
-          "commitmentGraceDays",
-          "workingDays"
+          "commitmentGraceDays"
         ],
         "properties": {
           "methodology": {
@@ -62117,7 +62120,8 @@
           },
           "workingDays": {
             "type": "array",
-            "description": "The days of the week the team works. At least one.",
+            "description": "The days of the week the team works. At least one. Omit to keep the model's working week.",
+            "nullable": true,
             "items": {
               "$ref": "#/components/schemas/IsoDayOfWeek"
             }
@@ -66330,8 +66334,7 @@
         "additionalProperties": false,
         "required": [
           "defaultTimeZone",
-          "defaultCommitmentGraceDays",
-          "defaultWorkingDays"
+          "defaultCommitmentGraceDays"
         ],
         "properties": {
           "defaultTimeZone": {
@@ -66349,7 +66352,8 @@
           },
           "defaultWorkingDays": {
             "type": "array",
-            "description": "The days of the week new team operating models work. At least one.",
+            "description": "The days of the week new team operating models work. At least one. Omit to keep the saved value.",
+            "nullable": true,
             "items": {
               "$ref": "#/components/schemas/IsoDayOfWeek"
             }

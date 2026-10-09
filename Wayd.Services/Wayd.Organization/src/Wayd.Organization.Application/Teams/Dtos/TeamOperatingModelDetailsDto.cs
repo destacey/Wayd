@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Mapster;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.Organization;
 using NodaTime;
 
@@ -66,12 +67,7 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
     /// <summary>
     /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
     /// </summary>
-    public Guid? HolidayCalendarId { get; set; }
-
-    /// <summary>
-    /// The name of <see cref="HolidayCalendarId"/>'s calendar, or null for the system default calendar.
-    /// </summary>
-    public string? HolidayCalendarName { get; set; }
+    public NavigationDto? HolidayCalendar { get; set; }
 
     /// <summary>
     /// Indicates whether this operating model is current (has no end date).
@@ -87,6 +83,6 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.IsCurrent, src => src.IsCurrent)
             .Map(dest => dest.WorkingDays, src => src.WorkingWeek.Days)
-            .Ignore(dest => dest.HolidayCalendarName!);
+            .Ignore(dest => dest.HolidayCalendar!);
     }
 }

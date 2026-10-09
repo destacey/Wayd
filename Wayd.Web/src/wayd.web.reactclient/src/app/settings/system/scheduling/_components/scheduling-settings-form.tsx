@@ -50,7 +50,7 @@ const SchedulingSettingsForm = ({
       defaultTimeZone: settings.defaultTimeZone,
       defaultCommitmentGraceDays: settings.defaultCommitmentGraceDays,
       defaultWorkingDays: settings.defaultWorkingDays,
-      defaultHolidayCalendarId: settings.defaultHolidayCalendarId,
+      defaultHolidayCalendarId: settings.defaultHolidayCalendar?.id,
     })
     setIsDirty(false)
   }, [settings, form])
@@ -141,6 +141,7 @@ const SchedulingSettingsForm = ({
       >
         <HolidayCalendarSelect
           emptyLabel="No holidays"
+          current={settings?.defaultHolidayCalendar}
           aria-label="Default holiday calendar"
         />
       </Form.Item>

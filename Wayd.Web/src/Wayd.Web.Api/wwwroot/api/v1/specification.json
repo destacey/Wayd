@@ -61947,15 +61947,13 @@
               "$ref": "#/components/schemas/IsoDayOfWeek"
             }
           },
-          "holidayCalendarId": {
-            "type": "string",
-            "format": "guid",
+          "holidayCalendar": {
             "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "holidayCalendarName": {
-            "type": "string",
-            "nullable": true
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           },
           "isCurrent": {
             "type": "boolean"
@@ -66321,11 +66319,13 @@
               "$ref": "#/components/schemas/IsoDayOfWeek"
             }
           },
-          "defaultHolidayCalendarId": {
-            "type": "string",
-            "format": "guid",
+          "defaultHolidayCalendar": {
             "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           }
         }
       },

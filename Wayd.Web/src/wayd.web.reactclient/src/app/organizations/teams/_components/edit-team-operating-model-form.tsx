@@ -124,7 +124,7 @@ const EditTeamOperatingModelForm = ({
         timeZone: operatingModel.timeZone,
         commitmentGraceDays: operatingModel.commitmentGraceDays,
         workingDays: operatingModel.workingDays,
-        holidayCalendarId: operatingModel.holidayCalendarId,
+        holidayCalendarId: operatingModel.holidayCalendar?.id,
       })
     }
   }, [operatingModel, isLoading, isFetching, form])
@@ -213,6 +213,7 @@ const EditTeamOperatingModelForm = ({
           >
             <HolidayCalendarSelect
               emptyLabel="System default"
+              current={operatingModel?.holidayCalendar}
               aria-label="Holiday Calendar"
             />
           </FormItem>

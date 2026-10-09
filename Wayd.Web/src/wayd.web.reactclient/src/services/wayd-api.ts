@@ -51291,8 +51291,7 @@ export interface TeamOperatingModelDetailsDto {
     timeZone: string;
     commitmentGraceDays: number;
     workingDays: IsoDayOfWeek[];
-    holidayCalendarId?: string | undefined;
-    holidayCalendarName?: string | undefined;
+    holidayCalendar?: NavigationDto | undefined;
     isCurrent: boolean;
 }
 
@@ -52498,7 +52497,7 @@ export interface SchedulingSettingsDto {
     defaultTimeZone: string;
     defaultCommitmentGraceDays: number;
     defaultWorkingDays: IsoDayOfWeek[];
-    defaultHolidayCalendarId?: string | undefined;
+    defaultHolidayCalendar?: NavigationDto | undefined;
 }
 
 export interface UpdateSchedulingSettingsRequest {

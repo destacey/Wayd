@@ -3,6 +3,7 @@ using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NodaTime;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
@@ -92,8 +93,8 @@ public class UpdateSchedulingSettingsCommandHandlerTests
     {
         // Arrange
         var calendarId = Guid.NewGuid();
-        _dispatcher.Setup(d => d.Send(new HolidayCalendarExistsQuery(calendarId), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _dispatcher.Setup(d => d.Send(new GetHolidayCalendarNavigationQuery(calendarId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((NavigationDto?)null);
 
         // Act
         var result = await CreateHandler().Handle(
@@ -109,8 +110,8 @@ public class UpdateSchedulingSettingsCommandHandlerTests
     {
         // Arrange
         var calendarId = Guid.NewGuid();
-        _dispatcher.Setup(d => d.Send(new HolidayCalendarExistsQuery(calendarId), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _dispatcher.Setup(d => d.Send(new GetHolidayCalendarNavigationQuery(calendarId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(NavigationDto.Create(calendarId, 1, "United States"));
         _store.Setup(s => s.Save(It.IsAny<SchedulingSettings>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 

@@ -172,7 +172,7 @@ const TeamOperatingModelsGrid = ({
       },
       {
         id: 'holidayCalendar',
-        accessorFn: (row) => row.holidayCalendarName ?? 'System default',
+        accessorFn: (row) => row.holidayCalendar?.name ?? 'System default',
         header: 'Holiday Calendar',
         meta: { filterType: 'set' },
       },

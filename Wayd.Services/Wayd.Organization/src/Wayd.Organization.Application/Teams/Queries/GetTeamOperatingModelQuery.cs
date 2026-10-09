@@ -31,7 +31,7 @@ public sealed class GetTeamOperatingModelQueryHandler(IOrganizationDbContext org
 
         var dto = model.Adapt<TeamOperatingModelDetailsDto>();
         dto.TeamId = request.TeamId;
-        await new[] { dto }.WithHolidayCalendarNames(_organizationDbContext, cancellationToken);
+        await new[] { (dto, model) }.WithHolidayCalendars(_organizationDbContext, cancellationToken);
         return dto;
     }
 }

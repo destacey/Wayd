@@ -31,7 +31,7 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
         {
             // The calendar lives in Organization, so the section's validator cannot check it.
             if (request.DefaultHolidayCalendarId is { } calendarId
-                && !await _dispatcher.Send(new HolidayCalendarExistsQuery(calendarId), cancellationToken))
+                && await _dispatcher.Send(new GetHolidayCalendarNavigationQuery(calendarId), cancellationToken) is null)
                 return Result.Failure($"Holiday calendar {calendarId} not found.");
 
             var workingDays = request.DefaultWorkingDays ?? (await _settings.Get(cancellationToken)).DefaultWorkingDays;

@@ -39,6 +39,13 @@ public sealed record SprintBurnDto
 
     /// <summary>The readings, in time order; empty before the commitment point.</summary>
     public required List<SprintBurnPointDto> Points { get; init; }
+
+    /// <summary>
+    /// The ideal burn-down over the whole sprint, however much has passed: points at the commitment point, the
+    /// start of each day in the team's zone, and the effective end, joined by straight lines. It falls only on
+    /// the days the team works — its working week, less holidays and team days off — and stays flat on the rest.
+    /// </summary>
+    public required List<SprintIdealPointDto> Ideal { get; init; }
 }
 
 /// <summary>One reading of a sprint's burn.</summary>

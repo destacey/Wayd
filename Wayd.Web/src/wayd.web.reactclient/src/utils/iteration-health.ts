@@ -159,17 +159,54 @@ export interface CommitmentHealthParams {
   committed: number
   /** The work completed so far: the sprint's velocity */
   delivered: number
+  /**
+   * The ideal line as shares of the committed work still to remain, in time
+   * order. When given, the progress expected at a moment is read from it, so
+   * weekends, holidays and team days off expect none; otherwise progress is
+   * expected evenly over the time from start to end.
+   */
+  ideal?: IdealPoint[]
   /** Optional moment to measure at (defaults to now) */
   now?: Date
 }
 
+/** A point on a sprint's ideal burn-down: the share of its commitment still to remain. */
+export interface IdealPoint {
+  at: Date | string
+  remaining: number
+}
+
+/**
+ * The share of the commitment the ideal line expects done at `now`, read
+ * between its two points either side; undefined when the line doesn't span it.
+ */
+export function idealDoneAt(
+  ideal: IdealPoint[] | undefined,
+  now: number,
+): number | undefined {
+  if (!ideal || ideal.length < 2) return undefined
+  for (let i = 1; i < ideal.length; i++) {
+    const from = new Date(ideal[i - 1].at).getTime()
+    const to = new Date(ideal[i].at).getTime()
+    if (now >= from && now <= to) {
+      const t = to > from ? (now - from) / (to - from) : 1
+      const remaining =
+        ideal[i - 1].remaining +
+        (ideal[i].remaining - ideal[i - 1].remaining) * t
+      return 1 - remaining
+    }
+  }
+  return undefined
+}
+
 /**
  * A sprint's health measured against what the team committed to: its velocity
- * as a share of the commitment, against the share of the time elapsed from the
- * commitment point to the effective end, on the same thresholds as
- * {@link calculateIterationHealth}. Those are the instants the burn-down's
- * ideal line runs between, so health asks for exactly the progress the line
- * shows. Work added or re-estimated after the commitment point doesn't count
+ * as a share of the commitment, against the share the burn-down's ideal line
+ * expects done by now, on the same thresholds as
+ * {@link calculateIterationHealth}. The line falls only on the team's working
+ * days, so health asks for exactly the progress the line shows; without it,
+ * the share of the time elapsed from the commitment point to the effective
+ * end. Work added or re-estimated after the commitment point doesn't count
  * against the team; delivery past the commitment isn't capped, so it always
  * reads as on track.
  */
@@ -191,9 +228,10 @@ export function calculateCommitmentHealth(
     return { status: IterationHealthStatus.Unknown, variancePercent: 0 }
   }
 
-  // Positive is behind: less delivered than the time elapsed calls for.
-  const elapsedPercent = ((now - start) / (end - start)) * 100
-  const variancePercent = elapsedPercent - (delivered / committed) * 100
+  // Positive is behind: less delivered than the ideal line calls for.
+  const expectedPercent =
+    (idealDoneAt(params.ideal, now) ?? (now - start) / (end - start)) * 100
+  const variancePercent = expectedPercent - (delivered / committed) * 100
 
   if (variancePercent <= 10) {
     return { status: IterationHealthStatus.OnTrack, variancePercent }
@@ -204,11 +242,12 @@ export function calculateCommitmentHealth(
   }
 }
 
-/** A sprint's commitment and the instants its burn-down's ideal line runs between. */
+/** A sprint's commitment, and the ideal line its burn-down runs along from start to end. */
 export interface SprintCommitment {
   committed: number
   start: Date
   end: Date
+  ideal?: IdealPoint[]
 }
 
 /**
@@ -227,6 +266,7 @@ export function calculateSprintHealth(
         end: commitment.end,
         committed: commitment.committed,
         delivered: iteration.completed,
+        ideal: commitment.ideal,
         now:
           iteration.referenceDate instanceof Date
             ? iteration.referenceDate

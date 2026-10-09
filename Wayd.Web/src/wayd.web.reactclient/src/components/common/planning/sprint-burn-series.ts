@@ -61,22 +61,16 @@ export const sprintBurnSeries = (
     shape: 'vh' as const,
   }))
 
-  // Straight from the committed work at the commitment point to zero at the
-  // effective end, so evenly over the sprint's calendar time.
-  const ideal = [
-    {
-      at: new Date(burn.effectiveStart),
-      series: BurnSeries.Ideal,
-      value: value(burn.committed),
-      shape: 'line' as const,
-    },
-    {
-      at: new Date(burn.effectiveEnd),
-      series: BurnSeries.Ideal,
-      value: 0,
-      shape: 'line' as const,
-    },
-  ]
+  // The server's ideal line, as shares of the committed work: it falls across
+  // the team's working days and stays flat across weekends, holidays and team
+  // days off.
+  const committed = value(burn.committed)
+  const ideal = burn.ideal.map((p) => ({
+    at: new Date(p.at),
+    series: BurnSeries.Ideal,
+    value: committed * p.remaining,
+    shape: 'line' as const,
+  }))
 
   return { burnUp, burnDown: [...remaining, ...ideal] }
 }

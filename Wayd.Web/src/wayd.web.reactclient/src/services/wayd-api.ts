@@ -50342,6 +50342,7 @@ export interface SprintScopeDto {
     hasTeam: boolean;
     historyIncomplete: boolean;
     totals: SprintScopeTotalsDto;
+    ideal: SprintIdealPointDto[];
     items: SprintScopeItemDto[];
 }
 
@@ -50363,6 +50364,11 @@ export interface SprintScopeTotalsDto {
 export interface SprintScopeMeasureDto {
     count: number;
     estimate: number;
+}
+
+export interface SprintIdealPointDto {
+    at: Date;
+    remaining: number;
 }
 
 export interface SprintScopeItemDto {
@@ -50397,6 +50403,7 @@ export interface SprintBurnDto {
     historyIncomplete: boolean;
     committed: SprintScopeMeasureDto;
     points: SprintBurnPointDto[];
+    ideal: SprintIdealPointDto[];
 }
 
 export interface SprintBurnPointDto {

@@ -29,6 +29,7 @@ const scope: SprintScopeDto = {
   timeZone: 'America/Chicago',
   hasTeam: true,
   historyIncomplete: false,
+  ideal: [],
   totals: {
     total: measure(7, 26),
     committed: measure(5, 18),
@@ -69,6 +70,7 @@ describe('sprintOverviewFigures', () => {
         committed: 18,
         start: new Date('2026-09-15T05:00:00Z'),
         end: new Date('2026-09-26T05:00:00Z'),
+        ideal: [],
       },
     })
   })

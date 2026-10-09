@@ -1,4 +1,5 @@
 import { SprintScopeDto, SprintScopeMeasureDto } from '@/src/services/wayd-api'
+import type { SprintCommitment } from '@/src/utils/iteration-health'
 import { SprintMetricFigures, sprintMetricValues } from './sprint-metric-values'
 
 /** What became of the sprint's committed and added work, from its scope. */
@@ -23,10 +24,10 @@ export interface SprintScopeFigures {
    */
   reestimated: number
   /**
-   * The committed work and the instants the burn-down's ideal line runs
-   * between, which the sprint's health is measured against.
+   * The committed work and the burn-down's ideal line, which the sprint's
+   * health is measured against.
    */
-  commitment: { committed: number; start: Date; end: Date }
+  commitment: SprintCommitment
 }
 
 /**
@@ -103,6 +104,7 @@ export const sprintOverviewFigures = (
         committed: value(totals.committed),
         start: new Date(scope.effectiveStart),
         end: new Date(scope.effectiveEnd),
+        ideal: scope.ideal,
       },
     },
   }

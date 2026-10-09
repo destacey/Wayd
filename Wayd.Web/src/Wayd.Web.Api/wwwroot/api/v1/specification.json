@@ -58080,6 +58080,7 @@
         "required": [
           "timeZone",
           "totals",
+          "ideal",
           "items",
           "sprintId",
           "sizingMethod",
@@ -58130,6 +58131,12 @@
           },
           "totals": {
             "$ref": "#/components/schemas/SprintScopeTotalsDto"
+          },
+          "ideal": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintIdealPointDto"
+            }
           },
           "items": {
             "type": "array",
@@ -58216,6 +58223,24 @@
           }
         }
       },
+      "SprintIdealPointDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "at",
+          "remaining"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "SprintScopeItemDto": {
         "type": "object",
         "additionalProperties": false,
@@ -58293,6 +58318,7 @@
           "timeZone",
           "committed",
           "points",
+          "ideal",
           "sprintId",
           "sizingMethod",
           "effectiveStart",
@@ -58330,6 +58356,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SprintBurnPointDto"
+            }
+          },
+          "ideal": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintIdealPointDto"
             }
           }
         }

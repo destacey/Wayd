@@ -96646,6 +96646,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeTotalsDto Totals { get; set; } = new SprintScopeTotalsDto();
 
+        [System.Text.Json.Serialization.JsonPropertyName("ideal")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SprintIdealPointDto> Ideal { get; set; } = new System.Collections.ObjectModel.Collection<SprintIdealPointDto>();
+
         [System.Text.Json.Serialization.JsonPropertyName("items")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintScopeItemDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<SprintScopeItemDto>();
@@ -96712,6 +96716,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("estimate")]
         public double Estimate { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintIdealPointDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset At { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("remaining")]
+        public double Remaining { get; set; } = default!;
 
     }
 
@@ -96815,6 +96832,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("points")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintBurnPointDto> Points { get; set; } = new System.Collections.ObjectModel.Collection<SprintBurnPointDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("ideal")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SprintIdealPointDto> Ideal { get; set; } = new System.Collections.ObjectModel.Collection<SprintIdealPointDto>();
 
     }
 

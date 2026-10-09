@@ -119,7 +119,7 @@ public sealed class GetSprintScopeQueryHandlerTests(SqlServerDbContextFixture fi
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
 
         // Read after the sprint has ended.
-        var handler = new GetSprintScopeQueryHandler(accessor.Context, Mock.Of<IDispatcher>(), schedulingSettings.Object,
+        var handler = new GetSprintScopeQueryHandler(accessor.Context, HolidayDispatcher.With().Object, schedulingSettings.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == Instant.FromUtc(2026, 10, 15, 12, 0)));
         return await handler.Handle(new GetSprintScopeQuery(new IdOrKey(sprintId.ToString())), ct);
     }

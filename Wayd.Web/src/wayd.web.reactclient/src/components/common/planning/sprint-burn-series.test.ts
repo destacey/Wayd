@@ -11,6 +11,12 @@ const burn = {
   timeZone: 'America/Chicago',
   historyIncomplete: false,
   committed: measure(4, 20),
+  ideal: [
+    { at: '2026-09-15T05:00:00Z', remaining: 1 },
+    { at: '2026-09-19T05:00:00Z', remaining: 0.5 },
+    { at: '2026-09-21T05:00:00Z', remaining: 0.5 },
+    { at: '2026-09-26T05:00:00Z', remaining: 0 },
+  ],
   points: [
     {
       at: '2026-09-15T05:00:00Z',
@@ -42,7 +48,7 @@ describe('sprintBurnSeries', () => {
     expect(valuesOf(result.burnUp, BurnSeries.Completed)).toEqual([0, 5])
   })
 
-  it('draws remaining, and an ideal line from committed to zero, for the burn-down', () => {
+  it('draws remaining, and the ideal line as shares of the committed work, for the burn-down', () => {
     // Arrange / Act
     const result = sprintBurnSeries(burn, false)
 
@@ -51,6 +57,8 @@ describe('sprintBurnSeries', () => {
     const ideal = result.burnDown.filter((p) => p.series === BurnSeries.Ideal)
     expect(ideal.map((p) => [p.at.toISOString(), p.value])).toEqual([
       ['2026-09-15T05:00:00.000Z', 20],
+      ['2026-09-19T05:00:00.000Z', 10],
+      ['2026-09-21T05:00:00.000Z', 10],
       ['2026-09-26T05:00:00.000Z', 0],
     ])
   })
@@ -62,7 +70,7 @@ describe('sprintBurnSeries', () => {
     // Assert
     expect(valuesOf(result.burnUp, BurnSeries.Scope)).toEqual([4, 5])
     expect(valuesOf(result.burnDown, BurnSeries.Remaining)).toEqual([4, 4])
-    expect(valuesOf(result.burnDown, BurnSeries.Ideal)).toEqual([4, 0])
+    expect(valuesOf(result.burnDown, BurnSeries.Ideal)).toEqual([4, 2, 2, 0])
   })
 
   it('draws nothing before the commitment point', () => {

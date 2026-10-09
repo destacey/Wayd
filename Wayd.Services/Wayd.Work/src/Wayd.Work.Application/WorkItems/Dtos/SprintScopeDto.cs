@@ -55,6 +55,12 @@ public sealed record SprintScopeDto
     /// <summary>The items summed by category.</summary>
     public required SprintScopeTotalsDto Totals { get; init; }
 
+    /// <summary>
+    /// The ideal burn-down from the commitment point to the effective end, which the sprint's health measures
+    /// progress against: falling only on the days the team works. The same line as the sprint burn's.
+    /// </summary>
+    public required List<SprintIdealPointDto> Ideal { get; init; }
+
     /// <summary>Each requirement-tier work item that was in the sprint's scope, in backlog order.</summary>
     public required List<SprintScopeItemDto> Items { get; init; }
 }

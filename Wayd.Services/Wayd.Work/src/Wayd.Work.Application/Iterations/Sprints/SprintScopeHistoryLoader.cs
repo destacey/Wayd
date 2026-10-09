@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
@@ -10,9 +11,11 @@ using Wayd.Work.Domain.Models.SprintScope;
 namespace Wayd.Work.Application.Iterations.Sprints;
 
 /// <summary>
-/// What sprint scope and the sprint's burn are both worked out from: the sprint's window and sizing method, and
-/// the history of every item that was in it during that window.
+/// What sprint scope and the sprint's burn are both worked out from: the sprint's window and schedule, and the
+/// history of every item that was in it during that window.
 /// </summary>
+/// <param name="Schedule">The schedule the sprint is counted in.</param>
+/// <param name="WorkingDays">Which of the sprint's days the team works, which its ideal burn-down falls on.</param>
 /// <param name="HistoryIncomplete">
 /// Whether a workspace holding the sprint's work has not had its history read through to the end, so the
 /// history may be missing changes.
@@ -20,9 +23,14 @@ namespace Wayd.Work.Application.Iterations.Sprints;
 public sealed record SprintScopeHistory(
     Iteration Sprint,
     SprintScopeWindow Window,
-    SizingMethod SizingMethod,
+    SprintSchedule Schedule,
+    SprintWorkingDays WorkingDays,
     List<SprintScopePeriod> Periods,
-    bool HistoryIncomplete);
+    bool HistoryIncomplete)
+{
+    /// <summary>The estimate the sprint is measured in.</summary>
+    public SizingMethod SizingMethod => Schedule.SizingMethod;
+}
 
 /// <summary>
 /// Loads what sprint scope and the sprint's burn are worked out from, so the two read the same window and the
@@ -46,19 +54,20 @@ public static class SprintScopeHistoryLoader
         if (sprint is null || sprint.DateRange.Start is null || sprint.DateRange.End is null)
             return null;
 
-        var (window, sizingMethod) = await LoadWindow(workDbContext, dispatcher, schedulingSettings, sprint, cancellationToken);
+        var (window, schedule) = await LoadWindow(workDbContext, dispatcher, schedulingSettings, sprint, cancellationToken);
         var periods = await LoadPeriods(workDbContext, window, cancellationToken);
         var workItemIds = periods.Select(p => p.WorkItemId).Distinct().ToList();
 
         return new SprintScopeHistory(
             sprint,
             window,
-            sizingMethod,
+            schedule,
+            await LoadWorkingDays(dispatcher, sprint, window, schedule, cancellationToken),
             periods,
             await IsHistoryIncomplete(workDbContext, sprint.Id, workItemIds, cancellationToken));
     }
 
-    private static async Task<(SprintScopeWindow Window, SizingMethod SizingMethod)> LoadWindow(
+    private static async Task<(SprintScopeWindow Window, SprintSchedule Schedule)> LoadWindow(
         IWorkDbContext workDbContext,
         IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
@@ -69,7 +78,7 @@ public static class SprintScopeHistoryLoader
         {
             var timeline = await workDbContext.LoadTeamSprintTimeline(dispatcher, schedulingSettings, teamId, tracked: false, cancellationToken);
             var onTimeline = timeline.Sprints.Single(s => s.Id == sprint.Id);
-            return (SprintScopeWindow.For(timeline, onTimeline), timeline.ScheduleFor(onTimeline).SizingMethod);
+            return (SprintScopeWindow.For(timeline, onTimeline), timeline.ScheduleFor(onTimeline));
         }
 
         var schedules = await dispatcher.LoadSprintSchedules(
@@ -77,7 +86,27 @@ public static class SprintScopeHistoryLoader
             [(sprint.Id, sprint.TeamId, sprint.DateRange.Start)],
             cancellationToken);
         var schedule = schedules[sprint.Id];
-        return (SprintScopeWindow.Unscheduled(sprint, schedule), schedule.SizingMethod);
+        return (SprintScopeWindow.Unscheduled(sprint, schedule), schedule);
+    }
+
+    /// <summary>
+    /// The team's working week, less its calendar's holidays and the sprint's team days off, over the days the
+    /// window touches in the team's zone. Team days off are kept only within the planned dates they were set in.
+    /// </summary>
+    private static async Task<SprintWorkingDays> LoadWorkingDays(
+        IDispatcher dispatcher,
+        Iteration sprint,
+        SprintScopeWindow window,
+        SprintSchedule schedule,
+        CancellationToken cancellationToken)
+    {
+        var from = window.Start.InZone(window.TimeZone).Date;
+        var to = window.End.InZone(window.TimeZone).Date;
+
+        var holidays = await dispatcher.Send(new GetHolidayDatesQuery(schedule.HolidayCalendarId, from, to), cancellationToken);
+        var teamDaysOff = sprint.TeamDaysOff.Where(d => sprint.DateRange.Includes(d));
+
+        return new SprintWorkingDays(schedule.WorkingWeek, holidays.Concat(teamDaysOff));
     }
 
     /// <summary>

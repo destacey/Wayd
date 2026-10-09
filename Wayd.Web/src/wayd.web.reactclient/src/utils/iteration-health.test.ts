@@ -2,6 +2,7 @@ import {
   calculateCommitmentHealth,
   calculateIterationHealth,
   calculateSprintHealth,
+  idealDoneAt,
   IterationHealthStatus,
   sprintActiveDays,
 } from './iteration-health'
@@ -283,6 +284,54 @@ describe('calculateCommitmentHealth', () => {
 
     // Assert
     expect(result.status).toBe(IterationHealthStatus.Unknown)
+  })
+
+  it('expects no progress across a weekend the ideal line is flat over', () => {
+    // Arrange — half the commitment due by Saturday, none over the weekend
+    const ideal = [
+      { at: '2026-09-28T12:00:00Z', remaining: 1 },
+      { at: '2026-10-03T00:00:00Z', remaining: 0.5 },
+      { at: '2026-10-05T00:00:00Z', remaining: 0.5 },
+      { at: '2026-10-12T00:00:00Z', remaining: 0 },
+    ]
+
+    // Act — half delivered by Sunday noon: on the line, though 44% of the time
+    // has passed and an even line would call it ahead
+    const result = calculateCommitmentHealth({
+      ...sprint,
+      committed: 20,
+      delivered: 10,
+      ideal,
+      now: at('2026-10-04T12:00:00Z'),
+    })
+
+    // Assert
+    expect(result.status).toBe(IterationHealthStatus.OnTrack)
+    expect(result.variancePercent).toBeCloseTo(0, 6)
+  })
+})
+
+describe('idealDoneAt', () => {
+  const ideal = [
+    { at: '2026-09-28T00:00:00Z', remaining: 1 },
+    { at: '2026-09-29T00:00:00Z', remaining: 0.5 },
+    { at: '2026-09-30T00:00:00Z', remaining: 0 },
+  ]
+
+  it('reads the share done between two points', () => {
+    // Act
+    const done = idealDoneAt(ideal, new Date('2026-09-28T12:00:00Z').getTime())
+
+    // Assert
+    expect(done).toBeCloseTo(0.25, 6)
+  })
+
+  it('is undefined outside the line', () => {
+    // Act
+    const done = idealDoneAt(ideal, new Date('2026-10-01T00:00:00Z').getTime())
+
+    // Assert
+    expect(done).toBeUndefined()
   })
 })
 

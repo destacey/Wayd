@@ -17,7 +17,11 @@ public sealed class GetTeamsScheduleHistoryQueryHandler(IOrganizationDbContext o
             .SelectMany(t => t.OperatingModels, (t, m) => new
             {
                 TeamId = t.Id,
-                Period = new TeamSchedulePeriodDto(m.DateRange.Start, m.DateRange.End, m.TimeZone, m.CommitmentGraceDays, m.SizingMethod),
+                Period = new TeamSchedulePeriodDto(m.DateRange.Start, m.DateRange.End, m.TimeZone, m.CommitmentGraceDays, m.SizingMethod)
+                {
+                    WorkingWeek = m.WorkingWeek,
+                    HolidayCalendarId = m.HolidayCalendarId,
+                },
             })
             .ToListAsync(cancellationToken);
 

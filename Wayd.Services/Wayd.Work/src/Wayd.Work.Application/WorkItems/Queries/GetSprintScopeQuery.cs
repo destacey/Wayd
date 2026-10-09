@@ -41,7 +41,8 @@ public sealed class GetSprintScopeQueryHandler(
         if (history is null)
             return null;
 
-        var (sprint, window, sizingMethod, periods, historyIncomplete) = history;
+        var (sprint, window, schedule, workingDays, periods, historyIncomplete) = history;
+        var sizingMethod = schedule.SizingMethod;
         var report = SprintScopeReport.Build(window, sizingMethod, periods, _dateTimeProvider.Now);
 
         var workItemIds = report.Items.Select(i => i.WorkItemId).ToList();
@@ -66,6 +67,7 @@ public sealed class GetSprintScopeQueryHandler(
             HasTeam = sprint.TeamId is not null,
             HistoryIncomplete = historyIncomplete,
             Totals = SprintScopeTotalsDto.From(SprintScopeTotals.Of(items)),
+            Ideal = [.. SprintIdealLine.Build(window, workingDays).Select(SprintIdealPointDto.From)],
             Items = [.. items
                 .Select(i => new SprintScopeItemDto
                 {

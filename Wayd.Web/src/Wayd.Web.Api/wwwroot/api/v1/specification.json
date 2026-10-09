@@ -26921,6 +26921,35 @@
         ]
       }
     },
+    "/api/work/sprints/types": {
+      "get": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Get a list of all sprint types.",
+        "operationId": "Sprints_GetSprintTypes",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SprintTypeDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/{idOrKey}": {
       "get": {
         "tags": [
@@ -27412,6 +27441,62 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SetSprintTeamDaysOffRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/work/sprints/{id}/type": {
+      "put": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Set or clear a sprint's type.",
+        "description": "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of rollups across sprints. Requires membership of the sprint's team or its team of teams.",
+        "operationId": "Sprints_SetSprintType",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSprintTypeRequest"
               }
             }
           },
@@ -57824,7 +57909,9 @@
           "id",
           "key",
           "start",
-          "end"
+          "end",
+          "sprintType",
+          "sprintTypeSource"
         ],
         "properties": {
           "id": {
@@ -57863,8 +57950,70 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "sprintType": {
+            "$ref": "#/components/schemas/SprintType"
+          },
+          "sprintTypeSource": {
+            "$ref": "#/components/schemas/SprintTypeSource"
           }
         }
+      },
+      "SprintType": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Standard",
+          "NonStandard"
+        ],
+        "enum": [
+          "Standard",
+          "NonStandard"
+        ]
+      },
+      "SprintTypeSource": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Team",
+          "PlanningInterval",
+          "Default"
+        ],
+        "enum": [
+          "Team",
+          "PlanningInterval",
+          "Default"
+        ]
+      },
+      "SprintTypeDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfSprintType"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CommonEnumDtoOfSprintType": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/SprintType"
+              }
+            }
+          }
+        ]
       },
       "SprintDetailsDto": {
         "type": "object",
@@ -57878,6 +58027,8 @@
           "start",
           "end",
           "teamDaysOff",
+          "sprintType",
+          "sprintTypeSource",
           "overlapsPreviousSprint",
           "overlapsNextSprint",
           "canManageSprint",
@@ -57943,6 +58094,12 @@
               "type": "string",
               "format": "date"
             }
+          },
+          "sprintType": {
+            "$ref": "#/components/schemas/SprintType"
+          },
+          "sprintTypeSource": {
+            "$ref": "#/components/schemas/SprintTypeSource"
           },
           "overlapsPreviousSprint": {
             "type": "boolean"
@@ -58440,6 +58597,22 @@
               "type": "string",
               "format": "date"
             }
+          }
+        }
+      },
+      "SetSprintTypeRequest": {
+        "type": "object",
+        "description": "Sets or clears the type the team set on a sprint.",
+        "additionalProperties": false,
+        "properties": {
+          "sprintType": {
+            "description": "The sprint's type, held whatever its planning interval mapping says. Null clears the team's type, so the\nsprint follows the category of the planning interval iteration it is mapped to, or is standard when it\nis not mapped.",
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SprintType"
+              }
+            ]
           }
         }
       },

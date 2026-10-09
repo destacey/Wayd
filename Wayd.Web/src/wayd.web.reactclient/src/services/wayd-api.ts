@@ -30418,6 +30418,57 @@ export class SprintsClient {
     }
 
     /**
+     * Get a list of all sprint types.
+     */
+    getSprintTypes( cancelToken?: CancelToken): Promise<SprintTypeDto[]> {
+        let url_ = this.baseUrl + "/api/work/sprints/types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintTypes(_response);
+        });
+    }
+
+    protected processGetSprintTypes(response: AxiosResponse): Promise<SprintTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintTypeDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintTypeDto[]>(null as any);
+    }
+
+    /**
      * Get sprint details.
      */
     getSprint(idOrKey: string, cancelToken?: CancelToken): Promise<SprintDetailsDto> {
@@ -31006,6 +31057,67 @@ export class SprintsClient {
     }
 
     protected processSetTeamDaysOff(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set or clear a sprint's type.
+     */
+    setSprintType(id: string, request: SetSprintTypeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/type";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetSprintType(_response);
+        });
+    }
+
+    protected processSetSprintType(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -50283,6 +50395,26 @@ export interface SprintListDto {
     team: WorkTeamNavigationDto;
     started?: Date | undefined;
     completed?: Date | undefined;
+    sprintType: SprintType;
+    sprintTypeSource: SprintTypeSource;
+}
+
+export enum SprintType {
+    Standard = "Standard",
+    NonStandard = "NonStandard",
+}
+
+export enum SprintTypeSource {
+    Team = "Team",
+    PlanningInterval = "PlanningInterval",
+    Default = "Default",
+}
+
+export interface CommonEnumDtoOfSprintType extends CommonEnumDto {
+    code: SprintType;
+}
+
+export interface SprintTypeDto extends CommonEnumDtoOfSprintType {
 }
 
 export interface SprintDetailsDto {
@@ -50299,6 +50431,8 @@ export interface SprintDetailsDto {
     activeUntil?: Date | undefined;
     timeZone?: string | undefined;
     teamDaysOff: string[];
+    sprintType: SprintType;
+    sprintTypeSource: SprintTypeSource;
     overlapsPreviousSprint: boolean;
     overlapsNextSprint: boolean;
     canManageSprint: boolean;
@@ -50436,6 +50570,14 @@ export interface SetSprintTeamDaysOffRequest {
     /** The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list
 clears them. Holidays from the team's calendar and days outside its working week need not be listed. */
     teamDaysOff: string[];
+}
+
+/** Sets or clears the type the team set on a sprint. */
+export interface SetSprintTypeRequest {
+    /** The sprint's type, held whatever its planning interval mapping says. Null clears the team's type, so the
+sprint follows the category of the planning interval iteration it is mapped to, or is standard when it
+is not mapped. */
+    sprintType?: SprintType | undefined;
 }
 
 /** Corrects the actual start and completion of one or more of a team's sprints. */

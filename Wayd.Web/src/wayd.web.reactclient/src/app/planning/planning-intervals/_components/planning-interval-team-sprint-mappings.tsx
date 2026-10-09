@@ -7,7 +7,7 @@ import { EditOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import {
   PlanningIntervalDetailsDto,
-  SprintListDto,
+  PlanningSprintListDto,
 } from '@/src/services/wayd-api'
 import {
   useGetIterationSprintsQuery,
@@ -37,7 +37,7 @@ interface TeamRowData {
   teamName: string
   teamCode: string
   teamOfTeamsName: string | null
-  sprintsByIteration: Record<string, SprintListDto | null>
+  sprintsByIteration: Record<string, PlanningSprintListDto | null>
 }
 
 const formatDateRange = (start: CalendarDate, end: CalendarDate): string => {
@@ -53,7 +53,7 @@ const isActiveIteration = (start: CalendarDate, end: CalendarDate): boolean => {
 }
 
 interface SprintCellProps {
-  sprint: SprintListDto | null
+  sprint: PlanningSprintListDto | null
 }
 
 const SprintCell = ({ sprint }: SprintCellProps) => {
@@ -121,9 +121,9 @@ export const PlanningIntervalTeamSprintMappings = ({
 
   // Build sprint lookup by team and iteration
   const sprintsByTeamAndIteration = (() => {
-    if (!iterationSprintsData) return new Map<string, SprintListDto>()
+    if (!iterationSprintsData) return new Map<string, PlanningSprintListDto>()
 
-    const lookup = new Map<string, SprintListDto>()
+    const lookup = new Map<string, PlanningSprintListDto>()
 
     iterationSprintsData.forEach((iteration) => {
       iteration.sprints?.forEach((sprint) => {
@@ -143,7 +143,8 @@ export const PlanningIntervalTeamSprintMappings = ({
       .filter((team) => team.type === 'Team')
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((team) => {
-        const sprintsByIteration: Record<string, SprintListDto | null> = {}
+        const sprintsByIteration: Record<string, PlanningSprintListDto | null> =
+          {}
 
         iterationSprintsData.forEach((iteration) => {
           const key = `${team.id}:${iteration.id}`
@@ -224,7 +225,7 @@ export const PlanningIntervalTeamSprintMappings = ({
           dataIndex: ['sprintsByIteration', iteration.id],
           key: iteration.id,
           width: 160,
-          render: (sprint: SprintListDto | null) => (
+          render: (sprint: PlanningSprintListDto | null) => (
             <SprintCell sprint={sprint} />
           ),
           onHeaderCell: () =>

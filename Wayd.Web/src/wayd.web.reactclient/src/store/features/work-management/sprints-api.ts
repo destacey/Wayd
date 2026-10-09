@@ -10,6 +10,8 @@ import {
   SprintBurnDto,
   SprintScopeDto,
   SprintWorkItemMetricsDto,
+  SprintType,
+  SprintTypeDto,
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 
@@ -261,6 +263,45 @@ export const sprintsApi = apiSlice.injectEndpoints({
         { type: QueryTags.ActivityLog, id },
       ],
     }),
+
+    getSprintTypes: builder.query<SprintTypeDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getSprintsClient().getSprintTypes()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The list only changes with a server release.
+      keepUnusedDataFor: 60 * 60,
+    }),
+
+    setSprintType: builder.mutation<
+      void,
+      { id: string; key: number; sprintType?: SprintType }
+    >({
+      queryFn: async ({ id, sprintType }) => {
+        try {
+          const data = await getSprintsClient().setSprintType(id, {
+            sprintType,
+          })
+          return { data }
+        } catch (error) {
+          logUnlessRefused(error)
+          return { error }
+        }
+      },
+      // Every list showing the sprint shows its type.
+      invalidatesTags: (result, error, { id, key }) => [
+        { type: QueryTags.Sprint, id: key },
+        { type: QueryTags.Sprint, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id },
+        QueryTags.TeamSprint,
+        QueryTags.ActiveSprint,
+      ],
+    }),
   }),
 })
 
@@ -306,4 +347,6 @@ export const {
   useReopenSprintMutation,
   useCorrectSprintActualDatesMutation,
   useSetSprintTeamDaysOffMutation,
+  useGetSprintTypesQuery,
+  useSetSprintTypeMutation,
 } = sprintsApi

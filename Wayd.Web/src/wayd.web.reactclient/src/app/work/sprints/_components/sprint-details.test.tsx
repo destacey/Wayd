@@ -1,5 +1,9 @@
 import { render, screen } from '@testing-library/react'
-import { SprintDetailsDto } from '@/src/services/wayd-api'
+import {
+  SprintDetailsDto,
+  SprintType,
+  SprintTypeSource,
+} from '@/src/services/wayd-api'
 import SprintDetails, { sprintOverlapWarning } from './sprint-details'
 
 jest.mock('@/src/components/common/planning/timeline-progress', () => {
@@ -26,6 +30,8 @@ const sprint: SprintDetailsDto = {
   canStart: false,
   canComplete: false,
   canReopen: false,
+  sprintType: SprintType.Standard,
+  sprintTypeSource: SprintTypeSource.Default,
 }
 
 describe('sprintOverlapWarning', () => {

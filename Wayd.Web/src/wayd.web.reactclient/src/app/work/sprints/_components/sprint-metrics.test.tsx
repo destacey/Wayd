@@ -13,6 +13,8 @@ import {
   SprintScopeDto,
   SprintWorkItemMetricsDto,
   SizingMethod,
+  SprintType,
+  SprintTypeSource,
 } from '@/src/services/wayd-api'
 import {
   useGetSprintMetricsQuery,
@@ -128,6 +130,8 @@ describe('SprintMetrics', () => {
     canStart: false,
     canComplete: false,
     canReopen: false,
+    sprintType: SprintType.Standard,
+    sprintTypeSource: SprintTypeSource.Default,
   }
 
   const completedSprint: SprintDetailsDto = {

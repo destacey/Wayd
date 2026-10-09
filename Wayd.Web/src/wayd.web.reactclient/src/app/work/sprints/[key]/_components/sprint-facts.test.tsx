@@ -1,9 +1,21 @@
 import { render, screen } from '@testing-library/react'
 import SprintFacts from './sprint-facts'
-import { SprintDetailsDto } from '@/src/services/wayd-api'
+import {
+  SprintDetailsDto,
+  SprintType,
+  SprintTypeSource,
+} from '@/src/services/wayd-api'
 import dayjs from 'dayjs'
 
 jest.unmock('dayjs')
+jest.mock('@/src/store/features/work-management/sprints-api', () => ({
+  useGetSprintTypesQuery: () => ({
+    data: [
+      { id: 1, code: 'Standard', name: 'Standard', order: 1 },
+      { id: 2, code: 'NonStandard', name: 'Non-standard', order: 2 },
+    ],
+  }),
+}))
 jest.mock('@/src/components/common/links/links-card', () => {
   const LinksCard = () => <div>Links Card</div>
   return LinksCard
@@ -24,6 +36,8 @@ const sprint: SprintDetailsDto = {
   canStart: false,
   canComplete: false,
   canReopen: false,
+  sprintType: SprintType.Standard,
+  sprintTypeSource: SprintTypeSource.Default,
 }
 
 // Instants arrive from the API as ISO strings despite the generated type.
@@ -58,6 +72,50 @@ describe('SprintFacts', () => {
 
     // Assert
     expect(screen.getByText('1 day')).toBeInTheDocument()
+  })
+
+  it('shows a default type without saying where it came from', () => {
+    // Arrange / Act
+    render(<SprintFacts sprint={sprint} />)
+
+    // Assert
+    expect(screen.getByText('Type')).toBeInTheDocument()
+    expect(screen.getByText('Standard')).toBeInTheDocument()
+    expect(screen.queryByText(/from the PI iteration/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/set by the team/)).not.toBeInTheDocument()
+  })
+
+  it('names the PI iteration as the source of a mapped type', () => {
+    // Arrange / Act
+    render(
+      <SprintFacts
+        sprint={{
+          ...sprint,
+          sprintType: SprintType.NonStandard,
+          sprintTypeSource: SprintTypeSource.PlanningInterval,
+        }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('Non-standard')).toBeInTheDocument()
+    expect(screen.getByText(/from the PI iteration/)).toBeInTheDocument()
+  })
+
+  it('names the team as the source of a type it set', () => {
+    // Arrange / Act
+    render(
+      <SprintFacts
+        sprint={{
+          ...sprint,
+          sprintType: SprintType.NonStandard,
+          sprintTypeSource: SprintTypeSource.Team,
+        }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText(/set by the team/)).toBeInTheDocument()
   })
 
   it('links the team as the sprint container', () => {

@@ -3,7 +3,11 @@ jest.unmock('dayjs')
 
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { SprintDetailsDto } from '@/src/services/wayd-api'
+import {
+  SprintDetailsDto,
+  SprintType,
+  SprintTypeSource,
+} from '@/src/services/wayd-api'
 import ChangeSprintLifecycleForm, {
   SprintLifecycleAction,
 } from './change-sprint-lifecycle-form'
@@ -66,6 +70,8 @@ const sprint: SprintDetailsDto = {
   canStart: true,
   canComplete: false,
   canReopen: false,
+  sprintType: SprintType.Standard,
+  sprintTypeSource: SprintTypeSource.Default,
   startWindow: window(-48),
 }
 

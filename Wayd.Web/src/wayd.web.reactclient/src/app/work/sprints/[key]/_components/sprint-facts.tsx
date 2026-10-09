@@ -3,8 +3,9 @@
 import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { SprintDetailsDto } from '@/src/services/wayd-api'
-import { Divider, Flex } from 'antd'
+import { SprintDetailsDto, SprintTypeSource } from '@/src/services/wayd-api'
+import { useGetSprintTypesQuery } from '@/src/store/features/work-management/sprints-api'
+import { Divider, Flex, Typography } from 'antd'
 import {
   calendarDaysBetween,
   formatCalendarDate,
@@ -13,7 +14,16 @@ import {
 import dayjs from 'dayjs'
 import Link from 'next/link'
 
+const { Text } = Typography
+
 const INSTANT_FORMAT = 'MMM D, YYYY h:mm A'
+
+// Why the sprint has its type; the default needs no explanation.
+const sprintTypeSourceNote: Record<SprintTypeSource, string | undefined> = {
+  [SprintTypeSource.Team]: 'set by the team',
+  [SprintTypeSource.PlanningInterval]: 'from the PI iteration',
+  [SprintTypeSource.Default]: undefined,
+}
 
 // Only what the team recorded, as the time it entered in the viewer's zone.
 const formatActual = (recorded: Date | undefined) =>
@@ -34,6 +44,11 @@ const SprintFacts = ({ sprint }: SprintFactsProps) => {
   // start or end — counted inclusively, so Mon-Fri is five days.
   const activeDays = sprintActiveDays(sprint)
   const days = calendarDaysBetween(activeDays.start, activeDays.end) + 1
+
+  const { data: sprintTypes } = useGetSprintTypesQuery()
+  const sprintTypeName =
+    sprintTypes?.find((t) => t.code === sprint.sprintType)?.name ??
+    sprint.sprintType
 
   return (
     <>
@@ -64,6 +79,16 @@ const SprintFacts = ({ sprint }: SprintFactsProps) => {
             {days.toLocaleString()} day{days === 1 ? '' : 's'}
           </LabeledContent>
         )}
+
+        <LabeledContent label="Type">
+          {sprintTypeName}
+          {sprintTypeSourceNote[sprint.sprintTypeSource] && (
+            <Text type="secondary">
+              {' '}
+              ({sprintTypeSourceNote[sprint.sprintTypeSource]})
+            </Text>
+          )}
+        </LabeledContent>
 
         {sprint.teamDaysOff.length > 0 && (
           <LabeledContent label="Team days off">

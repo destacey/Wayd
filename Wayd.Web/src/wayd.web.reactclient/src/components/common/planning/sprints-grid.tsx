@@ -6,6 +6,7 @@ import {
   renderTeamLink,
 } from '@/src/components/common/wayd-grid'
 import { SprintListDto } from '@/src/services/wayd-api'
+import { useGetSprintTypesQuery } from '@/src/store/features/work-management/sprints-api'
 import type { ColumnDef } from '../wayd-grid-core'
 import { FC, useMemo } from 'react'
 
@@ -24,8 +25,12 @@ const defaultSorting = [{ id: 'start', desc: true }]
 const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
   const { refetch, sprints = [] } = props
 
-  const columns = useMemo<ColumnDef<SprintListDto, any>[]>(
-    () => [
+  const { data: sprintTypes } = useGetSprintTypesQuery()
+  const columns = useMemo<ColumnDef<SprintListDto, any>[]>(() => {
+    const sprintTypeNames = new Map(
+      (sprintTypes ?? []).map((t) => [t.code, t.name]),
+    )
+    return [
       { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
       {
         id: 'name',
@@ -58,6 +63,14 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         meta: { filterType: 'set' },
       },
       {
+        id: 'sprintType',
+        accessorFn: (sprint) =>
+          sprintTypeNames.get(sprint.sprintType) ?? sprint.sprintType,
+        header: 'Type',
+        size: 140,
+        meta: { filterType: 'set' },
+      },
+      {
         id: 'start',
         accessorKey: 'start',
         header: 'Start',
@@ -85,9 +98,8 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         size: 175,
         meta: { columnType: 'dateTime' },
       },
-    ],
-    [props.hideTeam],
-  )
+    ]
+  }, [props.hideTeam, sprintTypes])
 
   return (
     <WaydGrid

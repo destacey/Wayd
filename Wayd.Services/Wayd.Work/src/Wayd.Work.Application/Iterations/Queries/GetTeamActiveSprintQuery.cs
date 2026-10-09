@@ -42,6 +42,10 @@ public sealed class GetTeamActiveSprintQueryHandler(
             return null;
 
         var details = active.Adapt<SprintDetailsDto>();
+
+        var sprintTypes = await _dispatcher.ResolveSprintTypes([active], cancellationToken);
+        (details.SprintType, details.SprintTypeSource) = sprintTypes[active.Id];
+
         await details.Resolve(active, timeline, _currentPrincipal, _dispatcher, now, cancellationToken);
 
         return details;

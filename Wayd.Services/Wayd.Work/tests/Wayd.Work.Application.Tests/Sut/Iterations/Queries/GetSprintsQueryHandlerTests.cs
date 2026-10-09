@@ -4,6 +4,7 @@ using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Application.Requests.Planning.Queries;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Models.Planning.Iterations;
@@ -23,6 +24,7 @@ public class GetSprintsQueryHandlerTests : IDisposable
     private readonly FakeWorkDbContext _dbContext;
     private readonly GetSprintsQueryHandler _handler;
     private readonly IterationFaker _iterationFaker;
+    private readonly Dictionary<Guid, IterationCategory> _mappedCategories = [];
 
     public GetSprintsQueryHandlerTests()
     {
@@ -32,6 +34,10 @@ public class GetSprintsQueryHandlerTests : IDisposable
         dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamsScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>());
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetSprintIterationCategoriesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetSprintIterationCategoriesQuery q, CancellationToken _) =>
+                _mappedCategories.Where(m => q.SprintIds.Contains(m.Key)).ToDictionary());
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
 
@@ -122,6 +128,36 @@ public class GetSprintsQueryHandlerTests : IDisposable
 
         // Assert
         result.Should().ContainSingle().Which.State.Id.Should().Be((int)IterationState.Active);
+    }
+
+    [Fact]
+    public async Task Handle_WorksOutEachSprintsType()
+    {
+        // Arrange — one IP-mapped, one the team marked non-standard, one neither
+        var teamId = Guid.NewGuid();
+        var ipSprint = NewSprint(teamId, 1, new LocalDate(2026, 9, 14));
+        var teamMarked = new IterationFaker().AsSprint().WithKey(2).WithTeamId(teamId)
+            .WithDateRange(new IterationDateRange(new LocalDate(2026, 9, 28), new LocalDate(2026, 10, 11)))
+            .WithSprintTypeOverride(SprintType.NonStandard)
+            .Generate();
+        var unmapped = NewSprint(teamId, 3, new LocalDate(2026, 10, 12));
+        _dbContext.AddIterations([ipSprint, teamMarked, unmapped]);
+        _mappedCategories[ipSprint.Id] = IterationCategory.InnovationAndPlanning;
+        _mappedCategories[teamMarked.Id] = IterationCategory.Development;
+
+        // Act
+        var result = await _handler.Handle(new GetSprintsQuery(teamId), TestContext.Current.CancellationToken);
+
+        // Assert
+        var ip = result.Single(s => s.Id == ipSprint.Id);
+        ip.SprintType.Should().Be(SprintType.NonStandard);
+        ip.SprintTypeSource.Should().Be(SprintTypeSource.PlanningInterval);
+        var marked = result.Single(s => s.Id == teamMarked.Id);
+        marked.SprintType.Should().Be(SprintType.NonStandard);
+        marked.SprintTypeSource.Should().Be(SprintTypeSource.Team);
+        var standard = result.Single(s => s.Id == unmapped.Id);
+        standard.SprintType.Should().Be(SprintType.Standard);
+        standard.SprintTypeSource.Should().Be(SprintTypeSource.Default);
     }
 
     [Fact]

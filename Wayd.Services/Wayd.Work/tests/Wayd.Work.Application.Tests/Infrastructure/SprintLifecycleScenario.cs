@@ -3,8 +3,10 @@ using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Application.Requests.Planning.Queries;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Tests.Shared;
@@ -45,6 +47,10 @@ public sealed class SprintLifecycleScenario : IDisposable
         Dispatcher
             .Setup(d => d.Send(It.IsAny<IsTeamMemberQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IsTeamMemberQuery q, CancellationToken _) => q.TeamId == Team.Id && q.EmployeeId == EmployeeId && IsMember);
+        Dispatcher
+            .Setup(d => d.Send(It.IsAny<GetSprintIterationCategoriesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetSprintIterationCategoriesQuery q, CancellationToken _) =>
+                MappedCategories.Where(m => q.SprintIds.Contains(m.Key)).ToDictionary());
 
         SchedulingSettings
             .Setup(s => s.Get(It.IsAny<CancellationToken>()))
@@ -75,6 +81,9 @@ public sealed class SprintLifecycleScenario : IDisposable
     public bool CanUpdate { get; set; } = true;
     public bool IsMember { get; set; } = true;
     public bool IsAdministrator { get; set; }
+
+    /// <summary>The category of the planning interval iteration each mapped sprint is in, keyed by sprint id.</summary>
+    public Dictionary<Guid, IterationCategory> MappedCategories { get; } = [];
 
     public static Instant InChicago(LocalDate date, int hour) =>
         date.At(new LocalTime(hour, 0)).InZoneLeniently(Chicago).ToInstant();

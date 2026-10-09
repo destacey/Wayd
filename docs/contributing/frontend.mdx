@@ -64,6 +64,9 @@ has a team time zone that can differ from the viewer's, label which zone a time 
 
 `wayd-api.ts` gets the `string` type from an override of the generator's interface template,
 `Wayd.Web.Api/NSwagTemplates/Interface.liquid`: NSwag's single `dateTimeType` setting covers both formats.
+An array of calendar dates (`List<LocalDate>`, such as a sprint's team days off) is typed `string[]` the
+same way. The template cannot see an array's item format, so an array of instants would be typed
+`string[]` too; the API publishes none, and its elements would arrive as strings regardless.
 
 ## Styling
 

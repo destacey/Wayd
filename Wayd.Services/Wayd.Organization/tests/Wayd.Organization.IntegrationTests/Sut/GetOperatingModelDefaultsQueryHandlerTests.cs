@@ -43,7 +43,7 @@ public sealed class GetOperatingModelDefaultsQueryHandlerTests(SqlServerDbContex
 
             var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, "America/New_York", actor, now);
             art.SetOperatingModel(ParentMove, "America/Chicago", actor, now).IsSuccess.Should().BeTrue();
-            var team = Team.Create("Cards", new TeamCode("CARDS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, actor, now);
+            var team = Team.Create("Cards", new TeamCode("CARDS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, actor, now);
 
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddAsync(team, cancellationToken);

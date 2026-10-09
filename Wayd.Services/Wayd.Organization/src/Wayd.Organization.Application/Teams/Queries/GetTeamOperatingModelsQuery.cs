@@ -21,11 +21,11 @@ public sealed class GetTeamOperatingModelsQueryHandler(IOrganizationDbContext or
             .OrderByDescending(m => m.DateRange.Start)
             .ToListAsync(cancellationToken);
 
-        return [.. models.Select(model =>
+        return await models.Select(model =>
         {
             var dto = model.Adapt<TeamOperatingModelDetailsDto>();
             dto.TeamId = request.TeamId;
-            return dto;
-        })];
+            return (dto, model);
+        }).WithHolidayCalendars(_organizationDbContext, cancellationToken);
     }
 }

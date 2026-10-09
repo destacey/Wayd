@@ -13,7 +13,11 @@ public sealed class GetTeamScheduleHistoryQueryHandler(IOrganizationDbContext or
             .Where(t => t.Id == request.TeamId)
             .SelectMany(t => t.OperatingModels)
             .OrderBy(m => m.DateRange.Start)
-            .Select(m => new TeamSchedulePeriodDto(m.DateRange.Start, m.DateRange.End, m.TimeZone, m.CommitmentGraceDays, m.SizingMethod))
+            .Select(m => new TeamSchedulePeriodDto(m.DateRange.Start, m.DateRange.End, m.TimeZone, m.CommitmentGraceDays, m.SizingMethod)
+            {
+                WorkingWeek = m.WorkingWeek,
+                HolidayCalendarId = m.HolidayCalendarId,
+            })
             .ToListAsync(cancellationToken);
     }
 }

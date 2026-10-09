@@ -1,5 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { SchedulingSettingsDto, TimeZoneDto } from '@/src/services/wayd-api'
+import {
+  IsoDayOfWeek,
+  SchedulingSettingsDto,
+  TimeZoneDto,
+} from '@/src/services/wayd-api'
 import SchedulingSettingsForm, {
   SchedulingSettingsFormProps,
 } from './scheduling-settings-form'
@@ -12,6 +16,26 @@ jest.mock('@/src/store/features/admin/system-settings-api', () => ({
   useUpdateSchedulingSettingsMutation: () => [mockUpdate, { isLoading: false }],
 }))
 
+jest.mock('@/src/components/contexts/auth', () => ({
+  __esModule: true,
+  default: () => ({ hasPermissionClaim: () => true }),
+}))
+
+jest.mock('@/src/store/features/organization/holiday-calendars-api', () => ({
+  useGetHolidayCalendarsQuery: () => ({
+    data: [
+      {
+        id: 'cal-us',
+        key: 1,
+        name: 'United States',
+        holidayCount: 11,
+        isDefault: false,
+      },
+    ],
+    isLoading: false,
+  }),
+}))
+
 jest.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))
@@ -19,6 +43,13 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 const settings: SchedulingSettingsDto = {
   defaultTimeZone: 'America/Chicago',
   defaultCommitmentGraceDays: 1,
+  defaultWorkingDays: [
+    IsoDayOfWeek.Monday,
+    IsoDayOfWeek.Tuesday,
+    IsoDayOfWeek.Wednesday,
+    IsoDayOfWeek.Thursday,
+    IsoDayOfWeek.Friday,
+  ],
 }
 
 const timeZones: TimeZoneDto[] = [
@@ -80,9 +111,38 @@ describe('SchedulingSettingsForm', () => {
       expect(mockUpdate).toHaveBeenCalledWith({
         defaultTimeZone: 'America/Chicago',
         defaultCommitmentGraceDays: 3,
+        defaultWorkingDays: settings.defaultWorkingDays,
       }),
     )
     expect(mockSuccess).toHaveBeenCalled()
+  })
+
+  it('saves a changed working week', async () => {
+    // Arrange
+    mockUpdate.mockResolvedValue({ data: undefined })
+    renderForm()
+
+    // Act
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sun' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Fri' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    })
+
+    // Assert
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultWorkingDays: [
+            IsoDayOfWeek.Monday,
+            IsoDayOfWeek.Tuesday,
+            IsoDayOfWeek.Wednesday,
+            IsoDayOfWeek.Thursday,
+            IsoDayOfWeek.Sunday,
+          ],
+        }),
+      ),
+    )
   })
 
   it('reports a validation rejection as one', async () => {

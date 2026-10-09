@@ -43,6 +43,7 @@ export {
   type IterationHealthParams,
   type IterationHealthResult,
   type SprintCommitment,
+  type IdealPoint,
 } from './iteration-health'
 export { saveElementAsImage } from './save-element-as-image'
 export { toFileName } from './file-name'

@@ -27384,6 +27384,62 @@
         ]
       }
     },
+    "/api/work/sprints/{id}/team-days-off": {
+      "put": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Set a sprint's team days off.",
+        "description": "Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.",
+        "operationId": "Sprints_SetTeamDaysOff",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSprintTeamDaysOffRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/actual-dates": {
       "put": {
         "tags": [
@@ -29888,6 +29944,478 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/holiday-calendars": {
+      "get": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Get the holiday calendars, by name.",
+        "operationId": "HolidayCalendars_GetList",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HolidayCalendarListDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Create a holiday calendar with no holidays.",
+        "operationId": "HolidayCalendars_Create",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHolidayCalendarRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/holiday-calendars/{idOrKey}": {
+      "get": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Get a holiday calendar with its holidays.",
+        "operationId": "HolidayCalendars_Get",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HolidayCalendarDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/holiday-calendars/{idOrKey}/activities": {
+      "get": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Get a holiday calendar's activity history, newest first: its creation, detail changes, and holidays being added, changed or removed.",
+        "operationId": "HolidayCalendars_GetActivities",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/holiday-calendars/{id}": {
+      "put": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Rename a holiday calendar or change its description.",
+        "operationId": "HolidayCalendars_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHolidayCalendarRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Delete a holiday calendar with its holidays.",
+        "description": "Refused while a team operating model uses the calendar or it is the system default.",
+        "operationId": "HolidayCalendars_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/holiday-calendars/{id}/holidays": {
+      "post": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Add a holiday to a calendar.",
+        "description": "A calendar holds at most one holiday per date.",
+        "operationId": "HolidayCalendars_AddHoliday",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HolidayRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/holiday-calendars/{id}/holidays/{holidayId}": {
+      "put": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Move a holiday to another date or rename it.",
+        "operationId": "HolidayCalendars_ChangeHoliday",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "holidayId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HolidayRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "HolidayCalendars"
+        ],
+        "summary": "Remove a holiday from a calendar.",
+        "operationId": "HolidayCalendars_RemoveHoliday",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "holidayId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
           },
           "400": {
             "description": "",
@@ -57349,6 +57877,7 @@
           "key",
           "start",
           "end",
+          "teamDaysOff",
           "overlapsPreviousSprint",
           "overlapsNextSprint",
           "canManageSprint",
@@ -57407,6 +57936,13 @@
           "timeZone": {
             "type": "string",
             "nullable": true
+          },
+          "teamDaysOff": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
           },
           "overlapsPreviousSprint": {
             "type": "boolean"
@@ -57544,6 +58080,7 @@
         "required": [
           "timeZone",
           "totals",
+          "ideal",
           "items",
           "sprintId",
           "sizingMethod",
@@ -57594,6 +58131,12 @@
           },
           "totals": {
             "$ref": "#/components/schemas/SprintScopeTotalsDto"
+          },
+          "ideal": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintIdealPointDto"
+            }
           },
           "items": {
             "type": "array",
@@ -57680,6 +58223,24 @@
           }
         }
       },
+      "SprintIdealPointDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "at",
+          "remaining"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "SprintScopeItemDto": {
         "type": "object",
         "additionalProperties": false,
@@ -57757,6 +58318,7 @@
           "timeZone",
           "committed",
           "points",
+          "ideal",
           "sprintId",
           "sizingMethod",
           "effectiveStart",
@@ -57794,6 +58356,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SprintBurnPointDto"
+            }
+          },
+          "ideal": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintIdealPointDto"
             }
           }
         }
@@ -57854,6 +58422,24 @@
             "description": "When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall\nin the sprint's completion window, which the sprint details report.",
             "format": "date-time",
             "nullable": true
+          }
+        }
+      },
+      "SetSprintTeamDaysOffRequest": {
+        "type": "object",
+        "description": "Replaces a sprint's team days off.",
+        "additionalProperties": false,
+        "required": [
+          "teamDaysOff"
+        ],
+        "properties": {
+          "teamDaysOff": {
+            "type": "array",
+            "description": "The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list\nclears them. Holidays from the team's calendar and days outside its working week need not be listed.",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
           }
         }
       },
@@ -59390,6 +59976,196 @@
           "Done",
           "Removed"
         ]
+      },
+      "HolidayCalendarListDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "holidayCount",
+          "isDefault"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "holidayCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
+      },
+      "HolidayCalendarDetailsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "isDefault",
+          "operatingModelCount",
+          "holidays"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "operatingModelCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "holidays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HolidayDto"
+            }
+          }
+        }
+      },
+      "HolidayDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "date",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "CreateHolidayCalendarRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The calendar's name, unique across calendars, such as \"United States\".",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the calendar covers, such as the region or office.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "UpdateHolidayCalendarRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The calendar's id, which must match the route.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "description": "The calendar's name, unique across calendars.",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the calendar covers, such as the region or office.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "HolidayRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "name"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The day off. A calendar holds at most one holiday per date.",
+            "format": "date",
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "What the day is, such as \"New Year's Day\".",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          }
+        }
       },
       "TeamMemberRoleDto": {
         "type": "object",
@@ -61124,6 +61900,7 @@
           "sizingMethod",
           "timeZone",
           "commitmentGraceDays",
+          "workingDays",
           "isCurrent"
         ],
         "properties": {
@@ -61164,17 +61941,56 @@
             "type": "integer",
             "format": "int32"
           },
+          "workingDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
+          },
+          "holidayCalendar": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
           "isCurrent": {
             "type": "boolean"
           }
         }
+      },
+      "IsoDayOfWeek": {
+        "type": "string",
+        "description": "Equates the days of the week with their numerical value according to\nISO-8601. This corresponds with System.DayOfWeek except for Sunday, which\nis 7 in the ISO numbering and 0 in System.DayOfWeek.",
+        "x-enumNames": [
+          "None",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "enum": [
+          "None",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ]
       },
       "OperatingModelDefaultsDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "timeZone",
-          "commitmentGraceDays"
+          "commitmentGraceDays",
+          "workingDays"
         ],
         "properties": {
           "timeZone": {
@@ -61188,6 +62004,12 @@
           "commitmentGraceDays": {
             "type": "integer",
             "format": "int32"
+          },
+          "workingDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
           }
         }
       },
@@ -61237,6 +62059,21 @@
             "format": "int32",
             "maximum": 14.0,
             "minimum": 0.0
+          },
+          "workingDays": {
+            "type": "array",
+            "description": "The days of the week the team works. At least one. Omit to carry over the current model's working week.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
+          },
+          "holidayCalendarId": {
+            "type": "string",
+            "description": "The holiday calendar whose holidays the team takes off, or null for the system default calendar.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
           }
         }
       },
@@ -61278,6 +62115,21 @@
             "format": "int32",
             "maximum": 14.0,
             "minimum": 0.0
+          },
+          "workingDays": {
+            "type": "array",
+            "description": "The days of the week the team works. At least one. Omit to keep the model's working week.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
+          },
+          "holidayCalendarId": {
+            "type": "string",
+            "description": "The holiday calendar whose holidays the team takes off, or null for the system default calendar.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
           }
         }
       },
@@ -65450,6 +66302,7 @@
         "additionalProperties": false,
         "required": [
           "defaultTimeZone",
+          "defaultWorkingDays",
           "defaultCommitmentGraceDays"
         ],
         "properties": {
@@ -65459,6 +66312,20 @@
           "defaultCommitmentGraceDays": {
             "type": "integer",
             "format": "int32"
+          },
+          "defaultWorkingDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
+          },
+          "defaultHolidayCalendar": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           }
         }
       },
@@ -65482,6 +66349,21 @@
             "format": "int32",
             "maximum": 14.0,
             "minimum": 0.0
+          },
+          "defaultWorkingDays": {
+            "type": "array",
+            "description": "The days of the week new team operating models work. At least one. Omit to keep the saved value.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
+          },
+          "defaultHolidayCalendarId": {
+            "type": "string",
+            "description": "The holiday calendar of every team operating model that has none of its own, or null for none.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
           }
         }
       },

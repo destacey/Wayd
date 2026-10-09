@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Models.Organizations;
 using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
@@ -30,10 +31,10 @@ public class GetTeamsScheduleHistoryQueryHandlerTests : IDisposable
     {
         // Arrange
         var moved = _teamFaker.Generate();
-        moved.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        moved.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        moved.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        moved.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
         var other = _teamFaker.Generate();
-        other.SetOperatingModel(FirstStart, Methodology.Kanban, SizingMethod.Count, "Europe/London", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        other.SetOperatingModel(FirstStart, Methodology.Kanban, SizingMethod.Count, "Europe/London", 1, WorkingWeek.MondayToFriday, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
         var notRequested = _teamFaker.Generate();
         _dbContext.AddTeam(moved);
         _dbContext.AddTeam(other);

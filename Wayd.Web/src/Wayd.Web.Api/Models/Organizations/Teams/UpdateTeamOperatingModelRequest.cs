@@ -26,9 +26,19 @@ public sealed record UpdateTeamOperatingModelRequest
     /// </summary>
     public int CommitmentGraceDays { get; set; }
 
+    /// <summary>
+    /// The days of the week the team works. At least one. Omit to keep the model's working week.
+    /// </summary>
+    public List<IsoDayOfWeek>? WorkingDays { get; set; }
+
+    /// <summary>
+    /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
+    /// </summary>
+    public Guid? HolidayCalendarId { get; set; }
+
     public UpdateTeamOperatingModelCommand ToUpdateTeamOperatingModelCommand(Guid teamId, Guid operatingModelId)
     {
-        return new UpdateTeamOperatingModelCommand(teamId, operatingModelId, Methodology, SizingMethod, TimeZone, CommitmentGraceDays);
+        return new UpdateTeamOperatingModelCommand(teamId, operatingModelId, Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays, HolidayCalendarId);
     }
 }
 
@@ -50,5 +60,9 @@ public sealed class UpdateTeamOperatingModelRequestValidator : CustomValidator<U
 
         RuleFor(r => r.CommitmentGraceDays)
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
+
+        RuleFor(r => r.WorkingDays)
+            .IsWorkingWeek()
+            .When(r => r.WorkingDays is not null);
     }
 }

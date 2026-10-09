@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NodaTime;
+using NodaTime.Text;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -573,6 +576,23 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
         // The open-sprint index below only catches two different sprints.
         builder.Property(i => i.Started).IsConcurrencyToken();
         builder.Property(i => i.Completed).IsConcurrencyToken();
+
+        // A sprint holds a handful of days, read only with the sprint, so one ISO-date list column rather
+        // than a table.
+        builder.Ignore(i => i.TeamDaysOff);
+        builder.Property<List<LocalDate>>("_teamDaysOff")
+            .HasColumnName("TeamDaysOff")
+            .HasColumnType("varchar(max)")
+            .IsRequired()
+            .HasConversion(
+                days => string.Join(',', days.Select(d => LocalDatePattern.Iso.Format(d))),
+                value => string.IsNullOrEmpty(value)
+                    ? new List<LocalDate>()
+                    : value.Split(',', StringSplitOptions.None).Select(d => LocalDatePattern.Iso.Parse(d).Value).ToList(),
+                new ValueComparer<List<LocalDate>>(
+                    (a, b) => a!.SequenceEqual(b!),
+                    days => days.Aggregate(0, (hash, d) => HashCode.Combine(hash, d)),
+                    days => days.ToList()));
 
         // Declared because EF otherwise drops the foreign key's index as covered by the filtered one below,
         // which only holds open sprints.

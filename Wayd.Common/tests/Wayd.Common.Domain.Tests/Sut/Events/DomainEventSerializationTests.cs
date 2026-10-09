@@ -869,7 +869,7 @@ public sealed class DomainEventSerializationTests
             id: Guid.NewGuid(),
             key: 42,
             period: new FlexibleDateRange(new LocalDate(2026, 1, 1)),
-            settings: new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Size, "America/Chicago", 2),
+            settings: new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Size, "America/Chicago", 2, WorkingWeek.MondayToFriday.Days),
             supersededPeriod: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
             EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
@@ -884,6 +884,63 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void TeamOperatingModelCorrectedEvent_PayloadWrittenBeforeHolidayCalendars_StillDeserializes()
+    {
+        // Arrange — the 1.1 shape, which the working-days backfill writes: working days, no holiday calendar
+        var payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 42,
+              "Period": { "Start": "2026-01-01", "End": null },
+              "Settings": { "Methodology": 1, "SizingMethod": 1, "TimeZone": "UTC", "CommitmentGraceDays": 1, "WorkingDays": [1, 2, 3, 4, 5] },
+              "Previous": { "Methodology": 1, "SizingMethod": 1, "TimeZone": "UTC", "CommitmentGraceDays": 1, "WorkingDays": null },
+              "Timestamp": "2026-10-08T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 1, "UserId": "11111111-1111-1111-1111-111111111111", "EmployeeId": null },
+              "EventVersion": "1.1"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<TeamOperatingModelCorrectedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Settings.Should().Be(new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday.Days));
+        restored.Settings.HolidayCalendarId.Should().BeNull();
+        restored.Previous.WorkingDays.Should().BeNull();
+        restored.EventVersion.Should().Be("1.1");
+    }
+
+    [Fact]
+    public void TeamOperatingModelSetEvent_PayloadWrittenBeforeWorkingDays_StillDeserializes()
+    {
+        // Arrange
+        var payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 42,
+              "Period": { "Start": "2026-01-01", "End": null },
+              "Settings": { "Methodology": 2, "SizingMethod": 4, "TimeZone": "America/Chicago", "CommitmentGraceDays": 2 },
+              "SupersededPeriod": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<TeamOperatingModelSetEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Settings.Should().Be(new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Size, "America/Chicago", 2));
+        restored.Settings.WorkingDays.Should().BeNull();
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
     public void TeamOperatingModelCorrectedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange
@@ -891,8 +948,8 @@ public sealed class DomainEventSerializationTests
             id: Guid.NewGuid(),
             key: 42,
             period: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
-            settings: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Effort, "Europe/London", 1),
-            previous: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Count, "UTC", 0),
+            settings: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Effort, "Europe/London", 1, WorkingWeek.MondayToFriday.Days),
+            previous: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Count, "UTC", 0, WorkingWeek.MondayToFriday.Days),
             EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 

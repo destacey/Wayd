@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Dtos;
 
@@ -25,4 +26,10 @@ public sealed record OperatingModelDefaultsDto
     /// </summary>
     [Required]
     public int CommitmentGraceDays { get; init; }
+
+    /// <summary>
+    /// The system default working days, Monday first.
+    /// </summary>
+    [Required]
+    public required IReadOnlyList<IsoDayOfWeek> WorkingDays { get; init; }
 }

@@ -14,9 +14,10 @@ import { PresetStatusColorType } from 'antd/es/_util/colors'
 const commitmentHealthTooltip = (
   <div>
     Health compares the work completed, as a share of what the team committed
-    to, with the share of the time elapsed from the commitment point to the end
-    of the sprint — where the ideal line on the burn-down expects it:
-    <br />• On Track: Within 10% of the time elapsed
+    to, with the share the ideal line on the burn-down expects done by now. The
+    line falls only on the team&apos;s working days, so weekends, holidays and
+    team days off expect no progress:
+    <br />• On Track: Within 10% of the ideal line
     <br />• At Risk: 10-25% behind
     <br />• Off Track: More than 25% behind
   </div>
@@ -42,9 +43,9 @@ export interface IterationHealthIndicatorProps {
   /** Completed points/items */
   completed: number
   /**
-   * The sprint's commitment, and the instants its burn-down's ideal line runs
-   * between. When given, health is measured against it — completed as a share
-   * of committed, against the time elapsed between those instants — so work
+   * The sprint's commitment, and its burn-down's ideal line. When given,
+   * health is measured against it — completed as a share of committed, against
+   * the share the ideal line expects done by now — so work
    * added or re-estimated later doesn't count against the team. Without it,
    * health is measured against `total` over the iteration's days.
    */

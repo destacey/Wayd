@@ -117,13 +117,20 @@ public static class TeamSprintTimelineLoader
 
     private static TeamSprintSchedules Schedules(IEnumerable<TeamSchedulePeriodDto> periods, SchedulingSettings defaults) =>
         new(
-            periods.Select(p => new SprintSchedulePeriod(p.Start, p.End, new SprintSchedule(Zone(p.TimeZone), p.CommitmentGraceDays, p.SizingMethod))),
+            periods.Select(p => new SprintSchedulePeriod(p.Start, p.End, new SprintSchedule(Zone(p.TimeZone), p.CommitmentGraceDays, p.SizingMethod)
+            {
+                WorkingWeek = p.WorkingWeek,
+                HolidayCalendarId = p.HolidayCalendarId,
+            })),
             Fallback(defaults));
 
     // A day a team has no operating model, like a sprint with no team, is counted by item: there is no
     // sizing method to say which estimate to read.
     private static SprintSchedule Fallback(SchedulingSettings defaults) =>
-        new(Zone(defaults.DefaultTimeZone), defaults.DefaultCommitmentGraceDays, SizingMethod.Count);
+        new(Zone(defaults.DefaultTimeZone), defaults.DefaultCommitmentGraceDays, SizingMethod.Count)
+        {
+            WorkingWeek = defaults.DefaultWorkingWeek(),
+        };
 
     // Zones are validated when saved; an id the tz database later drops falls back rather than failing
     // every read of the team's sprints.

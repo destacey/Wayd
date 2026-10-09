@@ -10,8 +10,8 @@ using Wayd.Work.Domain.Models.SprintScope;
 namespace Wayd.Work.Application.WorkItems.Queries;
 
 /// <summary>
-/// Gets a sprint's burn-up and burn-down from work item history. Null when there is no such sprint, or it has
-/// no planned dates to measure between.
+/// Gets a sprint's burn-up and burn-down from work item history, with an ideal line that falls only on the
+/// days the team works. Null when there is no such sprint, or it has no planned dates to measure between.
 /// </summary>
 public sealed record GetSprintBurnQuery : IQuery<SprintBurnDto?>
 {
@@ -41,7 +41,7 @@ public sealed class GetSprintBurnQueryHandler(
         if (history is null)
             return null;
 
-        var burn = SprintBurn.Build(history.Window, history.SizingMethod, history.Periods, _dateTimeProvider.Now);
+        var burn = SprintBurn.Build(history.Window, history.SizingMethod, history.Periods, history.WorkingDays, _dateTimeProvider.Now);
 
         return new SprintBurnDto
         {
@@ -53,6 +53,7 @@ public sealed class GetSprintBurnQueryHandler(
             HistoryIncomplete = history.HistoryIncomplete,
             Committed = SprintScopeMeasureDto.From(burn.Committed),
             Points = [.. burn.Points.Select(SprintBurnPointDto.From)],
+            Ideal = [.. burn.Ideal.Select(SprintIdealPointDto.From)],
         };
     }
 }

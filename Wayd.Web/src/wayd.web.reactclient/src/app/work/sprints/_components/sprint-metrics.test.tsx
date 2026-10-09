@@ -123,6 +123,7 @@ describe('SprintMetrics', () => {
     },
     overlapsPreviousSprint: false,
     overlapsNextSprint: false,
+    teamDaysOff: [],
     canManageSprint: false,
     canStart: false,
     canComplete: false,
@@ -166,6 +167,7 @@ describe('SprintMetrics', () => {
     timeZone: 'UTC',
     hasTeam: true,
     historyIncomplete: false,
+    ideal: [],
     totals: {
       total: measure(12, 120),
       committed: measure(9, 90),

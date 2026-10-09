@@ -55,6 +55,7 @@ export enum QueryTags {
   TeamSprintOption = 'Organizations.TeamSprintOption',
   TeamMembership = 'Organizations.TeamMembership',
   TeamMemberRole = 'Organizations.TeamMemberRole',
+  HolidayCalendar = 'Organizations.HolidayCalendar',
   TeamRisk = 'Organizations.TeamRisk',
   TeamOperatingModel = 'Organizations.TeamOperatingModel',
   FunctionalOrganizationChart = 'Organizations.FunctionalOrganizationChart',

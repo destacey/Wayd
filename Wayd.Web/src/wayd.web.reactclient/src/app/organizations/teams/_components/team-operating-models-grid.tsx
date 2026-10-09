@@ -11,6 +11,7 @@ import {
 } from '@/src/store/features/organizations/team-api'
 import { TeamOperatingModelDetailsDto } from '@/src/services/wayd-api'
 import { sizingMethodLabel } from '@/src/utils'
+import { formatWorkingDays } from '@/src/components/common/scheduling'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
@@ -162,6 +163,18 @@ const TeamOperatingModelsGrid = ({
         id: 'commitmentGraceDays',
         accessorKey: 'commitmentGraceDays',
         header: 'Grace Days',
+      },
+      {
+        id: 'workingDays',
+        accessorFn: (row) => formatWorkingDays(row.workingDays),
+        header: 'Working Days',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'holidayCalendar',
+        accessorFn: (row) => row.holidayCalendar?.name ?? 'System default',
+        header: 'Holiday Calendar',
+        meta: { filterType: 'set' },
       },
       {
         id: 'isCurrent',

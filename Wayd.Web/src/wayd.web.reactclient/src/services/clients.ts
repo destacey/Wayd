@@ -13,6 +13,7 @@ import {
   RolesClient,
   TeamsClient,
   TeamMemberRolesClient,
+  HolidayCalendarsClient,
   TeamsOfTeamsClient,
   UsersClient,
   WorkStatusesClient,
@@ -442,6 +443,8 @@ export const getTeamsOfTeamsClient = () =>
   new TeamsOfTeamsClient('', axiosClient)
 export const getTeamMemberRolesClient = () =>
   new TeamMemberRolesClient('', axiosClient)
+export const getHolidayCalendarsClient = () =>
+  new HolidayCalendarsClient('', axiosClient)
 
 // PLANNING
 export const getPlanningIntervalsClient = () =>

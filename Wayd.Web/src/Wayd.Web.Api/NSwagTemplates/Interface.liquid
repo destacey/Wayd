@@ -3,6 +3,10 @@
   `format: date` property (a NodaTime LocalDate) is typed `string`: the generator's one DateTimeType
   setting covers both `date` and `date-time`, and with interface types nothing parses a response, so a
   calendar date arrives as a plain "2026-09-28" string. Instants (`date-time`) keep the configured type.
+
+  An array of dates is typed `string[]` too. The template model exposes no item format, so this cannot
+  tell an array of calendar dates from one of instants; it is right for both at runtime, where every
+  element arrives as a string, and the API publishes no instant arrays.
 {%- endcomment -%}
 {%- if HasDescription -%}
 /** {{ Description }} */
@@ -12,7 +16,7 @@
 {%-     if property.HasDescription -%}
     /** {{ property.Description }} */
 {%-     endif -%}
-    {% if property.IsReadOnly %}readonly {% endif %}{{ property.InterfaceName }}{% if property.IsOptional %}?{% endif %}: {% if property.Format == "date" %}string{% else %}{{ property.Type }}{% endif %}{{ property.TypePostfix }};
+    {% if property.IsReadOnly %}readonly {% endif %}{{ property.InterfaceName }}{% if property.IsOptional %}?{% endif %}: {% if property.Format == "date" %}string{% elsif property.Type == "Date[]" %}string[]{% else %}{{ property.Type }}{% endif %}{{ property.TypePostfix }};
 {%- endfor -%}
 {%- if HasIndexerProperty -%}
 

@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Models.Organizations;
 using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -51,7 +52,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Scrum,
             SizingMethod.StoryPoints,
             "America/Chicago",
-            2);
+            2,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -83,7 +86,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -107,7 +112,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Scrum,
             SizingMethod.StoryPoints,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -128,7 +135,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2023, 1, 1);
-        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
         initialResult.IsSuccess.Should().BeTrue();
         var initialModel = initialResult.Value;
 
@@ -140,7 +147,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -172,7 +181,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Try to create a model with earlier start date
         var earlierStartDate = new LocalDate(2023, 12, 31);
@@ -182,7 +191,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -202,7 +213,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, EventActor.System, _dateTimeProvider.Now);
 
         // Try to create a model with same start date
         var command = new SetTeamOperatingModelCommand(
@@ -211,7 +222,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -220,6 +233,61 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("start date must be after");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutWorkingDays_CarriesOverTheCurrentWorkingWeek()
+    {
+        // Arrange
+        var sundayToThursday = WorkingWeek.Create([NodaTime.IsoDayOfWeek.Sunday, NodaTime.IsoDayOfWeek.Monday, NodaTime.IsoDayOfWeek.Tuesday, NodaTime.IsoDayOfWeek.Wednesday, NodaTime.IsoDayOfWeek.Thursday]).Value;
+        var team = _teamFaker.Generate();
+        team.SetOperatingModel(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, sundayToThursday, null, EventActor.System, _dateTimeProvider.Now);
+        _dbContext.AddTeam(team);
+        var command = new SetTeamOperatingModelCommand(team.Id, new LocalDate(2025, 1, 1), Methodology.Kanban, SizingMethod.Count, "UTC", 1, null, null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.OperatingModels.Single(m => m.IsCurrent).WorkingWeek.Should().Be(sundayToThursday);
+    }
+
+    [Fact]
+    public async Task Handle_WithAnUnknownHolidayCalendar_FailsWithoutSaving()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        _dbContext.AddTeam(team);
+        var command = new SetTeamOperatingModelCommand(team.Id, new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints,
+            "UTC", 1, WorkingWeek.MondayToFriday.Days, Guid.NewGuid());
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        team.OperatingModels.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WithAnExistingHolidayCalendar_SetsItOnTheModel()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        _dbContext.AddTeam(team);
+        var calendar = new HolidayCalendarFaker().Generate();
+        _dbContext.AddHolidayCalendar(calendar);
+        var command = new SetTeamOperatingModelCommand(team.Id, new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints,
+            "UTC", 1, WorkingWeek.MondayToFriday.Days, calendar.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.OperatingModels.Single().HolidayCalendarId.Should().Be(calendar.Id);
     }
 
     public void Dispose()

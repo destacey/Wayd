@@ -1,15 +1,23 @@
 ﻿using Wayd.Common.Application.SystemSettings.Scheduling;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Models.Organizations;
+using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
+/// <summary>
+/// Corrects one of a team's operating models for its whole period. <paramref name="WorkingDays"/> left null keeps
+/// the model's working week.
+/// </summary>
 public sealed record UpdateTeamOperatingModelCommand(
     Guid TeamId,
     Guid OperatingModelId,
     Methodology Methodology,
     SizingMethod SizingMethod,
     string TimeZone,
-    int CommitmentGraceDays) : ICommand;
+    int CommitmentGraceDays,
+    IReadOnlyList<IsoDayOfWeek>? WorkingDays,
+    Guid? HolidayCalendarId) : ICommand;
 
 public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<UpdateTeamOperatingModelCommand>
 {
@@ -35,6 +43,10 @@ public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<U
 
         RuleFor(c => c.CommitmentGraceDays)
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
+
+        RuleFor(c => c.WorkingDays)
+            .IsWorkingWeek()
+            .When(c => c.WorkingDays is not null);
     }
 }
 
@@ -73,12 +85,24 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
                 return Result.Failure($"Operating model with Id {request.OperatingModelId} for Team {request.TeamId} not found.");
             }
 
+            var workingWeek = request.WorkingDays is null
+                ? Result.Success(team.OperatingModels.Single(m => m.Id == request.OperatingModelId).WorkingWeek)
+                : WorkingWeek.Create(request.WorkingDays);
+            if (workingWeek.IsFailure)
+                return Result.Failure(workingWeek.Error);
+
+            if (request.HolidayCalendarId is { } calendarId
+                && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
+                return Result.Failure($"Holiday calendar {calendarId} not found.");
+
             var updateResult = team.CorrectOperatingModel(
                 request.OperatingModelId,
                 request.Methodology,
                 request.SizingMethod,
                 request.TimeZone,
                 request.CommitmentGraceDays,
+                workingWeek.Value,
+                request.HolidayCalendarId,
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
             if (updateResult.IsFailure)

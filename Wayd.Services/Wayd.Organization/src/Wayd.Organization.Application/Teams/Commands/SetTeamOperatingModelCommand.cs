@@ -1,16 +1,23 @@
 ﻿using Wayd.Common.Application.SystemSettings.Scheduling;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Models.Organizations;
 using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
+/// <summary>
+/// Sets a new operating model for a team from <paramref name="StartDate"/>. <paramref name="WorkingDays"/> left
+/// null carries over the current model's working week, or Monday to Friday for a team with none.
+/// </summary>
 public sealed record SetTeamOperatingModelCommand(
     Guid TeamId,
     LocalDate StartDate,
     Methodology Methodology,
     SizingMethod SizingMethod,
     string TimeZone,
-    int CommitmentGraceDays) : ICommand<Guid>;
+    int CommitmentGraceDays,
+    IReadOnlyList<IsoDayOfWeek>? WorkingDays,
+    Guid? HolidayCalendarId) : ICommand<Guid>;
 
 public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetTeamOperatingModelCommand>
 {
@@ -36,6 +43,10 @@ public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetT
 
         RuleFor(c => c.CommitmentGraceDays)
             .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
+
+        RuleFor(c => c.WorkingDays)
+            .IsWorkingWeek()
+            .When(c => c.WorkingDays is not null);
     }
 }
 
@@ -65,7 +76,17 @@ public sealed class SetTeamOperatingModelCommandHandler(
                 return Result.Failure<Guid>($"Team with Id {request.TeamId} not found.");
             }
 
-            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            var workingWeek = request.WorkingDays is null
+                ? Result.Success(team.OperatingModels.SingleOrDefault(m => m.IsCurrent)?.WorkingWeek ?? WorkingWeek.MondayToFriday)
+                : WorkingWeek.Create(request.WorkingDays);
+            if (workingWeek.IsFailure)
+                return Result.Failure<Guid>(workingWeek.Error);
+
+            if (request.HolidayCalendarId is { } calendarId
+                && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
+                return Result.Failure<Guid>($"Holiday calendar {calendarId} not found.");
+
+            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, request.HolidayCalendarId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",

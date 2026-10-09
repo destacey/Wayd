@@ -3,6 +3,7 @@
 import { DatePicker, Form, InputNumber, Modal, Radio } from 'antd'
 import { useEffect, useState } from 'react'
 import {
+  IsoDayOfWeek,
   Methodology,
   SetTeamOperatingModelRequest,
   SizingMethod,
@@ -20,6 +21,9 @@ import {
 import {
   MAX_COMMITMENT_GRACE_DAYS,
   TimeZoneSelect,
+  HolidayCalendarSelect,
+  WorkingDaysSelect,
+  workingDaysRule,
 } from '@/src/components/common/scheduling'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
@@ -40,6 +44,8 @@ interface SetTeamOperatingModelFormValues {
   sizingMethod: SizingMethod
   timeZone: string
   commitmentGraceDays: number
+  workingDays: IsoDayOfWeek[]
+  holidayCalendarId?: string
 }
 
 const methodologyOptions = [
@@ -56,6 +62,8 @@ const mapToRequestValues = (
     sizingMethod: values.sizingMethod,
     timeZone: values.timeZone,
     commitmentGraceDays: values.commitmentGraceDays,
+    workingDays: values.workingDays,
+    holidayCalendarId: values.holidayCalendarId,
   } as SetTeamOperatingModelRequest
 }
 
@@ -124,6 +132,9 @@ const SetTeamOperatingModelForm = ({
       form.setFieldsValue({
         commitmentGraceDays: defaults.commitmentGraceDays,
       })
+    }
+    if (!userChosen.workingDays) {
+      form.setFieldsValue({ workingDays: defaults.workingDays })
     }
   }, [defaults, form, userChosen])
 
@@ -210,6 +221,24 @@ const SetTeamOperatingModelForm = ({
             max={MAX_COMMITMENT_GRACE_DAYS}
             precision={0}
             aria-label="Commitment Grace Period (days)"
+          />
+        </FormItem>
+        <FormItem
+          name="workingDays"
+          label="Working Days"
+          extra="The days of the week the team works. A sprint's ideal burn-down stays flat on the other days."
+          rules={[workingDaysRule]}
+        >
+          <WorkingDaysSelect />
+        </FormItem>
+        <FormItem
+          name="holidayCalendarId"
+          label="Holiday Calendar"
+          extra="The days the whole team is off. Leave empty to use the system default calendar, which follows the scheduling settings."
+        >
+          <HolidayCalendarSelect
+            emptyLabel="System default"
+            aria-label="Holiday Calendar"
           />
         </FormItem>
       </Form>

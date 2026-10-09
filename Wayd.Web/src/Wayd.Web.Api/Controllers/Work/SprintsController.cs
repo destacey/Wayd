@@ -159,6 +159,20 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id}/team-days-off")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
+    [OpenApiOperation("Set a sprint's team days off.", "Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetTeamDaysOff(Guid id, [FromBody] SetSprintTeamDaysOffRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new SetSprintTeamDaysOffCommand(id, request.TeamDaysOff), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPut("actual-dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
     [OpenApiOperation("Correct sprints' actual dates.", "Replaces the actual start and completion of one or more of a team's sprints; an omitted value reverts to the sprint's default. Sprints corrected together are checked against each other's corrected dates, and the team's actual sprint periods may not overlap. Requires membership of the sprints' team or its team of teams.")]

@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Models.Organizations;
 using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -59,7 +60,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "America/Chicago",
-            2);
+            2,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -71,6 +74,24 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
         operatingModel.TimeZone.Should().Be("America/Chicago");
         operatingModel.CommitmentGraceDays.Should().Be(2);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutWorkingDays_KeepsTheModelsWorkingWeek()
+    {
+        // Arrange
+        var sundayToThursday = WorkingWeek.Create([NodaTime.IsoDayOfWeek.Sunday, NodaTime.IsoDayOfWeek.Monday, NodaTime.IsoDayOfWeek.Tuesday, NodaTime.IsoDayOfWeek.Wednesday, NodaTime.IsoDayOfWeek.Thursday]).Value;
+        var team = _teamFaker.WithOperatingModel(_operatingModelFaker.WithWorkingWeek(sundayToThursday)).Generate();
+        var operatingModel = team.OperatingModels.First();
+        _dbContext.AddTeam(team);
+        var command = new UpdateTeamOperatingModelCommand(team.Id, operatingModel.Id, Methodology.Kanban, SizingMethod.Count, "UTC", 1, null, null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        operatingModel.WorkingWeek.Should().Be(sundayToThursday);
     }
 
     [Fact]
@@ -92,7 +113,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.StoryPoints,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -123,7 +146,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Scrum,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -154,7 +179,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Scrum,
             SizingMethod.StoryPoints,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -179,7 +206,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -210,7 +239,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -250,7 +281,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -288,7 +321,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             Methodology.Kanban,
             SizingMethod.Count,
             "UTC",
-            1);
+            1,
+            WorkingWeek.MondayToFriday.Days,
+            null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);

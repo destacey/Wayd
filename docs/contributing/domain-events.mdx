@@ -519,6 +519,15 @@ you still need to. Design payloads so they survive the changes you can see comin
 `ProjectStatusChangedEventV2` carries a status as a name plus a `LifecycleCategory` rather than an enum
 value, so workflow-configurable statuses will not break it.
 
+**A new field that existing records get a value for is recorded as a System change.** When a migration gives
+every existing record a value for a new field — `TeamOperatingModelSettings.WorkingDays`, which every operating model
+received as Monday to Friday — the stored payloads before it stay as they are, with the field null, and the field's
+documentation says what null meant. The migration then writes one entry per record: the event a user's change to that
+field raises, by `EventActor.System`, with the field null before and the assigned value after. The record's history
+then shows when Wayd began recording the value instead of a value appearing unexplained. The payload is hand-built
+T-SQL with a derived `EventId`, as for a baseline, and `TeamOperatingModelWorkingDaysBackfillTests` is the pattern for
+proving it matches the factory's entry.
+
 `DomainEventVersioningTests` enforces two of these rules across every event: the type's generation and its
 version's major must agree, and every superseded generation must still exist and be `[Obsolete]`. The rest —
 that a new field's `default` is valid, that a frozen type's shape never moves — only a stored golden payload

@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Domain.Models;
 using NodaTime;
 using Wayd.TestData.Core;
@@ -61,6 +62,12 @@ public static class TeamOperatingModelFakerExtensions
     public static TeamOperatingModelFaker WithCommitmentGraceDays(this TeamOperatingModelFaker faker, int commitmentGraceDays)
     {
         faker.RuleFor(x => x.CommitmentGraceDays, commitmentGraceDays);
+        return faker;
+    }
+
+    public static TeamOperatingModelFaker WithWorkingWeek(this TeamOperatingModelFaker faker, WorkingWeek workingWeek)
+    {
+        faker.RuleFor(x => x.WorkingWeek, workingWeek);
         return faker;
     }
 

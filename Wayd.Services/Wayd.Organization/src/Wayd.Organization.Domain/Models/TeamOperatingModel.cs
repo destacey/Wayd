@@ -1,12 +1,13 @@
 ﻿using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Models.Organizations;
 using NodaTime;
 
 namespace Wayd.Organization.Domain.Models;
 
 /// <summary>
-/// Represents the operating model for a team, defining how the team works
-/// (methodology, sizing method, time zone and commitment grace period) for a specific date range.
+/// Represents the operating model for a team, defining how the team works (methodology, sizing method, time
+/// zone, commitment grace period, working week and holiday calendar) for a specific date range.
 /// </summary>
 /// <remarks>
 /// <see cref="Team.CorrectOperatingModel"/> edits a model in place and so corrects its whole period.
@@ -15,12 +16,14 @@ public sealed class TeamOperatingModel : OperatingModel
 {
     private TeamOperatingModel() { }
 
-    private TeamOperatingModel(OperatingModelDateRange dateRange, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays)
+    private TeamOperatingModel(OperatingModelDateRange dateRange, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId)
         : base(dateRange, timeZone)
     {
         Methodology = methodology;
         SizingMethod = sizingMethod;
         CommitmentGraceDays = commitmentGraceDays;
+        WorkingWeek = workingWeek;
+        HolidayCalendarId = holidayCalendarId;
     }
 
     /// <summary>Gets the methodology the team uses.</summary>
@@ -35,6 +38,15 @@ public sealed class TeamOperatingModel : OperatingModel
     /// </summary>
     public int CommitmentGraceDays { get; private set; }
 
+    /// <summary>Gets the days of the week the team works.</summary>
+    public WorkingWeek WorkingWeek { get; private set; } = WorkingWeek.MondayToFriday;
+
+    /// <summary>
+    /// Gets the holiday calendar whose holidays the team takes off, or null for the system default calendar, read
+    /// when the schedule is read so changing the default changes every model that has none.
+    /// </summary>
+    public Guid? HolidayCalendarId { get; private set; }
+
     /// <summary>
     /// Corrects this operating model for its whole period.
     /// </summary>
@@ -42,9 +54,13 @@ public sealed class TeamOperatingModel : OperatingModel
     /// <param name="sizingMethod">The new sizing method.</param>
     /// <param name="timeZone">The IANA id of the team's time zone.</param>
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
+    /// <param name="workingWeek">The days of the week the team works.</param>
+    /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
     /// <returns>A result indicating success or failure.</returns>
-    internal Result Update(Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays)
+    internal Result Update(Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId)
     {
+        ArgumentNullException.ThrowIfNull(workingWeek);
+
         var scheduleResult = ValidateSchedule(timeZone, commitmentGraceDays);
         if (scheduleResult.IsFailure)
             return scheduleResult;
@@ -53,6 +69,8 @@ public sealed class TeamOperatingModel : OperatingModel
         SizingMethod = sizingMethod;
         TimeZone = timeZone;
         CommitmentGraceDays = commitmentGraceDays;
+        WorkingWeek = workingWeek;
+        HolidayCalendarId = holidayCalendarId;
         return Result.Success();
     }
 
@@ -65,6 +83,8 @@ public sealed class TeamOperatingModel : OperatingModel
     /// <param name="sizingMethod">The sizing method the team uses.</param>
     /// <param name="timeZone">The IANA id of the team's time zone.</param>
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
+    /// <param name="workingWeek">The days of the week the team works.</param>
+    /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
     /// <param name="currentModel">The current operating model, if one exists.</param>
     /// <returns>A result containing the new operating model or an error.</returns>
     internal static Result<TeamOperatingModel> Create(
@@ -73,8 +93,12 @@ public sealed class TeamOperatingModel : OperatingModel
         SizingMethod sizingMethod,
         string timeZone,
         int commitmentGraceDays,
+        WorkingWeek workingWeek,
+        Guid? holidayCalendarId,
         TeamOperatingModel? currentModel = null)
     {
+        ArgumentNullException.ThrowIfNull(workingWeek);
+
         var scheduleResult = ValidateSchedule(timeZone, commitmentGraceDays);
         if (scheduleResult.IsFailure)
             return Result.Failure<TeamOperatingModel>(scheduleResult.Error);
@@ -83,7 +107,7 @@ public sealed class TeamOperatingModel : OperatingModel
         if (dateRange.IsFailure)
             return Result.Failure<TeamOperatingModel>(dateRange.Error);
 
-        return new TeamOperatingModel(dateRange.Value, methodology, sizingMethod, timeZone, commitmentGraceDays);
+        return new TeamOperatingModel(dateRange.Value, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId);
     }
 
     private static Result ValidateSchedule(string timeZone, int commitmentGraceDays)

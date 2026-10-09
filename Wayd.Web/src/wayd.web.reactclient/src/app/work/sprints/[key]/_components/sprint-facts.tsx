@@ -64,6 +64,14 @@ const SprintFacts = ({ sprint }: SprintFactsProps) => {
             {days.toLocaleString()} day{days === 1 ? '' : 's'}
           </LabeledContent>
         )}
+
+        {sprint.teamDaysOff.length > 0 && (
+          <LabeledContent label="Team days off">
+            {sprint.teamDaysOff
+              .map((d) => formatCalendarDate(d, 'ddd, MMM D'))
+              .join('; ')}
+          </LabeledContent>
+        )}
       </Flex>
 
       <Divider size="small" style={{ margin: 0 }} />

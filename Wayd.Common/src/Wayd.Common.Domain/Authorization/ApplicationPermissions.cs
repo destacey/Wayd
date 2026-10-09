@@ -57,6 +57,7 @@ public static class ApplicationResource
     public const string Employees = nameof(Employees);
     public const string Teams = nameof(Teams);
     public const string TeamMemberRoles = nameof(TeamMemberRoles);
+    public const string HolidayCalendars = nameof(HolidayCalendars);
 
     public const string PlanningIntervals = nameof(PlanningIntervals);
     public const string PlanningIntervalObjectives = nameof(PlanningIntervalObjectives);
@@ -247,6 +248,11 @@ public static class ApplicationPermissions
         new("Create Team Member Roles", ApplicationAction.Create, ApplicationResource.TeamMemberRoles, OrganizationCategory),
         new("Update Team Member Roles", ApplicationAction.Update, ApplicationResource.TeamMemberRoles, OrganizationCategory),
         new("Delete Team Member Roles", ApplicationAction.Delete, ApplicationResource.TeamMemberRoles, OrganizationCategory),
+
+        new("View Holiday Calendars", ApplicationAction.View, ApplicationResource.HolidayCalendars, OrganizationCategory),
+        new("Create Holiday Calendars", ApplicationAction.Create, ApplicationResource.HolidayCalendars, OrganizationCategory),
+        new("Update Holiday Calendars and their holidays", ApplicationAction.Update, ApplicationResource.HolidayCalendars, OrganizationCategory),
+        new("Delete Holiday Calendars", ApplicationAction.Delete, ApplicationResource.HolidayCalendars, OrganizationCategory),
     ];
 
     private const string PlanningCategory = "Planning";

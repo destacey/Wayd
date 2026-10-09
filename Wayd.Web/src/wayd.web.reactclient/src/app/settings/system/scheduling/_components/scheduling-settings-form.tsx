@@ -4,16 +4,25 @@ import { Button, Form, InputNumber, Select, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { toFormErrors } from '@/src/utils'
-import { SchedulingSettingsDto, TimeZoneDto } from '@/src/services/wayd-api'
+import {
+  IsoDayOfWeek,
+  SchedulingSettingsDto,
+  TimeZoneDto,
+} from '@/src/services/wayd-api'
 import { useUpdateSchedulingSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 import {
   MAX_COMMITMENT_GRACE_DAYS,
   timeZoneLabel,
+  HolidayCalendarSelect,
+  WorkingDaysSelect,
+  workingDaysRule,
 } from '@/src/components/common/scheduling'
 
 interface SchedulingSettingsFormValues {
   defaultTimeZone: string
   defaultCommitmentGraceDays: number
+  defaultWorkingDays: IsoDayOfWeek[]
+  defaultHolidayCalendarId?: string
 }
 
 export interface SchedulingSettingsFormProps {
@@ -40,6 +49,8 @@ const SchedulingSettingsForm = ({
     form.setFieldsValue({
       defaultTimeZone: settings.defaultTimeZone,
       defaultCommitmentGraceDays: settings.defaultCommitmentGraceDays,
+      defaultWorkingDays: settings.defaultWorkingDays,
+      defaultHolidayCalendarId: settings.defaultHolidayCalendar?.id,
     })
     setIsDirty(false)
   }, [settings, form])
@@ -49,6 +60,8 @@ const SchedulingSettingsForm = ({
       const response = await updateSchedulingSettings({
         defaultTimeZone: values.defaultTimeZone,
         defaultCommitmentGraceDays: values.defaultCommitmentGraceDays,
+        defaultWorkingDays: values.defaultWorkingDays,
+        defaultHolidayCalendarId: values.defaultHolidayCalendarId,
       })
       if (response.error) {
         throw response.error
@@ -111,6 +124,25 @@ const SchedulingSettingsForm = ({
           max={MAX_COMMITMENT_GRACE_DAYS}
           precision={0}
           aria-label="Default commitment grace period (days)"
+        />
+      </Form.Item>
+      <Form.Item
+        name="defaultWorkingDays"
+        label="Default working days"
+        extra="Pre-fills the working days of new team operating models. Changing it does not change any team."
+        rules={[workingDaysRule]}
+      >
+        <WorkingDaysSelect />
+      </Form.Item>
+      <Form.Item
+        name="defaultHolidayCalendarId"
+        label="Default holiday calendar"
+        extra="The holidays of every team operating model that names no calendar of its own. Unlike the defaults above, changing it changes those teams' holidays, including in past sprints."
+      >
+        <HolidayCalendarSelect
+          emptyLabel="No holidays"
+          current={settings?.defaultHolidayCalendar}
+          aria-label="Default holiday calendar"
         />
       </Form.Item>
       {canUpdate && (

@@ -64,6 +64,12 @@ const buildSettingsMenuItems = (
     undefined,
     [
       restrictedPermissionMenuItem(
+        'Permissions.HolidayCalendars.View',
+        'Holiday Calendars',
+        'organization.holiday-calendars',
+        '/settings/organization/holiday-calendars',
+      ),
+      restrictedPermissionMenuItem(
         'Permissions.TeamMemberRoles.View',
         'Team Member Roles',
         'organization.team-member-roles',

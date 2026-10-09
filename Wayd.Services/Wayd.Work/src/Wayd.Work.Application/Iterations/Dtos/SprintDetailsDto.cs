@@ -65,6 +65,12 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public string? TimeZone { get; set; }
 
     /// <summary>
+    /// Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
+    /// offsite, in date order. Those managing the sprint (<see cref="CanManageSprint"/>) can change them.
+    /// </summary>
+    public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
+
+    /// <summary>
     /// Whether the source system plans this sprint to overlap the team's previous sprint.
     /// </summary>
     public bool OverlapsPreviousSprint { get; set; }

@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -61,6 +63,38 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
     }
 
     [Fact]
+    public async Task Handle_IdealLine_IsFlatOnWeekendsHolidaysAndTeamDaysOff()
+    {
+        // Arrange — Monday to Friday by default, a holiday on Monday 21st and a team day off on Wednesday 23rd,
+        // leaving seven working days: Tuesday 15th to Friday 18th, and the 22nd, 24th and 25th
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var sprintId = await WorkItemHistorySeeder.SeedSprint(_fixture, SprintStart, SprintEnd, ct);
+        var holiday = new LocalDate(2026, 9, 21);
+        var dayOff = new LocalDate(2026, 9, 23);
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            var sprint = await accessor.Context.Iterations.SingleAsync(i => i.Id == sprintId, ct);
+            sprint.SetTeamDaysOff([dayOff], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
+            await accessor.Context.SaveChangesAsync(ct);
+        }
+
+        var dispatcher = HolidayDispatcher.With(holiday);
+
+        // Act
+        var result = await Handle(sprintId, ct, dispatcher.Object);
+
+        // Assert
+        result.Should().NotBeNull();
+        Ideal(result!, new LocalDate(2026, 9, 19)).Should().BeApproximately(1 - 4.0 / 7, 1e-9);
+        Ideal(result!, holiday).Should().Be(Ideal(result!, new LocalDate(2026, 9, 19)));
+        Ideal(result!, holiday.PlusDays(1)).Should().Be(Ideal(result!, holiday));
+        Ideal(result!, dayOff.PlusDays(1)).Should().Be(Ideal(result!, dayOff));
+        Ideal(result!, new LocalDate(2026, 9, 26)).Should().Be(0);
+        result!.Ideal[^1].Remaining.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_UnknownSprint_ReturnsNull()
     {
         // Arrange
@@ -82,7 +116,10 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
         return (point.Scope.Count, point.Completed.Count);
     }
 
-    private async Task<SprintBurnDto?> Handle(Guid sprintId, CancellationToken ct)
+    private static double Ideal(SprintBurnDto burn, LocalDate startOf) =>
+        burn.Ideal.Single(p => p.At == startOf.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant()).Remaining;
+
+    private async Task<SprintBurnDto?> Handle(Guid sprintId, CancellationToken ct, IDispatcher? dispatcher = null)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
 
@@ -90,7 +127,7 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
 
         // Read after the sprint has ended.
-        var handler = new GetSprintBurnQueryHandler(accessor.Context, Mock.Of<IDispatcher>(), schedulingSettings.Object,
+        var handler = new GetSprintBurnQueryHandler(accessor.Context, dispatcher ?? HolidayDispatcher.With().Object, schedulingSettings.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == Instant.FromUtc(2026, 10, 15, 12, 0)));
         return await handler.Handle(new GetSprintBurnQuery(new IdOrKey(sprintId.ToString())), ct);
     }

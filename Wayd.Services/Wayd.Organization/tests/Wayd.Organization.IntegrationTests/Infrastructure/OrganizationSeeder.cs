@@ -24,6 +24,7 @@ internal static class OrganizationSeeder
             activeDate: SqlServerDbContextFixture.FixedNow.InUtc().Date,
             Methodology.Kanban,
             SizingMethod.Count, "UTC", 1,
+            WorkingWeek.MondayToFriday,
             EventActor.System,
             SqlServerDbContextFixture.FixedNow);
 

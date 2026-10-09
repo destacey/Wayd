@@ -30,6 +30,7 @@ import {
   SprintDetails,
   SprintLifecycleAction,
   SprintScopeGrid,
+  SprintTeamDaysOffForm,
 } from '@/src/app/work/sprints/_components'
 import { IterationStateTag } from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
@@ -62,6 +63,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [lifecycleAction, setLifecycleAction] =
     useState<SprintLifecycleAction | null>(null)
   const [correctingDates, setCorrectingDates] = useState(false)
+  const [editingDaysOff, setEditingDaysOff] = useState(false)
 
   const router = useRouter()
   const { hasPermissionClaim } = useAuth()
@@ -189,6 +191,11 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               key: 'correct-actual-dates',
               label: 'Correct Actual Dates',
               onClick: () => setCorrectingDates(true),
+            },
+            {
+              key: 'team-days-off',
+              label: 'Team Days Off',
+              onClick: () => setEditingDaysOff(true),
             },
           ]
         : [],
@@ -333,6 +340,13 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           nextSprint={nextSprint}
           onFormComplete={() => setCorrectingDates(false)}
           onFormCancel={() => setCorrectingDates(false)}
+        />
+      )}
+      {editingDaysOff && (
+        <SprintTeamDaysOffForm
+          sprint={sprint}
+          onFormComplete={() => setEditingDaysOff(false)}
+          onFormCancel={() => setEditingDaysOff(false)}
         />
       )}
     </>

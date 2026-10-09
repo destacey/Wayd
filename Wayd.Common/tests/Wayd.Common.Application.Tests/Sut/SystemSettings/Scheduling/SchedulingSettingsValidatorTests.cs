@@ -18,6 +18,17 @@ public class SchedulingSettingsValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    [Fact]
+    public void Validate_RejectsNoWorkingDays()
+    {
+        // Act
+        var result = _sut.Validate(new SchedulingSettings { DefaultWorkingDays = [] });
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().ContainSingle(e => e.PropertyName == nameof(SchedulingSettings.DefaultWorkingDays));
+    }
+
     [Theory]
     [InlineData("America/Chicago")]
     [InlineData("Europe/London")]

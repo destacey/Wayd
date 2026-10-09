@@ -1,6 +1,7 @@
 using NodaTime;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Models.SprintScope;
@@ -44,7 +45,12 @@ public class SprintBurnTests
         date.At(new LocalTime(hour, 0)).InZoneLeniently(Chicago).ToInstant();
 
     private static SprintBurn Build(SprintScopeWindow window, Instant now, params ScopeItemHistory[] items) =>
-        SprintBurn.Build(window, SizingMethod.StoryPoints, items.SelectMany(i => i.Periods), now);
+        SprintBurn.Build(window, SizingMethod.StoryPoints, items.SelectMany(i => i.Periods), SprintWorkingDays.EveryDay, now);
+
+    private static SprintBurn BuildWorking(SprintScopeWindow window, SprintWorkingDays workingDays, Instant now) =>
+        SprintBurn.Build(window, SizingMethod.StoryPoints, [], workingDays, now);
+
+    private static double IdealAt(SprintBurn burn, Instant at) => burn.Ideal.Single(p => p.At == at).Remaining;
 
     private static SprintBurnPoint On(SprintBurn burn, LocalDate day) => burn.Points.Last(p => p.Day == day);
 
@@ -222,5 +228,90 @@ public class SprintBurnTests
         On(burn, Sprint1Start.PlusDays(4)).Scope.Estimate.Should().Be(3);
         On(burn, Sprint1Start.PlusDays(5)).Scope.Estimate.Should().Be(8);
         burn.Committed.Estimate.Should().Be(3);
+    }
+
+    [Fact]
+    public void Build_EveryDayWorked_IdealFallsEvenlyFromOneToZeroOverTheWindow()
+    {
+        // Arrange
+        var (_, _, window) = TwoSprints();
+
+        // Act
+        var burn = BuildWorking(window, SprintWorkingDays.EveryDay, Later);
+
+        // Assert — the commitment point, the start of the 16th to the 25th, and the end; 11 equal days
+        burn.Ideal.Select(p => p.At).Should().Equal(
+            new[] { window.Start }.Concat(Enumerable.Range(2, 10).Select(d => At(Sprint1Start.PlusDays(d)))).Append(window.End));
+        burn.Ideal[0].Remaining.Should().Be(1);
+        burn.Ideal[^1].Remaining.Should().Be(0);
+        IdealAt(burn, At(Sprint1Start.PlusDays(2))).Should().BeApproximately(10.0 / 11, 1e-9);
+    }
+
+    [Fact]
+    public void Build_MondayToFriday_IdealIsFlatOverTheWeekend()
+    {
+        // Arrange — Tuesday 15th to Friday 25th holds nine working days
+        var (_, _, window) = TwoSprints();
+        var workingDays = new SprintWorkingDays(WorkingWeek.MondayToFriday, []);
+        var saturday = At(new LocalDate(2026, 9, 19));
+        var monday = At(new LocalDate(2026, 9, 21));
+
+        // Act
+        var burn = BuildWorking(window, workingDays, Later);
+
+        // Assert
+        IdealAt(burn, saturday).Should().BeApproximately(1 - 4.0 / 9, 1e-9);
+        IdealAt(burn, At(new LocalDate(2026, 9, 20))).Should().Be(IdealAt(burn, saturday));
+        IdealAt(burn, monday).Should().Be(IdealAt(burn, saturday));
+        burn.Ideal[^1].Remaining.Should().Be(0);
+    }
+
+    [Fact]
+    public void Build_WithAMondayHoliday_IdealIsFlatThatDay()
+    {
+        // Arrange
+        var (_, _, window) = TwoSprints();
+        var holiday = new LocalDate(2026, 9, 21);
+        var workingDays = new SprintWorkingDays(WorkingWeek.MondayToFriday, [holiday]);
+
+        // Act
+        var burn = BuildWorking(window, workingDays, Later);
+
+        // Assert — eight working days; Saturday through Monday all hold the same remaining work
+        var startOfHoliday = IdealAt(burn, At(holiday));
+        IdealAt(burn, At(holiday.PlusDays(1))).Should().Be(startOfHoliday);
+        startOfHoliday.Should().BeApproximately(1 - 4.0 / 8, 1e-9);
+        IdealAt(burn, At(holiday.PlusDays(2))).Should().BeApproximately(1 - 5.0 / 8, 1e-9);
+    }
+
+    [Fact]
+    public void Build_RunningSprint_StillDrawsTheIdealToTheEnd()
+    {
+        // Arrange
+        var (_, _, window) = TwoSprints();
+        var now = At(Sprint1Start.PlusDays(4), 15);
+
+        // Act
+        var burn = BuildWorking(window, new SprintWorkingDays(WorkingWeek.MondayToFriday, []), now);
+
+        // Assert
+        burn.Ideal[^1].At.Should().Be(window.End);
+        burn.Ideal[^1].Remaining.Should().Be(0);
+    }
+
+    [Fact]
+    public void Build_WithNoWorkingDayInTheWindow_IdealFallsOverCalendarTime()
+    {
+        // Arrange — every day of the sprint is a day off
+        var (_, _, window) = TwoSprints();
+        var allOff = Enumerable.Range(0, 14).Select(d => Sprint1Start.PlusDays(d));
+        var workingDays = new SprintWorkingDays(WorkingWeek.MondayToFriday, allOff);
+
+        // Act
+        var burn = BuildWorking(window, workingDays, Later);
+
+        // Assert
+        IdealAt(burn, At(Sprint1Start.PlusDays(2))).Should().BeApproximately(10.0 / 11, 1e-9);
+        burn.Ideal[^1].Remaining.Should().Be(0);
     }
 }

@@ -77,6 +77,7 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
                 SizingMethod.Count,
                 scheduling.DefaultTimeZone,
                 scheduling.DefaultCommitmentGraceDays,
+                scheduling.DefaultWorkingWeek(),
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
 

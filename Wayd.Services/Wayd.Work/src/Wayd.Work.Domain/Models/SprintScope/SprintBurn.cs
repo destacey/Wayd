@@ -25,12 +25,13 @@ public sealed record SprintBurnPoint(Instant At, LocalDate Day, SprintScopeMeasu
 /// </remarks>
 public sealed class SprintBurn
 {
-    private SprintBurn(SprintScopeWindow window, SizingMethod sizingMethod, SprintScopeMeasure committed, List<SprintBurnPoint> points)
+    private SprintBurn(SprintScopeWindow window, SizingMethod sizingMethod, SprintScopeMeasure committed, List<SprintBurnPoint> points, List<SprintIdealPoint> ideal)
     {
         Window = window;
         SizingMethod = sizingMethod;
         Committed = committed;
         Points = points;
+        Ideal = ideal;
     }
 
     /// <summary>The instants the burn runs between.</summary>
@@ -45,20 +46,29 @@ public sealed class SprintBurn
     /// <summary>The readings, in time order; empty before the commitment point.</summary>
     public IReadOnlyList<SprintBurnPoint> Points { get; }
 
+    /// <summary>
+    /// The ideal burn-down over the whole window, however much of it has passed: a point at the commitment
+    /// point, at the start of each day in the team's zone, and at the effective end. Between two points it is a
+    /// straight line, falling across a working day and flat across a day off.
+    /// </summary>
+    public IReadOnlyList<SprintIdealPoint> Ideal { get; }
+
     /// <inheritdoc cref="SprintScopeReport.Build"/>
-    public static SprintBurn Build(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> periods, Instant now)
+    /// <param name="workingDays">Which of the sprint's days the team works, which the ideal line falls on.</param>
+    public static SprintBurn Build(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> periods, SprintWorkingDays workingDays, Instant now)
     {
         var assessed = SprintScopeReport.Assess(window, sizingMethod, periods, now);
         var committed = SprintScopeTotals.Of([.. assessed.Select(a => a.Item)]).Committed;
+        var ideal = SprintIdealLine.Build(window, workingDays);
         if (now <= window.Start)
-            return new SprintBurn(window, sizingMethod, committed, []);
+            return new SprintBurn(window, sizingMethod, committed, [], ideal);
 
         var asOf = now < window.End ? now : window.End;
         var points = ReadingTimes(window, asOf)
             .Select(at => Reading(window, sizingMethod, assessed, at))
             .ToList();
 
-        return new SprintBurn(window, sizingMethod, committed, points);
+        return new SprintBurn(window, sizingMethod, committed, points, ideal);
     }
 
     /// <summary>

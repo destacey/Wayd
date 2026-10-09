@@ -128,14 +128,16 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="sizingMethod">The sizing method the team uses.</param>
     /// <param name="timeZone">The IANA id of the team's time zone.</param>
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
+    /// <param name="workingWeek">The days of the week the team works.</param>
+    /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns>A result containing the new operating model or an error.</returns>
-    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, EventActor actor, Instant timestamp)
+    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, EventActor actor, Instant timestamp)
     {
         var currentModel = _operatingModels.SingleOrDefault(m => m.IsCurrent);
 
-        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, timeZone, commitmentGraceDays, currentModel);
+        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId, currentModel);
         if (result.IsFailure)
             return result;
 
@@ -158,10 +160,12 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="sizingMethod">The sizing method the team uses.</param>
     /// <param name="timeZone">The IANA id of the team's time zone.</param>
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
+    /// <param name="workingWeek">The days of the week the team works.</param>
+    /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns>A result indicating success or failure.</returns>
-    public Result CorrectOperatingModel(Guid operatingModelId, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, EventActor actor, Instant timestamp)
+    public Result CorrectOperatingModel(Guid operatingModelId, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, EventActor actor, Instant timestamp)
     {
         var operatingModel = _operatingModels.SingleOrDefault(m => m.Id == operatingModelId);
         if (operatingModel is null)
@@ -169,7 +173,7 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
 
         var before = SettingsOf(operatingModel);
 
-        var result = operatingModel.Update(methodology, sizingMethod, timeZone, commitmentGraceDays);
+        var result = operatingModel.Update(methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId);
         if (result.IsFailure)
             return result;
 
@@ -208,7 +212,7 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     }
 
     private static TeamOperatingModelSettings SettingsOf(TeamOperatingModel model) =>
-        new(model.Methodology, model.SizingMethod, model.TimeZone, model.CommitmentGraceDays);
+        new(model.Methodology, model.SizingMethod, model.TimeZone, model.CommitmentGraceDays, model.WorkingWeek.Days, model.HolidayCalendarId);
 
     /// <summary>Creates the specified team with an initial operating model.</summary>
     /// <param name="name">The name.</param>
@@ -219,10 +223,11 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="sizingMethod">The initial sizing method for the team's operating model.</param>
     /// <param name="timeZone">The IANA id of the initial operating model's time zone.</param>
     /// <param name="commitmentGraceDays">The initial operating model's commitment grace period in days.</param>
+    /// <param name="workingWeek">The days of the week the team works under its initial operating model.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns>The new team.</returns>
-    public static Team Create(string name, TeamCode code, string? description, LocalDate activeDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, EventActor actor, Instant timestamp)
+    public static Team Create(string name, TeamCode code, string? description, LocalDate activeDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, EventActor actor, Instant timestamp)
     {
         var team = new Team(name, code, description, activeDate);
 
@@ -252,7 +257,8 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
                 timestamp))
         );
 
-        var operatingModel = team.SetOperatingModel(activeDate, methodology, sizingMethod, timeZone, commitmentGraceDays, actor, timestamp);
+        // A new team takes the system default holiday calendar until one is chosen.
+        var operatingModel = team.SetOperatingModel(activeDate, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, null, actor, timestamp);
         if (operatingModel.IsFailure)
             throw new ArgumentException(operatingModel.Error);
 

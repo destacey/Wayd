@@ -3,6 +3,7 @@ using NodaTime;
 using Xunit;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Work.Application.Tests.Infrastructure;
 using static Wayd.Work.Application.Tests.Infrastructure.SprintLifecycleScenario;
@@ -78,5 +79,45 @@ public class GetSprintQueryHandlerTests : IDisposable
         // Assert
         result!.CanManageSprint.Should().BeFalse();
         result.CanStart.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_ForASprintNeitherSetNorMapped_IsStandardByDefault()
+    {
+        // Act
+        var result = await _handler.Handle(new GetSprintQuery(new IdOrKey(_scenario.Sprint2.Key.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.SprintType.Should().Be(SprintType.Standard);
+        result.SprintTypeSource.Should().Be(SprintTypeSource.Default);
+    }
+
+    [Fact]
+    public async Task Handle_ForASprintMappedToAnIpIteration_IsNonStandardFromThePlanningInterval()
+    {
+        // Arrange
+        _scenario.MappedCategories[_scenario.Sprint2.Id] = IterationCategory.InnovationAndPlanning;
+
+        // Act
+        var result = await _handler.Handle(new GetSprintQuery(new IdOrKey(_scenario.Sprint2.Key.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.SprintType.Should().Be(SprintType.NonStandard);
+        result.SprintTypeSource.Should().Be(SprintTypeSource.PlanningInterval);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheTeamSetTheType_ItOverridesTheMapping()
+    {
+        // Arrange
+        _scenario.MappedCategories[_scenario.Sprint2.Id] = IterationCategory.InnovationAndPlanning;
+        _scenario.Sprint2.SetSprintType(SprintType.Standard, EventActor.System, _scenario.DateTimeProvider.Now);
+
+        // Act
+        var result = await _handler.Handle(new GetSprintQuery(new IdOrKey(_scenario.Sprint2.Key.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.SprintType.Should().Be(SprintType.Standard);
+        result.SprintTypeSource.Should().Be(SprintTypeSource.Team);
     }
 }

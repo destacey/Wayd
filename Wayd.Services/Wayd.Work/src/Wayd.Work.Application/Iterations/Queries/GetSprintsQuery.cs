@@ -40,11 +40,13 @@ public sealed class GetSprintsQueryHandler(
             .ToListAsync(cancellationToken);
 
         var states = await _dispatcher.BuildIterationStateReader(_schedulingSettings, sprints, _dateTimeProvider.Now, cancellationToken);
+        var sprintTypes = await _dispatcher.ResolveSprintTypes(sprints, cancellationToken);
 
         return [.. sprints.Select(sprint =>
         {
             var dto = sprint.Adapt<SprintListDto>();
             dto.State = SimpleNavigationDto.FromEnum(states.StateOf(sprint));
+            (dto.SprintType, dto.SprintTypeSource) = sprintTypes[sprint.Id];
             return dto;
         })];
     }

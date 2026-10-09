@@ -84,6 +84,12 @@ public static class IterationFakerExtensions
         return faker;
     }
 
+    public static IterationFaker WithSprintTypeOverride(this IterationFaker faker, SprintType? sprintTypeOverride)
+    {
+        faker.RuleFor(x => x.SprintTypeOverride, sprintTypeOverride);
+        return faker;
+    }
+
     public static IterationFaker WithOwnershipInfo(this IterationFaker faker, OwnershipInfo ownershipInfo)
     {
         faker.RuleFor(x => x.OwnershipInfo, ownershipInfo);

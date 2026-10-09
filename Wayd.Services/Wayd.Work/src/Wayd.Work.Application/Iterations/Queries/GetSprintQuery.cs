@@ -50,6 +50,9 @@ public sealed class GetSprintQueryHandler(
         var details = sprint.Adapt<SprintDetailsDto>();
         var now = _dateTimeProvider.Now;
 
+        var sprintTypes = await _dispatcher.ResolveSprintTypes([sprint], cancellationToken);
+        (details.SprintType, details.SprintTypeSource) = sprintTypes[sprint.Id];
+
         if (sprint.TeamId is not { } teamId)
         {
             var states = await _dispatcher.BuildIterationStateReader(_schedulingSettings, [], now, cancellationToken);

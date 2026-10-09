@@ -14,6 +14,7 @@ A **Sprint** (also called an Iteration in some contexts) is a short time-boxed p
 Every sprint has:
 - **Name** — Sprint identifier
 - **Type** — Sprint or Iteration
+- **Sprint type** — Standard or Non-standard, whether the sprint is comparable with the team's other sprints. See [Sprint Type](#sprint-type)
 - **State** — Future, Active, or Completed
 - **Date Range** — The first and last planned days, as calendar dates. The sprint includes the whole of its last day
 - **Team** — The owning [team](../organizations/index.mdx#teams) (optional)
@@ -83,11 +84,28 @@ Some days the whole team is off for a reason no calendar knows: an offsite, a ha
 
 The [burn-down's ideal line](#burn-up-and-burn-down) stays flat on team days off. They are listed in the sprint's details, and each change is recorded in its [Activity](../activity-log.mdx) with the days added and removed. Who can change them is the same as who can start and complete the sprint.
 
+### Sprint Type
+
+Not every sprint is comparable with the team's others. An [Innovation and Planning](../planning/planning-intervals.mdx#iterations-within-a-pi) sprint is mostly planning and catch-up, and a hackathon, a hardening sprint or a sprint most of the team spends on holiday delivers far less than usual. Each sprint has a type that says whether it is comparable:
+
+- **Standard** — a regular sprint, compared with the team's other sprints.
+- **Non-standard** — not comparable. It marks the sprints to leave out when comparing a team's sprints with each other, such as averaging velocity. Its own metrics still show on its page as usual.
+
+A sprint's type is worked out each time it is shown, from the first of these that applies:
+
+1. **Set by the team** — the type the team chose with **Sprint Type** in the sprint's **Actions** menu.
+2. **From the PI iteration** — the category of the [PI iteration](../planning/planning-intervals.mdx#sprint-mapping) the sprint is mapped to: a Development iteration's sprint is standard, an Innovation and Planning iteration's is non-standard.
+3. **Default** — standard.
+
+So changing a PI iteration's category, or which iteration a sprint is mapped to, changes the type of a sprint that follows its mapping the next time you look. A type the team set holds whatever the mapping says: use it for a sprint with no PI mapping, a hackathon, a holiday sprint, or a team that runs its IP sprint at a different time. Choose **Follow the planning interval** to clear it.
+
+The sprint's details show its type and where it came from, and a non-standard sprint has a **Non-standard** tag beside its state. Each time the team sets or clears the type it is recorded in the sprint's [Activity](../activity-log.mdx). Who can change it is the same as who can start and complete the sprint.
+
 ### Sprint Detail Page
 
 The sprint detail page shows:
-- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), [Correct Actual Dates](#correcting-actual-dates) and [Team Days Off](#team-days-off)
-- **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), the sprint's length in days, and its team days off
+- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), [Correct Actual Dates](#correcting-actual-dates), [Team Days Off](#team-days-off) and [Sprint Type](#sprint-type)
+- **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), the sprint's length in days, its [sprint type](#sprint-type) and where it came from, and its team days off
 - **Team** link and timeline progress bar
 - **Sprint Metrics** (for Active/Completed sprints) — a progress row and a commitment row, with one switch between the team's estimate and counting work items. See [Sprint Metrics](#sprint-metrics) below
 - **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, its **Original** and **Final** estimate (**Original SP** and **Final SP** for a Story Points team: the estimate when it came in, and when it was last in the sprint), and when it was **Added to Sprint** or **Removed from Sprint**, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only
@@ -98,7 +116,7 @@ A **Switch Sprint** dropdown lets you quickly navigate between other sprints on 
 
 ### Sprints List Page
 
-The sprints list (**Work Management > Sprints**) shows all sprints across all [teams](../organizations/index.mdx#teams) in a grid with Key, Name, Team, State, Start Date, End Date, Started and Completed, sorted by most recent start date. Started and Completed show the actual moments the team recorded, and are empty until the team records them.
+The sprints list (**Work Management > Sprints**) shows all sprints across all [teams](../organizations/index.mdx#teams) in a grid with Key, Name, Team, State, [Type](#sprint-type), Start Date, End Date, Started and Completed, sorted by most recent start date. Started and Completed show the actual moments the team recorded, and are empty until the team records them.
 
 Teams also see their sprints in the [Sprints section](../organizations/index.mdx#sprints) of their detail page.
 

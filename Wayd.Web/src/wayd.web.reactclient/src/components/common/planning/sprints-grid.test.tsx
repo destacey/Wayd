@@ -27,7 +27,11 @@ jest.mock('../wayd-grid', () => ({
 
 import SprintsGrid from './sprints-grid'
 import * as WaydGridModule from '../wayd-grid'
-import { SprintListDto } from '@/src/services/wayd-api'
+import {
+  SprintListDto,
+  SprintType,
+  SprintTypeSource,
+} from '@/src/services/wayd-api'
 
 describe('SprintsGrid', () => {
   const mockRefetch = jest.fn()
@@ -41,6 +45,8 @@ describe('SprintsGrid', () => {
       start: '2025-01-01',
       end: '2025-01-15',
       team: { id: '1', key: 1, name: 'Team Alpha', code: 'TA', type: 'Team' },
+      sprintType: SprintType.Standard,
+      sprintTypeSource: SprintTypeSource.Default,
     },
     {
       id: '2',
@@ -50,6 +56,8 @@ describe('SprintsGrid', () => {
       start: '2025-01-16',
       end: '2025-01-30',
       team: { id: '2', key: 2, name: 'Team Beta', code: 'TB', type: 'Team' },
+      sprintType: SprintType.Standard,
+      sprintTypeSource: SprintTypeSource.Default,
     },
   ]
 
@@ -184,6 +192,31 @@ describe('SprintsGrid', () => {
       const column = call.columns.find((c: { id: string }) => c.id === id)
       expect(column.meta).toEqual({ columnType: 'dateTime' })
     }
+  })
+
+  it('shows each sprint type by its name, filterable as a set', () => {
+    // Arrange / Act
+    render(
+      <SprintsGrid
+        sprints={mockSprints}
+        isLoading={false}
+        refetch={mockRefetch}
+      />,
+    )
+
+    // Assert
+    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
+      .calls[0][0]
+    const column = call.columns.find(
+      (c: { id: string }) => c.id === 'sprintType',
+    )
+    expect(column.meta).toEqual({ filterType: 'set' })
+    expect(
+      column.accessorFn({
+        ...mockSprints[0],
+        sprintType: SprintType.NonStandard,
+      }),
+    ).toBe('Non-standard')
   })
 
   it('calls refetch when the refresh action fires', () => {

@@ -594,6 +594,11 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
                     days => days.Aggregate(0, (hash, d) => HashCode.Combine(hash, d)),
                     days => days.ToList()));
 
+        builder.Property(i => i.SprintTypeOverride)
+            .HasConversion<EnumConverter<SprintType>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
         // Declared because EF otherwise drops the foreign key's index as covered by the filtered one below,
         // which only holds open sprints.
         builder.HasIndex(i => i.TeamId);

@@ -3,7 +3,12 @@ jest.unmock('dayjs')
 
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { SprintDetailsDto, SprintListDto } from '@/src/services/wayd-api'
+import {
+  SprintDetailsDto,
+  SprintListDto,
+  SprintType,
+  SprintTypeSource,
+} from '@/src/services/wayd-api'
 import CorrectSprintActualDatesForm from './correct-sprint-actual-dates-form'
 
 const correctActualDates = jest.fn()
@@ -63,6 +68,8 @@ const sprint: SprintDetailsDto = {
   canStart: false,
   canComplete: false,
   canReopen: false,
+  sprintType: SprintType.Standard,
+  sprintTypeSource: SprintTypeSource.Default,
 }
 
 const nextSprint: SprintListDto = {
@@ -75,6 +82,8 @@ const nextSprint: SprintListDto = {
   team,
   started: new Date('2026-09-11T20:00:00Z'),
   completed: new Date('2026-09-25T20:00:00Z'),
+  sprintType: SprintType.Standard,
+  sprintTypeSource: SprintTypeSource.Default,
 }
 
 const renderForm = (

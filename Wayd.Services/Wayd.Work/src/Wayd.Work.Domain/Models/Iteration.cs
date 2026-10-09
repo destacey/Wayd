@@ -95,6 +95,12 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     public IReadOnlyList<LocalDate> TeamDaysOff => [.. _teamDaysOff.Where(d => DateRange.Includes(d))];
 
     /// <summary>
+    /// The sprint type the team set, which holds whatever the sprint's planning interval mapping says. Null
+    /// when the sprint follows its mapping. Recorded in Wayd and never synced.
+    /// </summary>
+    public SprintType? SprintTypeOverride { get; private set; }
+
+    /// <summary>
     /// The ownership information for this iteration.
     /// </summary>
     public OwnershipInfo OwnershipInfo { get; private init; } = default!;
@@ -245,6 +251,52 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Sets the sprint's type, holding it whatever the sprint's planning interval mapping says. Raises nothing
+    /// when the team had already set that type.
+    /// </summary>
+    public Result SetSprintType(SprintType sprintType, EventActor actor, Instant now)
+    {
+        if (Type != IterationType.Sprint)
+            return Result.Failure("Only a sprint has a sprint type.");
+
+        var previous = SprintTypeOverride;
+        SprintTypeOverride = sprintType;
+        if (SprintTypeOverride == previous)
+            return Result.Success();
+
+        AddDomainEvent(new SprintTypeSetEvent(Id, Key, previous, sprintType, actor, now));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Clears the type the team set, so the sprint follows its planning interval mapping again. Raises nothing
+    /// when the team had not set one.
+    /// </summary>
+    public Result ClearSprintType(EventActor actor, Instant now)
+    {
+        if (Type != IterationType.Sprint)
+            return Result.Failure("Only a sprint has a sprint type.");
+
+        if (SprintTypeOverride is not { } previous)
+            return Result.Success();
+
+        SprintTypeOverride = null;
+        AddDomainEvent(new SprintTypeClearedEvent(Id, Key, previous, actor, now));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Works out the sprint's type: the one the team set, otherwise the one <paramref name="mappedCategory"/>
+    /// declares, otherwise standard.
+    /// </summary>
+    /// <param name="mappedCategory">The category of the planning interval iteration the sprint is mapped to, or
+    /// null when it is not mapped.</param>
+    public ResolvedSprintType ResolveSprintType(IterationCategory? mappedCategory) =>
+        ResolvedSprintType.From(SprintTypeOverride, mappedCategory);
 
     private void RecordCompleted(Instant completed, EventActor actor, Instant timestamp)
     {

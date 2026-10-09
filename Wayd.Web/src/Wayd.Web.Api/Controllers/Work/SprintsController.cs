@@ -32,6 +32,16 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
         return Ok(sprints);
     }
 
+    [HttpGet("types")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
+    [OpenApiOperation("Get a list of all sprint types.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<SprintTypeDto>>> GetSprintTypes(CancellationToken cancellationToken)
+    {
+        var items = await _dispatcher.Send(new GetSprintTypesQuery(), cancellationToken);
+        return Ok(items.OrderBy(t => t.Order));
+    }
+
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
     [OpenApiOperation("Get sprint details.", "")]
@@ -167,6 +177,20 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
     public async Task<ActionResult> SetTeamDaysOff(Guid id, [FromBody] SetSprintTeamDaysOffRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new SetSprintTeamDaysOffCommand(id, request.TeamDaysOff), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/type")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
+    [OpenApiOperation("Set or clear a sprint's type.", "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is marked to be left out when comparing the team's sprints. Requires membership of the sprint's team or its team of teams.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetSprintType(Guid id, [FromBody] SetSprintTypeRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new SetSprintTypeCommand(id, request.SprintType), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

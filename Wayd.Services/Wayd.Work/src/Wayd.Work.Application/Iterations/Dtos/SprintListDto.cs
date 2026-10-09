@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Domain.Models;
 
@@ -45,12 +46,26 @@ public sealed record SprintListDto : IMapFrom<Iteration>
     /// </summary>
     public Instant? Completed { get; set; }
 
+    /// <summary>
+    /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is marked to be left
+    /// out when comparing the team's sprints. Worked out when read: see <see cref="SprintTypeSource"/>.
+    /// </summary>
+    public SprintType SprintType { get; set; }
+
+    /// <summary>
+    /// Where <see cref="SprintType"/> came from: the team, the mapped planning interval iteration's category,
+    /// or the default.
+    /// </summary>
+    public SprintTypeSource SprintTypeSource { get; set; }
+
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<Iteration, SprintListDto>()
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => src.Team)
-            .Ignore(dest => dest.State);
+            .Ignore(dest => dest.State)
+            .Ignore(dest => dest.SprintType)
+            .Ignore(dest => dest.SprintTypeSource);
     }
 }

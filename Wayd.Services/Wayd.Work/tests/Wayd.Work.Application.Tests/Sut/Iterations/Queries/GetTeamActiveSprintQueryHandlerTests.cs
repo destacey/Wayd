@@ -57,6 +57,21 @@ public class GetTeamActiveSprintQueryHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ForAnActiveSprintMappedToAnIpIteration_IsNonStandardFromThePlanningInterval()
+    {
+        // Arrange
+        _scenario.MappedCategories[_scenario.Sprint1.Id] = IterationCategory.InnovationAndPlanning;
+
+        // Act
+        var result = await _handler.Handle(new GetTeamActiveSprintQuery(_scenario.Team.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Id.Should().Be(_scenario.Sprint1.Id);
+        result.SprintType.Should().Be(SprintType.NonStandard);
+        result.SprintTypeSource.Should().Be(SprintTypeSource.PlanningInterval);
+    }
+
+    [Fact]
     public async Task Handle_AfterTheLastSprintEnded_ReturnsNothing()
     {
         // Arrange

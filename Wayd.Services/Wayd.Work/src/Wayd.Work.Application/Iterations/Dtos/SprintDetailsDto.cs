@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Domain.Models;
 
@@ -71,6 +72,18 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
 
     /// <summary>
+    /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is marked to be left
+    /// out when comparing the team's sprints. Worked out when read: see <see cref="SprintTypeSource"/>.
+    /// </summary>
+    public SprintType SprintType { get; set; }
+
+    /// <summary>
+    /// Where <see cref="SprintType"/> came from: the team, the mapped planning interval iteration's category,
+    /// or the default. Those managing the sprint (<see cref="CanManageSprint"/>) can set or clear the team's.
+    /// </summary>
+    public SprintTypeSource SprintTypeSource { get; set; }
+
+    /// <summary>
     /// Whether the source system plans this sprint to overlap the team's previous sprint.
     /// </summary>
     public bool OverlapsPreviousSprint { get; set; }
@@ -120,6 +133,8 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
             .Ignore(dest => dest.ActiveFrom)
             .Ignore(dest => dest.ActiveUntil)
             .Ignore(dest => dest.TimeZone)
+            .Ignore(dest => dest.SprintType)
+            .Ignore(dest => dest.SprintTypeSource)
             .Ignore(dest => dest.OverlapsPreviousSprint)
             .Ignore(dest => dest.OverlapsNextSprint)
             .Ignore(dest => dest.CanManageSprint)

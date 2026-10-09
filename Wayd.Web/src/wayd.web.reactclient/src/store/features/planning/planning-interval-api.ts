@@ -33,6 +33,14 @@ import { getPlanningIntervalsClient } from '@/src/services/clients'
 import { QueryTags } from '../query-tags'
 import { OptionModel } from '@/src/components/types'
 
+// Every cached view of a sprint, whose type a mapping or an iteration's
+// category decides. By type: these mutations aren't given the sprints.
+const sprintTypeTags = [
+  QueryTags.Sprint,
+  QueryTags.TeamSprint,
+  QueryTags.ActiveSprint,
+] as const
+
 export const planningIntervalApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getPlanningIntervals: builder.query<PlanningIntervalListDto[], void>({
@@ -127,6 +135,9 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
           { type: QueryTags.PlanningIntervalCalendar, id: arg.cacheKey },
           { type: QueryTags.PlanningIntervalIteration, id: arg.cacheKey },
           { type: QueryTags.ActivityLog, id: arg.request.id },
+          // A mapped sprint's type follows its iteration's category, and
+          // removing an iteration unmaps its sprints.
+          ...sprintTypeTags,
         ]
       },
     }),
@@ -413,6 +424,8 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
         { type: QueryTags.PlanningIntervalTeam, id: arg.cacheKey },
         { type: QueryTags.PlanningIntervalIterationSprints, id: arg.cacheKey },
         { type: QueryTags.ActivityLog, id: arg.planningIntervalId },
+        // A mapped sprint's type follows its iteration's category.
+        ...sprintTypeTags,
       ],
     }),
     getPlanningIntervalObjectives: builder.query<

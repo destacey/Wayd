@@ -31,12 +31,17 @@ import {
   SprintLifecycleAction,
   SprintScopeGrid,
   SprintTeamDaysOffForm,
+  SprintTypeForm,
 } from '@/src/app/work/sprints/_components'
-import { IterationStateTag } from '@/src/components/common/planning'
+import {
+  IterationStateTag,
+  sprintTypeLabels,
+} from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
 import { useGetTeamSprintsQuery } from '@/src/store/features/organizations/team-api'
 import { SwapOutlined } from '@ant-design/icons'
-import { Alert, Segmented, Space } from 'antd'
+import { SprintType } from '@/src/services/wayd-api'
+import { Alert, Segmented, Space, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import SprintFacts from './_components/sprint-facts'
@@ -64,6 +69,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     useState<SprintLifecycleAction | null>(null)
   const [correctingDates, setCorrectingDates] = useState(false)
   const [editingDaysOff, setEditingDaysOff] = useState(false)
+  const [editingType, setEditingType] = useState(false)
 
   const router = useRouter()
   const { hasPermissionClaim } = useAuth()
@@ -197,6 +203,11 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               label: 'Team Days Off',
               onClick: () => setEditingDaysOff(true),
             },
+            {
+              key: 'sprint-type',
+              label: 'Sprint Type',
+              onClick: () => setEditingType(true),
+            },
           ]
         : [],
     )
@@ -307,6 +318,11 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Space>
               {switchSprints}
               <IterationStateTag state={sprint.state.id as IterationState} />
+              {sprint.sprintType === SprintType.NonStandard && (
+                <WaydTooltip title="Not comparable with the team's other sprints. Its own metrics still show, but it is marked to be left out when comparing them.">
+                  <Tag>{sprintTypeLabels[sprint.sprintType]}</Tag>
+                </WaydTooltip>
+              )}
             </Space>
           ),
           actions: (
@@ -347,6 +363,13 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           sprint={sprint}
           onFormComplete={() => setEditingDaysOff(false)}
           onFormCancel={() => setEditingDaysOff(false)}
+        />
+      )}
+      {editingType && (
+        <SprintTypeForm
+          sprint={sprint}
+          onFormComplete={() => setEditingType(false)}
+          onFormCancel={() => setEditingType(false)}
         />
       )}
     </>

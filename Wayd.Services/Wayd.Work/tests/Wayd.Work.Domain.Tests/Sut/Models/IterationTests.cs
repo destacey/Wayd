@@ -448,4 +448,140 @@ public class IterationTests
         result.IsFailure.Should().BeTrue();
         iteration.DomainEvents.Should().BeEmpty();
     }
+
+    [Fact]
+    public void SetSprintType_WhenFollowingTheMapping_RecordsItAndRaisesTheChange()
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+
+        // Act
+        var result = sprint.SetSprintType(SprintType.NonStandard, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint.SprintTypeOverride.Should().Be(SprintType.NonStandard);
+        var raised = sprint.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintTypeSetEvent>().Subject;
+        raised.Id.Should().Be(sprint.Id);
+        raised.Key.Should().Be(sprint.Key);
+        raised.FromSprintType.Should().BeNull();
+        raised.ToSprintType.Should().Be(SprintType.NonStandard);
+    }
+
+    [Fact]
+    public void SetSprintType_WhenChangingTheTeamsType_CarriesBothEnds()
+    {
+        // Arrange
+        var sprint = new IterationFaker().AsSprint().WithSprintTypeOverride(SprintType.NonStandard).Generate();
+
+        // Act
+        var result = sprint.SetSprintType(SprintType.Standard, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = sprint.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintTypeSetEvent>().Subject;
+        raised.FromSprintType.Should().Be(SprintType.NonStandard);
+        raised.ToSprintType.Should().Be(SprintType.Standard);
+    }
+
+    [Fact]
+    public void SetSprintType_WhenUnchanged_RaisesNothing()
+    {
+        // Arrange
+        var sprint = new IterationFaker().AsSprint().WithSprintTypeOverride(SprintType.NonStandard).Generate();
+
+        // Act
+        var result = sprint.SetSprintType(SprintType.NonStandard, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetSprintType_OnAnIterationThatIsNotASprint_FailsAndChangesNothing()
+    {
+        // Arrange
+        var iteration = new IterationFaker().AsIteration().Generate();
+
+        // Act
+        var result = iteration.SetSprintType(SprintType.NonStandard, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        iteration.SprintTypeOverride.Should().BeNull();
+        iteration.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ClearSprintType_RemovesTheTeamsTypeAndRaisesWhatItWas()
+    {
+        // Arrange
+        var sprint = new IterationFaker().AsSprint().WithSprintTypeOverride(SprintType.NonStandard).Generate();
+
+        // Act
+        var result = sprint.ClearSprintType(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint.SprintTypeOverride.Should().BeNull();
+        var raised = sprint.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintTypeClearedEvent>().Subject;
+        raised.Id.Should().Be(sprint.Id);
+        raised.PreviousSprintType.Should().Be(SprintType.NonStandard);
+    }
+
+    [Fact]
+    public void ClearSprintType_WhenTheTeamHasNotSetOne_RaisesNothing()
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+
+        // Act
+        var result = sprint.ClearSprintType(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ResolveSprintType_WhenTheTeamSetOne_OverridesTheMapping()
+    {
+        // Arrange
+        var sprint = new IterationFaker().AsSprint().WithSprintTypeOverride(SprintType.Standard).Generate();
+
+        // Act
+        var resolved = sprint.ResolveSprintType(IterationCategory.InnovationAndPlanning);
+
+        // Assert
+        resolved.Should().Be(new ResolvedSprintType(SprintType.Standard, SprintTypeSource.Team));
+    }
+
+    [Theory]
+    [InlineData(IterationCategory.Development, SprintType.Standard)]
+    [InlineData(IterationCategory.InnovationAndPlanning, SprintType.NonStandard)]
+    public void ResolveSprintType_WhenMapped_FollowsTheIterationCategory(IterationCategory category, SprintType expected)
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+
+        // Act
+        var resolved = sprint.ResolveSprintType(category);
+
+        // Assert
+        resolved.Should().Be(new ResolvedSprintType(expected, SprintTypeSource.PlanningInterval));
+    }
+
+    [Fact]
+    public void ResolveSprintType_WhenNeitherSetNorMapped_IsStandard()
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+
+        // Act
+        var resolved = sprint.ResolveSprintType(null);
+
+        // Assert
+        resolved.Should().Be(new ResolvedSprintType(SprintType.Standard, SprintTypeSource.Default));
+    }
 }

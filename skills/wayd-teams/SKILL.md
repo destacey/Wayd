@@ -1,6 +1,6 @@
 ---
 name: wayd-teams
-description: Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, forecasting when work will be done, or generating allocation reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
+description: Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating allocation reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
 ---
 
 # Wayd Teams
@@ -11,7 +11,7 @@ A team carries three identifiers, and each tool accepts a specific one:
 
 | Identifier | Example      | Accepted by                                                                                               |
 | ---------- | ------------ | --------------------------------------------------------------------------------------------------------- |
-| `id`       | UUID         | `Teams_GetActivities`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamAllocation` |
+| `id`       | UUID         | `Teams_GetActivities`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamAllocation`, `Teams_GetSprintMetrics` (UUID only) |
 | `key`      | integer      | `Teams_GetTeam` (its parameter is named `id` but takes the integer `key`), `Teams_GetActivities`          |
 | `code`     | short string | `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamAllocation`                        |
 
@@ -38,6 +38,19 @@ Planning Interval tools take a different, PI-scoped team id — see the `wayd-pi
 - **Readiness checks cover only the top of the backlog.** Missing Estimate, Oversized, No Parent and No Project look at `readinessWindowWorkItems` top-ranked items, not the whole backlog.
 - **Estimates are in the team's `sizingMethod`.** `totalEstimate`, `oversizedEstimate` and each work item's `estimate` are Story Points, Effort or Size as the response's `sizingMethod` says — name the unit. A work item with no value in that estimate is missing one even if it has another; 0 is an estimate. For a team that sizes by `Count`, Missing Estimate and Oversized are `Not Applicable`.
 - **Rank Inversion compares only dependencies within the team.** Cross-team dependencies are not ranked against each other.
+
+## Sprint metrics
+
+`Teams_GetSprintMetrics` takes the team's UUID `id` only, and returns its velocity, predictability and say/do over its most recent completed standard sprints.
+
+- **Say which sprints the figures cover.** `sprints` lists the sprints counted, most recent first. There may be fewer than `sprintWindow` when the team has too few usable sprints; state the number actually counted.
+- **Report the spread with the average.** Each metric has `average`, `min`, `max` and `standardDeviation`. Quote the range (`min` to `max`) beside the average: a wide range means the average is a poor planning figure. A metric is null when no counted sprint has a value for it.
+- **Name the unit.** `byEstimate` is in the response's `sizingMethod` (Story Points, Effort or Size); `byCount` counts work items. Under `Count` the two are the same. Never mix them in one statement.
+- **Ratios are 0 to 1.** State predictability and say/do as percents. Predictability is velocity ÷ committed, capped at 1, so finished added work stands in for unfinished committed work; say/do counts only the committed items. A team can have high predictability and low say/do.
+- **Explain what was left out.** `excluded` lists completed sprints passed over, each with a `reason`: `NonStandard` (not comparable, such as an innovation and planning sprint), `HistoryIncomplete` (work item history not fully synced, so the figures would be unreliable) or `NoCommitment` (nothing was in the sprint at its commitment point). Mention them, since they explain why the window reaches further back.
+- **A changed sizing method.** A sprint with `inEstimateAverages: false` was measured in another sizing method. It counts toward `byCount` but not `byEstimate`; do not compare its `byEstimate` values with the others.
+- **Use the organization's window unless asked.** Omit `sprintWindow` to use the organization's setting (`defaultSprintWindow`), which is what Wayd's own pages show. Pass 3 to 12 only when the user asks for another range, and say which you used.
+- **An empty report is not an error.** A team with no sprints, or none usable, returns empty `sprints` and null summaries. Say there is nothing to measure, and why from `excluded`.
 
 ## Delivery forecasts
 

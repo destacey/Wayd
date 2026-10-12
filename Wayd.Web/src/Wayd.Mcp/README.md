@@ -233,7 +233,7 @@ Two rules the tools enforce and the `wayd-delivery` skill explains: a version sh
 
 | Category       | Operations                                                                                   |
 | -------------- | -------------------------------------------------------------------------------------------- |
-| **Teams**      | List, get details, get activity history, grade backlog health, forecast throughput by a date |
+| **Teams**      | List, get details, get activity history, grade backlog health, forecast throughput by a date, get sprint metrics (velocity, predictability and say/do over the last sprints) |
 | **Work Items** | Forecast when a work item will be done                                                       |
 | **Users**      | List, get details                                                                            |
 

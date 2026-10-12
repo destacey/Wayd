@@ -771,6 +771,7 @@ public class TeamsController(
     [HttpGet("{id}/sprint-metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
     [OpenApiOperation("Get the team's sprint metrics.", "The team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread, by item count and in the team's sizing method. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed with the reason. sprintWindow is how many sprints to measure over (3 to 12); omit it for the organization's sprint window.")]
+    [McpTool("Teams_GetSprintMetrics", "Get team sprint metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<TeamSprintMetricsDto>> GetSprintMetrics(Guid id, [FromQuery] int? sprintWindow, CancellationToken cancellationToken)

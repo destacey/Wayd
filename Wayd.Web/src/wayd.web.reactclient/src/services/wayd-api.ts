@@ -37615,6 +37615,70 @@ export class TeamsClient {
     }
 
     /**
+     * Get the team's sprint metrics.
+     * @param sprintWindow (optional) 
+     */
+    getSprintMetrics(id: string, sprintWindow?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamSprintMetricsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/sprint-metrics?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (sprintWindow !== undefined && sprintWindow !== null)
+            url_ += "sprintWindow=" + encodeURIComponent("" + sprintWindow) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintMetrics(_response);
+        });
+    }
+
+    protected processGetSprintMetrics(response: AxiosResponse): Promise<TeamSprintMetricsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamSprintMetricsDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamSprintMetricsDto>(null as any);
+    }
+
+    /**
      * Get the functional organizaation chart for a given date.
      * @param asOfDate (optional) 
      */
@@ -50669,6 +50733,8 @@ export interface SprintScopeTotalsDto {
     completedOfCommitted: SprintScopeMeasureDto;
     sayDoCount?: number | undefined;
     sayDoEstimate?: number | undefined;
+    predictabilityCount?: number | undefined;
+    predictabilityEstimate?: number | undefined;
     unestimated: number;
 }
 
@@ -51663,6 +51729,64 @@ export interface UpdateTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+}
+
+export interface TeamSprintMetricsDto {
+    teamId: string;
+    sprintWindow: number;
+    defaultSprintWindow: number;
+    sizingMethod: SizingMethod;
+    byCount: SprintMetricSummariesDto;
+    byEstimate: SprintMetricSummariesDto;
+    sprints: TeamSprintMetricsSprintDto[];
+    excluded: TeamSprintMetricsExcludedSprintDto[];
+}
+
+export interface SprintMetricSummariesDto {
+    velocity?: SprintMetricSummaryDto | undefined;
+    predictability?: SprintMetricSummaryDto | undefined;
+    sayDo?: SprintMetricSummaryDto | undefined;
+}
+
+export interface SprintMetricSummaryDto {
+    average: number;
+    min: number;
+    max: number;
+    standardDeviation: number;
+    sprints: number;
+}
+
+export interface TeamSprintMetricsSprintDto {
+    id: string;
+    key: number;
+    name: string;
+    start: string;
+    end: string;
+    sizingMethod: SizingMethod;
+    inEstimateAverages: boolean;
+    byCount: SprintMetricFiguresDto;
+    byEstimate: SprintMetricFiguresDto;
+}
+
+export interface SprintMetricFiguresDto {
+    velocity: number;
+    predictability?: number | undefined;
+    sayDo?: number | undefined;
+}
+
+export interface TeamSprintMetricsExcludedSprintDto {
+    id: string;
+    key: number;
+    name: string;
+    start: string;
+    end: string;
+    reason: SprintMetricsExclusion;
+}
+
+export enum SprintMetricsExclusion {
+    NonStandard = "NonStandard",
+    HistoryIncomplete = "HistoryIncomplete",
+    NoCommitment = "NoCommitment",
 }
 
 export interface FunctionalOrganizationChartDto {

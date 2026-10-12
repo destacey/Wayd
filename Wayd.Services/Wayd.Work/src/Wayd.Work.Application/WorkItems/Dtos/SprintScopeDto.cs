@@ -126,6 +126,15 @@ public sealed record SprintScopeTotalsDto
     /// <summary>Completed of committed ÷ committed, by estimate; null when the committed work had no estimate.</summary>
     public double? SayDoEstimate { get; init; }
 
+    /// <summary>
+    /// Completed ÷ committed by item count, up to 1: how much of what the team committed to it delivered,
+    /// letting finished added work stand in for committed work. Null when nothing was committed.
+    /// </summary>
+    public double? PredictabilityCount { get; init; }
+
+    /// <summary>Completed ÷ committed by estimate, up to 1; null when the committed work had no estimate.</summary>
+    public double? PredictabilityEstimate { get; init; }
+
     /// <summary>Items with no value in the sprint's estimate when they were last in the sprint.</summary>
     public int Unestimated { get; init; }
 
@@ -142,6 +151,8 @@ public sealed record SprintScopeTotalsDto
         CompletedOfCommitted = SprintScopeMeasureDto.From(totals.CompletedOfCommitted),
         SayDoCount = totals.SayDoCount,
         SayDoEstimate = totals.SayDoEstimate,
+        PredictabilityCount = totals.PredictabilityCount,
+        PredictabilityEstimate = totals.PredictabilityEstimate,
         Unestimated = totals.Unestimated,
     };
 }

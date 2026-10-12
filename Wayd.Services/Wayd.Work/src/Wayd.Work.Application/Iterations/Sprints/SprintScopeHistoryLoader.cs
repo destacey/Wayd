@@ -32,6 +32,18 @@ public sealed record SprintScopeHistory(
     public SizingMethod SizingMethod => Schedule.SizingMethod;
 }
 
+/// <summary>What one sprint's scope totals are worked out from, for a reader that goes through several sprints of a team.</summary>
+/// <param name="SizingMethod">The estimate the sprint is measured in.</param>
+/// <param name="HistoryIncomplete">
+/// Whether a workspace holding the sprint's work has not had its history read through to the end, so the
+/// history may be missing changes.
+/// </param>
+public sealed record SprintScopePeriods(
+    SprintScopeWindow Window,
+    SizingMethod SizingMethod,
+    List<SprintScopePeriod> Periods,
+    bool HistoryIncomplete);
+
 /// <summary>
 /// Loads what sprint scope and the sprint's burn are worked out from, so the two read the same window and the
 /// same work item history.
@@ -63,6 +75,28 @@ public static class SprintScopeHistoryLoader
             window,
             schedule,
             await LoadWorkingDays(dispatcher, sprint, window, schedule, cancellationToken),
+            periods,
+            await IsHistoryIncomplete(workDbContext, sprint.Id, workItemIds, cancellationToken));
+    }
+
+    /// <summary>
+    /// Loads the history of one of <paramref name="timeline"/>'s sprints for a reader that goes through several
+    /// of them, so the team's sprints and schedules are read once. It leaves out the working days, which only
+    /// the ideal burn-down needs.
+    /// </summary>
+    public static async Task<SprintScopePeriods> LoadSprintScopePeriods(
+        this IWorkDbContext workDbContext,
+        TeamSprintTimeline timeline,
+        Iteration sprint,
+        CancellationToken cancellationToken)
+    {
+        var window = SprintScopeWindow.For(timeline, sprint);
+        var periods = await LoadPeriods(workDbContext, window, cancellationToken);
+        var workItemIds = periods.Select(p => p.WorkItemId).Distinct().ToList();
+
+        return new SprintScopePeriods(
+            window,
+            timeline.ScheduleFor(sprint).SizingMethod,
             periods,
             await IsHistoryIncomplete(workDbContext, sprint.Id, workItemIds, cancellationToken));
     }

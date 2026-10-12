@@ -67,16 +67,15 @@ public static class SprintScopeHistoryLoader
             return null;
 
         var (window, schedule) = await LoadWindow(workDbContext, dispatcher, schedulingSettings, sprint, cancellationToken);
-        var periods = await LoadPeriods(workDbContext, window, cancellationToken);
-        var workItemIds = periods.Select(p => p.WorkItemId).Distinct().ToList();
+        var scope = await LoadSprintScopePeriods(workDbContext, window, schedule.SizingMethod, cancellationToken);
 
         return new SprintScopeHistory(
             sprint,
             window,
             schedule,
             await LoadWorkingDays(dispatcher, sprint, window, schedule, cancellationToken),
-            periods,
-            await IsHistoryIncomplete(workDbContext, sprint.Id, workItemIds, cancellationToken));
+            scope.Periods,
+            scope.HistoryIncomplete);
     }
 
     /// <summary>
@@ -84,21 +83,28 @@ public static class SprintScopeHistoryLoader
     /// of them, so the team's sprints and schedules are read once. It leaves out the working days, which only
     /// the ideal burn-down needs.
     /// </summary>
-    public static async Task<SprintScopePeriods> LoadSprintScopePeriods(
+    public static Task<SprintScopePeriods> LoadSprintScopePeriods(
         this IWorkDbContext workDbContext,
         TeamSprintTimeline timeline,
         Iteration sprint,
+        CancellationToken cancellationToken) =>
+        LoadSprintScopePeriods(workDbContext, SprintScopeWindow.For(timeline, sprint), timeline.ScheduleFor(sprint).SizingMethod, cancellationToken);
+
+    /// <summary>The one read of a sprint's history and its completeness, which every reader of its scope goes through.</summary>
+    private static async Task<SprintScopePeriods> LoadSprintScopePeriods(
+        IWorkDbContext workDbContext,
+        SprintScopeWindow window,
+        SizingMethod sizingMethod,
         CancellationToken cancellationToken)
     {
-        var window = SprintScopeWindow.For(timeline, sprint);
         var periods = await LoadPeriods(workDbContext, window, cancellationToken);
         var workItemIds = periods.Select(p => p.WorkItemId).Distinct().ToList();
 
         return new SprintScopePeriods(
             window,
-            timeline.ScheduleFor(sprint).SizingMethod,
+            sizingMethod,
             periods,
-            await IsHistoryIncomplete(workDbContext, sprint.Id, workItemIds, cancellationToken));
+            await IsHistoryIncomplete(workDbContext, window.SprintId, workItemIds, cancellationToken));
     }
 
     private static async Task<(SprintScopeWindow Window, SprintSchedule Schedule)> LoadWindow(

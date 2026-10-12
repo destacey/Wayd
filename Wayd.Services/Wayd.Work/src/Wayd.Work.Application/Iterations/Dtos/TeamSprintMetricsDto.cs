@@ -20,8 +20,8 @@ public sealed record TeamSprintMetricsDto
     public int DefaultSprintWindow { get; init; }
 
     /// <summary>
-    /// The estimate <see cref="ByEstimate"/> is measured in: the team's sizing method on its most recent counted
-    /// sprint. Count when no sprint is counted. Under Count the estimate figures equal the count figures.
+    /// The estimate <see cref="ByEstimate"/> is measured in: the team's sizing method now. Under Count
+    /// <see cref="ByEstimate"/> equals <see cref="ByCount"/>.
     /// </summary>
     public SizingMethod SizingMethod { get; init; }
 

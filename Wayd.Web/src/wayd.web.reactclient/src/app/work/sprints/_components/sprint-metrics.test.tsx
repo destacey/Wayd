@@ -311,6 +311,26 @@ describe('SprintMetrics', () => {
       )
     })
 
+    it('leaves them off a non-standard sprint, which is not comparable with the others', () => {
+      // Arrange
+      mockTeamMetrics(metrics.sizingMethod)
+
+      // Act
+      render(
+        <SprintMetrics
+          sprint={{ ...activeSprint, sprintType: SprintType.NonStandard }}
+        />,
+      )
+
+      // Assert
+      expect(
+        screen.queryByTestId('secondary-Predictability'),
+      ).not.toBeInTheDocument()
+      expect(screen.getByTestId('secondary-Velocity')).not.toHaveTextContent(
+        'Team avg',
+      )
+    })
+
     it('compares by count whatever the sizing methods', async () => {
       // Arrange
       mockTeamMetrics(SizingMethod.StoryPoints)

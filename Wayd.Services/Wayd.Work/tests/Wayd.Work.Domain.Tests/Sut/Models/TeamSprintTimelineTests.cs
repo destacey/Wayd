@@ -52,6 +52,32 @@ public class TeamSprintTimelineTests
     }
 
     [Fact]
+    public void ScheduleAt_BetweenSprints_IsTheScheduleInEffectThatDay()
+    {
+        // Arrange — no sprint covers the day asked about
+        var timeline = Timeline(NewSprint(Sprint1Start, 1));
+
+        // Act
+        var result = timeline.ScheduleAt(Instant.FromUtc(2026, 11, 20, 12, 0));
+
+        // Assert
+        result.Should().Be(ChicagoSchedule);
+    }
+
+    [Fact]
+    public void ScheduleAt_BeforeTheTeamHadASchedule_IsTheFallback()
+    {
+        // Arrange
+        var timeline = Timeline();
+
+        // Act
+        var result = timeline.ScheduleAt(Instant.FromUtc(2025, 6, 1, 12, 0));
+
+        // Assert
+        result.Should().Be(UtcSchedule);
+    }
+
+    [Fact]
     public void ScheduleFor_WhenTheTeamHadNoScheduleThatDay_UsesTheFallback()
     {
         // Arrange

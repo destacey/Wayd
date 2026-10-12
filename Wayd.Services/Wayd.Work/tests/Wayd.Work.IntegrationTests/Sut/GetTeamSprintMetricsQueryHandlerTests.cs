@@ -65,7 +65,8 @@ public sealed class GetTeamSprintMetricsQueryHandlerTests(SqlServerDbContextFixt
         var result = await Handle(teamId, sprintWindow: 3, ct, nonStandard: sprint5);
 
         // Assert
-        result.SprintWindow.Should().Be(3);
+        result.Should().NotBeNull();
+        result!.SprintWindow.Should().Be(3);
         result.DefaultSprintWindow.Should().Be(7);
         result.SizingMethod.Should().Be(SizingMethod.StoryPoints);
 
@@ -103,14 +104,15 @@ public sealed class GetTeamSprintMetricsQueryHandlerTests(SqlServerDbContextFixt
         var result = await Handle(teamId, sprintWindow: null, ct);
 
         // Assert
-        result.SprintWindow.Should().Be(7);
+        result.Should().NotBeNull();
+        result!.SprintWindow.Should().Be(7);
         result.Sprints.Should().BeEmpty();
         result.Excluded.Should().ContainSingle().Which.Reason.Should().Be(SprintMetricsExclusion.HistoryIncomplete);
         result.ByCount.Velocity.Should().BeNull();
     }
 
     [Fact]
-    public async Task Handle_TeamWithNoSprints_IsAnEmptyReport()
+    public async Task Handle_TeamWithNoSprints_IsAnEmptyReportInTheTeamsSizingMethod()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -121,14 +123,43 @@ public sealed class GetTeamSprintMetricsQueryHandlerTests(SqlServerDbContextFixt
         var result = await Handle(teamId, sprintWindow: null, ct);
 
         // Assert
-        result.Sprints.Should().BeEmpty();
+        result.Should().NotBeNull();
+        result!.Sprints.Should().BeEmpty();
         result.Excluded.Should().BeEmpty();
-        result.SizingMethod.Should().Be(SizingMethod.Count);
+        result.SizingMethod.Should().Be(SizingMethod.StoryPoints);
+    }
+
+    [Fact]
+    public async Task Handle_UnknownTeam_ReturnsNull()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+
+        // Act
+        var result = await Handle(Guid.NewGuid(), sprintWindow: null, ct);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_TeamOfTeams_ReturnsNull()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var teamOfTeamsId = await SeedTeam(ct, TeamType.TeamOfTeams);
+
+        // Act
+        var result = await Handle(teamOfTeamsId, sprintWindow: null, ct);
+
+        // Assert
+        result.Should().BeNull();
     }
 
     private static LocalDate StartOf(int number) => FirstStart.PlusDays((number - 1) * 14);
 
-    private async Task<TeamSprintMetricsDto> Handle(Guid teamId, int? sprintWindow, CancellationToken ct, Guid? nonStandard = null)
+    private async Task<TeamSprintMetricsDto?> Handle(Guid teamId, int? sprintWindow, CancellationToken ct, Guid? nonStandard = null)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
 
@@ -152,10 +183,10 @@ public sealed class GetTeamSprintMetricsQueryHandlerTests(SqlServerDbContextFixt
         return await handler.Handle(new GetTeamSprintMetricsQuery(teamId, sprintWindow), ct);
     }
 
-    private async Task<Guid> SeedTeam(CancellationToken ct)
+    private async Task<Guid> SeedTeam(CancellationToken ct, TeamType type = TeamType.Team)
     {
         var key = Random.Shared.Next(100_000, 999_999);
-        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, "Atlas", new TeamCode($"T{key}"), TeamType.Team, true), SqlServerDbContextFixture.FixedNow);
+        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, "Atlas", new TeamCode($"T{key}"), type, true), SqlServerDbContextFixture.FixedNow);
 
         await using var accessor = new WaydDbContextAccessor(_fixture);
         accessor.Context.WorkTeams.Add(team);

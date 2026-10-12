@@ -10,6 +10,7 @@ import {
   formatSprintMetricAverage,
   formatSprintMetricRange,
   METRIC_TOOLTIPS,
+  sprintCountText,
   SprintMetricKind,
   sprintMetricSummaries,
 } from './team-sprint-metrics-formatting'
@@ -47,14 +48,34 @@ const TeamSprintMetricsSummary: FC<TeamSprintMetricsSummaryProps> = ({
 
   if (!isLoading && (!metrics || metrics.sprints.length === 0)) return null
 
-  const isCountSized = metrics?.sizingMethod === SizingMethod.Count
+  const sprintCount = metrics?.sprints.length ?? 0
+  // Fewer than the sprints counted when the team has changed its sizing method
+  // since: those sprints' estimates are in another unit, and are not averaged.
+  const inEstimate =
+    metrics?.sprints.filter((s) => s.inEstimateAverages).length ?? 0
+  // With no sprint yet in the team's sizing method there is nothing to average
+  // in it, so the sprints are counted by work item instead.
+  const showsCount =
+    metrics?.sizingMethod === SizingMethod.Count || inEstimate === 0
   const summaries = metrics
-    ? sprintMetricSummaries(metrics, isCountSized)
+    ? sprintMetricSummaries(metrics, showsCount)
     : undefined
-  const measure = sizingMethodMeasure(
+  const teamMeasure = sizingMethodMeasure(
     metrics?.sizingMethod ?? SizingMethod.Count,
   )
-  const sprintCount = metrics?.sprints.length ?? 0
+  const measure = showsCount
+    ? sizingMethodMeasure(SizingMethod.Count)
+    : teamMeasure
+
+  const covers = (() => {
+    const last = `Last ${sprintCount} completed standard ${sprintCount === 1 ? 'sprint' : 'sprints'}`
+    if (metrics?.sizingMethod === SizingMethod.Count) return last
+    if (inEstimate === 0)
+      return `${last}, by work item: none is sized in ${teamMeasure} yet`
+    if (inEstimate < sprintCount)
+      return `${last}: the ${sprintCountText(inEstimate)} sized in ${teamMeasure}`
+    return last
+  })()
 
   return (
     <Flex vertical gap="small">
@@ -62,11 +83,7 @@ const TeamSprintMetricsSummary: FC<TeamSprintMetricsSummaryProps> = ({
         <Text strong style={{ fontSize: 14 }}>
           Sprint Metrics
         </Text>
-        {metrics && (
-          <Text type="secondary">
-            {`Last ${sprintCount} completed standard ${sprintCount === 1 ? 'sprint' : 'sprints'}`}
-          </Text>
-        )}
+        {metrics && <Text type="secondary">{covers}</Text>}
       </Flex>
       <Flex gap="small" wrap>
         {METRICS.map(({ kind, title }) => (
@@ -75,7 +92,7 @@ const TeamSprintMetricsSummary: FC<TeamSprintMetricsSummaryProps> = ({
             title={title}
             value={formatSprintMetricAverage(kind, summaries?.[kind])}
             secondaryValue={formatSprintMetricRange(kind, summaries?.[kind])}
-            tooltip={`${METRIC_TOOLTIPS[kind]} Measured in ${measure}.`}
+            tooltip={`${METRIC_TOOLTIPS[kind]} Measured in ${measure}${summaries?.[kind] ? `, over ${sprintCountText(summaries[kind].sprints)}` : ''}.`}
             loading={isLoading}
             cardStyle={METRIC_CARD_FLEX}
             onClick={onOpenReport}

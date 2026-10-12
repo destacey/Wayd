@@ -69,9 +69,14 @@ public sealed class TeamSprintMetrics
     /// <param name="size">
     /// How many sprints the window holds, held to <see cref="SprintMetricsSettings.MinSprintWindow"/>–<see cref="SprintMetricsSettings.MaxSprintWindow"/>.
     /// </param>
-    public TeamSprintMetrics(int size)
+    /// <param name="sizingMethod">
+    /// The team's sizing method now, which the report's estimates are measured in. Not read from the sprints
+    /// counted: the team's most recent sprints may all be left out, and a team with none still has one.
+    /// </param>
+    public TeamSprintMetrics(int size, SizingMethod sizingMethod)
     {
         Size = Math.Clamp(size, SprintMetricsSettings.MinSprintWindow, SprintMetricsSettings.MaxSprintWindow);
+        SizingMethod = sizingMethod;
     }
 
     /// <summary>How many sprints the window holds when full.</summary>
@@ -87,20 +92,22 @@ public sealed class TeamSprintMetrics
     public IReadOnlyList<ExcludedSprint> Excluded => _excluded;
 
     /// <summary>
-    /// The estimate the report is measured in: the most recent counted sprint's, which is the unit the team
-    /// plans its next sprint in. Count when no sprint is counted.
+    /// The estimate the report is measured in: the team's sizing method now, which is the unit it plans its
+    /// next sprint in.
     /// </summary>
-    public SizingMethod SizingMethod => _sprints.Count == 0 ? SizingMethod.Count : _sprints[0].SizingMethod;
+    public SizingMethod SizingMethod { get; }
 
     /// <summary>The metrics by item count, across every counted sprint.</summary>
     public SprintMetricSummaries ByCount => SprintMetricSummaries.Of([.. _sprints.Select(s => s.ByCount)]);
 
     /// <summary>
     /// The metrics in <see cref="SizingMethod"/>, across the counted sprints measured in it. A sprint measured
-    /// in another estimate, because the team changed its sizing method within the window, is left out:
-    /// estimates in different units are never averaged.
+    /// in another estimate, because the team has changed its sizing method since, is left out: estimates in
+    /// different units are never averaged. A team that sizes by count is measured by count, across every sprint.
     /// </summary>
-    public SprintMetricSummaries ByEstimate => SprintMetricSummaries.Of([.. _sprints.Where(IsInReportEstimate).Select(s => s.ByEstimate)]);
+    public SprintMetricSummaries ByEstimate => SizingMethod == SizingMethod.Count
+        ? ByCount
+        : SprintMetricSummaries.Of([.. _sprints.Where(IsInReportEstimate).Select(s => s.ByEstimate)]);
 
     /// <summary>Whether <paramref name="sprint"/> was measured in the report's estimate, so it counts toward <see cref="ByEstimate"/>.</summary>
     public bool IsInReportEstimate(MeasuredSprint sprint) => sprint.SizingMethod == SizingMethod;

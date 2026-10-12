@@ -11,7 +11,11 @@ import {
 import { IterationHealthIndicator } from '@/src/components/common/planning'
 import useTheme from '@/src/components/contexts/theme'
 import { IterationState } from '@/src/components/types'
-import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
+import {
+  SizingMethod,
+  SprintDetailsDto,
+  SprintType,
+} from '@/src/services/wayd-api'
 import {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
@@ -19,6 +23,7 @@ import {
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import {
   formatSprintMetricAverage,
+  sprintCountText,
   SprintMetricKind,
   sprintMetricSummaries,
 } from '@/src/components/common/work/sprint-metrics/team-sprint-metrics-formatting'
@@ -93,18 +98,21 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
   )
   // By estimate the two compare only in the same unit, which a sprint from
   // before the team changed its sizing method is not.
+  // A non-standard sprint is left out of the team's metrics as not comparable
+  // with its other sprints, so it is not compared with them here either.
   const teamSummaries =
-    teamMetrics && (showsCount || teamMetrics.sizingMethod === sizingMethod)
+    teamMetrics &&
+    sprint.sprintType !== SprintType.NonStandard &&
+    (showsCount || teamMetrics.sizingMethod === sizingMethod)
       ? sprintMetricSummaries(teamMetrics, showsCount)
       : undefined
-  const teamSprintCount = teamMetrics?.sprints.length ?? 0
 
   const teamAverage = (kind: SprintMetricKind): ReactNode => {
     const summary = teamSummaries?.[kind]
     if (!summary) return undefined
     return (
       <WaydTooltip
-        title={`The team's average over its last ${teamSprintCount} completed standard ${teamSprintCount === 1 ? 'sprint' : 'sprints'}.`}
+        title={`The team's average over the ${sprintCountText(summary.sprints)} with a value among its most recent completed standard sprints.`}
         helpCursor
       >
         <span>{`Team avg ${formatSprintMetricAverage(kind, summary)}`}</span>

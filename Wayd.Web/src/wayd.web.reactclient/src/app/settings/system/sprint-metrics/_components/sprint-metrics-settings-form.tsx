@@ -6,10 +6,10 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { toFormErrors } from '@/src/utils'
 import { SprintMetricsSettingsDto } from '@/src/services/wayd-api'
 import { useUpdateSprintMetricsSettingsMutation } from '@/src/store/features/admin/system-settings-api'
-
-// The bounds the API holds the sprint window to.
-export const MIN_SPRINT_WINDOW = 3
-export const MAX_SPRINT_WINDOW = 12
+import {
+  MAX_SPRINT_WINDOW,
+  MIN_SPRINT_WINDOW,
+} from '@/src/components/common/work/sprint-metrics/team-sprint-metrics-formatting'
 
 interface SprintMetricsSettingsFormValues {
   sprintWindow: number

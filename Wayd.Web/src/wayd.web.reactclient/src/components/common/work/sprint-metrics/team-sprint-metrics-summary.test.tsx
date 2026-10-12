@@ -16,14 +16,14 @@ const summary = (average: number, min: number, max: number) => ({
   sprints: 2,
 })
 
-const sprint = (key: number) => ({
+const sprint = (key: number, inEstimateAverages = true) => ({
   id: `sprint-${key}`,
   key,
   name: `Sprint ${key}`,
   start: '2026-06-01',
   end: '2026-06-14',
   sizingMethod: SizingMethod.StoryPoints,
-  inEstimateAverages: true,
+  inEstimateAverages,
   byCount: { velocity: 4, predictability: 0.8, sayDo: 0.6 },
   byEstimate: { velocity: 21, predictability: 0.9, sayDo: 0.7 },
 })
@@ -101,6 +101,43 @@ describe('TeamSprintMetricsSummary', () => {
     render(<TeamSprintMetricsSummary teamId="team-1" />)
 
     // Assert
+    expect(card('Average Velocity')).toHaveTextContent('Range 3–5')
+  })
+
+  it('says how many sprints the averages cover when the team has changed its sizing method', () => {
+    // Arrange — one of the two sprints was measured in the old sizing method
+    mockQuery(createMetrics({ sprints: [sprint(8), sprint(7, false)] }))
+
+    // Act
+    render(<TeamSprintMetricsSummary teamId="team-1" />)
+
+    // Assert
+    expect(
+      screen.getByText(
+        'Last 2 completed standard sprints: the 1 sprint sized in story points',
+      ),
+    ).toBeInTheDocument()
+    expect(card('Average Velocity')).toHaveTextContent('24')
+  })
+
+  it("counts work items when no sprint is in the team's sizing method yet", () => {
+    // Arrange
+    mockQuery(
+      createMetrics({
+        sprints: [sprint(8, false), sprint(7, false)],
+        byEstimate: {},
+      }),
+    )
+
+    // Act
+    render(<TeamSprintMetricsSummary teamId="team-1" />)
+
+    // Assert
+    expect(
+      screen.getByText(
+        'Last 2 completed standard sprints, by work item: none is sized in story points yet',
+      ),
+    ).toBeInTheDocument()
     expect(card('Average Velocity')).toHaveTextContent('Range 3–5')
   })
 

@@ -45,6 +45,10 @@ export const formatSprintMetricAverage = (
     : percent(summary.average)
 }
 
+/** "1 sprint", "5 sprints". */
+export const sprintCountText = (count: number): string =>
+  `${count} ${count === 1 ? 'sprint' : 'sprints'}`
+
 /** A metric's spread across the sprints, as its lowest and highest sprint. */
 export const formatSprintMetricRange = (
   kind: SprintMetricKind,

@@ -1,4 +1,5 @@
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Iterations.Dtos;
 using Wayd.Work.Application.Iterations.Sprints;
@@ -9,13 +10,14 @@ using Wayd.Work.Domain.Models.SprintScope;
 namespace Wayd.Work.Application.Iterations.Queries;
 
 /// <summary>
-/// Gets a team's velocity, predictability and say/do over its last completed standard sprints.
+/// Gets a team's velocity, predictability and say/do over its last completed standard sprints. Null when
+/// there is no such team; a team of teams has no sprints of its own, so it is not one.
 /// </summary>
 /// <param name="SprintWindow">
 /// How many sprints to measure over, from <see cref="SprintMetricsSettings.MinSprintWindow"/> to
 /// <see cref="SprintMetricsSettings.MaxSprintWindow"/>; null for the organization's sprint window.
 /// </param>
-public sealed record GetTeamSprintMetricsQuery(Guid TeamId, int? SprintWindow = null) : IQuery<TeamSprintMetricsDto>;
+public sealed record GetTeamSprintMetricsQuery(Guid TeamId, int? SprintWindow = null) : IQuery<TeamSprintMetricsDto?>;
 
 public sealed class GetTeamSprintMetricsQueryValidator : AbstractValidator<GetTeamSprintMetricsQuery>
 {
@@ -33,7 +35,7 @@ public sealed class GetTeamSprintMetricsQueryHandler(
     ISettings<SchedulingSettings> schedulingSettings,
     ISettings<SprintMetricsSettings> sprintMetricsSettings,
     IDateTimeProvider dateTimeProvider)
-    : IQueryHandler<GetTeamSprintMetricsQuery, TeamSprintMetricsDto>
+    : IQueryHandler<GetTeamSprintMetricsQuery, TeamSprintMetricsDto?>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
@@ -41,13 +43,18 @@ public sealed class GetTeamSprintMetricsQueryHandler(
     private readonly ISettings<SprintMetricsSettings> _sprintMetricsSettings = sprintMetricsSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<TeamSprintMetricsDto> Handle(GetTeamSprintMetricsQuery request, CancellationToken cancellationToken)
+    public async Task<TeamSprintMetricsDto?> Handle(GetTeamSprintMetricsQuery request, CancellationToken cancellationToken)
     {
+        var isTeam = await _workDbContext.WorkTeams
+            .AnyAsync(t => t.Id == request.TeamId && t.Type == TeamType.Team, cancellationToken);
+        if (!isTeam)
+            return null;
+
         var defaultWindow = (await _sprintMetricsSettings.Get(cancellationToken)).SprintWindow;
-        var metrics = new TeamSprintMetrics(request.SprintWindow ?? defaultWindow);
         var now = _dateTimeProvider.Now;
 
         var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, request.TeamId, tracked: false, cancellationToken);
+        var metrics = new TeamSprintMetrics(request.SprintWindow ?? defaultWindow, timeline.ScheduleAt(now).SizingMethod);
         var candidates = metrics.Candidates(timeline, now);
         var sprintTypes = await _dispatcher.ResolveSprintTypes(candidates, cancellationToken);
 

@@ -390,6 +390,11 @@ export const teamApi = apiSlice.injectEndpoints({
         QueryTags.SprintScope,
         // The organization's sprint window decides how many sprints count.
         { type: QueryTags.SystemSettings, id: 'sprint-metrics' },
+        // The team's operating model sets the unit, the zone and the commitment
+        // point each sprint is measured with; a sprint with no model takes the
+        // scheduling defaults.
+        { type: QueryTags.TeamOperatingModel, id: arg.teamId },
+        { type: QueryTags.SystemSettings, id: 'scheduling' },
       ],
     }),
 

@@ -38,6 +38,7 @@ import {
   METRIC_TOOLTIPS,
   MIN_SPRINT_WINDOW,
   NO_VALUE,
+  sprintCountText,
   SprintMetricKind,
   sprintMetricFigures,
   sprintMetricSummaries,
@@ -188,7 +189,7 @@ export const TeamSprintMetricsReportView: FC<
                     kind,
                     summaries?.[kind],
                   )}
-                  tooltip={`${METRIC_TOOLTIPS[kind]} Measured in ${measure}.`}
+                  tooltip={`${METRIC_TOOLTIPS[kind]} Measured in ${measure}${summaries?.[kind] ? `, over ${sprintCountText(summaries[kind].sprints)}` : ''}.`}
                   cardStyle={METRIC_CARD_FLEX}
                 />
               ))}
@@ -198,7 +199,7 @@ export const TeamSprintMetricsReportView: FC<
                 type="info"
                 showIcon
                 title={`${otherSizing.length === 1 ? '1 sprint was' : `${otherSizing.length} sprints were`} measured in another sizing method`}
-                description={`The team changed its sizing method within these sprints. Estimates in different units are never averaged, so the ${unitLabel} averages leave ${otherSizing.length === 1 ? 'that sprint' : 'those sprints'} out. Switch to Count to compare every sprint.`}
+                description={`The team has changed its sizing method since. Estimates in different units are never averaged, so the ${unitLabel} averages leave ${otherSizing.length === 1 ? 'that sprint' : 'those sprints'} out. Switch to Count to compare every sprint.`}
               />
             )}
             <Table<TeamSprintMetricsSprintDto>

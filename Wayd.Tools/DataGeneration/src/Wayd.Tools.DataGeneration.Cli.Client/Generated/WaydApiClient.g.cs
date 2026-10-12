@@ -64470,7 +64470,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the team's sprint metrics.
         /// </summary>
         /// <remarks>
-        /// The team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread, by item count and in the team's sizing method. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed with the reason. sprintWindow is how many sprints to measure over (3 to 12); omit it for the organization's sprint window.
+        /// The team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread, by item count and in the team's sizing method. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed with the reason. sprintWindow is how many sprints to measure over (3 to 12); omit it for the organization's sprint window. Estimates are in the team's sizing method now; a sprint measured in an earlier one counts by item only. Returns 404 for an id that is not a team's, including a team of teams, which has no sprints of its own.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamSprintMetricsDto> GetSprintMetricsAsync(System.Guid id, int? sprintWindow = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -68114,7 +68114,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the team's sprint metrics.
         /// </summary>
         /// <remarks>
-        /// The team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread, by item count and in the team's sizing method. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed with the reason. sprintWindow is how many sprints to measure over (3 to 12); omit it for the organization's sprint window.
+        /// The team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread, by item count and in the team's sizing method. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed with the reason. sprintWindow is how many sprints to measure over (3 to 12); omit it for the organization's sprint window. Estimates are in the team's sizing method now; a sprint measured in an earlier one counts by item only. Returns 404 for an id that is not a team's, including a team of teams, which has no sprints of its own.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamSprintMetricsDto> GetSprintMetricsAsync(System.Guid id, int? sprintWindow = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -68175,6 +68175,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)

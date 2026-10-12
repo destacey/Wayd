@@ -128,6 +128,14 @@ describe('SettingsMenu', () => {
       expect(screen.getByText('Scheduling')).toBeInTheDocument()
     })
 
+    it('puts the sprint metrics settings under System', () => {
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.getByText('Sprint Metrics')).toBeInTheDocument()
+    })
+
     it('hides Planning when the planning poker flag is off', () => {
       // Arrange — the group holds only estimation scales, so the flag takes
       // the whole group with it.

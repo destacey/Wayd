@@ -172,6 +172,12 @@ const buildSettingsMenuItems = (
       '/settings/system/scheduling',
     ),
     restrictedPermissionMenuItem(
+      'Permissions.SystemSettings.View',
+      'Sprint Metrics',
+      'system.sprint-metrics',
+      '/settings/system/sprint-metrics',
+    ),
+    restrictedPermissionMenuItem(
       'Permissions.FeatureFlags.View',
       'Feature Flags',
       'system.feature-flags',

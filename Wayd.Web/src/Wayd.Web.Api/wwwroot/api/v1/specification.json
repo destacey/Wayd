@@ -40828,6 +40828,129 @@
         ]
       }
     },
+    "/api/admin/settings/sprint-metrics": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the sprint metrics settings.",
+        "operationId": "SystemSettings_GetSprintMetricsSettings",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintMetricsSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Update the sprint metrics settings.",
+        "operationId": "SystemSettings_UpdateSprintMetricsSettings",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSprintMetricsSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/sprint-metrics/activities": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the sprint metrics settings' change history.",
+        "operationId": "SystemSettings_GetSprintMetricsSettingsActivities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/workflow-assignments": {
       "get": {
         "tags": [
@@ -66537,6 +66660,35 @@
             "format": "guid",
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "SprintMetricsSettingsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sprintWindow"
+        ],
+        "properties": {
+          "sprintWindow": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateSprintMetricsSettingsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sprintWindow"
+        ],
+        "properties": {
+          "sprintWindow": {
+            "type": "integer",
+            "description": "How many of a team's most recent completed standard sprints its velocity, predictability and say/do\nare averaged over. From 3 to 12.",
+            "format": "int32",
+            "maximum": 12.0,
+            "minimum": 3.0
           }
         }
       },

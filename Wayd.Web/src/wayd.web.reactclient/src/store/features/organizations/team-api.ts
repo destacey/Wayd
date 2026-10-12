@@ -8,6 +8,7 @@ import {
   RiskListDto,
   SprintListDto,
   SprintDetailsDto,
+  TeamSprintMetricsDto,
   TeamDetailsDto,
   TeamOfTeamsDetailsDto,
   WorkStatusCategory,
@@ -363,6 +364,32 @@ export const teamApi = apiSlice.injectEndpoints({
       providesTags: (result, error, arg) => [
         QueryTags.TeamSprint,
         { type: QueryTags.TeamSprint, id: arg },
+      ],
+    }),
+
+    getTeamSprintMetrics: builder.query<
+      TeamSprintMetricsDto,
+      { teamId: string; sprintWindow?: number }
+    >({
+      queryFn: async ({ teamId, sprintWindow }) => {
+        try {
+          const data = await getTeamsClient().getSprintMetrics(
+            teamId,
+            sprintWindow,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // A sprint's dates, type or scope changing changes which sprints count and what they report.
+      providesTags: (result, error, arg) => [
+        QueryTags.TeamSprint,
+        { type: QueryTags.TeamSprint, id: arg.teamId },
+        QueryTags.SprintScope,
+        // The organization's sprint window decides how many sprints count.
+        { type: QueryTags.SystemSettings, id: 'sprint-metrics' },
       ],
     }),
 
@@ -1139,6 +1166,7 @@ export const {
   useGetTeamWorkItemsQuery,
   useGetTeamDependenciesQuery,
   useGetTeamSprintsQuery,
+  useGetTeamSprintMetricsQuery,
   useGetActiveSprintQuery,
   useGetTeamSprintOptionsQuery,
   useGetFunctionalOrganizationChartQuery,

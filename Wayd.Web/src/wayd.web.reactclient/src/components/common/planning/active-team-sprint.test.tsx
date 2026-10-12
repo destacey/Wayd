@@ -210,6 +210,8 @@ describe('ActiveTeamSprint', () => {
           completedOfCommitted: measure(2, 22),
           sayDoCount: 0.5,
           sayDoEstimate: 0.55,
+          predictabilityCount: 0.75,
+          predictabilityEstimate: 0.75,
           unestimated: 0,
         },
       },

@@ -184,6 +184,8 @@ describe('SprintMetrics', () => {
       completedOfCommitted: measure(4, 45),
       sayDoCount: 4 / 9,
       sayDoEstimate: 0.5,
+      predictabilityCount: 6 / 9,
+      predictabilityEstimate: 60 / 90,
       unestimated: 0,
     },
     items: [],

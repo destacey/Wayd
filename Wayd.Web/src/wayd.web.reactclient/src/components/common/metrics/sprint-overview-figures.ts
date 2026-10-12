@@ -95,9 +95,9 @@ export const sprintOverviewFigures = (
       descoped: value(totals.descoped),
       sayDo: (byCount ? totals.sayDoCount : totals.sayDoEstimate) ?? null,
       predictability:
-        value(totals.committed) > 0
-          ? Math.min(value(totals.completed) / value(totals.committed), 1)
-          : null,
+        (byCount
+          ? totals.predictabilityCount
+          : totals.predictabilityEstimate) ?? null,
       reestimated:
         value(totals.total) - value(totals.committed) - value(totals.added),
       commitment: {

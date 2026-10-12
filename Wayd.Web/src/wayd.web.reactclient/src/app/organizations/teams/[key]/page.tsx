@@ -80,6 +80,14 @@ const AllocationReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const TeamSprintMetricsReport = dynamic(
+  () =>
+    import('@/src/components/common/work/sprint-metrics').then((mod) => ({
+      default: mod.TeamSprintMetricsReport,
+    })),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 const TeamBacklog = dynamic(
   () => import('@/src/app/organizations/teams/_components/team-backlog'),
   {
@@ -101,6 +109,7 @@ enum TeamTabs {
   BacklogHealth = 'backlog-health',
   Allocation = 'allocation',
   ThroughputForecast = 'throughput-forecast',
+  SprintMetrics = 'sprint-metrics',
   Activities = 'activities',
 }
 
@@ -328,6 +337,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <BacklogHealthReport teamCode={team!.code} />
       case TeamTabs.ThroughputForecast:
         return <TeamThroughputForecastReport teamCode={team!.code} />
+      case TeamTabs.SprintMetrics:
+        return <TeamSprintMetricsReport teamId={team!.id!} />
       case TeamTabs.Allocation:
         return <AllocationReport teamType="team" teamCode={team!.code} />
       case TeamTabs.Activities:
@@ -340,7 +351,11 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // Sprints is only meaningful for teams that have run Scrum; a deep link to it
   // otherwise lands on Details rather than an empty section.
   useEffect(() => {
-    if (activeTab === TeamTabs.Sprints && hasEverBeenScrum === false) {
+    if (
+      (activeTab === TeamTabs.Sprints ||
+        activeTab === TeamTabs.SprintMetrics) &&
+      hasEverBeenScrum === false
+    ) {
       router.replace(pathname, { scroll: false })
     }
   }, [activeTab, hasEverBeenScrum, router, pathname])
@@ -366,6 +381,15 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // Reports were closable tabs appended to the strip; in the rail they are a
   // named group, addressable by URL like any other section.
   const reports: RecordSection[] = [
+    ...(hasEverBeenScrum === true
+      ? [
+          {
+            id: TeamTabs.SprintMetrics,
+            label: 'Sprint Metrics',
+            hideHeading: true,
+          },
+        ]
+      : []),
     {
       id: TeamTabs.CycleTimeReport,
       label: 'Cycle Time',

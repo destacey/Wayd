@@ -1,5 +1,11 @@
 # @wayd/mcp
 
+## 0.17.0
+
+### Minor Changes
+
+- 06a0335: Add `Teams_GetSprintMetrics`: a team's velocity, predictability and say/do over its last completed standard sprints, with each sprint's values, their average and spread, and the sprints left out with the reason.
+
 ## 0.16.2
 
 ### Patch Changes

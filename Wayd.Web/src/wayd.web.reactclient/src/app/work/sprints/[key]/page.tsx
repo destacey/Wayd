@@ -319,7 +319,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               {switchSprints}
               <IterationStateTag state={sprint.state.id as IterationState} />
               {sprint.sprintType === SprintType.NonStandard && (
-                <WaydTooltip title="Not comparable with the team's other sprints. Its own metrics still show, but it is marked to be left out when comparing them.">
+                <WaydTooltip title="Not comparable with the team's other sprints. Its own metrics still show, but it is left out of the team's sprint metrics.">
                   <Tag>{sprintTypeLabels[sprint.sprintType]}</Tag>
                 </WaydTooltip>
               )}

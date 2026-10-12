@@ -32,6 +32,7 @@ import {
   EXCLUSION_DESCRIPTIONS,
   EXCLUSION_LABELS,
   formatSprintMetric,
+  formatSprintMetricAverage,
   formatSprintMetricRange,
   MAX_SPRINT_WINDOW,
   METRIC_TOOLTIPS,
@@ -182,7 +183,7 @@ export const TeamSprintMetricsReportView: FC<
                 <MetricCard
                   key={kind}
                   title={`Average ${title}`}
-                  value={formatSprintMetric(kind, summaries?.[kind]?.average)}
+                  value={formatSprintMetricAverage(kind, summaries?.[kind])}
                   secondaryValue={formatSprintMetricRange(
                     kind,
                     summaries?.[kind],

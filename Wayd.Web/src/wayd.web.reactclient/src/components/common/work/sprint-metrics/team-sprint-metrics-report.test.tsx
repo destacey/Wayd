@@ -120,7 +120,7 @@ describe('TeamSprintMetricsReportView', () => {
     renderView()
 
     // Assert
-    expect(card('Average Velocity')).toHaveTextContent('24.5')
+    expect(card('Average Velocity')).toHaveTextContent('25')
     expect(
       within(card('Average Velocity')).getByText('Range 21–28'),
     ).toBeInTheDocument()
@@ -137,7 +137,7 @@ describe('TeamSprintMetricsReportView', () => {
     renderView({ byCount: true })
 
     // Assert
-    expect(card('Average Velocity')).toHaveTextContent('4.5')
+    expect(card('Average Velocity')).toHaveTextContent('5')
     expect(
       within(card('Average Velocity')).getByText('Range 3–6'),
     ).toBeInTheDocument()
@@ -233,7 +233,7 @@ describe('TeamSprintMetricsReportView', () => {
     })
 
     // Assert
-    expect(card('Average Velocity')).toHaveTextContent('4.5')
+    expect(card('Average Velocity')).toHaveTextContent('5')
     expect(screen.queryByText('Story Points')).not.toBeInTheDocument()
   })
 

@@ -16,6 +16,12 @@ import {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
 } from '@/src/store/features/work-management/sprints-api'
+import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
+import {
+  formatSprintMetricAverage,
+  SprintMetricKind,
+  sprintMetricSummaries,
+} from '@/src/components/common/work/sprint-metrics/team-sprint-metrics-formatting'
 import { Alert, Flex, Segmented, Skeleton, Typography } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import {
@@ -79,6 +85,37 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
 
   const figures = sprintOverviewFigures(metrics, scope, showsCount)
   const scopeFigures = figures.scope
+
+  // Not awaited with the sprint's own figures: the team's averages are context beside them.
+  const { data: teamMetrics } = useGetTeamSprintMetricsQuery(
+    { teamId: sprint.team?.id ?? '' },
+    { skip: !sprint.team?.id },
+  )
+  // By estimate the two compare only in the same unit, which a sprint from
+  // before the team changed its sizing method is not.
+  const teamSummaries =
+    teamMetrics && (showsCount || teamMetrics.sizingMethod === sizingMethod)
+      ? sprintMetricSummaries(teamMetrics, showsCount)
+      : undefined
+  const teamSprintCount = teamMetrics?.sprints.length ?? 0
+
+  const teamAverage = (kind: SprintMetricKind): ReactNode => {
+    const summary = teamSummaries?.[kind]
+    if (!summary) return undefined
+    return (
+      <WaydTooltip
+        title={`The team's average over its last ${teamSprintCount} completed standard ${teamSprintCount === 1 ? 'sprint' : 'sprints'}.`}
+        helpCursor
+      >
+        <span>{`Team avg ${formatSprintMetricAverage(kind, summary)}`}</span>
+      </WaydTooltip>
+    )
+  }
+  const velocityTeamAverage = teamAverage('velocity')
+  const removedText =
+    scopeFigures && scopeFigures.removed > 0
+      ? `${scopeFigures.removed.toLocaleString()} as Removed`
+      : undefined
   const showsUnestimated = !showsCount && !!metrics
 
   useEffect(() => {
@@ -159,6 +196,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
             value={scopeFigures.predictability * 100}
             precision={0}
             suffix="%"
+            secondaryValue={teamAverage('predictability')}
             tooltip={`Velocity ÷ the ${measure} committed at the commitment point, up to 100%. Finished work added after the commitment point counts toward it.`}
           />
         )}
@@ -167,9 +205,14 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
           value={figures.completed}
           valueStyle={{ color: token.colorSuccess }}
           secondaryValue={
-            scopeFigures && scopeFigures.removed > 0
-              ? `${scopeFigures.removed.toLocaleString()} as Removed`
-              : undefined
+            removedText && velocityTeamAverage ? (
+              <Flex vertical align="flex-end">
+                <span>{removedText}</span>
+                {velocityTeamAverage}
+              </Flex>
+            ) : (
+              (removedText ?? velocityTeamAverage)
+            )
           }
           tooltip={
             scopeFigures
@@ -211,6 +254,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
                   value={scopeFigures.sayDo * 100}
                   precision={0}
                   suffix="%"
+                  secondaryValue={teamAverage('sayDo')}
                   tooltip="Of the work in the sprint at its commitment point, the share completed by its end. Work added later does not count, and an item completed as Removed counts as completed."
                 />
               )}

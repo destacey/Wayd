@@ -30,6 +30,21 @@ export const formatSprintMetric = (
   return kind === 'velocity' ? amount(value) : percent(value)
 }
 
+/**
+ * A metric's average as shown. Velocity is rounded to a whole number: an
+ * average of several sprints is a planning figure, and a decimal reads as more
+ * precision than a handful of sprints carry.
+ */
+export const formatSprintMetricAverage = (
+  kind: SprintMetricKind,
+  summary: SprintMetricSummaryDto | undefined,
+): string => {
+  if (!summary) return NO_VALUE
+  return kind === 'velocity'
+    ? Math.round(summary.average).toLocaleString()
+    : percent(summary.average)
+}
+
 /** A metric's spread across the sprints, as its lowest and highest sprint. */
 export const formatSprintMetricRange = (
   kind: SprintMetricKind,

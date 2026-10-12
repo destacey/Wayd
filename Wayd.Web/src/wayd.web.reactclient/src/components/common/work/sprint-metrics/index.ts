@@ -11,6 +11,7 @@ export type {
 export {
   EXCLUSION_LABELS,
   formatSprintMetric,
+  formatSprintMetricAverage,
   formatSprintMetricRange,
   MAX_SPRINT_WINDOW,
   METRIC_TOOLTIPS,

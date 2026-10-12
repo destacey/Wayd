@@ -7,7 +7,7 @@ import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations
 import { sizingMethodMeasure } from '@/src/utils'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import {
-  formatSprintMetric,
+  formatSprintMetricAverage,
   formatSprintMetricRange,
   METRIC_TOOLTIPS,
   SprintMetricKind,
@@ -73,7 +73,7 @@ const TeamSprintMetricsSummary: FC<TeamSprintMetricsSummaryProps> = ({
           <MetricCard
             key={kind}
             title={title}
-            value={formatSprintMetric(kind, summaries?.[kind]?.average)}
+            value={formatSprintMetricAverage(kind, summaries?.[kind])}
             secondaryValue={formatSprintMetricRange(kind, summaries?.[kind])}
             tooltip={`${METRIC_TOOLTIPS[kind]} Measured in ${measure}.`}
             loading={isLoading}

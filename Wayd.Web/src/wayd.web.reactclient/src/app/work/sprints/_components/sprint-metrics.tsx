@@ -23,7 +23,6 @@ import {
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import {
   formatSprintMetricAverage,
-  sprintCountText,
   SprintMetricKind,
   sprintMetricSummaries,
 } from '@/src/components/common/work/sprint-metrics/team-sprint-metrics-formatting'
@@ -112,7 +111,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
     if (!summary) return undefined
     return (
       <WaydTooltip
-        title={`The team's average over the ${sprintCountText(summary.sprints)} with a value among its most recent completed standard sprints.`}
+        title={`The team's average across ${summary.sprints} of its most recent completed standard sprints.`}
         helpCursor
       >
         <span>{`Team avg ${formatSprintMetricAverage(kind, summary)}`}</span>

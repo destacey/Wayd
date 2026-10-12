@@ -291,7 +291,13 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const renderSectionContent = (activeTab: TeamTabs) => {
     switch (activeTab) {
       case TeamTabs.Overview:
-        return <TeamOverview team={team!} onNavigateToSection={goToSection} />
+        return (
+          <TeamOverview
+            team={team!}
+            hasEverBeenScrum={hasEverBeenScrum === true}
+            onNavigateToSection={goToSection}
+          />
+        )
       case TeamTabs.Backlog:
         return (
           <TeamBacklog

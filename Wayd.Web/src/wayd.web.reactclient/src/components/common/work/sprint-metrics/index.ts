@@ -2,6 +2,8 @@ export {
   TeamSprintMetricsReport,
   TeamSprintMetricsReportView,
 } from './team-sprint-metrics-report'
+export { default as TeamSprintMetricsSummary } from './team-sprint-metrics-summary'
+export type { TeamSprintMetricsSummaryProps } from './team-sprint-metrics-summary'
 export type {
   TeamSprintMetricsReportProps,
   TeamSprintMetricsReportViewProps,

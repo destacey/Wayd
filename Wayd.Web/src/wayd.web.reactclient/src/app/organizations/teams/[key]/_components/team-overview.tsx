@@ -3,6 +3,8 @@
 import { WaydEmpty } from '@/src/components/common'
 import { MetricCard } from '@/src/components/common/metrics'
 import ActiveTeamSprint from '@/src/components/common/planning/active-team-sprint'
+// From its file, not the folder's index, which would pull the lazily loaded report in with it.
+import TeamSprintMetricsSummary from '@/src/components/common/work/sprint-metrics/team-sprint-metrics-summary'
 import TeamMemberCard from '@/src/app/organizations/teams/_components/team-member-card'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Methodology, TeamDetailsDto } from '@/src/services/wayd-api'
@@ -19,6 +21,8 @@ const { Text } = Typography
 
 export interface TeamOverviewProps {
   team: TeamDetailsDto
+  /** Whether the team has ever run Scrum, so it may have sprints to measure. */
+  hasEverBeenScrum?: boolean
   /** Navigates to a section by id, so section ids stay defined on the page. */
   onNavigateToSection: (sectionId: string) => void
 }
@@ -29,7 +33,11 @@ export interface TeamOverviewProps {
  * Counts come from the same queries the sections use, so a tile cannot
  * disagree with the list it summarises.
  */
-const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
+const TeamOverview = ({
+  team,
+  hasEverBeenScrum,
+  onNavigateToSection,
+}: TeamOverviewProps) => {
   const { data: members, isLoading: membersLoading } = useGetTeamMembersQuery(
     { teamId: team.id },
     { skip: !team.id },
@@ -115,6 +123,14 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
           </Text>
           <ActiveTeamSprint teamId={team.id} />
         </Flex>
+      )}
+
+      {/* A team that has moved off Scrum still has past sprints worth reading. */}
+      {hasEverBeenScrum && (
+        <TeamSprintMetricsSummary
+          teamId={team.id}
+          onOpenReport={() => onNavigateToSection('sprint-metrics')}
+        />
       )}
 
       <Flex vertical gap="small">

@@ -2,6 +2,8 @@ using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.SystemSettings.Scheduling.Dtos;
 using Wayd.Common.Application.SystemSettings.Scheduling.Queries;
+using Wayd.Common.Application.SystemSettings.SprintMetrics.Dtos;
+using Wayd.Common.Application.SystemSettings.SprintMetrics.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Admin.SystemSettings;
 
@@ -46,6 +48,41 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSchedulingSettingsActivities([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
     {
         var activities = await _dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(page, pageSize), cancellationToken);
+        return Ok(activities);
+    }
+
+    [HttpGet("sprint-metrics")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
+    [OpenApiOperation("Get the sprint metrics settings.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<SprintMetricsSettingsDto>> GetSprintMetricsSettings(CancellationToken cancellationToken)
+    {
+        var settings = await _dispatcher.Send(new GetSprintMetricsSettingsQuery(), cancellationToken);
+        return Ok(settings);
+    }
+
+    [HttpPut("sprint-metrics")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.SystemSettings)]
+    [OpenApiOperation("Update the sprint metrics settings.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> UpdateSprintMetricsSettings([FromBody] UpdateSprintMetricsSettingsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToUpdateSprintMetricsSettingsCommand(), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("sprint-metrics/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
+    [OpenApiOperation("Get the sprint metrics settings' change history.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSprintMetricsSettingsActivities([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var activities = await _dispatcher.Send(new GetSprintMetricsSettingsActivitiesQuery(page, pageSize), cancellationToken);
         return Ok(activities);
     }
 }

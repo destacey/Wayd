@@ -768,6 +768,22 @@ public class TeamsController(
         return Ok(sprint);
     }
 
+    [HttpGet("{id}/sprint-metrics")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
+    [OpenApiOperation("Get the team's sprint metrics.", "The team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread, by item count and in the team's sizing method. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed with the reason. sprintWindow is how many sprints to measure over (3 to 12); omit it for the organization's sprint window. Estimates are in the team's sizing method now; a sprint measured in an earlier one counts by item only. Returns 404 for an id that is not a team's, including a team of teams, which has no sprints of its own.")]
+    [McpTool("Teams_GetSprintMetrics", "Get team sprint metrics")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamSprintMetricsDto>> GetSprintMetrics(Guid id, [FromQuery] int? sprintWindow, CancellationToken cancellationToken)
+    {
+        var metrics = await _dispatcher.Send(new GetTeamSprintMetricsQuery(id, sprintWindow), cancellationToken);
+
+        return metrics is not null
+            ? Ok(metrics)
+            : NotFound();
+    }
+
     [HttpGet("functional-organization-chart")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [OpenApiOperation("Get the functional organizaation chart for a given date.", "")]

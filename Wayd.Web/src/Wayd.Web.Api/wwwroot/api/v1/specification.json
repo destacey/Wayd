@@ -27475,7 +27475,7 @@
           "Sprints"
         ],
         "summary": "Set or clear a sprint's type.",
-        "description": "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is marked to be left out when comparing the team's sprints. Requires membership of the sprint's team or its team of teams.",
+        "description": "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of the team's sprint metrics. Requires membership of the sprint's team or its team of teams.",
         "operationId": "Sprints_SetSprintType",
         "parameters": [
           {
@@ -33403,6 +33403,77 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams/{id}/sprint-metrics": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get the team's sprint metrics.",
+        "description": "The team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread, by item count and in the team's sizing method. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed with the reason. sprintWindow is how many sprints to measure over (3 to 12); omit it for the organization's sprint window. Estimates are in the team's sizing method now; a sprint measured in an earlier one counts by item only. Returns 404 for an id that is not a team's, including a team of teams, which has no sprints of its own.",
+        "operationId": "Teams_GetSprintMetrics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "sprintWindow",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSprintMetricsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -40787,6 +40858,129 @@
         ],
         "summary": "Get the scheduling settings' change history.",
         "operationId": "SystemSettings_GetSchedulingSettingsActivities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/sprint-metrics": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the sprint metrics settings.",
+        "operationId": "SystemSettings_GetSprintMetricsSettings",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintMetricsSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Update the sprint metrics settings.",
+        "operationId": "SystemSettings_UpdateSprintMetricsSettings",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSprintMetricsSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/sprint-metrics/activities": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the sprint metrics settings' change history.",
+        "operationId": "SystemSettings_GetSprintMetricsSettingsActivities",
         "parameters": [
           {
             "name": "page",
@@ -58356,6 +58550,16 @@
             "format": "double",
             "nullable": true
           },
+          "predictabilityCount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "predictabilityEstimate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "unestimated": {
             "type": "integer",
             "format": "int32"
@@ -62305,6 +62509,245 @@
             "example": "00000000-0000-0000-0000-000000000000"
           }
         }
+      },
+      "TeamSprintMetricsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "byCount",
+          "byEstimate",
+          "sprints",
+          "excluded",
+          "teamId",
+          "sprintWindow",
+          "defaultSprintWindow",
+          "sizingMethod"
+        ],
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "sprintWindow": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defaultSprintWindow": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
+          "byCount": {
+            "$ref": "#/components/schemas/SprintMetricSummariesDto"
+          },
+          "byEstimate": {
+            "$ref": "#/components/schemas/SprintMetricSummariesDto"
+          },
+          "sprints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamSprintMetricsSprintDto"
+            }
+          },
+          "excluded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamSprintMetricsExcludedSprintDto"
+            }
+          }
+        }
+      },
+      "SprintMetricSummariesDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "velocity": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SprintMetricSummaryDto"
+              }
+            ]
+          },
+          "predictability": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SprintMetricSummaryDto"
+              }
+            ]
+          },
+          "sayDo": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SprintMetricSummaryDto"
+              }
+            ]
+          }
+        }
+      },
+      "SprintMetricSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "average",
+          "min",
+          "max",
+          "standardDeviation",
+          "sprints"
+        ],
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "min": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          },
+          "standardDeviation": {
+            "type": "number",
+            "format": "double"
+          },
+          "sprints": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TeamSprintMetricsSprintDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "byCount",
+          "byEstimate",
+          "id",
+          "key",
+          "start",
+          "end",
+          "sizingMethod",
+          "inEstimateAverages"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
+          "inEstimateAverages": {
+            "type": "boolean"
+          },
+          "byCount": {
+            "$ref": "#/components/schemas/SprintMetricFiguresDto"
+          },
+          "byEstimate": {
+            "$ref": "#/components/schemas/SprintMetricFiguresDto"
+          }
+        }
+      },
+      "SprintMetricFiguresDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "velocity"
+        ],
+        "properties": {
+          "velocity": {
+            "type": "number",
+            "format": "double"
+          },
+          "predictability": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "sayDo": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "TeamSprintMetricsExcludedSprintDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "id",
+          "key",
+          "start",
+          "end",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SprintMetricsExclusion"
+          }
+        }
+      },
+      "SprintMetricsExclusion": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "NonStandard",
+          "HistoryIncomplete",
+          "NoCommitment"
+        ],
+        "enum": [
+          "NonStandard",
+          "HistoryIncomplete",
+          "NoCommitment"
+        ]
       },
       "FunctionalOrganizationChartDto": {
         "type": "object",
@@ -66537,6 +66980,35 @@
             "format": "guid",
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "SprintMetricsSettingsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sprintWindow"
+        ],
+        "properties": {
+          "sprintWindow": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateSprintMetricsSettingsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sprintWindow"
+        ],
+        "properties": {
+          "sprintWindow": {
+            "type": "integer",
+            "description": "How many of a team's most recent completed standard sprints its velocity, predictability and say/do\nare averaged over. From 3 to 12.",
+            "format": "int32",
+            "maximum": 12.0,
+            "minimum": 3.0
           }
         }
       },

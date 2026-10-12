@@ -72,8 +72,8 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
 
     /// <summary>
-    /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is marked to be left
-    /// out when comparing the team's sprints. Worked out when read: see <see cref="SprintTypeSource"/>.
+    /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
+    /// the team's sprint metrics. Worked out when read: see <see cref="SprintTypeSource"/>.
     /// </summary>
     public SprintType SprintType { get; set; }
 

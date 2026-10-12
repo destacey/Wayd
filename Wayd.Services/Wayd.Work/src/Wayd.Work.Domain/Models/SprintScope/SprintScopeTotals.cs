@@ -48,6 +48,20 @@ public sealed record SprintScopeTotals(
     double? SayDoEstimate,
     int Unestimated)
 {
+    /// <summary>
+    /// Completed ÷ committed by item count, up to 1: how much of what the team committed to it delivered,
+    /// letting finished added work stand in for committed work. Null when nothing was committed.
+    /// </summary>
+    public double? PredictabilityCount =>
+        Committed.Count == 0 ? null : Math.Min((double)Completed.Count / Committed.Count, 1);
+
+    /// <summary>
+    /// Completed ÷ committed by estimate, up to 1, as <see cref="PredictabilityCount"/> is by count. Null when
+    /// there is no committed estimate.
+    /// </summary>
+    public double? PredictabilityEstimate =>
+        Committed.Estimate <= 0 ? null : Math.Min(Completed.Estimate / Committed.Estimate, 1);
+
     /// <summary>Sums <paramref name="items"/> by category.</summary>
     public static SprintScopeTotals Of(IReadOnlyCollection<SprintScopeItem> items)
     {

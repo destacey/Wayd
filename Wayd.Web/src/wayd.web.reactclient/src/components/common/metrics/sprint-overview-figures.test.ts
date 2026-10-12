@@ -42,6 +42,8 @@ const scope: SprintScopeDto = {
     completedOfCommitted: measure(2, 6),
     sayDoCount: 0.4,
     sayDoEstimate: 6 / 18,
+    predictabilityCount: 0.6,
+    predictabilityEstimate: 11 / 18,
     unestimated: 0,
   },
   items: [],
@@ -98,24 +100,29 @@ describe('sprintOverviewFigures', () => {
     expect(byCount.scope?.reestimated).toBe(0)
   })
 
-  it('caps predictability at 100% when velocity passes the commitment', () => {
+  it("reads the scope's predictability in the unit shown", () => {
     // Arrange / Act
-    const result = sprintOverviewFigures(
+    const byEstimate = sprintOverviewFigures(
       metrics,
-      { ...scope, totals: { ...scope.totals, completed: measure(6, 25) } },
+      scope,
       false,
       afterCommitment,
     )
+    const byCount = sprintOverviewFigures(metrics, scope, true, afterCommitment)
 
     // Assert
-    expect(result.scope?.predictability).toBe(1)
+    expect(byEstimate.scope?.predictability).toBe(11 / 18)
+    expect(byCount.scope?.predictability).toBe(0.6)
   })
 
-  it('has no predictability when nothing was committed', () => {
+  it('has no predictability when the scope has none', () => {
     // Arrange / Act
     const result = sprintOverviewFigures(
       metrics,
-      { ...scope, totals: { ...scope.totals, committed: measure(0, 0) } },
+      {
+        ...scope,
+        totals: { ...scope.totals, predictabilityEstimate: undefined },
+      },
       false,
       afterCommitment,
     )

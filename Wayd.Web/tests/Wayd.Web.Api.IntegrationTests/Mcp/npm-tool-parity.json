@@ -4246,6 +4246,23 @@
       ]
     },
     {
+      "name": "Teams_GetSprintMetrics",
+      "title": "Get team sprint metrics",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "sprintWindow"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
       "name": "Teams_GetTeam",
       "title": "Get team",
       "annotations": {

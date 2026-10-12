@@ -230,6 +230,41 @@ export const definitions: [string, McpToolDefinition][] = [
   ],
 
   [
+    'Teams_GetSprintMetrics',
+    {
+      name: 'Teams_GetSprintMetrics',
+      description: `Get a team's velocity, predictability and say/do over its last completed standard sprints. Returns each counted sprint's values in \`sprints\` (most recent first), and their \`average\`, \`min\`, \`max\` and \`standardDeviation\` in \`byCount\` (work items) and \`byEstimate\` (the team's \`sizingMethod\`: StoryPoints, Effort or Size; under Count it equals \`byCount\`). Velocity is what was completed while in the sprint; predictability is velocity ÷ committed, capped at 1; say/do is completed-of-committed ÷ committed. Non-standard sprints, sprints whose work item history is incomplete and sprints with nothing committed are left out and listed in \`excluded\` with a \`reason\` (NonStandard, HistoryIncomplete, NoCommitment). \`sizingMethod\` is the team's now; a sprint with \`inEstimateAverages: false\` was measured in an earlier one and counts toward \`byCount\` only. Returns 404 for an id that is not a team's, including a team of teams. \`sprintWindow\` is how many sprints to measure over; omit it for the organization's setting, returned as \`defaultSprintWindow\`.`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'Team ID (UUID) — not the integer key or the code.',
+          },
+          sprintWindow: {
+            type: 'integer',
+            minimum: 3,
+            maximum: 12,
+            description:
+              "How many of the team's most recent completed standard sprints to measure over. Omit for the organization's sprint window.",
+          },
+        },
+        required: ['id'],
+      },
+      method: 'get',
+      pathTemplate: '/api/organization/teams/{id}/sprint-metrics',
+      executionParameters: [
+        { name: 'id', in: 'path' },
+        { name: 'sprintWindow', in: 'query' },
+      ],
+      requestBodyContentType: undefined,
+      securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'Get team sprint metrics' },
+    },
+  ],
+
+  [
     'Teams_GetTeamAllocation',
     {
       name: 'Teams_GetTeamAllocation',

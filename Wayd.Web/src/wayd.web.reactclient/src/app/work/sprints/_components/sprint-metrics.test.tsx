@@ -20,6 +20,7 @@ import {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
 } from '@/src/store/features/work-management/sprints-api'
+import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 
 // Mock dayjs
 jest.mock('dayjs', () => {
@@ -38,6 +39,10 @@ jest.mock('dayjs', () => {
 jest.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintMetricsQuery: jest.fn(),
   useGetSprintScopeQuery: jest.fn(),
+}))
+
+jest.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamSprintMetricsQuery: jest.fn(),
 }))
 
 // The charts read their own query; the overview only places them.
@@ -60,10 +65,15 @@ jest.mock('@/src/components/contexts/theme', () => ({
   }),
 }))
 
-const card = (title: string, value: unknown) => (
+const card = (title: string, value: unknown, secondaryValue?: unknown) => (
   <div data-testid={`metric-${title}`}>
     <span>{title}</span>
     <span data-testid={`value-${title}`}>{String(value)}</span>
+    {secondaryValue !== undefined && (
+      <span data-testid={`secondary-${title}`}>
+        {secondaryValue as React.ReactNode}
+      </span>
+    )}
   </div>
 )
 
@@ -73,8 +83,15 @@ jest.mock('@/src/components/common/metrics', () => ({
     '@/src/components/common/metrics/sprint-overview-figures',
   ).sprintOverviewFigures,
   METRIC_CARD_FLEX: {},
-  MetricCard: ({ title, value }: { title: string; value: number }) =>
-    card(title, value),
+  MetricCard: ({
+    title,
+    value,
+    secondaryValue,
+  }: {
+    title: string
+    value: number
+    secondaryValue?: unknown
+  }) => card(title, value, secondaryValue),
   DaysCountdownMetric: () => <div data-testid="countdown-metric" />,
   CompletionRateMetric: ({
     completed,
@@ -184,6 +201,8 @@ describe('SprintMetrics', () => {
       completedOfCommitted: measure(4, 45),
       sayDoCount: 4 / 9,
       sayDoEstimate: 0.5,
+      predictabilityCount: 6 / 9,
+      predictabilityEstimate: 60 / 90,
       unestimated: 0,
     },
     items: [],
@@ -214,6 +233,120 @@ describe('SprintMetrics', () => {
     ;(localStorage.getItem as jest.Mock).mockReset()
     ;(localStorage.setItem as jest.Mock).mockClear()
     mockQueries(metrics, scope)
+    ;(useGetTeamSprintMetricsQuery as jest.Mock).mockReturnValue({
+      data: undefined,
+    })
+  })
+
+  describe("with the team's sprint metrics", () => {
+    const summary = (average: number) => ({
+      average,
+      min: 0,
+      max: 0,
+      standardDeviation: 0,
+      sprints: 7,
+    })
+    const mockTeamMetrics = (sizingMethod: SizingMethod) =>
+      (useGetTeamSprintMetricsQuery as jest.Mock).mockReturnValue({
+        data: {
+          teamId: 'team-1',
+          sprintWindow: 7,
+          defaultSprintWindow: 7,
+          sizingMethod,
+          byCount: {
+            velocity: summary(6.4),
+            predictability: summary(0.8),
+            sayDo: summary(0.6),
+          },
+          byEstimate: {
+            velocity: summary(41.7),
+            predictability: summary(0.72),
+            sayDo: summary(0.53),
+          },
+          sprints: Array.from({ length: 7 }, (_, i) => ({ id: `s${i}` })),
+          excluded: [],
+        },
+      })
+
+    it("shows the team's averages beside the sprint's own figures", () => {
+      // Arrange
+      mockTeamMetrics(metrics.sizingMethod)
+
+      // Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(useGetTeamSprintMetricsQuery).toHaveBeenCalledWith(
+        { teamId: 'team-1' },
+        { skip: false },
+      )
+      expect(screen.getByTestId('secondary-Predictability')).toHaveTextContent(
+        'Team avg 72%',
+      )
+      expect(screen.getByTestId('secondary-Say/Do so far')).toHaveTextContent(
+        'Team avg 53%',
+      )
+      // The sprint completed some work as Removed, which keeps its line.
+      expect(screen.getByTestId('secondary-Velocity')).toHaveTextContent(
+        '5 as Removed',
+      )
+      expect(screen.getByTestId('secondary-Velocity')).toHaveTextContent(
+        'Team avg 42',
+      )
+    })
+
+    it('leaves them out by estimate when the team has since changed its sizing method', () => {
+      // Arrange
+      mockTeamMetrics(SizingMethod.StoryPoints)
+
+      // Act
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Assert
+      expect(
+        screen.queryByTestId('secondary-Predictability'),
+      ).not.toBeInTheDocument()
+      expect(screen.getByTestId('secondary-Velocity')).not.toHaveTextContent(
+        'Team avg',
+      )
+    })
+
+    it('leaves them off a non-standard sprint, which is not comparable with the others', () => {
+      // Arrange
+      mockTeamMetrics(metrics.sizingMethod)
+
+      // Act
+      render(
+        <SprintMetrics
+          sprint={{ ...activeSprint, sprintType: SprintType.NonStandard }}
+        />,
+      )
+
+      // Assert
+      expect(
+        screen.queryByTestId('secondary-Predictability'),
+      ).not.toBeInTheDocument()
+      expect(screen.getByTestId('secondary-Velocity')).not.toHaveTextContent(
+        'Team avg',
+      )
+    })
+
+    it('compares by count whatever the sizing methods', async () => {
+      // Arrange
+      mockTeamMetrics(SizingMethod.StoryPoints)
+      render(<SprintMetrics sprint={activeSprint} />)
+
+      // Act
+      await userEvent.click(screen.getByText('Count'))
+
+      // Assert
+      expect(screen.getByTestId('secondary-Predictability')).toHaveTextContent(
+        'Team avg 80%',
+      )
+      expect(screen.getByTestId('secondary-Velocity')).toHaveTextContent(
+        'Team avg 6',
+      )
+    })
   })
 
   describe('with scope', () => {

@@ -37615,6 +37615,77 @@ export class TeamsClient {
     }
 
     /**
+     * Get the team's sprint metrics.
+     * @param sprintWindow (optional) 
+     */
+    getSprintMetrics(id: string, sprintWindow?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamSprintMetricsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/sprint-metrics?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (sprintWindow !== undefined && sprintWindow !== null)
+            url_ += "sprintWindow=" + encodeURIComponent("" + sprintWindow) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintMetrics(_response);
+        });
+    }
+
+    protected processGetSprintMetrics(response: AxiosResponse): Promise<TeamSprintMetricsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamSprintMetricsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamSprintMetricsDto>(null as any);
+    }
+
+    /**
      * Get the functional organizaation chart for a given date.
      * @param asOfDate (optional) 
      */
@@ -45785,6 +45856,183 @@ export class SystemSettingsClient {
         }
         return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
     }
+
+    /**
+     * Get the sprint metrics settings.
+     */
+    getSprintMetricsSettings( cancelToken?: CancelToken): Promise<SprintMetricsSettingsDto> {
+        let url_ = this.baseUrl + "/api/admin/settings/sprint-metrics";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintMetricsSettings(_response);
+        });
+    }
+
+    protected processGetSprintMetricsSettings(response: AxiosResponse): Promise<SprintMetricsSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintMetricsSettingsDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintMetricsSettingsDto>(null as any);
+    }
+
+    /**
+     * Update the sprint metrics settings.
+     */
+    updateSprintMetricsSettings(request: UpdateSprintMetricsSettingsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/settings/sprint-metrics";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateSprintMetricsSettings(_response);
+        });
+    }
+
+    protected processUpdateSprintMetricsSettings(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the sprint metrics settings' change history.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     */
+    getSprintMetricsSettingsActivities(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/admin/settings/sprint-metrics/activities?";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintMetricsSettingsActivities(_response);
+        });
+    }
+
+    protected processGetSprintMetricsSettingsActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
 }
 
 export class WorkflowAssignmentsClient {
@@ -50492,6 +50740,8 @@ export interface SprintScopeTotalsDto {
     completedOfCommitted: SprintScopeMeasureDto;
     sayDoCount?: number | undefined;
     sayDoEstimate?: number | undefined;
+    predictabilityCount?: number | undefined;
+    predictabilityEstimate?: number | undefined;
     unestimated: number;
 }
 
@@ -51486,6 +51736,64 @@ export interface UpdateTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+}
+
+export interface TeamSprintMetricsDto {
+    teamId: string;
+    sprintWindow: number;
+    defaultSprintWindow: number;
+    sizingMethod: SizingMethod;
+    byCount: SprintMetricSummariesDto;
+    byEstimate: SprintMetricSummariesDto;
+    sprints: TeamSprintMetricsSprintDto[];
+    excluded: TeamSprintMetricsExcludedSprintDto[];
+}
+
+export interface SprintMetricSummariesDto {
+    velocity?: SprintMetricSummaryDto | undefined;
+    predictability?: SprintMetricSummaryDto | undefined;
+    sayDo?: SprintMetricSummaryDto | undefined;
+}
+
+export interface SprintMetricSummaryDto {
+    average: number;
+    min: number;
+    max: number;
+    standardDeviation: number;
+    sprints: number;
+}
+
+export interface TeamSprintMetricsSprintDto {
+    id: string;
+    key: number;
+    name: string;
+    start: string;
+    end: string;
+    sizingMethod: SizingMethod;
+    inEstimateAverages: boolean;
+    byCount: SprintMetricFiguresDto;
+    byEstimate: SprintMetricFiguresDto;
+}
+
+export interface SprintMetricFiguresDto {
+    velocity: number;
+    predictability?: number | undefined;
+    sayDo?: number | undefined;
+}
+
+export interface TeamSprintMetricsExcludedSprintDto {
+    id: string;
+    key: number;
+    name: string;
+    start: string;
+    end: string;
+    reason: SprintMetricsExclusion;
+}
+
+export enum SprintMetricsExclusion {
+    NonStandard = "NonStandard",
+    HistoryIncomplete = "HistoryIncomplete",
+    NoCommitment = "NoCommitment",
 }
 
 export interface FunctionalOrganizationChartDto {
@@ -52651,6 +52959,16 @@ export interface UpdateSchedulingSettingsRequest {
     defaultWorkingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar of every team operating model that has none of its own, or null for none. */
     defaultHolidayCalendarId?: string | undefined;
+}
+
+export interface SprintMetricsSettingsDto {
+    sprintWindow: number;
+}
+
+export interface UpdateSprintMetricsSettingsRequest {
+    /** How many of a team's most recent completed standard sprints its velocity, predictability and say/do
+are averaged over. From 3 to 12. */
+    sprintWindow: number;
 }
 
 export interface WorkflowAssignmentDto {

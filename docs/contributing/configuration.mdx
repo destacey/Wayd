@@ -556,7 +556,7 @@ without reshaping the table.
 **Adding a section:** add the record next to `SchedulingSettings` in `Wayd.Common.Domain/Settings/`, its
 validator in `Wayd.Common.Application/SystemSettings/`, a query, command and activities query that go through
 the store, endpoints on `SystemSettingsController` guarded by `SystemSettings.View`/`.Update`, and a page under
-**Settings → System**.
+**Settings → System**. `SprintMetricsSettings` is the smallest example: one value and no cross-module check.
 
 ## Environment Variables
 

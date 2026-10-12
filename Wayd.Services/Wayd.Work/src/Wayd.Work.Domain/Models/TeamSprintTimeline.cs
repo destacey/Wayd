@@ -52,6 +52,12 @@ public sealed class TeamSprintTimeline
 
     public SprintSchedule ScheduleFor(Iteration sprint) => _schedules.AsOf(PlannedStartDate(sprint));
 
+    /// <summary>
+    /// The schedule the team is on at <paramref name="instant"/>, whichever sprint it is in or between. The day
+    /// is taken in the system default zone, since the team's own zone is part of what is being looked up.
+    /// </summary>
+    public SprintSchedule ScheduleAt(Instant instant) => _schedules.AsOf(instant.InZone(DefaultZone).Date);
+
     public Iteration? Previous(Iteration sprint)
     {
         var index = IndexOf(sprint);

@@ -89,7 +89,7 @@ The [burn-down's ideal line](#burn-up-and-burn-down) stays flat on team days off
 Not every sprint is comparable with the team's others. An [Innovation and Planning](../planning/planning-intervals.mdx#iterations-within-a-pi) sprint is mostly planning and catch-up, and a hackathon, a hardening sprint or a sprint most of the team spends on holiday delivers far less than usual. Each sprint has a type that says whether it is comparable:
 
 - **Standard** — a regular sprint, compared with the team's other sprints.
-- **Non-standard** — not comparable. It marks the sprints to leave out when comparing a team's sprints with each other, such as averaging velocity. Its own metrics still show on its page as usual.
+- **Non-standard** — not comparable. It is left out of the [team's sprint metrics](#team-sprint-metrics), which average velocity, predictability and say/do across the team's sprints, and listed there as left out. Its own metrics still show on its page as usual.
 
 A sprint's type is worked out each time it is shown, from the first of these that applies:
 
@@ -151,8 +151,8 @@ The sprint page's Overview shows two rows of cards, the [burn charts](#burn-up-a
 | Card | Shown | What it is |
 |------|-------|------------|
 | **Days Remaining** | Active | Days left in the sprint |
-| **Predictability** | Once the sprint has a commitment | Velocity ÷ Committed, up to 100%. Finished work added after the commitment point counts toward it |
-| **Velocity** | Active, Completed | The work completed while in the sprint, including work completed and then moved out. Work moved to a Removed status in the sprint counts too, unlike most tools' velocity, and is shown beneath as "x as Removed" |
+| **Predictability** | Once the sprint has a commitment | Velocity ÷ Committed, up to 100%. Finished work added after the commitment point counts toward it. **Team avg** beneath is the [team's average](#team-sprint-metrics) |
+| **Velocity** | Active, Completed | The work completed while in the sprint, including work completed and then moved out. Work moved to a Removed status in the sprint counts too, unlike most tools' velocity, and is shown beneath as "x as Removed". **Team avg** beneath is the [team's average](#team-sprint-metrics) |
 | **In Progress** | Active | Work in the sprint now in an **Active** status category, with its share of the sprint's work now |
 | **Not Started** | Active | Work in the sprint now in a **Proposed** status category, with its share of the sprint's work now |
 | **Avg Cycle Time** | Active, Completed | See [below](#cycle-time-in-sprint-context) |
@@ -161,7 +161,7 @@ The sprint page's Overview shows two rows of cards, the [burn charts](#burn-up-a
 
 | Card | Shown | What it is |
 |------|-------|------------|
-| **Say/Do** | Once the sprint has a commitment | Of the committed items, the share completed: their committed points ÷ all committed points. **Say/Do so far** while the sprint runs |
+| **Say/Do** | Once the sprint has a commitment | Of the committed items, the share completed: their committed points ÷ all committed points. **Say/Do so far** while the sprint runs. **Team avg** beneath is the [team's average](#team-sprint-metrics) |
 | **Committed** | | The work in the sprint at its commitment point, at its estimate then |
 | **Added** | | The work added after the commitment point, at its estimate when added |
 | **Descoped** | | See [Sprint Scope](#sprint-scope) |
@@ -172,6 +172,30 @@ The sprint page's Overview shows two rows of cards, the [burn charts](#burn-up-a
 **Predictability and Say/Do** both compare delivery with the commitment, and read differently on purpose. Predictability asks whether the team delivered *as much as* it committed: finished added work stands in for committed work it didn't finish. Say/Do asks whether it delivered *what* it committed: only the committed items count. A team that swaps committed stories for new ones keeps its Predictability and loses Say/Do.
 
 Velocity comes from the sprint's scope, so carried-over work stays in the measure after it has moved on. Until the sprint has a scope — before its commitment point, or while its [history is incomplete](#sprint-scope) — Velocity is measured on the items in the sprint now, the commitment cards and Predictability are hidden, and a warning says why. **Sprint health** — the tag in the page header and on the Home page's sprint card — measures delivery against the commitment: Velocity as a share of Committed, against the share the burn-down's ideal line expects done by now — so weekends, holidays and team days off expect no progress. Within 10 points is **On Track**, 10–25 behind is **At Risk**, more is **Off Track**, and delivering more than was committed always reads On Track. Work added or re-estimated after the commitment point doesn't count against the team, as on the burn-down's ideal line. Until the sprint has a commitment, health compares the work done with everything in the sprint instead.
+
+### Team Sprint Metrics
+
+A single sprint says little about what a team typically delivers. **Team sprint metrics** put Velocity, Predictability and Say/Do side by side across the team's most recent completed standard sprints, with each one's **average** and its **range**, the lowest and highest sprint. The spread matters as much as the average: a team that delivers between 38 and 44 points plans differently from one that delivers between 10 and 70.
+
+They use the same definitions as the sprint page: each sprint's values come from its own [Sprint Scope](#sprint-scope), so a number here is the number on that sprint's page. They are worked out each time they are shown and never stored. An average is the mean of the sprints' values, so every sprint counts the same whatever its size.
+
+**Which sprints count.** Wayd takes the team's completed sprints from the most recent back until it has enough, and leaves out:
+
+- **Non-standard sprints** — see [Sprint Type](#sprint-type).
+- **Sprints with incomplete history** — a workspace holding the sprint's work has not had its history read in full, so its figures are unreliable. A full sync of the connection completes it.
+- **Sprints with nothing committed** — nothing was in the sprint at its commitment point, so it has no Predictability or Say/Do.
+
+How many sprints is the organization's **sprint window**, 7 unless an administrator changed it under [Settings > System > Sprint Metrics](../settings/index.mdx#sprint-metrics). It is the same for every team, so their figures compare. A team with fewer usable sprints is measured over those it has; Wayd looks back no further than three times the window.
+
+**Where they show:**
+
+- **The team's Overview** — three cards, in the team's sizing method, over the organization's sprint window. Select one to open the report.
+- **The team's Sprint Metrics report**, under **Reports** on the [team page](../organizations/index.mdx#sprint-metrics-report) — the averages and ranges, each sprint's own values with a link to the sprint, and a **Left out** list giving each passed-over sprint's reason. It opens at the organization's sprint window every time; **Over the last** runs it over another, from 3 to 12 sprints, for that visit only. The **Story Points / Count** switch is the sprint page's, and Wayd remembers it.
+- **The sprint page** — **Team avg** beneath the sprint's Predictability, Velocity and Say/Do.
+
+**When the team changed its sizing method.** A sprint keeps the sizing method it was planned in, and estimates in different units are never averaged. The averages are in the team's sizing method on its most recent counted sprint. A sprint measured in another one still counts by work items, and the report shows **—** for it by estimate and says how many sprints that affects. Switch to **Count** to compare every sprint. On the sprint page, **Team avg** shows by estimate only when the sprint and the team's averages are in the same unit.
+
+Average velocity is shown rounded to a whole number.
 
 ### Burn-up and Burn-down
 

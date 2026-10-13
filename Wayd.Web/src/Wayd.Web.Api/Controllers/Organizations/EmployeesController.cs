@@ -1,4 +1,8 @@
 ﻿using CsvHelper;
+using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Organization.Application.EmployeeCapacities.Dtos;
+using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Employees.Imports;
@@ -176,6 +180,55 @@ public class EmployeesController(
     public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetTeamMemberships(Guid id, CancellationToken cancellationToken)
     {
         return Ok(await _dispatcher.Send(new GetEmployeeTeamMembershipsQuery(id), cancellationToken));
+    }
+
+    [HttpGet("{id:guid}/allocations")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
+    [OpenApiOperation(
+        "Get how an employee's time is allocated to teams over time.",
+        "Returns every allocation across all teams in date order: the team, the role the time is spent in when one was chosen, the date range (`end` is null when it has no end) and the `percent` of the employee's time. An employee's allocations never add up to more than 100% on any day. `canManage` says whether the caller may change that team's allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<EmployeeAllocationDto>>> GetAllocations(Guid id, CancellationToken cancellationToken)
+    {
+        return Ok(await _dispatcher.Send(new GetEmployeeAllocationsQuery(id), cancellationToken));
+    }
+
+    [HttpPut("{id:guid}/allocations")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
+    [OpenApiOperation(
+        "Set the share of an employee's time one or more teams have over date ranges.",
+        "Each change replaces what its team and role have over its date range and leaves other days as they were, so a change inside a longer allocation splits it; a `percent` of 0 ends the allocation for the range. The changes apply together or not at all, and fail if any day would then exceed 100% across all teams. The caller must be a member of every team named, or of its team of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ChangeAllocations(Guid id, [FromBody] ChangeEmployeeAllocationsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToChangeEmployeeAllocationsCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id:guid}/allocations/move")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
+    [OpenApiOperation(
+        "Move a share of an employee's time from one team and role to another over a date range.",
+        "Lowers the source and raises the target by `percent` on every day of the range as one change, so a fully allocated employee can be moved between teams. Fails if the source has less than `percent` on any day of the range. The caller must be a member of both teams, or of their teams of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> MoveAllocation(Guid id, [FromBody] MoveEmployeeAllocationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToMoveEmployeeAllocationCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpGet("{id}/work-items")]

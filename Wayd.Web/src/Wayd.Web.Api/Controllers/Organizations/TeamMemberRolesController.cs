@@ -38,7 +38,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> Create([FromBody] CreateTeamMemberRoleRequest request, CancellationToken cancellationToken)
     {
-        var result = await dispatcher.Send(new CreateTeamMemberRoleCommand(request.Name, request.Description), cancellationToken);
+        var result = await dispatcher.Send(new CreateTeamMemberRoleCommand(request.Name, request.Description, request.CountsTowardDeliveryCapacity ?? true), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
@@ -55,7 +55,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await dispatcher.Send(new UpdateTeamMemberRoleCommand(request.Id, request.Name, request.Description), cancellationToken);
+        var result = await dispatcher.Send(new UpdateTeamMemberRoleCommand(request.Id, request.Name, request.Description, request.CountsTowardDeliveryCapacity), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

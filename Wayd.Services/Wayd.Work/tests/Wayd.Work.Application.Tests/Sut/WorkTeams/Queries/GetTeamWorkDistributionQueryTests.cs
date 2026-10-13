@@ -9,22 +9,22 @@ using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared;
 using Wayd.Work.Application.Tests.Infrastructure;
-using Wayd.Work.Application.WorkTeams.Allocation;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
 using Xunit;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkTeams.Queries;
 
-public sealed class GetTeamAllocationQueryTests : IDisposable
+public sealed class GetTeamWorkDistributionQueryTests : IDisposable
 {
     private static readonly LocalDate From = new(2026, 7, 1);
     private static readonly LocalDate To = new(2026, 9, 30);
     private static readonly Instant InWindow = Instant.FromUtc(2026, 8, 3, 15, 0);
 
-    private static readonly AllocationOptions ItemsByProject = new(
-        AllocationDimension.Project, AllocationMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
+    private static readonly WorkDistributionOptions ItemsByProject = new(
+        WorkDistributionDimension.Project, WorkDistributionMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
 
     private readonly FakeWorkDbContext _context = new();
     private readonly Mock<IDispatcher> _dispatcher = new();
@@ -35,7 +35,7 @@ public sealed class GetTeamAllocationQueryTests : IDisposable
     private readonly ProjectClassification _project;
     private int _nextNumber = 1;
 
-    public GetTeamAllocationQueryTests()
+    public GetTeamWorkDistributionQueryTests()
     {
         MapsterTestConfiguration.Ensure();
         _team = new WorkTeamFaker(TeamType.Team).Generate();
@@ -59,9 +59,9 @@ public sealed class GetTeamAllocationQueryTests : IDisposable
 
     public void Dispose() => _context.Dispose();
 
-    private GetTeamAllocationQueryHandler Handler() => new(_context, _dispatcher.Object);
+    private GetTeamWorkDistributionQueryHandler Handler() => new(_context, _dispatcher.Object);
 
-    private GetTeamAllocationQuery Query(Guid? teamId = null) => new(teamId ?? _team.Id, From, To, ItemsByProject);
+    private GetTeamWorkDistributionQuery Query(Guid? teamId = null) => new(teamId ?? _team.Id, From, To, ItemsByProject);
 
     private WorkItem AddItem(
         WorkStatusCategory statusCategory = WorkStatusCategory.Done,

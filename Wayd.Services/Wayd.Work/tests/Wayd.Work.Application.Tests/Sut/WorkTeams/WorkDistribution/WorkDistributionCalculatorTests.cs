@@ -3,13 +3,13 @@ using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Work.Application.WorkTeams.Allocation;
 using Wayd.Work.Application.WorkTeams.Dtos;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Xunit;
 
-namespace Wayd.Work.Application.Tests.Sut.WorkTeams.Allocation;
+namespace Wayd.Work.Application.Tests.Sut.WorkTeams.WorkDistribution;
 
-public sealed class AllocationCalculatorTests
+public sealed class WorkDistributionCalculatorTests
 {
     private static readonly LocalDate From = new(2026, 7, 1);
     private static readonly LocalDate To = new(2026, 9, 28);
@@ -37,8 +37,8 @@ public sealed class AllocationCalculatorTests
         Type = "Team of Teams",
     };
 
-    private static readonly AllocationOptions ItemsByPortfolio = new(
-        AllocationDimension.Portfolio, AllocationMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
+    private static readonly WorkDistributionOptions ItemsByPortfolio = new(
+        WorkDistributionDimension.Portfolio, WorkDistributionMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
 
     private readonly Dictionary<Guid, ProjectClassification> _projects = [];
 
@@ -65,11 +65,11 @@ public sealed class AllocationCalculatorTests
         return project;
     }
 
-    private static AllocationWorkItem Item(TeamStructureTeam team, ProjectClassification? project = null, double? points = null, LocalDate? doneOn = null, string type = "User Story", double? effort = null) =>
+    private static WorkDistributionItem Item(TeamStructureTeam team, ProjectClassification? project = null, double? points = null, LocalDate? doneOn = null, string type = "User Story", double? effort = null) =>
         new(Guid.NewGuid(), team.Id, type, doneOn ?? Early, project?.ProjectId, points, effort, null);
 
-    private TeamAllocationDto Calculate(IReadOnlyList<AllocationWorkItem> items, AllocationOptions? options = null, TeamStructure? structure = null) =>
-        AllocationCalculator.Calculate(RootNavigation, From, To, structure ?? Structure(), items, _projects, options ?? ItemsByPortfolio);
+    private TeamWorkDistributionDto Calculate(IReadOnlyList<WorkDistributionItem> items, WorkDistributionOptions? options = null, TeamStructure? structure = null) =>
+        WorkDistributionCalculator.Calculate(RootNavigation, From, To, structure ?? Structure(), items, _projects, options ?? ItemsByPortfolio);
 
     [Fact]
     public void Calculate_ByPortfolio_PutsNoProjectLastWithSharesOfTheTotal()
@@ -77,7 +77,7 @@ public sealed class AllocationCalculatorTests
         // Arrange
         var small = Project("SMALL", PortfolioA);
         var large = Project("LARGE", PortfolioB);
-        List<AllocationWorkItem> items = [Item(Payments, small), Item(Payments, large), Item(Payments, large), Item(Payments)];
+        List<WorkDistributionItem> items = [Item(Payments, small), Item(Payments, large), Item(Payments, large), Item(Payments)];
 
         // Act
         var result = Calculate(items);
@@ -85,7 +85,7 @@ public sealed class AllocationCalculatorTests
         // Assert
         result.Groups.Select(g => g.Name).Should().Equal("Platform Modernization", "Customer Experience", "No project");
         result.Groups.Select(g => g.Share).Should().Equal(50, 25, 25);
-        result.Groups[^1].Kind.Should().Be(AllocationGroupKind.NoProject);
+        result.Groups[^1].Kind.Should().Be(WorkDistributionGroupKind.NoProject);
         result.Summary.ItemsCompleted.Should().Be(4);
         result.Summary.NoProjectItems.Should().Be(1);
         result.Summary.NoProjectShare.Should().Be(25);
@@ -96,7 +96,7 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items = [Item(Payments, project), Item(Mobile, project), Item(Mobile)];
+        List<WorkDistributionItem> items = [Item(Payments, project), Item(Mobile, project), Item(Mobile)];
 
         // Act
         var result = Calculate(items);
@@ -122,7 +122,7 @@ public sealed class AllocationCalculatorTests
             new(Mobile.Id, Engineering.Id, From.PlusYears(-1), moveDate.PlusDays(-1)),
             new(Mobile.Id, Experience.Id, moveDate, null),
         ]);
-        List<AllocationWorkItem> items = [Item(Mobile, doneOn: Early), Item(Mobile, doneOn: Late), Item(Mobile, doneOn: Late)];
+        List<WorkDistributionItem> items = [Item(Mobile, doneOn: Early), Item(Mobile, doneOn: Late), Item(Mobile, doneOn: Late)];
 
         // Act
         var result = Calculate(items, structure: structure);
@@ -138,7 +138,7 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items =
+        List<WorkDistributionItem> items =
         [
             Item(Payments, project, doneOn: From.PlusDays(-1)),
             Item(Payments, project, doneOn: From),
@@ -164,7 +164,7 @@ public sealed class AllocationCalculatorTests
             new(Engineering.Id, Root.Id, From.PlusYears(-1), null),
             new(Payments.Id, Engineering.Id, joined, null),
         ]);
-        List<AllocationWorkItem> items = [Item(Payments, doneOn: Early), Item(Payments, doneOn: Late)];
+        List<WorkDistributionItem> items = [Item(Payments, doneOn: Early), Item(Payments, doneOn: Late)];
 
         // Act
         var result = Calculate(items, structure: structure);
@@ -179,16 +179,16 @@ public sealed class AllocationCalculatorTests
         // Arrange
         var inProgram = Project("IN", PortfolioA, ProgramA);
         var direct = Project("DIRECT", PortfolioA);
-        List<AllocationWorkItem> items = [Item(Payments, inProgram), Item(Payments, direct), Item(Payments)];
+        List<WorkDistributionItem> items = [Item(Payments, inProgram), Item(Payments, direct), Item(Payments)];
 
         // Act
-        var result = Calculate(items, ItemsByPortfolio with { Dimension = AllocationDimension.Program });
+        var result = Calculate(items, ItemsByPortfolio with { Dimension = WorkDistributionDimension.Program });
 
         // Assert
         result.Groups.Select(g => (g.Name, g.Kind)).Should().Equal(
-            ("Digital Onboarding", AllocationGroupKind.Record),
-            ("No program", AllocationGroupKind.MissingLevel),
-            ("No project", AllocationGroupKind.NoProject));
+            ("Digital Onboarding", WorkDistributionGroupKind.Record),
+            ("No program", WorkDistributionGroupKind.MissingLevel),
+            ("No project", WorkDistributionGroupKind.NoProject));
         result.Groups[1].ProjectKeys.Should().Equal("DIRECT");
         result.Groups[0].Portfolio!.Name.Should().Be(PortfolioA.Name);
     }
@@ -199,10 +199,10 @@ public sealed class AllocationCalculatorTests
         // Arrange
         var both = Project("BOTH", PortfolioA, null, ThemeGrow, ThemeTrust);
         var grow = Project("GROW", PortfolioA, null, ThemeGrow);
-        List<AllocationWorkItem> items = [Item(Payments, both), Item(Payments, grow)];
+        List<WorkDistributionItem> items = [Item(Payments, both), Item(Payments, grow)];
 
         // Act
-        var result = Calculate(items, ItemsByPortfolio with { Dimension = AllocationDimension.StrategicTheme });
+        var result = Calculate(items, ItemsByPortfolio with { Dimension = WorkDistributionDimension.StrategicTheme });
 
         // Assert
         result.Groups.Select(g => (g.Name, g.Items)).Should().Equal((ThemeGrow.Name, 1.5), (ThemeTrust.Name, 0.5));
@@ -215,8 +215,8 @@ public sealed class AllocationCalculatorTests
         // Arrange
         var both = Project("BOTH", PortfolioA, null, ThemeGrow, ThemeTrust);
         var grow = Project("GROW", PortfolioA, null, ThemeGrow);
-        List<AllocationWorkItem> items = [Item(Payments, both), Item(Payments, grow)];
-        var options = ItemsByPortfolio with { Dimension = AllocationDimension.StrategicTheme, ThemeCounting = ThemeCounting.CountFully };
+        List<WorkDistributionItem> items = [Item(Payments, both), Item(Payments, grow)];
+        var options = ItemsByPortfolio with { Dimension = WorkDistributionDimension.StrategicTheme, ThemeCounting = ThemeCounting.CountFully };
 
         // Act
         var result = Calculate(items, options);
@@ -230,15 +230,15 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var bare = Project("BARE", PortfolioA);
-        List<AllocationWorkItem> items = [Item(Payments, bare), Item(Payments)];
+        List<WorkDistributionItem> items = [Item(Payments, bare), Item(Payments)];
 
         // Act
-        var result = Calculate(items, ItemsByPortfolio with { Dimension = AllocationDimension.StrategicTheme });
+        var result = Calculate(items, ItemsByPortfolio with { Dimension = WorkDistributionDimension.StrategicTheme });
 
         // Assert
         result.Groups.Select(g => (g.Name, g.Kind)).Should().Equal(
-            ("No theme", AllocationGroupKind.MissingLevel),
-            ("No project", AllocationGroupKind.NoProject));
+            ("No theme", WorkDistributionGroupKind.MissingLevel),
+            ("No project", WorkDistributionGroupKind.NoProject));
     }
 
     [Fact]
@@ -246,8 +246,8 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items = [Item(Payments, project, 5), Item(Payments, project), Item(Mobile, project)];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.StoryPoints };
+        List<WorkDistributionItem> items = [Item(Payments, project, 5), Item(Payments, project), Item(Mobile, project)];
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.StoryPoints };
 
         // Act
         var result = Calculate(items, options);
@@ -266,14 +266,14 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items =
+        List<WorkDistributionItem> items =
         [
             Item(Payments, project, 8),
             Item(Payments, project, 1, type: "Bug"),
             Item(Payments, project, 3, type: "Bug"),
             Item(Payments, project, type: "Bug"),
         ];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.StoryPoints, Unestimated = UnestimatedHandling.TeamAverage };
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.StoryPoints, Unestimated = UnestimatedHandling.TeamAverage };
 
         // Act
         var result = Calculate(items, options);
@@ -292,8 +292,8 @@ public sealed class AllocationCalculatorTests
         // Arrange
         var x = Project("X", PortfolioA);
         var y = Project("Y", PortfolioB);
-        List<AllocationWorkItem> items = [Item(Payments, x, 1), Item(Payments, y, 3), Item(Mobile, y), Item(Mobile, y)];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.TeamEffort };
+        List<WorkDistributionItem> items = [Item(Payments, x, 1), Item(Payments, y, 3), Item(Mobile, y), Item(Mobile, y)];
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.TeamEffort };
 
         // Act
         var result = Calculate(items, options);
@@ -308,8 +308,8 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items = [Item(Payments, project, 0), Item(Payments, project, 4)];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.StoryPoints, Unestimated = UnestimatedHandling.TeamAverage };
+        List<WorkDistributionItem> items = [Item(Payments, project, 0), Item(Payments, project, 4)];
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.StoryPoints, Unestimated = UnestimatedHandling.TeamAverage };
 
         // Act
         var result = Calculate(items, options);
@@ -333,8 +333,8 @@ public sealed class AllocationCalculatorTests
                 new(Mobile.Id, From.PlusYears(-1), null, SizingMethod.Effort),
             ],
         };
-        List<AllocationWorkItem> items = [Item(Payments, project, 5), Item(Mobile, project, 8, effort: 20)];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.StoryPoints };
+        List<WorkDistributionItem> items = [Item(Payments, project, 5), Item(Mobile, project, 8, effort: 20)];
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.StoryPoints };
 
         // Act
         var result = Calculate(items, options, structure);
@@ -358,14 +358,14 @@ public sealed class AllocationCalculatorTests
                 new(Mobile.Id, From.PlusYears(-1), null, SizingMethod.Effort),
             ],
         };
-        List<AllocationWorkItem> items =
+        List<WorkDistributionItem> items =
         [
             Item(Payments, x, 1),
             Item(Payments, y, 1),
             Item(Mobile, x, 9, effort: 30),
             Item(Mobile, y, 1, effort: 10),
         ];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.TeamEffort };
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.TeamEffort };
 
         // Act
         var result = Calculate(items, options, structure);
@@ -387,8 +387,8 @@ public sealed class AllocationCalculatorTests
                 new(Mobile.Id, From.PlusYears(-1), null, SizingMethod.Effort),
             ],
         };
-        List<AllocationWorkItem> items = [Item(Mobile, project, effort: 10), Item(Mobile, project)];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.TeamEffort, Unestimated = UnestimatedHandling.TeamAverage };
+        List<WorkDistributionItem> items = [Item(Mobile, project, effort: 10), Item(Mobile, project)];
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.TeamEffort, Unestimated = UnestimatedHandling.TeamAverage };
 
         // Act
         var result = Calculate(items, options, structure);
@@ -414,14 +414,14 @@ public sealed class AllocationCalculatorTests
                 new(Payments.Id, switchedToEffort, null, SizingMethod.Effort),
             ],
         };
-        List<AllocationWorkItem> items =
+        List<WorkDistributionItem> items =
         [
             Item(Payments, x, 1, doneOn: Early),
             Item(Payments, y, 3, doneOn: Early),
             Item(Payments, x, doneOn: Late, effort: 30),
             Item(Payments, y, doneOn: Late, effort: 10),
         ];
-        var options = ItemsByPortfolio with { Measure = AllocationMeasure.TeamEffort };
+        var options = ItemsByPortfolio with { Measure = WorkDistributionMeasure.TeamEffort };
 
         // Act
         var result = Calculate(items, options, structure);
@@ -436,7 +436,7 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items =
+        List<WorkDistributionItem> items =
         [
             Item(Payments, project, type: "Bug"),
             Item(Payments, type: "Bug"),
@@ -445,14 +445,14 @@ public sealed class AllocationCalculatorTests
         ];
 
         // Act
-        var result = Calculate(items, ItemsByPortfolio with { Dimension = AllocationDimension.WorkType });
+        var result = Calculate(items, ItemsByPortfolio with { Dimension = WorkDistributionDimension.WorkType });
 
         // Assert
         var bug = result.Groups.First();
         bug.Name.Should().Be("Bug");
         bug.Items.Should().Be(3);
         bug.NoProjectShare.Should().BeApproximately(66.67, 0.01);
-        result.Groups.Should().NotContain(g => g.Kind == AllocationGroupKind.NoProject);
+        result.Groups.Should().NotContain(g => g.Kind == WorkDistributionGroupKind.NoProject);
     }
 
     [Fact]
@@ -460,14 +460,14 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items = [Item(Payments, project, doneOn: From), Item(Payments, doneOn: To)];
+        List<WorkDistributionItem> items = [Item(Payments, project, doneOn: From), Item(Payments, doneOn: To)];
 
         // Act
         var result = Calculate(items);
 
         // Assert
         result.Periods.Should().HaveCount(7);
-        result.Periods[0].Should().Match<AllocationPeriodDto>(p => p.Start == From && p.End == From.PlusDays(13) && p.Items == 1);
+        result.Periods[0].Should().Match<WorkDistributionPeriodDto>(p => p.Start == From && p.End == From.PlusDays(13) && p.Items == 1);
         result.Periods[^1].End.Should().Be(To);
         result.Periods[^1].NoProjectShare.Should().Be(100);
         result.Periods[0].Shares.Should().Equal(100, 0);
@@ -478,12 +478,12 @@ public sealed class AllocationCalculatorTests
     {
         // Arrange
         var project = Project("ONE", PortfolioA);
-        List<AllocationWorkItem> items = [Item(Payments, project), Item(Mobile, project), Item(Mobile, project)];
+        List<WorkDistributionItem> items = [Item(Payments, project), Item(Mobile, project), Item(Mobile, project)];
 
         // Act
         var result = Calculate(items);
 
         // Assert
-        result.Groups.Single().LargestContributor.Should().Be(new AllocationContributorDto(Mobile.Id, Mobile.Code, Mobile.Name, 2, 2));
+        result.Groups.Single().LargestContributor.Should().Be(new WorkDistributionContributorDto(Mobile.Id, Mobile.Code, Mobile.Name, 2, 2));
     }
 }

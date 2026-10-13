@@ -72,10 +72,10 @@ const BacklogHealthReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
-const AllocationReport = dynamic(
+const WorkDistributionReport = dynamic(
   () =>
-    import('@/src/components/common/work/allocation').then((mod) => ({
-      default: mod.AllocationReport,
+    import('@/src/components/common/work/work-distribution').then((mod) => ({
+      default: mod.WorkDistributionReport,
     })),
   { ssr: false, loading: () => <Spin /> },
 )
@@ -107,7 +107,7 @@ enum TeamTabs {
   OperatingModelHistory = 'operating-model-history',
   CycleTimeReport = 'cycle-time-report',
   BacklogHealth = 'backlog-health',
-  Allocation = 'allocation',
+  WorkDistribution = 'work-distribution',
   ThroughputForecast = 'throughput-forecast',
   SprintMetrics = 'sprint-metrics',
   Activities = 'activities',
@@ -345,8 +345,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamThroughputForecastReport teamCode={team!.code} />
       case TeamTabs.SprintMetrics:
         return <TeamSprintMetricsReport teamId={team!.id!} />
-      case TeamTabs.Allocation:
-        return <AllocationReport teamType="team" teamCode={team!.code} />
+      case TeamTabs.WorkDistribution:
+        return <WorkDistributionReport teamType="team" teamCode={team!.code} />
       case TeamTabs.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       default:
@@ -408,8 +408,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       hideHeading: true,
     },
     {
-      id: TeamTabs.Allocation,
-      label: 'Allocation',
+      id: TeamTabs.WorkDistribution,
+      label: 'Work Distribution',
       hideHeading: true,
     },
     ...(forecastingEnabled

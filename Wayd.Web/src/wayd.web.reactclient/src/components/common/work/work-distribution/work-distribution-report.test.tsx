@@ -2,30 +2,33 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import dayjs from 'dayjs'
 import {
-  AllocationDimension,
-  AllocationGroupKind,
-  AllocationMeasure,
-  TeamAllocationDto,
+  WorkDistributionDimension,
+  WorkDistributionGroupKind,
+  WorkDistributionMeasure,
+  TeamWorkDistributionDto,
   ThemeCounting,
   UnestimatedHandling,
 } from '@/src/services/wayd-api'
-import { AllocationReportView, AllocationSettings } from './allocation-report'
+import {
+  WorkDistributionReportView,
+  WorkDistributionSettings,
+} from './work-distribution-report'
 
 jest.unmock('dayjs')
 
 jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamAllocationQuery: jest.fn(),
+  useGetTeamWorkDistributionQuery: jest.fn(),
 }))
 
-const settings: AllocationSettings = {
+const settings: WorkDistributionSettings = {
   range: [dayjs('2026-07-01'), dayjs('2026-09-28')],
-  dimension: AllocationDimension.Portfolio,
-  measure: AllocationMeasure.Count,
+  dimension: WorkDistributionDimension.Portfolio,
+  measure: WorkDistributionMeasure.Count,
   unestimated: UnestimatedHandling.Exclude,
   themeCounting: ThemeCounting.SplitEvenly,
 }
 
-const createAllocation = (): TeamAllocationDto =>
+const createWorkDistribution = (): TeamWorkDistributionDto =>
   ({
     team: {
       id: 't1',
@@ -51,7 +54,7 @@ const createAllocation = (): TeamAllocationDto =>
     groups: [
       {
         id: 'portfolio:1',
-        kind: AllocationGroupKind.Record,
+        kind: WorkDistributionGroupKind.Record,
         recordId: 'p1',
         recordKey: '1',
         name: 'Customer Experience',
@@ -72,7 +75,7 @@ const createAllocation = (): TeamAllocationDto =>
       },
       {
         id: 'no-project',
-        kind: AllocationGroupKind.NoProject,
+        kind: WorkDistributionGroupKind.NoProject,
         name: 'No project',
         projectKeys: [],
         programCount: 0,
@@ -85,13 +88,13 @@ const createAllocation = (): TeamAllocationDto =>
     ],
     teams: [],
     periods: [],
-  }) as unknown as TeamAllocationDto
+  }) as unknown as TeamWorkDistributionDto
 
-describe('AllocationReportView', () => {
+describe('WorkDistributionReportView', () => {
   it('lists each group with its share and names no project work', () => {
     render(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
         onSettingsChange={jest.fn()}
@@ -108,8 +111,8 @@ describe('AllocationReportView', () => {
 
   it('offers the By Team view only for a team of teams', () => {
     const { rerender } = render(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
         onSettingsChange={jest.fn()}
@@ -119,8 +122,8 @@ describe('AllocationReportView', () => {
     expect(screen.getByRole('tab', { name: 'By Team' })).toBeInTheDocument()
 
     rerender(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
         onSettingsChange={jest.fn()}
@@ -134,8 +137,8 @@ describe('AllocationReportView', () => {
 
   it('offers share of team effort only for a team of teams', () => {
     const { rerender } = render(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
         onSettingsChange={jest.fn()}
@@ -145,8 +148,8 @@ describe('AllocationReportView', () => {
     expect(screen.getByText('Share of Team Effort')).toBeInTheDocument()
 
     rerender(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
         onSettingsChange={jest.fn()}
@@ -158,17 +161,17 @@ describe('AllocationReportView', () => {
 
   it('names the teams that do not size in points under story points', () => {
     // Arrange
-    const allocation = createAllocation()
-    allocation.summary.excludedTeams = [
+    const distribution = createWorkDistribution()
+    distribution.summary.excludedTeams = [
       { id: 'j', code: 'NOVA', name: 'Team Nova' },
     ]
 
     // Act
     render(
-      <AllocationReportView
-        allocation={allocation}
+      <WorkDistributionReportView
+        distribution={distribution}
         isLoading={false}
-        settings={{ ...settings, measure: AllocationMeasure.StoryPoints }}
+        settings={{ ...settings, measure: WorkDistributionMeasure.StoryPoints }}
         onSettingsChange={jest.fn()}
         isTeamOfTeams
       />,
@@ -183,10 +186,10 @@ describe('AllocationReportView', () => {
   it('asks about unestimated items under share of team effort too', () => {
     // Act
     render(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
-        settings={{ ...settings, measure: AllocationMeasure.TeamEffort }}
+        settings={{ ...settings, measure: WorkDistributionMeasure.TeamEffort }}
         onSettingsChange={jest.fn()}
         isTeamOfTeams
       />,
@@ -198,8 +201,8 @@ describe('AllocationReportView', () => {
 
   it('asks about unestimated items only when measuring estimates', () => {
     const { rerender } = render(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
         onSettingsChange={jest.fn()}
@@ -209,10 +212,10 @@ describe('AllocationReportView', () => {
     expect(screen.queryByText('Unestimated items')).not.toBeInTheDocument()
 
     rerender(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
-        settings={{ ...settings, measure: AllocationMeasure.StoryPoints }}
+        settings={{ ...settings, measure: WorkDistributionMeasure.StoryPoints }}
         onSettingsChange={jest.fn()}
         isTeamOfTeams
       />,
@@ -223,12 +226,12 @@ describe('AllocationReportView', () => {
 
   it('warns that shares overlap when themes count fully', () => {
     render(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={{
           ...settings,
-          dimension: AllocationDimension.StrategicTheme,
+          dimension: WorkDistributionDimension.StrategicTheme,
           themeCounting: ThemeCounting.CountFully,
         }}
         onSettingsChange={jest.fn()}
@@ -242,8 +245,8 @@ describe('AllocationReportView', () => {
   it('reports a new dimension through onSettingsChange', () => {
     const onSettingsChange = jest.fn()
     render(
-      <AllocationReportView
-        allocation={createAllocation()}
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
         onSettingsChange={onSettingsChange}
@@ -255,16 +258,16 @@ describe('AllocationReportView', () => {
 
     expect(onSettingsChange).toHaveBeenCalledWith({
       ...settings,
-      dimension: AllocationDimension.WorkType,
+      dimension: WorkDistributionDimension.WorkType,
     })
   })
 
   it('shows an empty state when nothing was completed', () => {
-    const allocation = createAllocation()
-    allocation.summary.itemsCompleted = 0
+    const distribution = createWorkDistribution()
+    distribution.summary.itemsCompleted = 0
     render(
-      <AllocationReportView
-        allocation={allocation}
+      <WorkDistributionReportView
+        distribution={distribution}
         isLoading={false}
         settings={settings}
         onSettingsChange={jest.fn()}

@@ -1,6 +1,6 @@
 ---
 name: wayd-teams
-description: Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating allocation reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
+description: Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
 ---
 
 # Wayd Teams
@@ -9,11 +9,11 @@ description: Guides agents working with Wayd teams and teams of teams via the Wa
 
 A team carries three identifiers, and each tool accepts a specific one:
 
-| Identifier | Example      | Accepted by                                                                                               |
-| ---------- | ------------ | --------------------------------------------------------------------------------------------------------- |
-| `id`       | UUID         | `Teams_GetActivities`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamAllocation`, `Teams_GetSprintMetrics` (UUID only) |
-| `key`      | integer      | `Teams_GetTeam` (its parameter is named `id` but takes the integer `key`), `Teams_GetActivities`          |
-| `code`     | short string | `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamAllocation`                        |
+| Identifier | Example      | Accepted by                                                                                                                                           |
+| ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`       | UUID         | `Teams_GetActivities`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`, `Teams_GetSprintMetrics` (UUID only) |
+| `key`      | integer      | `Teams_GetTeam` (its parameter is named `id` but takes the integer `key`), `Teams_GetActivities`                                                      |
+| `code`     | short string | `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`                                                              |
 
 Resolve a team name with `Teams_GetTeams`, which returns all three (active teams only unless `includeInactive: true`). A team of teams has a UUID `id` and a `code`; resolve it with `TeamsOfTeams_GetList`.
 
@@ -72,14 +72,14 @@ Monte Carlo forecasts from each team's recent daily throughput (10,000 trials, h
 - **Team throughput** answers with a count: each percentile's `workItems` is finished at least that often, and `throughWorkItem` names how far down the backlog that reaches ("at 85%, through CORE-123").
 - **History window.** `lookbackDays` (14–365, default 90). Use a shorter window when a team's pace recently changed, and state the window you used. Nothing is saved.
 
-## Allocation reports
+## Work distribution reports
 
-An allocation report shows where a team's completed work went over a date range.
+A work distribution report shows where a team's completed work went over a date range.
 
-| Scope                                     | Tool                         | Identifies it by                        |
-| ----------------------------------------- | ---------------------------- | --------------------------------------- |
-| One team                                  | `Teams_GetTeamAllocation`    | `idOrCode` (team UUID or code)          |
-| A team of teams and every team beneath it | `TeamsOfTeams_GetAllocation` | `idOrCode` (team of teams UUID or code) |
+| Scope                                     | Tool                               | Identifies it by                        |
+| ----------------------------------------- | ---------------------------------- | --------------------------------------- |
+| One team                                  | `Teams_GetTeamWorkDistribution`    | `idOrCode` (team UUID or code)          |
+| A team of teams and every team beneath it | `TeamsOfTeams_GetWorkDistribution` | `idOrCode` (team of teams UUID or code) |
 
 ### What counts
 

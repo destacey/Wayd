@@ -5,10 +5,10 @@ import type { ColumnsType } from 'antd/es/table'
 import Link from 'next/link'
 import { FC } from 'react'
 import {
-  AllocationDimension,
-  AllocationGroupDto,
-  AllocationMeasure,
-  TeamAllocationDto,
+  WorkDistributionDimension,
+  WorkDistributionGroupDto,
+  WorkDistributionMeasure,
+  TeamWorkDistributionDto,
 } from '@/src/services/wayd-api'
 import {
   GroupSwatch,
@@ -18,17 +18,17 @@ import {
   groupHref,
   groupLabel,
   hatch,
-} from './allocation-formatting'
-import styles from './allocation-report.module.css'
+} from './work-distribution-formatting'
+import styles from './work-distribution-report.module.css'
 import WaydTooltip from '../../wayd-tooltip'
 
 const { Text } = Typography
 
-export interface AllocationBreakdownProps {
-  allocation: TeamAllocationDto
+export interface WorkDistributionBreakdownProps {
+  distribution: TeamWorkDistributionDto
   swatches: GroupSwatch[]
-  dimension: AllocationDimension
-  measure: AllocationMeasure
+  dimension: WorkDistributionDimension
+  measure: WorkDistributionMeasure
   /** Shares add up to more than 100%, so they cannot be drawn as one bar. */
   overlapping: boolean
   /** Names the largest contributing team; pointless when there is only one team. */
@@ -36,14 +36,14 @@ export interface AllocationBreakdownProps {
 }
 
 interface Row {
-  group: AllocationGroupDto
+  group: WorkDistributionGroupDto
   swatch: GroupSwatch
 }
 
 export const GroupName: FC<{
-  group: AllocationGroupDto
+  group: WorkDistributionGroupDto
   swatch: GroupSwatch
-  dimension: AllocationDimension
+  dimension: WorkDistributionDimension
 }> = ({ group, swatch, dimension }) => {
   const href = groupHref(group, dimension)
   const label = groupLabel(group, dimension)
@@ -73,20 +73,20 @@ export const GroupName: FC<{
   )
 }
 
-const AllocationBreakdown: FC<AllocationBreakdownProps> = ({
-  allocation,
+const WorkDistributionBreakdown: FC<WorkDistributionBreakdownProps> = ({
+  distribution,
   swatches,
   dimension,
   measure,
   overlapping,
   showContributor,
 }) => {
-  const rows: Row[] = allocation.groups.map((group, index) => ({
+  const rows: Row[] = distribution.groups.map((group, index) => ({
     group,
     swatch: swatches[index],
   }))
-  const largestShare = Math.max(...allocation.groups.map((g) => g.share), 1)
-  const byWorkType = dimension === AllocationDimension.WorkType
+  const largestShare = Math.max(...distribution.groups.map((g) => g.share), 1)
+  const byWorkType = dimension === WorkDistributionDimension.WorkType
 
   const columns: ColumnsType<Row> = [
     {
@@ -123,7 +123,8 @@ const AllocationBreakdown: FC<AllocationBreakdownProps> = ({
     },
     {
       key: 'share',
-      title: measure === AllocationMeasure.TeamEffort ? 'Effort' : 'Share',
+      title:
+        measure === WorkDistributionMeasure.TeamEffort ? 'Effort' : 'Share',
       align: 'right',
       width: 90,
       render: (_, { group }) => <Text strong>{formatShare(group.share)}</Text>,
@@ -258,16 +259,16 @@ const AllocationBreakdown: FC<AllocationBreakdownProps> = ({
   )
 }
 
-export const dimensionTitle = (dimension: AllocationDimension) =>
+export const dimensionTitle = (dimension: WorkDistributionDimension) =>
   ({
-    [AllocationDimension.Portfolio]: 'Portfolio',
-    [AllocationDimension.Program]: 'Program',
-    [AllocationDimension.Project]: 'Project',
-    [AllocationDimension.StrategicTheme]: 'Strategic Theme',
-    [AllocationDimension.WorkType]: 'Work Type',
+    [WorkDistributionDimension.Portfolio]: 'Portfolio',
+    [WorkDistributionDimension.Program]: 'Program',
+    [WorkDistributionDimension.Project]: 'Project',
+    [WorkDistributionDimension.StrategicTheme]: 'Strategic Theme',
+    [WorkDistributionDimension.WorkType]: 'Work Type',
   })[dimension]
 
-const shareBarLabel = (rows: Row[], dimension: AllocationDimension) =>
+const shareBarLabel = (rows: Row[], dimension: WorkDistributionDimension) =>
   rows
     .map(
       ({ group }) =>
@@ -275,4 +276,4 @@ const shareBarLabel = (rows: Row[], dimension: AllocationDimension) =>
     )
     .join(', ')
 
-export default AllocationBreakdown
+export default WorkDistributionBreakdown

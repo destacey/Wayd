@@ -36481,8 +36481,8 @@ export class TeamsClient {
      * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
      * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
      */
-    getTeamAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {
-        let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/allocation?";
+    getTeamWorkDistribution(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: WorkDistributionDimension | null | undefined, measure?: WorkDistributionMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamWorkDistributionDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/work-distribution?";
         if (idOrCode === undefined || idOrCode === null)
             throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
         url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
@@ -36516,11 +36516,11 @@ export class TeamsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processGetTeamAllocation(_response);
+            return this.processGetTeamWorkDistribution(_response);
         });
     }
 
-    protected processGetTeamAllocation(response: AxiosResponse): Promise<TeamAllocationDto> {
+    protected processGetTeamWorkDistribution(response: AxiosResponse): Promise<TeamWorkDistributionDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -36535,7 +36535,7 @@ export class TeamsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<TeamAllocationDto>(result200);
+            return Promise.resolve<TeamWorkDistributionDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -36562,7 +36562,7 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<TeamAllocationDto>(null as any);
+        return Promise.resolve<TeamWorkDistributionDto>(null as any);
     }
 
     /**
@@ -38597,8 +38597,8 @@ export class TeamsOfTeamsClient {
      * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
      * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
      */
-    getAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {
-        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{idOrCode}/allocation?";
+    getWorkDistribution(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: WorkDistributionDimension | null | undefined, measure?: WorkDistributionMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamWorkDistributionDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{idOrCode}/work-distribution?";
         if (idOrCode === undefined || idOrCode === null)
             throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
         url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
@@ -38632,11 +38632,11 @@ export class TeamsOfTeamsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processGetAllocation(_response);
+            return this.processGetWorkDistribution(_response);
         });
     }
 
-    protected processGetAllocation(response: AxiosResponse): Promise<TeamAllocationDto> {
+    protected processGetWorkDistribution(response: AxiosResponse): Promise<TeamWorkDistributionDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -38651,7 +38651,7 @@ export class TeamsOfTeamsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<TeamAllocationDto>(result200);
+            return Promise.resolve<TeamWorkDistributionDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -38678,7 +38678,7 @@ export class TeamsOfTeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<TeamAllocationDto>(null as any);
+        return Promise.resolve<TeamWorkDistributionDto>(null as any);
     }
 
     /**
@@ -51918,17 +51918,17 @@ export interface BacklogHealthWorkItemDto {
     flags: SimpleNavigationDto[];
 }
 
-export interface TeamAllocationDto {
+export interface TeamWorkDistributionDto {
     team: WorkTeamNavigationDto;
     from: string;
     to: string;
-    summary: AllocationSummaryDto;
-    groups: AllocationGroupDto[];
-    teams: AllocationTeamRowDto[];
-    periods: AllocationPeriodDto[];
+    summary: WorkDistributionSummaryDto;
+    groups: WorkDistributionGroupDto[];
+    teams: WorkDistributionTeamRowDto[];
+    periods: WorkDistributionPeriodDto[];
 }
 
-export interface AllocationSummaryDto {
+export interface WorkDistributionSummaryDto {
     itemsCompleted: number;
     itemsInPointSizedTeams: number;
     estimatedItems: number;
@@ -51936,20 +51936,20 @@ export interface AllocationSummaryDto {
     filledItems: number;
     filledStoryPoints: number;
     teamsIncluded: number;
-    excludedTeams: AllocationTeamReferenceDto[];
+    excludedTeams: WorkDistributionTeamReferenceDto[];
     noProjectItems: number;
     noProjectShare: number;
 }
 
-export interface AllocationTeamReferenceDto {
+export interface WorkDistributionTeamReferenceDto {
     id: string;
     code: string;
     name: string;
 }
 
-export interface AllocationGroupDto {
+export interface WorkDistributionGroupDto {
     id: string;
-    kind: AllocationGroupKind;
+    kind: WorkDistributionGroupKind;
     recordId?: string | undefined;
     recordKey?: string | undefined;
     name: string;
@@ -51964,16 +51964,16 @@ export interface AllocationGroupDto {
     share: number;
     noProjectValue?: number | undefined;
     noProjectShare?: number | undefined;
-    largestContributor?: AllocationContributorDto | undefined;
+    largestContributor?: WorkDistributionContributorDto | undefined;
 }
 
-export enum AllocationGroupKind {
+export enum WorkDistributionGroupKind {
     Record = "Record",
     NoProject = "NoProject",
     MissingLevel = "MissingLevel",
 }
 
-export interface AllocationContributorDto {
+export interface WorkDistributionContributorDto {
     teamId: string;
     code: string;
     name: string;
@@ -51981,7 +51981,7 @@ export interface AllocationContributorDto {
     items: number;
 }
 
-export interface AllocationTeamRowDto {
+export interface WorkDistributionTeamRowDto {
     teamId: string;
     code: string;
     name: string;
@@ -51993,17 +51993,17 @@ export interface AllocationTeamRowDto {
     items: number;
     storyPoints: number;
     value: number;
-    cells: AllocationCellDto[];
+    cells: WorkDistributionCellDto[];
     noProjectShare?: number | undefined;
 }
 
-export interface AllocationCellDto {
+export interface WorkDistributionCellDto {
     value: number;
     share: number;
     items: number;
 }
 
-export interface AllocationPeriodDto {
+export interface WorkDistributionPeriodDto {
     start: string;
     end: string;
     items: number;
@@ -52013,7 +52013,7 @@ export interface AllocationPeriodDto {
     noProjectShare: number;
 }
 
-export enum AllocationDimension {
+export enum WorkDistributionDimension {
     Portfolio = "Portfolio",
     Program = "Program",
     Project = "Project",
@@ -52021,7 +52021,7 @@ export enum AllocationDimension {
     WorkType = "WorkType",
 }
 
-export enum AllocationMeasure {
+export enum WorkDistributionMeasure {
     Count = "Count",
     StoryPoints = "StoryPoints",
     TeamEffort = "TeamEffort",

@@ -5,31 +5,31 @@ import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import { FC } from 'react'
 import {
-  AllocationDimension,
-  AllocationGroupDto,
-  TeamAllocationDto,
+  WorkDistributionDimension,
+  WorkDistributionGroupDto,
+  TeamWorkDistributionDto,
 } from '@/src/services/wayd-api'
 import WaydEmpty from '../../wayd-empty'
-import { GroupName } from './allocation-breakdown'
+import { GroupName } from './work-distribution-breakdown'
 import {
   GroupSwatch,
   formatAmount,
   formatShare,
   groupLabel,
-} from './allocation-formatting'
-import styles from './allocation-report.module.css'
+} from './work-distribution-formatting'
+import styles from './work-distribution-report.module.css'
 import WaydTooltip from '../../wayd-tooltip'
 
 const { Text } = Typography
 
-export interface AllocationOverTimeProps {
-  allocation: TeamAllocationDto
+export interface WorkDistributionOverTimeProps {
+  distribution: TeamWorkDistributionDto
   swatches: GroupSwatch[]
-  dimension: AllocationDimension
+  dimension: WorkDistributionDimension
 }
 
 interface ChangeRow {
-  group: AllocationGroupDto
+  group: WorkDistributionGroupDto
   swatch: GroupSwatch
   first: number
   last: number
@@ -51,14 +51,14 @@ const formatChange = (change: number) => {
     : `${rounded > 0 ? '+' : '−'}${Math.abs(rounded)} pts`
 }
 
-const AllocationOverTime: FC<AllocationOverTimeProps> = ({
-  allocation,
+const WorkDistributionOverTime: FC<WorkDistributionOverTimeProps> = ({
+  distribution,
   swatches,
   dimension,
 }) => {
-  const periods = allocation.periods
+  const periods = distribution.periods
   const worked = periods.filter((p) => p.value > 0)
-  const byWorkType = dimension === AllocationDimension.WorkType
+  const byWorkType = dimension === WorkDistributionDimension.WorkType
 
   if (worked.length === 0)
     return <WaydEmpty message="No completed work in this date range" />
@@ -74,7 +74,7 @@ const AllocationOverTime: FC<AllocationOverTimeProps> = ({
 
   const first = worked[0]
   const last = worked[worked.length - 1]
-  const changeRows: ChangeRow[] = allocation.groups.map((group, index) => ({
+  const changeRows: ChangeRow[] = distribution.groups.map((group, index) => ({
     group,
     swatch: swatches[index],
     first: first.shares[index] ?? 0,
@@ -132,14 +132,14 @@ const AllocationOverTime: FC<AllocationOverTimeProps> = ({
               <div
                 className={styles.columnStack}
                 role="img"
-                aria-label={`${periodLabel(period.start, period.end)}: ${allocation.groups
+                aria-label={`${periodLabel(period.start, period.end)}: ${distribution.groups
                   .map(
                     (g, i) =>
                       `${groupLabel(g, dimension)} ${formatShare(period.shares[i] ?? 0)}`,
                   )
                   .join(', ')}`}
               >
-                {allocation.groups.map((group, index) => {
+                {distribution.groups.map((group, index) => {
                   const height = heights[p][index]
                   if (height <= 0) return null
                   return (
@@ -212,4 +212,4 @@ const AllocationOverTime: FC<AllocationOverTimeProps> = ({
   )
 }
 
-export default AllocationOverTime
+export default WorkDistributionOverTime

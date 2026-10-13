@@ -16,18 +16,18 @@ import type { TimeRangePickerProps } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC, ReactNode, useState } from 'react'
 import {
-  AllocationDimension,
-  AllocationMeasure,
-  TeamAllocationDto,
+  WorkDistributionDimension,
+  WorkDistributionMeasure,
+  TeamWorkDistributionDto,
   ThemeCounting,
   UnestimatedHandling,
 } from '@/src/services/wayd-api'
-import { useGetTeamAllocationQuery } from '@/src/store/features/organizations/team-api'
+import { useGetTeamWorkDistributionQuery } from '@/src/store/features/organizations/team-api'
 import { isApiError } from '@/src/utils/problem-details'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import WaydTooltip from '../../wayd-tooltip'
 import WaydEmpty from '../../wayd-empty'
-import AllocationBreakdown from './allocation-breakdown'
+import WorkDistributionBreakdown from './work-distribution-breakdown'
 import {
   DIMENSION_LABELS,
   MEASURE_LABELS,
@@ -35,14 +35,14 @@ import {
   formatAmount,
   formatShare,
   groupSwatches,
-} from './allocation-formatting'
-import AllocationOverTime from './allocation-over-time'
-import AllocationTeamMatrix from './allocation-team-matrix'
+} from './work-distribution-formatting'
+import WorkDistributionOverTime from './work-distribution-over-time'
+import WorkDistributionTeamMatrix from './work-distribution-team-matrix'
 
 const { Title, Text } = Typography
 const { RangePicker } = DatePicker
 
-type AllocationView = 'breakdown' | 'teams' | 'time'
+type WorkDistributionView = 'breakdown' | 'teams' | 'time'
 
 const DATE_FORMAT = 'YYYY-MM-DD'
 
@@ -83,30 +83,30 @@ const RANGE_PRESETS: TimeRangePickerProps['presets'] = [
 const validationMessages = (error: unknown): string[] =>
   isApiError(error) && error.errors ? Object.values(error.errors).flat() : []
 
-export interface AllocationSettings {
+export interface WorkDistributionSettings {
   range: [Dayjs, Dayjs]
-  dimension: AllocationDimension
-  measure: AllocationMeasure
+  dimension: WorkDistributionDimension
+  measure: WorkDistributionMeasure
   unestimated: UnestimatedHandling
   themeCounting: ThemeCounting
 }
 
-export interface AllocationReportViewProps {
-  allocation?: TeamAllocationDto
+export interface WorkDistributionReportViewProps {
+  distribution?: TeamWorkDistributionDto
   isLoading: boolean
   error?: unknown
-  settings: AllocationSettings
-  onSettingsChange: (settings: AllocationSettings) => void
+  settings: WorkDistributionSettings
+  onSettingsChange: (settings: WorkDistributionSettings) => void
   /** A team of teams rolls up the teams beneath it, which the By Team view breaks out. */
   isTeamOfTeams: boolean
 }
 
 const SummaryCards: FC<{
-  allocation?: TeamAllocationDto
-  measure: AllocationMeasure
+  distribution?: TeamWorkDistributionDto
+  measure: WorkDistributionMeasure
   loading: boolean
-}> = ({ allocation, measure, loading }) => {
-  const summary = allocation?.summary
+}> = ({ distribution, measure, loading }) => {
+  const summary = distribution?.summary
   const card = (
     title: string,
     value: ReactNode,
@@ -136,7 +136,7 @@ const SummaryCards: FC<{
     summary && `${summary.itemsCompleted - summary.noProjectItems} items`,
   )
 
-  if (measure === AllocationMeasure.StoryPoints) {
+  if (measure === WorkDistributionMeasure.StoryPoints) {
     const unestimated = summary
       ? summary.itemsInPointSizedTeams - summary.estimatedItems
       : 0
@@ -184,7 +184,7 @@ const SummaryCards: FC<{
       {card(
         'Work Items Completed',
         summary ? formatAmount(summary.itemsCompleted) : '',
-        measure === AllocationMeasure.TeamEffort
+        measure === WorkDistributionMeasure.TeamEffort
           ? 'Every team counts, in its own sizing'
           : undefined,
       )}
@@ -204,8 +204,10 @@ const SummaryCards: FC<{
   )
 }
 
-export const AllocationReportView: FC<AllocationReportViewProps> = ({
-  allocation,
+export const WorkDistributionReportView: FC<
+  WorkDistributionReportViewProps
+> = ({
+  distribution,
   isLoading,
   error,
   settings,
@@ -213,43 +215,43 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
   isTeamOfTeams,
 }) => {
   const { token } = theme.useToken()
-  const [view, setView] = useState<AllocationView>('breakdown')
-  const set = (change: Partial<AllocationSettings>) =>
+  const [view, setView] = useState<WorkDistributionView>('breakdown')
+  const set = (change: Partial<WorkDistributionSettings>) =>
     onSettingsChange({ ...settings, ...change })
 
   const { dimension, measure } = settings
   const overlapping =
-    dimension === AllocationDimension.StrategicTheme &&
+    dimension === WorkDistributionDimension.StrategicTheme &&
     settings.themeCounting === ThemeCounting.CountFully
-  const swatches = allocation ? groupSwatches(allocation.groups, token) : []
+  const swatches = distribution ? groupSwatches(distribution.groups, token) : []
   const activeView = !isTeamOfTeams && view === 'teams' ? 'breakdown' : view
 
   const content = (() => {
-    if (!allocation) return <Spin />
-    if (allocation.summary.itemsCompleted === 0)
+    if (!distribution) return <Spin />
+    if (distribution.summary.itemsCompleted === 0)
       return <WaydEmpty message="No completed work in this date range" />
 
     switch (activeView) {
       case 'teams':
         return (
-          <AllocationTeamMatrix
-            allocation={allocation}
+          <WorkDistributionTeamMatrix
+            distribution={distribution}
             dimension={dimension}
             measure={measure}
           />
         )
       case 'time':
         return (
-          <AllocationOverTime
-            allocation={allocation}
+          <WorkDistributionOverTime
+            distribution={distribution}
             swatches={swatches}
             dimension={dimension}
           />
         )
       default:
         return (
-          <AllocationBreakdown
-            allocation={allocation}
+          <WorkDistributionBreakdown
+            distribution={distribution}
             swatches={swatches}
             dimension={dimension}
             measure={measure}
@@ -264,7 +266,7 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
     <Flex vertical gap="middle">
       <Space>
         <Title level={4} style={{ margin: 0 }}>
-          Allocation
+          Work Distribution
         </Title>
         <WaydTooltip
           title={
@@ -298,14 +300,15 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
         <Space>
           <Text type="secondary">Measure</Text>
           <WaydTooltip title={measureTooltip(isTeamOfTeams)}>
-            <Segmented<AllocationMeasure>
+            <Segmented<WorkDistributionMeasure>
               value={measure}
               onChange={(value) => set({ measure: value })}
-              options={Object.values(AllocationMeasure)
+              options={Object.values(WorkDistributionMeasure)
                 // With one team there is nothing to combine: effort would repeat that team's own sizing.
                 .filter(
                   (value) =>
-                    isTeamOfTeams || value !== AllocationMeasure.TeamEffort,
+                    isTeamOfTeams ||
+                    value !== WorkDistributionMeasure.TeamEffort,
                 )
                 .map((value) => ({
                   value,
@@ -319,16 +322,16 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
       <Flex gap="middle" wrap align="center">
         <Space>
           <Text type="secondary">Allocate by</Text>
-          <Segmented<AllocationDimension>
+          <Segmented<WorkDistributionDimension>
             value={dimension}
             onChange={(value) => set({ dimension: value })}
-            options={Object.values(AllocationDimension).map((value) => ({
+            options={Object.values(WorkDistributionDimension).map((value) => ({
               value,
               label: DIMENSION_LABELS[value],
             }))}
           />
         </Space>
-        {measure !== AllocationMeasure.Count && (
+        {measure !== WorkDistributionMeasure.Count && (
           <Space>
             <Text type="secondary">Unestimated items</Text>
             <Segmented<UnestimatedHandling>
@@ -344,7 +347,7 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
             />
           </Space>
         )}
-        {dimension === AllocationDimension.StrategicTheme && (
+        {dimension === WorkDistributionDimension.StrategicTheme && (
           <Space>
             <Text type="secondary">Several themes</Text>
             <Segmented<ThemeCounting>
@@ -366,7 +369,7 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
         <Alert
           type="error"
           showIcon
-          title="The allocation report could not be loaded."
+          title="The work distribution report could not be loaded."
           description={
             validationMessages(error).length > 0 && (
               <ul style={{ margin: 0, paddingInlineStart: 20 }}>
@@ -381,23 +384,23 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
         <>
           <Flex gap="middle" wrap>
             <SummaryCards
-              allocation={allocation}
+              distribution={distribution}
               measure={measure}
-              loading={isLoading && !allocation}
+              loading={isLoading && !distribution}
             />
           </Flex>
 
           <Tabs
             activeKey={activeView}
-            onChange={(key) => setView(key as AllocationView)}
+            onChange={(key) => setView(key as WorkDistributionView)}
             items={[
               { key: 'breakdown', label: 'Breakdown' },
               ...(isTeamOfTeams ? [{ key: 'teams', label: 'By Team' }] : []),
               { key: 'time', label: 'Over Time' },
             ]}
           />
-          <Spin spinning={isLoading && !!allocation}>{content}</Spin>
-          {dimension === AllocationDimension.StrategicTheme && (
+          <Spin spinning={isLoading && !!distribution}>{content}</Spin>
+          {dimension === WorkDistributionDimension.StrategicTheme && (
             <Text type="secondary" style={{ fontSize: 12 }}>
               A project uses its own themes, or its program&apos;s when it has
               none.
@@ -405,7 +408,7 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
                 ' Work on a project with several themes is split evenly between them.'}
             </Text>
           )}
-          {measure === AllocationMeasure.TeamEffort && (
+          {measure === WorkDistributionMeasure.TeamEffort && (
             <Text type="secondary" style={{ fontSize: 12 }}>
               Each team&apos;s split is measured in its own sizing method —
               story points, effort, size, or items for teams that size by count,
@@ -421,26 +424,27 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
   )
 }
 
-export interface AllocationReportProps {
+export interface WorkDistributionReportProps {
   teamType: 'team' | 'team-of-teams'
   teamCode: string
 }
 
-const defaultSettings = (): AllocationSettings => ({
+const defaultSettings = (): WorkDistributionSettings => ({
   range: [yesterday().subtract(89, 'day'), yesterday()],
-  dimension: AllocationDimension.Portfolio,
-  measure: AllocationMeasure.Count,
+  dimension: WorkDistributionDimension.Portfolio,
+  measure: WorkDistributionMeasure.Count,
   unestimated: UnestimatedHandling.Exclude,
   themeCounting: ThemeCounting.SplitEvenly,
 })
 
-export const AllocationReport: FC<AllocationReportProps> = ({
+export const WorkDistributionReport: FC<WorkDistributionReportProps> = ({
   teamType,
   teamCode,
 }) => {
-  const [settings, setSettings] = useState<AllocationSettings>(defaultSettings)
+  const [settings, setSettings] =
+    useState<WorkDistributionSettings>(defaultSettings)
 
-  const { data, isFetching, error } = useGetTeamAllocationQuery({
+  const { data, isFetching, error } = useGetTeamWorkDistributionQuery({
     teamType,
     teamIdOrCode: teamCode,
     from: settings.range[0].format(DATE_FORMAT),
@@ -452,8 +456,8 @@ export const AllocationReport: FC<AllocationReportProps> = ({
   })
 
   return (
-    <AllocationReportView
-      allocation={data}
+    <WorkDistributionReportView
+      distribution={data}
       isLoading={isFetching}
       error={error}
       settings={settings}
@@ -463,4 +467,4 @@ export const AllocationReport: FC<AllocationReportProps> = ({
   )
 }
 
-export default AllocationReport
+export default WorkDistributionReport

@@ -4,8 +4,8 @@ using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
-using Wayd.Work.Application.WorkTeams.Allocation;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
 namespace Wayd.Work.IntegrationTests.Sut;
@@ -15,7 +15,7 @@ namespace Wayd.Work.IntegrationTests.Sut;
 /// coalesces the item's own project with its inherited one in the projection; the fakes translate neither.
 /// </summary>
 [Collection(SqlServerTestCollection.Name)]
-public sealed class GetTeamAllocationQueryHandlerTests(SqlServerDbContextFixture fixture)
+public sealed class GetTeamWorkDistributionQueryHandlerTests(SqlServerDbContextFixture fixture)
 {
     private static readonly LocalDate From = new(2026, 7, 1);
     private static readonly LocalDate To = new(2026, 9, 21);
@@ -51,17 +51,17 @@ public sealed class GetTeamAllocationQueryHandlerTests(SqlServerDbContextFixture
             .ReturnsAsync([new ProjectClassification(projectId, "FP1", "Forecast Project", portfolio, null, [], false)]);
 
         await using var context = _fixture.CreateContext();
-        var handler = new GetTeamAllocationQueryHandler(context, dispatcher.Object);
-        var options = new AllocationOptions(
-            AllocationDimension.Portfolio, AllocationMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
+        var handler = new GetTeamWorkDistributionQueryHandler(context, dispatcher.Object);
+        var options = new WorkDistributionOptions(
+            WorkDistributionDimension.Portfolio, WorkDistributionMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
 
         // Act
-        var result = await handler.Handle(new GetTeamAllocationQuery(teamId, From, To, options), cancellationToken);
+        var result = await handler.Handle(new GetTeamWorkDistributionQuery(teamId, From, To, options), cancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var allocation = result.Value!;
-        allocation.Summary.ItemsCompleted.Should().Be(3);
-        allocation.Groups.Select(g => (g.Name, g.Items)).Should().Equal(("Customer Experience", 2.0), ("No project", 1.0));
+        var distribution = result.Value!;
+        distribution.Summary.ItemsCompleted.Should().Be(3);
+        distribution.Groups.Select(g => (g.Name, g.Items)).Should().Equal(("Customer Experience", 2.0), ("No project", 1.0));
     }
 }

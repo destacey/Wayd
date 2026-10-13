@@ -386,19 +386,19 @@ public class TeamsController(
                 : NotFound();
     }
 
-    [HttpGet("{idOrCode}/allocation")]
+    [HttpGet("{idOrCode}/work-distribution")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [OpenApiOperation(
         "Report where a team's completed work went.",
         "Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.")]
-    [McpTool("Teams_GetTeamAllocation", "Report team allocation")]
+    [McpTool("Teams_GetTeamWorkDistribution", "Report team work distribution")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<TeamAllocationDto>> GetTeamAllocation(
+    public async Task<ActionResult<TeamWorkDistributionDto>> GetTeamWorkDistribution(
         string idOrCode,
-        [FromQuery] GetTeamAllocationRequest request,
+        [FromQuery] GetTeamWorkDistributionRequest request,
         CancellationToken cancellationToken)
     {
         if (!request.TryToQuery(idOrCode, out var query, out var error))

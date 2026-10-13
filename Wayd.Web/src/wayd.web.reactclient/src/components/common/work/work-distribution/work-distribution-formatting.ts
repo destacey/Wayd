@@ -1,9 +1,9 @@
 import type { GlobalToken } from 'antd'
 import {
-  AllocationDimension,
-  AllocationGroupDto,
-  AllocationGroupKind,
-  AllocationMeasure,
+  WorkDistributionDimension,
+  WorkDistributionGroupDto,
+  WorkDistributionGroupKind,
+  WorkDistributionMeasure,
 } from '@/src/services/wayd-api'
 import { getLuminance } from '@/src/utils'
 
@@ -41,7 +41,7 @@ const DARK_PALETTE = [
   'magenta7',
 ] as const
 
-export type AllocationPaletteTokens = Pick<
+export type WorkDistributionPaletteTokens = Pick<
   GlobalToken,
   | (typeof LIGHT_PALETTE)[number]
   | (typeof DARK_PALETTE)[number]
@@ -69,14 +69,14 @@ const luminance = (color: string): number | undefined => {
 }
 
 /** A theme whose container background is not a hex color is taken as light. */
-const isDarkTheme = (token: AllocationPaletteTokens) =>
+const isDarkTheme = (token: WorkDistributionPaletteTokens) =>
   (luminance(token.colorBgContainer) ?? 1) < 0.5
 
 /**
  * Dark text on a light swatch must stay dark in either theme, so it is the
  * dark theme's background rather than `colorText`, which turns light there.
  */
-const inkOn = (color: string, token: AllocationPaletteTokens) => {
+const inkOn = (color: string, token: WorkDistributionPaletteTokens) => {
   const darkInk = isDarkTheme(token) ? token.colorBgContainer : token.colorText
   return (luminance(color) ?? 1) >= 0.55 ? darkInk : token.colorTextLightSolid
 }
@@ -90,20 +90,20 @@ export const hatch = (color: string, gap: string) =>
  * view of one report paints a group the same way.
  */
 export const groupSwatches = (
-  groups: AllocationGroupDto[],
-  token: AllocationPaletteTokens,
+  groups: WorkDistributionGroupDto[],
+  token: WorkDistributionPaletteTokens,
 ): GroupSwatch[] => {
   const palette = isDarkTheme(token) ? DARK_PALETTE : LIGHT_PALETTE
   let next = 0
   return groups.map((group) => {
-    if (group.kind === AllocationGroupKind.NoProject)
+    if (group.kind === WorkDistributionGroupKind.NoProject)
       return {
         background: hatch(token.colorTextQuaternary, token.colorFillSecondary),
         ink: token.colorText,
       }
     // colorFill rather than colorFillSecondary: at 12% white the lighter fill
     // barely separates from a dark background.
-    if (group.kind === AllocationGroupKind.MissingLevel)
+    if (group.kind === WorkDistributionGroupKind.MissingLevel)
       return { background: token.colorFill, ink: token.colorText }
 
     const color = token[palette[next++ % palette.length]]
@@ -111,18 +111,18 @@ export const groupSwatches = (
   })
 }
 
-export const DIMENSION_LABELS: Record<AllocationDimension, string> = {
-  [AllocationDimension.Portfolio]: 'Portfolio',
-  [AllocationDimension.Program]: 'Program',
-  [AllocationDimension.Project]: 'Project',
-  [AllocationDimension.StrategicTheme]: 'Strategic theme',
-  [AllocationDimension.WorkType]: 'Work type',
+export const DIMENSION_LABELS: Record<WorkDistributionDimension, string> = {
+  [WorkDistributionDimension.Portfolio]: 'Portfolio',
+  [WorkDistributionDimension.Program]: 'Program',
+  [WorkDistributionDimension.Project]: 'Project',
+  [WorkDistributionDimension.StrategicTheme]: 'Strategic theme',
+  [WorkDistributionDimension.WorkType]: 'Work type',
 }
 
-export const MEASURE_LABELS: Record<AllocationMeasure, string> = {
-  [AllocationMeasure.Count]: 'Count',
-  [AllocationMeasure.StoryPoints]: 'Story Points',
-  [AllocationMeasure.TeamEffort]: 'Share of Team Effort',
+export const MEASURE_LABELS: Record<WorkDistributionMeasure, string> = {
+  [WorkDistributionMeasure.Count]: 'Count',
+  [WorkDistributionMeasure.StoryPoints]: 'Story Points',
+  [WorkDistributionMeasure.TeamEffort]: 'Share of Team Effort',
 }
 
 /** Worded like the Count / Story Points switch on sprint and iteration metrics. */
@@ -150,32 +150,32 @@ const listKeys = (keys: string[], max = 4) =>
 
 /** The line under a group's name that says what it holds. */
 export const describeGroup = (
-  group: AllocationGroupDto,
-  dimension: AllocationDimension,
+  group: WorkDistributionGroupDto,
+  dimension: WorkDistributionDimension,
 ): string | undefined => {
-  if (group.kind === AllocationGroupKind.NoProject)
+  if (group.kind === WorkDistributionGroupKind.NoProject)
     return 'Neither the item nor its parents link to a project'
 
-  if (group.kind === AllocationGroupKind.MissingLevel)
-    return dimension === AllocationDimension.Program
+  if (group.kind === WorkDistributionGroupKind.MissingLevel)
+    return dimension === WorkDistributionDimension.Program
       ? `Projects directly in a portfolio: ${listKeys(group.projectKeys)}`
       : `Projects with no theme: ${listKeys(group.projectKeys)}`
 
   switch (dimension) {
-    case AllocationDimension.Portfolio:
+    case WorkDistributionDimension.Portfolio:
       return [
         group.programCount > 0 && plural(group.programCount, 'program'),
         plural(group.projectKeys.length, 'project'),
       ]
         .filter(Boolean)
         .join(' · ')
-    case AllocationDimension.Program:
+    case WorkDistributionDimension.Program:
       return group.portfolio?.name
-    case AllocationDimension.Project:
+    case WorkDistributionDimension.Project:
       return [group.portfolio?.name, group.program?.name]
         .filter(Boolean)
         .join(' · ')
-    case AllocationDimension.StrategicTheme:
+    case WorkDistributionDimension.StrategicTheme:
       return listKeys(group.projectKeys)
     default:
       return undefined
@@ -184,20 +184,20 @@ export const describeGroup = (
 
 /** The group's record page, for groups that are a record. */
 export const groupHref = (
-  group: AllocationGroupDto,
-  dimension: AllocationDimension,
+  group: WorkDistributionGroupDto,
+  dimension: WorkDistributionDimension,
 ): string | undefined => {
-  if (group.kind !== AllocationGroupKind.Record || !group.recordKey)
+  if (group.kind !== WorkDistributionGroupKind.Record || !group.recordKey)
     return undefined
 
   switch (dimension) {
-    case AllocationDimension.Portfolio:
+    case WorkDistributionDimension.Portfolio:
       return `/ppm/portfolios/${group.recordKey}`
-    case AllocationDimension.Program:
+    case WorkDistributionDimension.Program:
       return `/ppm/programs/${group.recordKey}`
-    case AllocationDimension.Project:
+    case WorkDistributionDimension.Project:
       return `/ppm/projects/${group.recordKey}`
-    case AllocationDimension.StrategicTheme:
+    case WorkDistributionDimension.StrategicTheme:
       return `/strategic-management/strategic-themes/${group.recordKey}`
     default:
       return undefined
@@ -206,11 +206,11 @@ export const groupHref = (
 
 /** A project group is named with its key, the way projects are listed elsewhere. */
 export const groupLabel = (
-  group: AllocationGroupDto,
-  dimension: AllocationDimension,
+  group: WorkDistributionGroupDto,
+  dimension: WorkDistributionDimension,
 ) =>
-  dimension === AllocationDimension.Project &&
-  group.kind === AllocationGroupKind.Record &&
+  dimension === WorkDistributionDimension.Project &&
+  group.kind === WorkDistributionGroupKind.Record &&
   group.recordKey
     ? `${group.recordKey} · ${group.name}`
     : group.name

@@ -45,10 +45,10 @@ import DeactivateTeamOfTeamsForm from '@/src/app/organizations/_components/deact
 import TeamOfTeamsOperatingModelsGrid from './_components/team-of-teams-operating-models-grid'
 import SetTeamOfTeamsOperatingModelForm from './_components/set-team-of-teams-operating-model-form'
 
-const AllocationReport = dynamic(
+const WorkDistributionReport = dynamic(
   () =>
-    import('@/src/components/common/work/allocation').then((mod) => ({
-      default: mod.AllocationReport,
+    import('@/src/components/common/work/work-distribution').then((mod) => ({
+      default: mod.WorkDistributionReport,
     })),
   { ssr: false, loading: () => <Spin /> },
 )
@@ -60,7 +60,7 @@ enum TeamOfTeamsTabs {
   Members = 'members',
   Activities = 'activities',
   OperatingModelHistory = 'operating-model-history',
-  Allocation = 'allocation',
+  WorkDistribution = 'work-distribution',
 }
 
 const TeamOfTeamsDetailsPage = (props: {
@@ -248,9 +248,12 @@ const TeamOfTeamsDetailsPage = (props: {
             canUpdate={canUpdateTeam}
           />
         )
-      case TeamOfTeamsTabs.Allocation:
+      case TeamOfTeamsTabs.WorkDistribution:
         return (
-          <AllocationReport teamType="team-of-teams" teamCode={team!.code} />
+          <WorkDistributionReport
+            teamType="team-of-teams"
+            teamCode={team!.code}
+          />
         )
       default:
         return null
@@ -271,8 +274,8 @@ const TeamOfTeamsDetailsPage = (props: {
 
   const reports: RecordSection[] = [
     {
-      id: TeamOfTeamsTabs.Allocation,
-      label: 'Allocation',
+      id: TeamOfTeamsTabs.WorkDistribution,
+      label: 'Work Distribution',
       // The report renders its own title alongside its controls.
       hideHeading: true,
     },

@@ -224,7 +224,7 @@ For Claude Code users, nine pre-built skills provide guided workflows:
 - **`/wayd-delivery`** — Releases, versions, release packages, deployments, environments, and delivery metrics
 - **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
 - **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
-- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, delivery forecasts, and team allocation reports
+- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, delivery forecasts, and team work distribution reports
 - **`/wayd-users`** — User lookup and resolving names to UUIDs for assignees and project roles
 - **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
 
@@ -475,9 +475,9 @@ Environments are **retired rather than deleted**, because historical deployments
 | `Teams_GetBacklogHealth`         | Grade a team's backlog and list the work items each check flagged, with optional what-if thresholds                                                             |
 | `Teams_GetThroughputForecast`    | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) how many backlog work items a team finishes by a date, and which work item that reaches      |
 | `Teams_GetSprintMetrics`         | [Team sprint metrics](../user-guide/work-management/sprints.mdx#team-sprint-metrics): average velocity, predictability and say/do over a team's last sprints, with each sprint's values |
-| `Teams_GetTeamAllocation`        | [Allocation report](../user-guide/work-management/allocation-report.mdx) showing where a team's completed work went over a date range                           |
+| `Teams_GetTeamWorkDistribution`  | [Work Distribution report](../user-guide/work-management/work-distribution-report.mdx) showing where a team's completed work went over a date range                           |
 | `TeamsOfTeams_GetList`           | List teams of teams with optional inactive filter                                                                                                               |
-| `TeamsOfTeams_GetAllocation`     | [Allocation report](../user-guide/work-management/allocation-report.mdx) rolling up completed work across a team of teams hierarchy                             |
+| `TeamsOfTeams_GetWorkDistribution` | [Work Distribution report](../user-guide/work-management/work-distribution-report.mdx) rolling up completed work across a team of teams hierarchy                             |
 | `Workspaces_GetWorkItemForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a work item will be done, from its team's throughput, backlog position and predecessors |
 | `Users_GetUsers`                 | List all users                                                                                                                                                  |
 | `Users_GetUser`                  | Get user details                                                                                                                                                |

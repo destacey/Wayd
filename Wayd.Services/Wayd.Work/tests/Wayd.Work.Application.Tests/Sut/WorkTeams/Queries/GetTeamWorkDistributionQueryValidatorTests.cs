@@ -1,19 +1,19 @@
 using FluentAssertions;
 using NodaTime;
-using Wayd.Work.Application.WorkTeams.Allocation;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Xunit;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkTeams.Queries;
 
-public sealed class GetTeamAllocationQueryValidatorTests
+public sealed class GetTeamWorkDistributionQueryValidatorTests
 {
-    private static readonly AllocationOptions Options = new(
-        AllocationDimension.Portfolio, AllocationMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
+    private static readonly WorkDistributionOptions Options = new(
+        WorkDistributionDimension.Portfolio, WorkDistributionMeasure.Count, UnestimatedHandling.Exclude, ThemeCounting.SplitEvenly);
 
-    private readonly GetTeamAllocationQueryValidator _validator = new();
+    private readonly GetTeamWorkDistributionQueryValidator _validator = new();
 
-    private static GetTeamAllocationQuery Query(LocalDate from, LocalDate to) => new(Guid.NewGuid(), from, to, Options);
+    private static GetTeamWorkDistributionQuery Query(LocalDate from, LocalDate to) => new(Guid.NewGuid(), from, to, Options);
 
     [Fact]
     public void Validate_ALeapYearInclusive_IsValid()

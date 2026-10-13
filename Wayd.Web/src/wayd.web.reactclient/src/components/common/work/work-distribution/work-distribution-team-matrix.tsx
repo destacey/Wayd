@@ -4,23 +4,27 @@ import { Flex, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { FC } from 'react'
 import {
-  AllocationCellDto,
-  AllocationDimension,
-  AllocationGroupKind,
-  AllocationMeasure,
-  AllocationTeamRowDto,
-  TeamAllocationDto,
+  WorkDistributionCellDto,
+  WorkDistributionDimension,
+  WorkDistributionGroupKind,
+  WorkDistributionMeasure,
+  WorkDistributionTeamRowDto,
+  TeamWorkDistributionDto,
 } from '@/src/services/wayd-api'
-import { formatAmount, formatShare, groupLabel } from './allocation-formatting'
-import styles from './allocation-report.module.css'
+import {
+  formatAmount,
+  formatShare,
+  groupLabel,
+} from './work-distribution-formatting'
+import styles from './work-distribution-report.module.css'
 import WaydTooltip from '../../wayd-tooltip'
 
 const { Text } = Typography
 
-export interface AllocationTeamMatrixProps {
-  allocation: TeamAllocationDto
-  dimension: AllocationDimension
-  measure: AllocationMeasure
+export interface WorkDistributionTeamMatrixProps {
+  distribution: TeamWorkDistributionDto
+  dimension: WorkDistributionDimension
+  measure: WorkDistributionMeasure
 }
 
 const HEAT_STEPS = [10, 25, 40, 55]
@@ -50,23 +54,23 @@ const HeatCell: FC<{
   )
 }
 
-const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
-  allocation,
+const WorkDistributionTeamMatrix: FC<WorkDistributionTeamMatrixProps> = ({
+  distribution,
   dimension,
   measure,
 }) => {
-  const byWorkType = dimension === AllocationDimension.WorkType
+  const byWorkType = dimension === WorkDistributionDimension.WorkType
   const unit =
-    measure === AllocationMeasure.StoryPoints
+    measure === WorkDistributionMeasure.StoryPoints
       ? 'story points'
-      : measure === AllocationMeasure.TeamEffort
+      : measure === WorkDistributionMeasure.TeamEffort
         ? 'effort'
         : 'items'
   // Effort values are shares of the whole report, which mean nothing beside a row's own share.
-  const amountOf = (cell: AllocationCellDto) =>
-    measure === AllocationMeasure.StoryPoints ? cell.value : cell.items
+  const amountOf = (cell: WorkDistributionCellDto) =>
+    measure === WorkDistributionMeasure.StoryPoints ? cell.value : cell.items
 
-  const columns: ColumnsType<AllocationTeamRowDto> = [
+  const columns: ColumnsType<WorkDistributionTeamRowDto> = [
     {
       key: 'team',
       title: 'Team',
@@ -88,12 +92,12 @@ const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
         </Flex>
       ),
     },
-    ...allocation.groups.map((group, index) => ({
+    ...distribution.groups.map((group, index) => ({
       key: group.id,
       // Project names make the header rows several lines deep, so a project column
       // shows its key and names the project on hover.
       title:
-        dimension === AllocationDimension.Project && group.recordKey ? (
+        dimension === WorkDistributionDimension.Project && group.recordKey ? (
           <WaydTooltip title={groupLabel(group, dimension)}>
             <span>{group.recordKey}</span>
           </WaydTooltip>
@@ -102,14 +106,14 @@ const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
         ),
       width: 130,
       onCell: () => ({ style: { padding: 3 } }),
-      render: (_: unknown, row: AllocationTeamRowDto) => {
+      render: (_: unknown, row: WorkDistributionTeamRowDto) => {
         const cell = row.cells[index]
         if (row.excluded || row.value === 0 || !cell) return null
         return (
           <HeatCell
             share={cell.share}
             amount={amountOf(cell)}
-            gap={group.kind === AllocationGroupKind.NoProject}
+            gap={group.kind === WorkDistributionGroupKind.NoProject}
             title={`${row.name}: ${formatShare(cell.share)} of its ${unit} in ${groupLabel(group, dimension)}`}
           />
         )
@@ -122,7 +126,7 @@ const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
             title: 'No Project (any type)',
             width: 130,
             onCell: () => ({ style: { padding: 3 } }),
-            render: (_: unknown, row: AllocationTeamRowDto) =>
+            render: (_: unknown, row: WorkDistributionTeamRowDto) =>
               !row.excluded &&
               row.value > 0 &&
               row.noProjectShare != null && (
@@ -130,7 +134,7 @@ const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
                   share={row.noProjectShare}
                   amount={
                     (row.noProjectShare / 100) *
-                    (measure === AllocationMeasure.StoryPoints
+                    (measure === WorkDistributionMeasure.StoryPoints
                       ? row.value
                       : row.items)
                   }
@@ -166,11 +170,11 @@ const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
 
   return (
     <Flex vertical gap="small">
-      <Table<AllocationTeamRowDto>
+      <Table<WorkDistributionTeamRowDto>
         size="small"
         rowKey="teamId"
         columns={columns}
-        dataSource={allocation.teams}
+        dataSource={distribution.teams}
         pagination={false}
         scroll={{ x: 'max-content' }}
       />
@@ -191,4 +195,4 @@ const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
   )
 }
 
-export default AllocationTeamMatrix
+export default WorkDistributionTeamMatrix

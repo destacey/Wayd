@@ -265,9 +265,9 @@ export const definitions: [string, McpToolDefinition][] = [
   ],
 
   [
-    'Teams_GetTeamAllocation',
+    'Teams_GetTeamWorkDistribution',
     {
-      name: 'Teams_GetTeamAllocation',
+      name: 'Teams_GetTeamWorkDistribution',
       description: `Report where a team's completed work went. Groups the Requirement-tier work items the team completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.`,
       inputSchema: {
         type: 'object',
@@ -314,7 +314,7 @@ export const definitions: [string, McpToolDefinition][] = [
         required: ['idOrCode', 'from', 'to'],
       },
       method: 'get',
-      pathTemplate: '/api/organization/teams/{idOrCode}/allocation',
+      pathTemplate: '/api/organization/teams/{idOrCode}/work-distribution',
       executionParameters: [
         { name: 'idOrCode', in: 'path' },
         { name: 'from', in: 'query' },
@@ -326,7 +326,7 @@ export const definitions: [string, McpToolDefinition][] = [
       ],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
-      annotations: { title: 'Report team allocation' },
+      annotations: { title: 'Report team work distribution' },
     },
   ],
 
@@ -354,9 +354,9 @@ export const definitions: [string, McpToolDefinition][] = [
   ],
 
   [
-    'TeamsOfTeams_GetAllocation',
+    'TeamsOfTeams_GetWorkDistribution',
     {
-      name: 'TeamsOfTeams_GetAllocation',
+      name: 'TeamsOfTeams_GetWorkDistribution',
       description: `Report where the completed work of a team of teams, and every team beneath it, went. Groups the Requirement-tier work items completed between \`from\` and \`to\` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.`,
       inputSchema: {
         type: 'object',
@@ -400,7 +400,7 @@ export const definitions: [string, McpToolDefinition][] = [
         required: ['idOrCode', 'from', 'to'],
       },
       method: 'get',
-      pathTemplate: '/api/organization/teams-of-teams/{idOrCode}/allocation',
+      pathTemplate: '/api/organization/teams-of-teams/{idOrCode}/work-distribution',
       executionParameters: [
         { name: 'idOrCode', in: 'path' },
         { name: 'from', in: 'query' },
@@ -412,7 +412,7 @@ export const definitions: [string, McpToolDefinition][] = [
       ],
       requestBodyContentType: undefined,
       securityRequirements: [{ ApiKey: [] }],
-      annotations: { title: 'Report team of teams allocation' },
+      annotations: { title: 'Report team of teams work distribution' },
     },
   ],
 ];

@@ -1,28 +1,30 @@
 import { theme } from 'antd'
 import { getLuminance } from '@/src/utils'
 import {
-  AllocationDimension,
-  AllocationGroupDto,
-  AllocationGroupKind,
+  WorkDistributionDimension,
+  WorkDistributionGroupDto,
+  WorkDistributionGroupKind,
 } from '@/src/services/wayd-api'
 import {
-  AllocationPaletteTokens,
+  WorkDistributionPaletteTokens,
   describeGroup,
   formatAmount,
   formatShare,
   groupHref,
   groupLabel,
   groupSwatches,
-} from './allocation-formatting'
+} from './work-distribution-formatting'
 
-const lightToken: AllocationPaletteTokens = theme.getDesignToken()
-const darkToken: AllocationPaletteTokens = theme.getDesignToken({
+const lightToken: WorkDistributionPaletteTokens = theme.getDesignToken()
+const darkToken: WorkDistributionPaletteTokens = theme.getDesignToken({
   algorithm: theme.darkAlgorithm,
 })
 
-const group = (overrides: Partial<AllocationGroupDto>): AllocationGroupDto => ({
+const group = (
+  overrides: Partial<WorkDistributionGroupDto>,
+): WorkDistributionGroupDto => ({
   id: 'g',
-  kind: AllocationGroupKind.Record,
+  kind: WorkDistributionGroupKind.Record,
   name: 'Group',
   projectKeys: [],
   programCount: 0,
@@ -42,9 +44,9 @@ describe('groupSwatches', () => {
     const swatches = groupSwatches(
       [
         group({ id: 'a' }),
-        group({ id: 'missing', kind: AllocationGroupKind.MissingLevel }),
+        group({ id: 'missing', kind: WorkDistributionGroupKind.MissingLevel }),
         group({ id: 'b' }),
-        group({ id: 'none', kind: AllocationGroupKind.NoProject }),
+        group({ id: 'none', kind: WorkDistributionGroupKind.NoProject }),
       ],
       lightToken,
     )
@@ -82,7 +84,7 @@ describe('describeGroup', () => {
   it('summarises a portfolio by its programs and projects', () => {
     const portfolio = group({ programCount: 1, projectKeys: ['P1', 'P2'] })
 
-    expect(describeGroup(portfolio, AllocationDimension.Portfolio)).toBe(
+    expect(describeGroup(portfolio, WorkDistributionDimension.Portfolio)).toBe(
       '1 program · 2 projects',
     )
   })
@@ -93,29 +95,29 @@ describe('describeGroup', () => {
       program: { id: 'g', key: 2, name: 'Digital Onboarding' },
     })
 
-    expect(describeGroup(project, AllocationDimension.Project)).toBe(
+    expect(describeGroup(project, WorkDistributionDimension.Project)).toBe(
       'Customer Experience · Digital Onboarding',
     )
   })
 
   it('names the projects in a missing level, shortening a long list', () => {
     const missing = group({
-      kind: AllocationGroupKind.MissingLevel,
+      kind: WorkDistributionGroupKind.MissingLevel,
       projectKeys: ['A', 'B', 'C', 'D', 'E', 'F'],
     })
 
-    expect(describeGroup(missing, AllocationDimension.Program)).toBe(
+    expect(describeGroup(missing, WorkDistributionDimension.Program)).toBe(
       'Projects directly in a portfolio: A, B, C, D +2 more',
     )
-    expect(describeGroup(missing, AllocationDimension.StrategicTheme)).toBe(
-      'Projects with no theme: A, B, C, D +2 more',
-    )
+    expect(
+      describeGroup(missing, WorkDistributionDimension.StrategicTheme),
+    ).toBe('Projects with no theme: A, B, C, D +2 more')
   })
 
   it('explains the no project group in every dimension', () => {
-    const none = group({ kind: AllocationGroupKind.NoProject })
+    const none = group({ kind: WorkDistributionGroupKind.NoProject })
 
-    expect(describeGroup(none, AllocationDimension.StrategicTheme)).toBe(
+    expect(describeGroup(none, WorkDistributionDimension.StrategicTheme)).toBe(
       'Neither the item nor its parents link to a project',
     )
   })
@@ -125,22 +127,22 @@ describe('groupHref and groupLabel', () => {
   it('links a record group to its page', () => {
     const project = group({ recordKey: 'ATLAS' })
 
-    expect(groupHref(project, AllocationDimension.Project)).toBe(
+    expect(groupHref(project, WorkDistributionDimension.Project)).toBe(
       '/ppm/projects/ATLAS',
     )
-    expect(groupLabel(project, AllocationDimension.Project)).toBe(
+    expect(groupLabel(project, WorkDistributionDimension.Project)).toBe(
       'ATLAS · Group',
     )
   })
 
   it('does not link a work type or a gap group', () => {
     expect(
-      groupHref(group({ recordKey: 'x' }), AllocationDimension.WorkType),
+      groupHref(group({ recordKey: 'x' }), WorkDistributionDimension.WorkType),
     ).toBeUndefined()
     expect(
       groupHref(
-        group({ kind: AllocationGroupKind.NoProject }),
-        AllocationDimension.Portfolio,
+        group({ kind: WorkDistributionGroupKind.NoProject }),
+        WorkDistributionDimension.Portfolio,
       ),
     ).toBeUndefined()
   })

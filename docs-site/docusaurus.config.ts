@@ -35,6 +35,21 @@ const config: Config = {
   },
   themes: ["@docusaurus/theme-mermaid"],
 
+  plugins: [
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        // Pages that moved, so links to their old addresses still arrive.
+        redirects: [
+          {
+            from: "/docs/user-guide/work-management/allocation-report",
+            to: "/docs/user-guide/work-management/work-distribution-report",
+          },
+        ],
+      },
+    ],
+  ],
+
   presets: [
     [
       "classic",

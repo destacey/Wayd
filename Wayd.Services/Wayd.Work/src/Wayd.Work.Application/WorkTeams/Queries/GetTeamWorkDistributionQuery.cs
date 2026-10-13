@@ -4,8 +4,8 @@ using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Application.Persistence;
-using Wayd.Work.Application.WorkTeams.Allocation;
 using Wayd.Work.Application.WorkTeams.Dtos;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 
 namespace Wayd.Work.Application.WorkTeams.Queries;
 
@@ -13,18 +13,18 @@ namespace Wayd.Work.Application.WorkTeams.Queries;
 /// Where the Requirement-tier work a team, or a team of teams and everything beneath it, completed from
 /// <paramref name="From"/> to <paramref name="To"/> (inclusive, UTC dates) went.
 /// </summary>
-public sealed record GetTeamAllocationQuery(
+public sealed record GetTeamWorkDistributionQuery(
     TeamIdOrCode TeamIdOrCode,
     LocalDate From,
     LocalDate To,
-    AllocationOptions Options) : IQuery<Result<TeamAllocationDto?>>, ILongRunningRequest;
+    WorkDistributionOptions Options) : IQuery<Result<TeamWorkDistributionDto?>>, ILongRunningRequest;
 
-public sealed class GetTeamAllocationQueryValidator : AbstractValidator<GetTeamAllocationQuery>
+public sealed class GetTeamWorkDistributionQueryValidator : AbstractValidator<GetTeamWorkDistributionQuery>
 {
     /// <summary>A year, both ends inclusive, with room for a leap day.</summary>
     public const int MaxDays = 366;
 
-    public GetTeamAllocationQueryValidator()
+    public GetTeamWorkDistributionQueryValidator()
     {
         RuleFor(q => q.To)
             .GreaterThanOrEqualTo(q => q.From)
@@ -42,13 +42,13 @@ public sealed class GetTeamAllocationQueryValidator : AbstractValidator<GetTeamA
     }
 }
 
-public sealed class GetTeamAllocationQueryHandler(IWorkDbContext workDbContext, IDispatcher dispatcher)
-    : IQueryHandler<GetTeamAllocationQuery, Result<TeamAllocationDto?>>
+public sealed class GetTeamWorkDistributionQueryHandler(IWorkDbContext workDbContext, IDispatcher dispatcher)
+    : IQueryHandler<GetTeamWorkDistributionQuery, Result<TeamWorkDistributionDto?>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
 
-    public async Task<Result<TeamAllocationDto?>> Handle(GetTeamAllocationQuery request, CancellationToken cancellationToken)
+    public async Task<Result<TeamWorkDistributionDto?>> Handle(GetTeamWorkDistributionQuery request, CancellationToken cancellationToken)
     {
         var team = await _workDbContext.WorkTeams
             .Where(request.TeamIdOrCode.Match<Expression<Func<WorkTeam, bool>>>(
@@ -58,12 +58,12 @@ public sealed class GetTeamAllocationQueryHandler(IWorkDbContext workDbContext, 
             .FirstOrDefaultAsync(cancellationToken);
 
         if (team is null)
-            return Result.Success<TeamAllocationDto?>(null);
+            return Result.Success<TeamWorkDistributionDto?>(null);
 
         // Work teams share their Organization team's id.
         var structure = await _dispatcher.Send(new GetTeamStructureQuery(team.Id, request.From, request.To), cancellationToken);
         if (structure is null)
-            return Result.Success<TeamAllocationDto?>(null);
+            return Result.Success<TeamWorkDistributionDto?>(null);
 
         var teamIds = structure.Teams.Select(t => t.Id).ToList();
         var start = request.From.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
@@ -90,7 +90,7 @@ public sealed class GetTeamAllocationQueryHandler(IWorkDbContext workDbContext, 
             .ToListAsync(cancellationToken);
 
         var workItems = completions
-            .Select(c => new AllocationWorkItem(c.Id, c.TeamId, c.TypeName, c.DoneTimestamp.InUtc().Date, c.ProjectId, c.StoryPoints, c.Effort, c.Size))
+            .Select(c => new WorkDistributionItem(c.Id, c.TeamId, c.TypeName, c.DoneTimestamp.InUtc().Date, c.ProjectId, c.StoryPoints, c.Effort, c.Size))
             .ToList();
 
         var projectIds = workItems.Where(w => w.ProjectId.HasValue).Select(w => w.ProjectId!.Value).Distinct().ToList();
@@ -99,6 +99,6 @@ public sealed class GetTeamAllocationQueryHandler(IWorkDbContext workDbContext, 
             : (await _dispatcher.Send(new GetProjectClassificationsQuery(projectIds), cancellationToken))
                 .ToDictionary(p => p.ProjectId);
 
-        return AllocationCalculator.Calculate(team, request.From, request.To, structure, workItems, projects, request.Options);
+        return WorkDistributionCalculator.Calculate(team, request.From, request.To, structure, workItems, projects, request.Options);
     }
 }

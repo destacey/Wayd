@@ -97,4 +97,28 @@ describe('changesFor', () => {
     expect(changes.every((c) => c.teamId === 'team-1')).toBe(true)
     expect(changes.every((c) => c.roleId === 'role-1')).toBe(true)
   })
+
+  it('touches only the dates entered when the change is for a range', () => {
+    const changes = changesFor(
+      existing,
+      {
+        teamId: 'team-1',
+        roleId: 'role-1',
+        start: dayjs('2027-02-01'),
+        end: dayjs('2027-02-28'),
+        percent: 20,
+      },
+      true,
+    )
+
+    expect(changes).toEqual([
+      {
+        teamId: 'team-1',
+        roleId: 'role-1',
+        start: '2027-02-01',
+        end: '2027-02-28',
+        percent: 20,
+      },
+    ])
+  })
 })

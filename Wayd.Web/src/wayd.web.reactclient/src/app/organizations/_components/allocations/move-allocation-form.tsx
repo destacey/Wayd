@@ -5,7 +5,13 @@ import type { Dayjs } from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { isApiError, toCalendarDate, type ApiError } from '@/src/utils'
+import {
+  isApiError,
+  parseCalendarDate,
+  toCalendarDate,
+  type ApiError,
+  type CalendarDate,
+} from '@/src/utils'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
 import { useGetTeamMemberRolesQuery } from '@/src/store/features/organization/team-member-roles-api'
 import {
@@ -19,6 +25,14 @@ interface Props {
   employeeId: string
   /** The employee's allocations, which the time can be moved from. */
   allocations: EmployeeAllocationDto[]
+  /** Where the time is going and when, when the caller already knows. */
+  target?: {
+    teamId: string
+    roleId?: string
+    start: CalendarDate
+    /** Absent for no end. */
+    end?: CalendarDate
+  }
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -65,6 +79,7 @@ const sourcesOf = (allocations: EmployeeAllocationDto[]): Source[] => {
 const MoveAllocationForm = ({
   employeeId,
   allocations,
+  target,
   onFormComplete,
   onFormCancel,
 }: Props) => {
@@ -126,6 +141,14 @@ const MoveAllocationForm = ({
         size="small"
         layout="vertical"
         name="move-allocation-form"
+        initialValues={
+          target && {
+            toTeamId: target.teamId,
+            toRoleId: target.roleId,
+            start: parseCalendarDate(target.start),
+            end: target.end ? parseCalendarDate(target.end) : undefined,
+          }
+        }
       >
         <FormItem name="from" label="From" rules={[{ required: true }]}>
           <Select

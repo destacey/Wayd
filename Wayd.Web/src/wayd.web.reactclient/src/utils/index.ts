@@ -7,11 +7,13 @@ export {
 } from './dates'
 export {
   type CalendarDate,
+  addCalendarDays,
   calendarDateInZone,
   calendarDaysBetween,
   compareCalendarDates,
   formatCalendarDate,
   parseCalendarDate,
+  startOfCalendarDate,
   toCalendarDate,
   todayCalendarDate,
 } from './calendar-date'

@@ -1,6 +1,9 @@
 ﻿namespace Wayd.Organization.Application.TeamMemberRoles.Commands;
 
-public sealed record UpdateTeamMemberRoleCommand(Guid Id, string Name, string? Description) : ICommand;
+/// <param name="CountsTowardDeliveryCapacity">
+/// Whether time allocated in the role adds to a team's delivery capacity, or null to leave it as it is.
+/// </param>
+public sealed record UpdateTeamMemberRoleCommand(Guid Id, string Name, string? Description, bool? CountsTowardDeliveryCapacity = null) : ICommand;
 
 public sealed class UpdateTeamMemberRoleCommandValidator : CustomValidator<UpdateTeamMemberRoleCommand>
 {
@@ -62,6 +65,9 @@ public sealed class UpdateTeamMemberRoleCommandHandler(
                 _logger.LogError("Error updating team member role {TeamMemberRoleId}. Error message: {Error}", request.Id, result.Error);
                 return result;
             }
+
+            if (request.CountsTowardDeliveryCapacity is { } countsTowardDeliveryCapacity)
+                role.SetCountsTowardDeliveryCapacity(countsTowardDeliveryCapacity);
 
             await _organizationDbContext.SaveChangesAsync(cancellationToken);
 

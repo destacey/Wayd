@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import { MenuProps, Spin } from 'antd'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useFeatureFlag } from '@/src/hooks'
 import { authorizePage } from '@/src/components/hoc'
 import { notFound, usePathname, useRouter } from 'next/navigation'
 import { InactiveTag, PageActions } from '@/src/components/common'
@@ -18,6 +19,7 @@ import EmployeeOverview from './_components/employee-overview'
 import EmployeeFacts from './_components/employee-facts'
 import EmployeeTeamsGrid from './_components/employee-teams-grid'
 import EmployeeWorkItems from './_components/employee-work-items'
+import EmployeeCapacity from './_components/employee-capacity'
 import dynamic from 'next/dynamic'
 
 const EmployeeCycleTimeReport = dynamic(
@@ -31,6 +33,7 @@ const EmployeeCycleTimeReport = dynamic(
 enum EmployeeTabs {
   Overview = 'overview',
   Teams = 'teams',
+  Capacity = 'capacity',
   WorkItems = 'work-items',
   CycleTimeReport = 'cycle-time-report',
 }
@@ -49,6 +52,10 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canDeleteEmployee = hasPermissionClaim('Permissions.Employees.Delete')
+
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
 
   const {
     data: employeeData,
@@ -77,6 +84,10 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         )
       case EmployeeTabs.Teams:
         return <EmployeeTeamsGrid employeeId={employeeData!.id} />
+      case EmployeeTabs.Capacity:
+        return capacityEnabled ? (
+          <EmployeeCapacity employeeId={employeeData!.id} />
+        ) : null
       case EmployeeTabs.WorkItems:
         return <EmployeeWorkItems employeeId={employeeData!.id} />
       case EmployeeTabs.CycleTimeReport:
@@ -91,6 +102,9 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sections: RecordSection[] = [
     { id: EmployeeTabs.Overview, label: 'Overview' },
     { id: EmployeeTabs.Teams, label: 'Teams' },
+    ...(capacityEnabled
+      ? [{ id: EmployeeTabs.Capacity, label: 'Capacity' }]
+      : []),
     { id: EmployeeTabs.WorkItems, label: 'Assigned Work Items' },
   ]
 

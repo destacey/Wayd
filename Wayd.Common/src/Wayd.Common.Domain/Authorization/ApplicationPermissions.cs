@@ -239,7 +239,10 @@ public static class ApplicationPermissions
 
         new("View Teams and Teams of Teams", ApplicationAction.View, ApplicationResource.Teams, OrganizationCategory),
         new("Create Teams", ApplicationAction.Create, ApplicationResource.Teams, OrganizationCategory),
+        // Changing how much of a person's time a team has also needs membership of that team or of the team
+        // of teams above it; Administer waives that membership, never this permission.
         new("Update Teams", ApplicationAction.Update, ApplicationResource.Teams, OrganizationCategory),
+        new("Administer Teams", ApplicationAction.Administer, ApplicationResource.Teams, OrganizationCategory),
         new("Manage Team Memberships.  This includes adding, updating, and removing team memberships.", ApplicationAction.ManageTeamMemberships, ApplicationResource.Teams, OrganizationCategory),
         new("Delete Teams", ApplicationAction.Delete, ApplicationResource.Teams, OrganizationCategory),
         new("Import Teams and Teams of Teams", ApplicationAction.Import, ApplicationResource.Teams, OrganizationCategory),

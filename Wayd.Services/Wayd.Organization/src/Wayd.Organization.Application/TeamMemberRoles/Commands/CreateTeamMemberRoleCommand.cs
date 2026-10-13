@@ -1,6 +1,7 @@
 ﻿namespace Wayd.Organization.Application.TeamMemberRoles.Commands;
 
-public sealed record CreateTeamMemberRoleCommand(string Name, string? Description) : ICommand<Guid>;
+/// <param name="CountsTowardDeliveryCapacity">Whether time allocated in the role adds to a team's delivery capacity.</param>
+public sealed record CreateTeamMemberRoleCommand(string Name, string? Description, bool CountsTowardDeliveryCapacity = true) : ICommand<Guid>;
 
 public sealed class CreateTeamMemberRoleCommandValidator : CustomValidator<CreateTeamMemberRoleCommand>
 {
@@ -50,6 +51,8 @@ public sealed class CreateTeamMemberRoleCommandHandler(
                 _logger.LogError("Error creating team member role {Name}. Error message: {Error}", request.Name, result.Error);
                 return Result.Failure<Guid>(result.Error);
             }
+
+            result.Value.SetCountsTowardDeliveryCapacity(request.CountsTowardDeliveryCapacity);
 
             await _organizationDbContext.TeamMemberRoles.AddAsync(result.Value, cancellationToken);
             await _organizationDbContext.SaveChangesAsync(cancellationToken);

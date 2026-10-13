@@ -34,6 +34,22 @@ public class CreateTeamMemberRoleCommandHandlerTests : IDisposable
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldSetWhetherTheRoleCountsTowardDeliveryCapacity(bool countsTowardDeliveryCapacity)
+    {
+        // Arrange
+        var command = new CreateTeamMemberRoleCommand("Manager", null, countsTowardDeliveryCapacity);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _dbContext.TeamMemberRoles.Single().CountsTowardDeliveryCapacity.Should().Be(countsTowardDeliveryCapacity);
+    }
+
     [Fact]
     public async Task Handle_ShouldReturnNewId_OnSuccess()
     {

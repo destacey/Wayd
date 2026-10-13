@@ -40,6 +40,12 @@ A team of teams has its own effective-dated operating model (`TeamOfTeamsOperati
 Parent-child relationships with date ranges. States: Past, Active, Future.
 Rules: One active parent per team, no overlapping date ranges, no circular references, both teams must be active.
 
+### Allocations
+
+How much of an employee's time a team or team of teams has over a date range, as a whole percent, optionally in a team member role. Behind the `team-capacity-management` feature flag. Owned per employee (`EmployeeCapacity`, whose id is the employee's, holding `EmployeeTeamAllocation` rows) because the rule spans teams: an employee's allocations never total more than 100% on any day.
+Rules: membership is not required; one team can hold several allocations for a person in different roles; a change covers a date range and splits any allocation running past either end; allocations running on at the same percent are held as one; a move between teams or roles is one change. Changing a team's allocations needs `Permissions.Teams.Update` plus membership of the team or its team of teams, waived by `Permissions.Teams.Administer`. Deactivating an employee ends their allocations that day (`EmployeeDeactivatedEvent`, delivered durably).
+Capacity is derived, never stored: `GetTeamCapacityQuery` returns person-days per person over a date range, one person-day being one person allocated in full for one of the team's working days (its working week less its holidays; a team of teams uses the system defaults and counts only people allocated to it directly). A team member role with `CountsTowardDeliveryCapacity` off keeps its allocations out of delivery person-days while they still count toward the employee's 100%.
+
 ### Deactivation Rules
 
 Cannot deactivate a team if active memberships extend past the inactive date. Those memberships must end first.

@@ -14,6 +14,10 @@ import {
   useGetEmployeeTeamMembershipsQuery,
 } from '@/src/store/features/organization/team-members-api'
 import { useGetTeamMemberRolesQuery } from '@/src/store/features/organization/team-member-roles-api'
+import { useGetEmployeeAllocationsQuery } from '@/src/store/features/organization/employee-allocations-api'
+import { useFeatureFlag } from '@/src/hooks'
+import { todayCalendarDate } from '@/src/utils'
+import { allocatedOn } from './allocation-periods'
 
 interface Props {
   employeeId: string
@@ -24,7 +28,10 @@ interface Props {
 const roleNames = (member: TeamMemberDto): string[] =>
   member.roles.map((r) => r.name)
 
-const rolesFilter = createMultiValueSetFilter<TeamMemberDto>(roleNames)
+/** A membership with the share of the person's time its team has today. */
+type TeamRow = TeamMemberDto & { allocation: number }
+
+const rolesFilter = createMultiValueSetFilter<TeamRow>(roleNames)
 
 const EmployeeTeamsGrid = ({ employeeId }: Props) => {
   const {
@@ -34,6 +41,14 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
   } = useGetEmployeeTeamMembershipsQuery({ employeeId }, { skip: !employeeId })
 
   const { data: allRoles } = useGetTeamMemberRolesQuery(false)
+
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
+  const { data: allocations } = useGetEmployeeAllocationsQuery(
+    { employeeId },
+    { skip: !employeeId || !capacityEnabled },
+  )
   const roleDescriptionById = useMemo(() => {
     const map = new Map<string, string | undefined>()
     allRoles?.forEach((r) => map.set(r.id, r.description ?? undefined))
@@ -50,7 +65,21 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
       .map((name) => ({ label: name, value: name }))
   }, [memberships])
 
-  const columns = useMemo<ColumnDef<TeamMemberDto, any>[]>(
+  // The allocation is part of each row, not read by the column from the
+  // allocations query: the grid keeps a row's cell values until its data
+  // changes, so a column reading a query that loads later would stay at 0%.
+  const rows = useMemo<TeamRow[]>(() => {
+    const today = todayCalendarDate()
+    return (memberships ?? []).map((membership) => ({
+      ...membership,
+      allocation: allocatedOn(
+        (allocations ?? []).filter((a) => a.team.id === membership.team.id),
+        today,
+      ),
+    }))
+  }, [memberships, allocations])
+
+  const columns = useMemo<ColumnDef<TeamRow, any>[]>(
     () => [
       {
         id: 'team',
@@ -88,14 +117,26 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
           </Flex>
         ),
       },
+      ...(capacityEnabled
+        ? [
+            {
+              id: 'allocation',
+              accessorKey: 'allocation',
+              header: 'Allocation',
+              size: 120,
+              cell: ({ getValue }: { getValue: () => number }) =>
+                `${getValue()}%`,
+            },
+          ]
+        : []),
     ],
-    [roleDescriptionById, roleFilterOptions],
+    [roleDescriptionById, roleFilterOptions, capacityEnabled],
   )
 
   return (
     <WaydGrid
       columns={columns}
-      data={memberships ?? []}
+      data={rows}
       isLoading={isLoading}
       onRefresh={() => {
         refetch()

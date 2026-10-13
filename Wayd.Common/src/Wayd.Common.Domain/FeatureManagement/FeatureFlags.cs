@@ -12,6 +12,7 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition ProductManagement = new(Names.ProductManagement, "Product Management", "Controls availability of the Product Management module.");
     public static readonly FeatureFlagDefinition DeliveryForecasting = new(Names.DeliveryForecasting, "Delivery Forecasting", "Controls availability of Monte Carlo delivery forecasts.");
     public static readonly FeatureFlagDefinition McpServer = new(Names.McpServer, "MCP Server", "Controls availability of the hosted MCP endpoint (/mcp) that exposes the API as agent tools.");
+    public static readonly FeatureFlagDefinition TeamCapacityManagement = new(Names.TeamCapacityManagement, "Team Capacity Management", "Controls availability of employee allocation to teams and team capacity planning.");
 
     /// <summary>
     /// Compile-time constant names for use in attributes (e.g., [FeatureGate]).
@@ -23,6 +24,7 @@ public static class FeatureFlags
         public const string ProductManagement = "product-management";
         public const string DeliveryForecasting = "delivery-forecasting";
         public const string McpServer = "mcp-server";
+        public const string TeamCapacityManagement = "team-capacity-management";
     }
 }
 

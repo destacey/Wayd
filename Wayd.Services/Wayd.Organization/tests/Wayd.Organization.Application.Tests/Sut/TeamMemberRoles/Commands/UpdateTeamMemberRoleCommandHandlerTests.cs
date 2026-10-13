@@ -39,6 +39,37 @@ public class UpdateTeamMemberRoleCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldLeaveDeliveryCapacityAlone_WhenItIsNotGiven()
+    {
+        // Arrange
+        var role = TeamMemberRole.Create("Manager", null).Value;
+        role.SetCountsTowardDeliveryCapacity(false);
+        _dbContext.AddTeamMemberRole(role);
+
+        // Act
+        var result = await _handler.Handle(new UpdateTeamMemberRoleCommand(role.Id, "People Manager", null), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        role.CountsTowardDeliveryCapacity.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldChangeDeliveryCapacity_WhenItIsGiven()
+    {
+        // Arrange
+        var role = TeamMemberRole.Create("Manager", null).Value;
+        _dbContext.AddTeamMemberRole(role);
+
+        // Act
+        var result = await _handler.Handle(new UpdateTeamMemberRoleCommand(role.Id, "Manager", null, false), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        role.CountsTowardDeliveryCapacity.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Handle_ShouldFail_WhenRoleNotFound()
     {
         // Arrange

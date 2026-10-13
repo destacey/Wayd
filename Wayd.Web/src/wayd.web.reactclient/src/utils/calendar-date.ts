@@ -85,6 +85,30 @@ export function calendarDaysBetween(
   return dayNumber(to) - dayNumber(from)
 }
 
+/**
+ * The calendar date `days` after `value`, or before it when negative. Counted
+ * from the day's numbers, so a DST change in between cannot shift the result.
+ */
+export function addCalendarDays(
+  value: CalendarDate,
+  days: number,
+): CalendarDate {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10)
+}
+
+/**
+ * Local midnight of the day as epoch milliseconds, for components such as the
+ * timeline that place days on a millisecond axis. Built from the day's
+ * numbers, so it cannot land on the day before as `new Date(value)` does.
+ */
+export function startOfCalendarDate(value: CalendarDate): number {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day).getTime()
+}
+
 function dayNumber(value: CalendarDate | Date): number {
   if (typeof value === 'string' && CALENDAR_DATE_PATTERN.test(value)) {
     const [year, month, day] = value.split('-').map(Number)

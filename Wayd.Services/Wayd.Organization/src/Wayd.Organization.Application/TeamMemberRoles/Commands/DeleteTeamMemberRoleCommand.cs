@@ -42,6 +42,15 @@ public sealed class DeleteTeamMemberRoleCommandHandler(
                 return Result.Failure("This team member role is assigned to one or more team members and cannot be deleted.");
             }
 
+            var allocated = await _organizationDbContext.EmployeeTeamAllocations
+                .AnyAsync(a => a.RoleId == request.Id, cancellationToken);
+
+            if (allocated)
+            {
+                _logger.LogInformation("Team member role {TeamMemberRoleId} is used by an allocation and cannot be deleted.", request.Id);
+                return Result.Failure("This team member role is used by one or more allocations and cannot be deleted.");
+            }
+
             _organizationDbContext.TeamMemberRoles.Remove(role);
             await _organizationDbContext.SaveChangesAsync(cancellationToken);
 

@@ -78,6 +78,7 @@ public partial class EventCoverageTests
         typeof(WorkflowAssignment),
 
         // Organization
+        typeof(EmployeeCapacity),
         typeof(HolidayCalendar),
         typeof(Team),
         typeof(TeamOfTeams),
@@ -125,6 +126,8 @@ public partial class EventCoverageTests
             "Renumbers every project's rank without changing their order.",
         ["WorkdayConnection.RecordInitResult(Boolean, IReadOnlyList<String>, IReadOnlyList<String>, String, IReadOnlyList<WorkdayOrgType>, DateTimeOffset)"] =
             "Records the result of probing the configuration, not a change to it.",
+        ["EmployeeCapacity.Create(Guid)"] =
+            "An employee's record with nothing allocated says nothing about them; the first allocation raises.",
         ["HealthCheckBase.Update(HealthStatus, Instant, String, Instant)"] =
             "In Common, so it cannot be internal to the aggregates that own a health check; only their UpdateHealthCheck calls it, and that raises.",
         ["HealthCheckBase.ChangeExpiration(Instant)"] =
@@ -231,6 +234,7 @@ public partial class EventCoverageTests
     /// </summary>
     private static readonly Dictionary<Type, Type> ChildEntities = new()
     {
+        [typeof(EmployeeTeamAllocation)] = typeof(EmployeeCapacity),
         [typeof(ImportProcessRow)] = typeof(ImportProcess),
         [typeof(PlanningIntervalIterationSprint)] = typeof(PlanningInterval),
         [typeof(PlanningIntervalObjectiveHealthCheck)] = typeof(PlanningIntervalObjective),

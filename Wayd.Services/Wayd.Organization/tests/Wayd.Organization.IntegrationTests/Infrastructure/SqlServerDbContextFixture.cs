@@ -113,6 +113,10 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     {
         await using var context = CreateContext();
 
+        // Before Teams, TeamMemberRoles and Employees, which allocations reference.
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[EmployeeTeamAllocations];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[EmployeeCapacities];", cancellationToken);
+
         // Before Teams: TeamMemberships holds FKs to both ends of every hierarchy edge.
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[TeamMemberships];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[TeamMembers];", cancellationToken);

@@ -49,6 +49,13 @@ public sealed class TeamMemberRole : BaseSoftDeletableEntity, IHasIdAndKey
     public bool IsActive { get; private set; } = true;
 
     /// <summary>
+    /// Whether time allocated to a team in this role adds to the team's delivery capacity. False for a role
+    /// such as a manager's, whose time on the team is real but does not burn the team's planned work. Such an
+    /// allocation still counts toward the employee's 100%.
+    /// </summary>
+    public bool CountsTowardDeliveryCapacity { get; private set; } = true;
+
+    /// <summary>
     /// Updates the object's name and description with the specified values.
     /// </summary>
     /// <param name="name">The new name to assign. Cannot be null.</param>
@@ -66,6 +73,13 @@ public sealed class TeamMemberRole : BaseSoftDeletableEntity, IHasIdAndKey
         {
             return Result.Failure(ex.ToString());
         }
+    }
+
+    /// <summary>Sets whether time allocated in this role adds to a team's delivery capacity.</summary>
+    public Result SetCountsTowardDeliveryCapacity(bool countsTowardDeliveryCapacity)
+    {
+        CountsTowardDeliveryCapacity = countsTowardDeliveryCapacity;
+        return Result.Success();
     }
 
     /// <summary>

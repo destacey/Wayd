@@ -34100,6 +34100,203 @@ export class EmployeesClient {
     }
 
     /**
+     * Get how an employee's time is allocated to teams over time.
+     */
+    getAllocations(id: string, cancelToken?: CancelToken): Promise<EmployeeAllocationDto[]> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/allocations";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAllocations(_response);
+        });
+    }
+
+    protected processGetAllocations(response: AxiosResponse): Promise<EmployeeAllocationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeAllocationDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeAllocationDto[]>(null as any);
+    }
+
+    /**
+     * Set the share of an employee's time one or more teams have over date ranges.
+     */
+    changeAllocations(id: string, request: ChangeEmployeeAllocationsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/allocations";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeAllocations(_response);
+        });
+    }
+
+    protected processChangeAllocations(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Move a share of an employee's time from one team and role to another over a date range.
+     */
+    moveAllocation(id: string, request: MoveEmployeeAllocationRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/allocations/move";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMoveAllocation(_response);
+        });
+    }
+
+    protected processMoveAllocation(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get the work items assigned to an employee.
      * @param statusCategories (optional) 
      * @param doneFrom (optional) 
@@ -36369,6 +36566,80 @@ export class TeamsClient {
     }
 
     /**
+     * Get the capacity of a team over a date range, from the time people are allocated to it.
+     * @param from (optional) 
+     * @param to (optional) 
+     */
+    getCapacity(id: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/capacity?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacity(_response);
+        });
+    }
+
+    protected processGetCapacity(response: AxiosResponse): Promise<TeamCapacityDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityDto>(null as any);
+    }
+
+    /**
      * Forecast how many of a team's open backlog work items it will finish from today through `targetDate`, by Monte Carlo simulation of its recent daily throughput.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
@@ -38408,6 +38679,80 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamAllocationDto>(null as any);
+    }
+
+    /**
+     * Get the capacity of a team of teams over a date range, from the time people are allocated to it.
+     * @param from (optional) 
+     * @param to (optional) 
+     */
+    getCapacity(id: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/capacity?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacity(_response);
+        });
+    }
+
+    protected processGetCapacity(response: AxiosResponse): Promise<TeamCapacityDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityDto>(null as any);
     }
 
     /**
@@ -51215,6 +51560,52 @@ export interface TeamMemberEmployeeDto {
     jobTitle?: string | undefined;
 }
 
+export interface EmployeeAllocationDto {
+    id: string;
+    team: TeamNavigationDto;
+    role?: NavigationDto | undefined;
+    start: string;
+    end?: string | undefined;
+    percent: number;
+    canManage: boolean;
+}
+
+export interface ChangeEmployeeAllocationsRequest {
+    /** The changes to make, applied together or not at all. Each sets what one team and role have over its date
+range and leaves the days outside it as they were. */
+    changes: EmployeeAllocationChangeRequest[];
+}
+
+export interface EmployeeAllocationChangeRequest {
+    /** The team or team of teams. The employee need not be a member of it. */
+    teamId: string;
+    /** The team member role the time is spent in, or null for none. */
+    roleId?: string | undefined;
+    /** The first day the change covers. */
+    start: string;
+    /** The last day the change covers, or null for every day from the start on. */
+    end?: string | undefined;
+    /** The share of the employee's time, from 0 to 100. Zero ends the allocation for the date range. */
+    percent: number;
+}
+
+export interface MoveEmployeeAllocationRequest {
+    /** The team or team of teams the time is taken from. */
+    fromTeamId: string;
+    /** The role the time is taken from on that team, or null for the allocation with no role. */
+    fromRoleId?: string | undefined;
+    /** The team or team of teams the time is given to. It can be the same team, in another role. */
+    toTeamId: string;
+    /** The role the time is given to on that team, or null for none. */
+    toRoleId?: string | undefined;
+    /** The first day of the move. */
+    start: string;
+    /** The last day of the move, or null for every day from the start on. */
+    end?: string | undefined;
+    /** The share of the employee's time to move, from 1 to 100. */
+    percent: number;
+}
+
 export enum WorkStatusCategory {
     Proposed = "Proposed",
     Active = "Active",
@@ -51276,17 +51667,28 @@ export interface TeamMemberRoleDto {
     name: string;
     description?: string | undefined;
     isActive: boolean;
+    countsTowardDeliveryCapacity: boolean;
 }
 
 export interface CreateTeamMemberRoleRequest {
+    /** The role's name, unique across roles. */
     name: string;
+    /** What the role is for. */
     description?: string | undefined;
+    /** Whether time allocated to a team in this role adds to the team's delivery capacity. Defaults to true; false
+suits a role such as a manager's, whose time on the team does not burn its planned work. */
+    countsTowardDeliveryCapacity?: boolean | undefined;
 }
 
 export interface UpdateTeamMemberRoleRequest {
+    /** The role's id, which must match the route. */
     id: string;
+    /** The role's name, unique across roles. */
     name: string;
+    /** What the role is for. */
     description?: string | undefined;
+    /** Whether time allocated to a team in this role adds to the team's delivery capacity. Omit to leave it as it is. */
+    countsTowardDeliveryCapacity?: boolean | undefined;
 }
 
 export interface TeamListDto {
@@ -51633,6 +52035,33 @@ export enum UnestimatedHandling {
 export enum ThemeCounting {
     SplitEvenly = "SplitEvenly",
     CountFully = "CountFully",
+}
+
+export interface TeamCapacityDto {
+    from: string;
+    to: string;
+    workingDays: number;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    canManage: boolean;
+    people: TeamCapacityPersonDto[];
+}
+
+export interface TeamCapacityPersonDto {
+    employee: NavigationDto;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    elsewherePersonDays: number;
+    allocations: TeamCapacityAllocationDto[];
+}
+
+export interface TeamCapacityAllocationDto {
+    id: string;
+    role?: NavigationDto | undefined;
+    countsTowardDeliveryCapacity: boolean;
+    start: string;
+    end?: string | undefined;
+    percent: number;
 }
 
 export interface TeamThroughputForecastDto {

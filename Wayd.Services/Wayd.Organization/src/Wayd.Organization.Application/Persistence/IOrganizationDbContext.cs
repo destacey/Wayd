@@ -10,4 +10,6 @@ public interface IOrganizationDbContext : IWaydDbContext
     DbSet<TeamMemberRole> TeamMemberRoles { get; }
     DbSet<TeamMember> TeamMembers { get; }
     DbSet<HolidayCalendar> HolidayCalendars { get; }
+    DbSet<EmployeeCapacity> EmployeeCapacities { get; }
+    DbSet<EmployeeTeamAllocation> EmployeeTeamAllocations { get; }
 }

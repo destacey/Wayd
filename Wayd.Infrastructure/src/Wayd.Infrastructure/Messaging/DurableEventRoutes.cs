@@ -89,6 +89,8 @@ public static class DurableEventRoutes
         // Organization Team → PlanningTeam / WorkTeam / PpmTeam. The one cross-domain edge with a downstream
         // required FK (PlanningIntervalTeam.TeamId → PlanningTeam); ManagePlanningIntervalTeamsCommand now
         // validates team existence and fails cleanly rather than FK-faulting, so async replication is safe.
+        // TeamDeactivatedEvent also ends every employee's allocations to the team, in the same handler chain
+        // as the copies: a failure there redelivers to all of them.
         typeof(TeamCreatedEvent),
         typeof(TeamDetailsUpdatedEvent),
         typeof(TeamActivatedEvent),

@@ -33,6 +33,22 @@ internal static class OrganizationSeeder
         return team;
     }
 
+    public static async Task<TeamOfTeams> SeedTeamOfTeams(WaydDbContext context, string code, string name, CancellationToken cancellationToken)
+    {
+        var team = TeamOfTeams.Create(
+            name,
+            new TeamCode(code),
+            description: null,
+            activeDate: SqlServerDbContextFixture.FixedNow.InUtc().Date,
+            "UTC",
+            EventActor.System,
+            SqlServerDbContextFixture.FixedNow);
+
+        await context.TeamOfTeams.AddAsync(team, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+        return team;
+    }
+
     public static async Task<Employee> SeedEmployee(WaydDbContext context, string employeeNumber, string email, CancellationToken cancellationToken)
     {
         var employee = Employee.Create(

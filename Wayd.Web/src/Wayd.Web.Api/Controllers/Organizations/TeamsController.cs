@@ -1,3 +1,5 @@
+using Wayd.Organization.Application.EmployeeCapacities.Queries;
+using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using CsvHelper;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
@@ -408,6 +410,30 @@ public class TeamsController(
             : result.Value is not null
                 ? Ok(result.Value)
                 : NotFound();
+    }
+
+    [HttpGet("{id:guid}/capacity")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [OpenApiOperation(
+        "Get the capacity of a team over a date range, from the time people are allocated to it.",
+        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamCapacityDto>> GetCapacity(Guid id, [FromQuery] string? from, [FromQuery] string? to, CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(from, out var firstDay) || !IsoDateQuery.TryParse(to, out var lastDay))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        if (firstDay is null || lastDay is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest("Both from and to dates are required.", HttpContext));
+
+        var capacity = await _dispatcher.Send(new GetTeamCapacityQuery(id, firstDay.Value, lastDay.Value), cancellationToken);
+
+        return capacity is not null
+            ? Ok(capacity)
+            : NotFound();
     }
 
     [HttpGet("{idOrCode}/throughput-forecast")]

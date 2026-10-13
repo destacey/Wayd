@@ -32377,7 +32377,7 @@
           "Teams"
         ],
         "summary": "Get the capacity of a team over a date range, from the time people are allocated to it.",
-        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.",
         "operationId": "Teams_GetCapacity",
         "parameters": [
           {
@@ -32418,6 +32418,76 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TeamCapacityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams/{id}/capacity/proposal": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Propose allocations for a team from its members, without saving anything.",
+        "description": "Returns one row per active member and active role they hold on the team, for allocations starting on `from` (yyyy-MM-dd). A row has no `end` unless the member already has a later allocation to it, in which case it ends the day before so that allocation is untouched; a member with time on it on `from` has no rows. `remainingPercent` is what is left of the member's time across all teams: 100 less their most allocated day from `from` to `end`. `percent` is that remainder split evenly between the member's roles. A member with nothing left is returned at 0, not left out. Nothing is saved: send the rows to keep to the change allocations endpoint. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Teams_GetAllocationProposal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAllocationProposalDto"
                 }
               }
             }
@@ -34427,7 +34497,7 @@
           "TeamsOfTeams"
         ],
         "summary": "Get the capacity of a team of teams over a date range, from the time people are allocated to it.",
-        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.",
         "operationId": "TeamsOfTeams_GetCapacity",
         "parameters": [
           {
@@ -34468,6 +34538,76 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TeamCapacityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/capacity/proposal": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Propose allocations for a team of teams from its members, without saving anything.",
+        "description": "Returns one row per active member and active role they hold on the team of teams, for allocations starting on `from` (yyyy-MM-dd). A row has no `end` unless the member already has a later allocation to it, in which case it ends the day before so that allocation is untouched; a member with time on it on `from` has no rows. `remainingPercent` is what is left of the member's time across all teams: 100 less their most allocated day from `from` to `end`. `percent` is that remainder split evenly between the member's roles. A member with nothing left is returned at 0, not left out. Nothing is saved: send the rows to keep to the change allocations endpoint. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "TeamsOfTeams_GetAllocationProposal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAllocationProposalDto"
                 }
               }
             }
@@ -62637,6 +62777,7 @@
           "workingDays",
           "allocatedPersonDays",
           "deliveryPersonDays",
+          "roles",
           "people",
           "canManage"
         ],
@@ -62664,11 +62805,42 @@
           "canManage": {
             "type": "boolean"
           },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityRoleDto"
+            }
+          },
           "people": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TeamCapacityPersonDto"
             }
+          }
+        }
+      },
+      "TeamCapacityRoleDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "countsTowardDeliveryCapacity",
+          "personDays"
+        ],
+        "properties": {
+          "role": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean"
+          },
+          "personDays": {
+            "type": "number",
+            "format": "decimal"
           }
         }
       },
@@ -62680,7 +62852,8 @@
           "allocatedPersonDays",
           "deliveryPersonDays",
           "elsewherePersonDays",
-          "allocations"
+          "allocations",
+          "elsewhereAllocations"
         ],
         "properties": {
           "employee": {
@@ -62703,6 +62876,12 @@
             "items": {
               "$ref": "#/components/schemas/TeamCapacityAllocationDto"
             }
+          },
+          "elsewhereAllocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeAllocationDto"
+            }
           }
         }
       },
@@ -62713,7 +62892,8 @@
           "id",
           "countsTowardDeliveryCapacity",
           "start",
-          "percent"
+          "percent",
+          "personDays"
         ],
         "properties": {
           "id": {
@@ -62741,6 +62921,65 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "percent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personDays": {
+            "type": "number",
+            "format": "decimal"
+          }
+        }
+      },
+      "TeamAllocationProposalDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "rows"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamAllocationProposalRowDto"
+            }
+          }
+        }
+      },
+      "TeamAllocationProposalRowDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "employee",
+          "role",
+          "countsTowardDeliveryCapacity",
+          "remainingPercent",
+          "percent"
+        ],
+        "properties": {
+          "employee": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "role": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "remainingPercent": {
+            "type": "integer",
+            "format": "int32"
           },
           "percent": {
             "type": "integer",

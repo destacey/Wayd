@@ -111,7 +111,7 @@ public class TeamsOfTeamsController : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [OpenApiOperation(
         "Get the capacity of a team of teams over a date range, from the time people are allocated to it.",
-        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -127,6 +127,30 @@ public class TeamsOfTeamsController : ControllerBase
 
         return capacity is not null
             ? Ok(capacity)
+            : NotFound();
+    }
+
+    [HttpGet("{id:guid}/capacity/proposal")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [OpenApiOperation(
+        "Propose allocations for a team of teams from its members, without saving anything.",
+        "Returns one row per active member and active role they hold on the team of teams, for allocations starting on `from` (yyyy-MM-dd). A row has no `end` unless the member already has a later allocation to it, in which case it ends the day before so that allocation is untouched; a member with time on it on `from` has no rows. `remainingPercent` is what is left of the member's time across all teams: 100 less their most allocated day from `from` to `end`. `percent` is that remainder split evenly between the member's roles. A member with nothing left is returned at 0, not left out. Nothing is saved: send the rows to keep to the change allocations endpoint. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamAllocationProposalDto>> GetAllocationProposal(Guid id, [FromQuery] string? from, CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(from, out var firstDay))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        if (firstDay is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest("The from date is required.", HttpContext));
+
+        var proposal = await _dispatcher.Send(new GetTeamAllocationProposalQuery(id, TeamType.TeamOfTeams, firstDay.Value), cancellationToken);
+
+        return proposal is not null
+            ? Ok(proposal)
             : NotFound();
     }
 

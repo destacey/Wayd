@@ -4,6 +4,7 @@ using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
+using Wayd.Organization.Application.Models;
 
 namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 
@@ -88,9 +89,28 @@ public sealed class GetTeamCapacityQueryHandler(
 
         List<Guid> employeeIds = [.. here.Select(a => a.EmployeeId).Distinct()];
 
-        var elsewhere = await _organizationDbContext.EmployeeTeamAllocations
-            .Where(a => employeeIds.Contains(a.EmployeeId) && a.TeamId != teamId && a.Start <= lastDay && (a.End == null || a.End >= firstDay))
-            .Select(a => new { a.EmployeeId, a.TeamId, a.Start, a.End, a.Percent })
+        var elsewhere = await (
+            from allocation in _organizationDbContext.EmployeeTeamAllocations
+            where employeeIds.Contains(allocation.EmployeeId) && allocation.TeamId != teamId && allocation.Start <= lastDay && (allocation.End == null || allocation.End >= firstDay)
+            join team in _organizationDbContext.BaseTeams on allocation.TeamId equals team.Id
+            join role in _organizationDbContext.TeamMemberRoles on allocation.RoleId equals (Guid?)role.Id into roles
+            from role in roles.DefaultIfEmpty()
+            select new
+            {
+                allocation.Id,
+                allocation.EmployeeId,
+                allocation.TeamId,
+                TeamKey = team.Key,
+                TeamName = team.Name,
+                TeamCode = team.Code.Value,
+                TeamType = team.Type,
+                allocation.RoleId,
+                RoleKey = role == null ? (int?)null : role.Key,
+                RoleName = role == null ? null : role.Name,
+                allocation.Start,
+                allocation.End,
+                allocation.Percent,
+            })
             .ToListAsync(cancellationToken);
 
         var capacityByEmployee = TeamCapacityCalculator.Calculate(
@@ -98,6 +118,11 @@ public sealed class GetTeamCapacityQueryHandler(
             workingDays,
             here.Select(a => new CapacityAllocation(a.EmployeeId, teamId, a.RoleCounts ?? true, a.Start, a.End, a.Percent))
                 .Concat(elsewhere.Select(a => new CapacityAllocation(a.EmployeeId, a.TeamId, true, a.Start, a.End, a.Percent))));
+
+        List<Guid> teamIds = [teamId, .. elsewhere.Select(a => a.TeamId).Distinct()];
+        var manageable = await _currentPrincipal.TeamsWithManageableAllocations(_dispatcher, teamIds, _dateTimeProvider.Now.InUtc().Date, cancellationToken);
+
+        var elsewhereByEmployee = elsewhere.ToLookup(a => a.EmployeeId);
 
         List<TeamCapacityPersonDto> people = [.. here
             .GroupBy(a => a.EmployeeId)
@@ -118,19 +143,49 @@ public sealed class GetTeamCapacityQueryHandler(
                         .Select(a => new TeamCapacityAllocationDto
                         {
                             Id = a.Id,
-                            Role = a.RoleId is { } roleId && a.RoleKey is { } roleKey && a.RoleName is not null
-                                ? NavigationDto.Create(roleId, roleKey, a.RoleName)
-                                : null,
+                            Role = RoleOf(a.RoleId, a.RoleKey, a.RoleName),
                             CountsTowardDeliveryCapacity = a.RoleCounts ?? true,
                             Start = a.Start,
                             End = a.End,
                             Percent = a.Percent,
+                            PersonDays = TeamCapacityCalculator.PersonDays(workingDays, a.Start, a.End, a.Percent),
+                        })],
+                    ElsewhereAllocations = [.. elsewhereByEmployee[person.Key]
+                        .OrderBy(a => a.Start)
+                        .ThenBy(a => a.TeamName, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(a => a.RoleName, StringComparer.OrdinalIgnoreCase)
+                        .Select(a => new EmployeeAllocationDto
+                        {
+                            Id = a.Id,
+                            Team = new TeamNavigationDto
+                            {
+                                Id = a.TeamId,
+                                Key = a.TeamKey,
+                                Name = a.TeamName,
+                                Code = a.TeamCode,
+                                Type = a.TeamType.GetDisplayName(),
+                            },
+                            Role = RoleOf(a.RoleId, a.RoleKey, a.RoleName),
+                            Start = a.Start,
+                            End = a.End,
+                            Percent = a.Percent,
+                            CanManage = manageable.Contains(a.TeamId),
                         })],
                 };
             })
             .OrderBy(p => p.Employee.Name, StringComparer.OrdinalIgnoreCase)];
 
-        var manageable = await _currentPrincipal.TeamsWithManageableAllocations(_dispatcher, [teamId], _dateTimeProvider.Now.InUtc().Date, cancellationToken);
+        List<TeamCapacityRoleDto> byRole = [.. people
+            .SelectMany(p => p.Allocations)
+            .GroupBy(a => a.Role?.Id)
+            .Select(role => new TeamCapacityRoleDto
+            {
+                Role = role.First().Role,
+                CountsTowardDeliveryCapacity = role.First().CountsTowardDeliveryCapacity,
+                PersonDays = role.Sum(a => a.PersonDays),
+            })
+            .OrderBy(r => r.Role is null)
+            .ThenBy(r => r.Role?.Name, StringComparer.OrdinalIgnoreCase)];
 
         return new TeamCapacityDto
         {
@@ -140,7 +195,13 @@ public sealed class GetTeamCapacityQueryHandler(
             AllocatedPersonDays = people.Sum(p => p.AllocatedPersonDays),
             DeliveryPersonDays = people.Sum(p => p.DeliveryPersonDays),
             CanManage = manageable.Contains(teamId),
+            Roles = byRole,
             People = people,
         };
     }
+
+    private static NavigationDto? RoleOf(Guid? id, int? key, string? name) =>
+        id is { } roleId && key is { } roleKey && name is not null
+            ? NavigationDto.Create(roleId, roleKey, name)
+            : null;
 }

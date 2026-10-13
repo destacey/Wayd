@@ -84,12 +84,24 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         adaCapacityRow.ElsewherePersonDays.Should().Be(1.8m);
         adaCapacityRow.Allocations.Should().HaveCount(2);
         adaCapacityRow.Allocations.Single(a => a.Role!.Name == "Lead").CountsTowardDeliveryCapacity.Should().BeFalse();
+        adaCapacityRow.Allocations.Single(a => a.Role!.Name == "Lead").PersonDays.Should().Be(2.7m);
+        adaCapacityRow.Allocations.Single(a => a.Role!.Name == "Engineer").PersonDays.Should().Be(4.5m);
+        var adaElsewhere = adaCapacityRow.ElsewhereAllocations.Should().ContainSingle().Subject;
+        adaElsewhere.Team.Code.Should().Be("LOANS");
+        adaElsewhere.Percent.Should().Be(20);
+        adaElsewhere.CanManage.Should().BeTrue();
 
         var graceCapacityRow = capacity.People.Single(p => p.Employee.Id == graceId);
         graceCapacityRow.AllocatedPersonDays.Should().Be(5m);
         graceCapacityRow.DeliveryPersonDays.Should().Be(5m);
         graceCapacityRow.ElsewherePersonDays.Should().Be(0m);
         graceCapacityRow.Allocations.Should().ContainSingle().Which.Role.Should().BeNull();
+        graceCapacityRow.ElsewhereAllocations.Should().BeEmpty();
+
+        capacity.Roles.Select(r => (r.Role?.Name, r.CountsTowardDeliveryCapacity, r.PersonDays)).Should().Equal(
+            ("Engineer", true, 4.5m),
+            ("Lead", false, 2.7m),
+            (null, true, 5m));
 
         capacity.AllocatedPersonDays.Should().Be(12.2m);
         capacity.DeliveryPersonDays.Should().Be(9.5m);

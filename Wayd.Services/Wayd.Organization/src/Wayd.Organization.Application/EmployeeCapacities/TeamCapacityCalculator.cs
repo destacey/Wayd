@@ -33,8 +33,7 @@ public static class TeamCapacityCalculator
 
             foreach (var allocation in person)
             {
-                var days = workingDays.Count(d => allocation.Start <= d && (allocation.End is null || d <= allocation.End));
-                var personDays = days * allocation.Percent / 100m;
+                var personDays = PersonDays(workingDays, allocation.Start, allocation.End, allocation.Percent);
 
                 if (allocation.TeamId != teamId)
                 {
@@ -51,5 +50,15 @@ public static class TeamCapacityCalculator
         }
 
         return people;
+    }
+
+    /// <summary>
+    /// The person-days one allocation is worth: its percent of each of the <paramref name="workingDays"/> it covers.
+    /// </summary>
+    /// <param name="end">The allocation's last day, or null when it has no end.</param>
+    public static decimal PersonDays(IReadOnlyCollection<LocalDate> workingDays, LocalDate start, LocalDate? end, int percent)
+    {
+        var days = workingDays.Count(d => start <= d && (end is null || d <= end));
+        return days * percent / 100m;
     }
 }

@@ -36640,6 +36640,77 @@ export class TeamsClient {
     }
 
     /**
+     * Propose allocations for a team from its members, without saving anything.
+     * @param from (optional) 
+     */
+    getAllocationProposal(id: string, from?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationProposalDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/capacity/proposal?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAllocationProposal(_response);
+        });
+    }
+
+    protected processGetAllocationProposal(response: AxiosResponse): Promise<TeamAllocationProposalDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamAllocationProposalDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamAllocationProposalDto>(null as any);
+    }
+
+    /**
      * Forecast how many of a team's open backlog work items it will finish from today through `targetDate`, by Monte Carlo simulation of its recent daily throughput.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
@@ -38753,6 +38824,77 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamCapacityDto>(null as any);
+    }
+
+    /**
+     * Propose allocations for a team of teams from its members, without saving anything.
+     * @param from (optional) 
+     */
+    getAllocationProposal(id: string, from?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationProposalDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/capacity/proposal?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAllocationProposal(_response);
+        });
+    }
+
+    protected processGetAllocationProposal(response: AxiosResponse): Promise<TeamAllocationProposalDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamAllocationProposalDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamAllocationProposalDto>(null as any);
     }
 
     /**
@@ -52044,7 +52186,14 @@ export interface TeamCapacityDto {
     allocatedPersonDays: number;
     deliveryPersonDays: number;
     canManage: boolean;
+    roles: TeamCapacityRoleDto[];
     people: TeamCapacityPersonDto[];
+}
+
+export interface TeamCapacityRoleDto {
+    role?: NavigationDto | undefined;
+    countsTowardDeliveryCapacity: boolean;
+    personDays: number;
 }
 
 export interface TeamCapacityPersonDto {
@@ -52053,6 +52202,7 @@ export interface TeamCapacityPersonDto {
     deliveryPersonDays: number;
     elsewherePersonDays: number;
     allocations: TeamCapacityAllocationDto[];
+    elsewhereAllocations: EmployeeAllocationDto[];
 }
 
 export interface TeamCapacityAllocationDto {
@@ -52061,6 +52211,21 @@ export interface TeamCapacityAllocationDto {
     countsTowardDeliveryCapacity: boolean;
     start: string;
     end?: string | undefined;
+    percent: number;
+    personDays: number;
+}
+
+export interface TeamAllocationProposalDto {
+    from: string;
+    rows: TeamAllocationProposalRowDto[];
+}
+
+export interface TeamAllocationProposalRowDto {
+    employee: NavigationDto;
+    role: NavigationDto;
+    countsTowardDeliveryCapacity: boolean;
+    end?: string | undefined;
+    remainingPercent: number;
     percent: number;
 }
 

@@ -348,7 +348,8 @@ const TeamCapacity = ({ team, teamType }: Props) => {
         csvFileName="team-capacity"
       />
 
-      {isTeamOfTeams && (
+      {/* Not on a failed load: with no teams to show, the grid would say there were none. */}
+      {isTeamOfTeams && !rollupError && (
         <>
           <Title level={5} className={styles.rollupTitle}>
             Teams

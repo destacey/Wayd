@@ -490,6 +490,7 @@ describe('TeamCapacity', () => {
       expect(
         screen.queryByText('Allocated person-days'),
       ).not.toBeInTheDocument()
+      expect(screen.queryByTestId('rollup-grid')).not.toBeInTheDocument()
     })
   })
 })

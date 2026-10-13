@@ -82,22 +82,22 @@ VS Code / Cursor (`.vscode/mcp.json`):
 
 Every tool's description is loaded into the conversation before any work starts, and all of them together run to about 45,000 tokens. Ask for only the tools your work needs by naming toolsets, and add read-only mode for an assistant that should look but never change anything.
 
-| Toolset    | Tools                                                                    |
-| ---------- | ------------------------------------------------------------------------ |
-| `ppm`      | Portfolios, programs, projects, tasks, strategic initiatives             |
-| `planning` | Planning intervals, roadmaps, story maps                                 |
-| `products` | Products, product types, tag categories                                  |
-| `delivery` | Versions, releases, release packages, deployments, environments, metrics |
-| `teams`    | Teams, teams of teams, users                                             |
-| `work`     | Work item forecasts for workspaces                                       |
-| `imports`  | Checking, applying and following CSV imports                             |
+| Toolset    | Tools                                                                         |
+| ---------- | ----------------------------------------------------------------------------- |
+| `ppm`      | Portfolios, programs, projects, tasks, strategic initiatives                  |
+| `planning` | Planning intervals, roadmaps, story maps                                      |
+| `products` | Products, product types, tag categories                                       |
+| `delivery` | Versions, releases, release packages, deployments, environments, metrics      |
+| `teams`    | Teams, teams of teams, users                                                  |
+| `work`     | Work item forecasts for workspaces                                            |
+| `imports`  | Checking, applying and following CSV imports                                  |
 
 Choose them on the URL, or in headers if your client sends them:
 
-| Query parameter         | Header                         | Effect                                                               |
-| ----------------------- | ------------------------------ | -------------------------------------------------------------------- |
-| `toolsets=ppm,planning` | `X-MCP-Toolsets: ppm,planning` | Only those toolsets. Leave it out, or name `all`, for every toolset. |
-| `readonly=true`         | `X-MCP-Readonly: true`         | Only tools that read; every create, update and delete is left out.   |
+| Query parameter                 | Header                             | Effect                                                                |
+| ------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| `toolsets=ppm,planning`         | `X-MCP-Toolsets: ppm,planning`     | Only those toolsets. Leave it out, or name `all`, for every toolset.  |
+| `readonly=true`                 | `X-MCP-Readonly: true`             | Only tools that read; every create, update and delete is left out.    |
 
 The query parameter wins when both are sent. An unknown toolset name is refused with 400 rather than ignored, so a typo does not quietly leave you without tools. A tool outside the selection cannot be called either, so read-only mode holds even against an assistant that knows a write tool's name.
 
@@ -123,8 +123,8 @@ Read-only mode limits which tools are offered, not what your token may do. For a
 
 Add the following to your Claude Desktop configuration file:
 
--   **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
--   **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -218,15 +218,15 @@ CLI arguments take precedence over environment variables.
 
 For Claude Code users, nine pre-built skills provide guided workflows:
 
--   **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
--   **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
--   **`/wayd-products`** — The product catalog, plus the product types and tag axes it is built from
--   **`/wayd-delivery`** — Releases, versions, release packages, deployments, environments, and delivery metrics
--   **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
--   **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
--   **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, delivery forecasts, and team work distribution reports
--   **`/wayd-users`** — User lookup and resolving names to UUIDs for assignees and project roles
--   **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
+- **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
+- **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
+- **`/wayd-products`** — The product catalog, plus the product types and tag axes it is built from
+- **`/wayd-delivery`** — Releases, versions, release packages, deployments, environments, and delivery metrics
+- **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
+- **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
+- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, delivery forecasts, and team work distribution reports
+- **`/wayd-users`** — User lookup and resolving names to UUIDs for assignees and project roles
+- **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
 
 Install the skills:
 
@@ -249,7 +249,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | `Programs_GetPrograms`                                                                     | List programs with status/portfolio filters                                                                                                                 |
 | `Programs_GetProgram`                                                                      | Get program details                                                                                                                                         |
 | `Programs_GetProgramProjects`                                                              | List projects in a program                                                                                                                                  |
-| `Projects_GetProjects`                                                                     | List projects with status/portfolio/role filters, for you or another employee                                                                               |
+| `Projects_GetProjects`                                                                     | List projects with status/portfolio/role filters, for you or another employee                                                                                                            |
 | `Projects_GetProject`                                                                      | Get project details                                                                                                                                         |
 | `Projects_GetProjectTeam`                                                                  | Get team members with roles                                                                                                                                 |
 | `Projects_GetProjectStages`                                                                | Get all project stages                                                                                                                                      |
@@ -260,7 +260,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | `Portfolios_GetActivities` / `Programs_GetActivities` / `Projects_GetActivities`           | Every recorded change to a portfolio, program, or project, newest first                                                                                     |
 | `Projects_GetMyProjectsSummary`                                                            | Your own project involvement, counted by role                                                                                                               |
 | `Projects_GetMyProjectsTaskMetrics`                                                        | Your open task counts (overdue, due this week, upcoming)                                                                                                    |
-| `Projects_GetTaskMetrics`                                                                  | Open task counts for you or, with `employeeId`, for a colleague                                                                                             |
+| `Projects_GetTaskMetrics` | Open task counts for you or, with `employeeId`, for a colleague |
 | `Projects_GetProjectsPlanSummaries`                                                        | Plan metrics for many projects in one call                                                                                                                  |
 | `Projects_GetProjectHealthChecks`                                                          | Get the health check history for a project                                                                                                                  |
 | `Projects_GetProjectHealthCheck`                                                           | Get a specific project health check by ID                                                                                                                   |
@@ -467,20 +467,20 @@ Environments are **retired rather than deleted**, because historical deployments
 
 ### Organization
 
-| Tool                               | Description                                                                                                                                                                             |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Teams_GetTeams`                   | List teams with optional inactive filter                                                                                                                                                |
-| `Teams_GetTeam`                    | Get team details                                                                                                                                                                        |
-| `Teams_GetActivities`              | Every recorded change to a team                                                                                                                                                         |
-| `Teams_GetBacklogHealth`           | Grade a team's backlog and list the work items each check flagged, with optional what-if thresholds                                                                                     |
-| `Teams_GetThroughputForecast`      | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) how many backlog work items a team finishes by a date, and which work item that reaches                              |
-| `Teams_GetSprintMetrics`           | [Team sprint metrics](../user-guide/work-management/sprints.mdx#team-sprint-metrics): average velocity, predictability and say/do over a team's last sprints, with each sprint's values |
-| `Teams_GetTeamWorkDistribution`    | [Work Distribution report](../user-guide/work-management/work-distribution-report.mdx) showing where a team's completed work went over a date range                                     |
-| `TeamsOfTeams_GetList`             | List teams of teams with optional inactive filter                                                                                                                                       |
-| `TeamsOfTeams_GetWorkDistribution` | [Work Distribution report](../user-guide/work-management/work-distribution-report.mdx) rolling up completed work across a team of teams hierarchy                                       |
-| `Workspaces_GetWorkItemForecast`   | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a work item will be done, from its team's throughput, backlog position and predecessors                         |
-| `Users_GetUsers`                   | List all users                                                                                                                                                                          |
-| `Users_GetUser`                    | Get user details                                                                                                                                                                        |
+| Tool                             | Description                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Teams_GetTeams`                 | List teams with optional inactive filter                                                                                                                        |
+| `Teams_GetTeam`                  | Get team details                                                                                                                                                |
+| `Teams_GetActivities`            | Every recorded change to a team                                                                                                                                 |
+| `Teams_GetBacklogHealth`         | Grade a team's backlog and list the work items each check flagged, with optional what-if thresholds                                                             |
+| `Teams_GetThroughputForecast`    | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) how many backlog work items a team finishes by a date, and which work item that reaches      |
+| `Teams_GetSprintMetrics`         | [Team sprint metrics](../user-guide/work-management/sprints.mdx#team-sprint-metrics): average velocity, predictability and say/do over a team's last sprints, with each sprint's values |
+| `Teams_GetTeamWorkDistribution`  | [Work Distribution report](../user-guide/work-management/work-distribution-report.mdx) showing where a team's completed work went over a date range                           |
+| `TeamsOfTeams_GetList`           | List teams of teams with optional inactive filter                                                                                                               |
+| `TeamsOfTeams_GetWorkDistribution` | [Work Distribution report](../user-guide/work-management/work-distribution-report.mdx) rolling up completed work across a team of teams hierarchy                             |
+| `Workspaces_GetWorkItemForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a work item will be done, from its team's throughput, backlog position and predecessors |
+| `Users_GetUsers`                 | List all users                                                                                                                                                  |
+| `Users_GetUser`                  | Get user details                                                                                                                                                |
 
 ### Imports
 
@@ -508,8 +508,8 @@ Whether you actually see a prompt depends on the assistant you're using: the fla
 
 Two behaviours worth knowing before you approve one:
 
--   **Updates replace the whole record.** Anything not included in an update is cleared rather than left alone. This matters most for people: sponsors, owners, managers, and members are replaced as a set, so an update must carry the full team to keep it. Your assistant is instructed to read a record before updating it and pass back everything that should stay the same.
--   **Activating a portfolio sets its start date to today, and closing it sets its end date to today.** Neither can be backdated, so avoid using them to tidy up a portfolio that really started or ended earlier.
+- **Updates replace the whole record.** Anything not included in an update is cleared rather than left alone. This matters most for people: sponsors, owners, managers, and members are replaced as a set, so an update must carry the full team to keep it. Your assistant is instructed to read a record before updating it and pass back everything that should stay the same.
+- **Activating a portfolio sets its start date to today, and closing it sets its end date to today.** Neither can be backdated, so avoid using them to tidy up a portfolio that really started or ended earlier.
 
 Deleting a portfolio, program, project, or strategic initiative isn't available through the MCP server at all.
 
@@ -517,8 +517,8 @@ Deleting a portfolio, program, project, or strategic initiative isn't available 
 
 The MCP server authenticates using your [Personal Access Token](./your-profile.mdx#personal-access-tokens). The token inherits your permissions — the MCP server can only access what you can access.
 
--   Store your API key securely — don't commit it to version control
--   Use environment variables rather than hardcoding in config files
--   Revoke tokens from your [profile page](./your-profile.mdx#personal-access-tokens) if compromised
+- Store your API key securely — don't commit it to version control
+- Use environment variables rather than hardcoding in config files
+- Revoke tokens from your [profile page](./your-profile.mdx#personal-access-tokens) if compromised
 
 Changing a portfolio, program, or project additionally requires **delivery leadership** — being an Owner or Manager on the record or on one above it. Having permission to view or edit is not enough on its own, and sponsors and project members are excluded. If a change is refused even though your token has the right permission, this is usually why. See [Permissions](../user-guide/settings/permissions.mdx) for details.

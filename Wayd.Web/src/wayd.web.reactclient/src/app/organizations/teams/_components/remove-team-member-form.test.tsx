@@ -126,6 +126,41 @@ describe('RemoveTeamMemberForm', () => {
     expect(request.changes[0].end).toBeUndefined()
   })
 
+  it('ends the allocation before removing the member, while the caller is still one', async () => {
+    mockAllocations = [allocation()]
+    const calls: string[] = []
+    mockChangeAllocations.mockImplementation(async () => {
+      calls.push('end allocation')
+      return { data: undefined }
+    })
+    mockRemoveTeamMember.mockImplementation(async () => {
+      calls.push('remove member')
+      return { data: undefined }
+    })
+    const onFormComplete = jest.fn()
+    renderForm(onFormComplete)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
+
+    await waitFor(() => expect(onFormComplete).toHaveBeenCalled())
+    expect(calls).toEqual(['end allocation', 'remove member'])
+  })
+
+  it('leaves the member in place when their allocation cannot be ended', async () => {
+    mockAllocations = [allocation()]
+    mockChangeAllocations.mockResolvedValue({
+      error: { detail: 'Only members of a team can change its allocations.' },
+    })
+    const onFormComplete = jest.fn()
+    renderForm(onFormComplete)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
+
+    await waitFor(() => expect(mockMessageError).toHaveBeenCalled())
+    expect(mockRemoveTeamMember).not.toHaveBeenCalled()
+    expect(onFormComplete).not.toHaveBeenCalled()
+  })
+
   it('leaves the allocation in place when the option is turned off', async () => {
     mockAllocations = [allocation()]
     const onFormComplete = jest.fn()

@@ -51,10 +51,8 @@ const RemoveTeamMemberForm = ({ teamId, teamType, member, onFormComplete, onForm
   const handleOk = async () => {
     setIsRemoving(true)
     try {
-      const response = await removeMember({ teamId, employeeId: member.employee.id })
-      if (response.error) throw response.error
-      messageApi.success(`${member.employee.name} removed from team.`)
-
+      // Before the removal: changing a team's allocations needs membership of
+      // it, which someone removing themselves no longer has afterwards.
       if (canEndAllocation && endAllocation) {
         const roleIds = [...new Set(openAllocations.map((a) => a.role?.id))]
         const ended = await changeAllocations({
@@ -68,15 +66,12 @@ const RemoveTeamMemberForm = ({ teamId, teamType, member, onFormComplete, onForm
             })),
           },
         })
-        if (ended.error) {
-          const apiError: ApiError = isApiError(ended.error) ? ended.error : {}
-          messageApi.error(
-            apiError.detail ??
-              'The member was removed, but their allocation could not be ended.',
-          )
-        }
+        if (ended.error) throw ended.error
       }
 
+      const response = await removeMember({ teamId, employeeId: member.employee.id })
+      if (response.error) throw response.error
+      messageApi.success(`${member.employee.name} removed from team.`)
       onFormComplete()
     } catch (error) {
       const apiError: ApiError = isApiError(error) ? error : {}

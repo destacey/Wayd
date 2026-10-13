@@ -21,6 +21,13 @@ import styles from './employee-capacity.module.css'
 
 const FULL_ALLOCATION = 100
 
+// The timeline is as tall as its lanes need, within these bounds, so a person
+// on one team does not get a mostly empty chart.
+const TIMELINE_CHROME_HEIGHT = 110
+const TIMELINE_LANE_HEIGHT = 36
+const TIMELINE_MIN_HEIGHT = 220
+const TIMELINE_MAX_HEIGHT = 560
+
 interface Props {
   employeeId: string
 }
@@ -59,7 +66,7 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
       id: 'team',
       accessorKey: 'team.name',
       header: 'Team',
-      size: 220,
+      size: 180,
       meta: { filterEnableSet: true },
       cell: ({ row }) => renderTeamLink(row.original.team),
     },
@@ -67,28 +74,28 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
       id: 'type',
       accessorKey: 'team.type',
       header: 'Type',
-      size: 140,
+      size: 110,
       meta: { filterType: 'set' },
     },
     {
       id: 'role',
       accessorFn: (row) => row.role?.name ?? '',
       header: 'Role',
-      size: 180,
+      size: 150,
       meta: { filterEnableSet: true },
     },
     {
       id: 'start',
       accessorKey: 'start',
       header: 'Start',
-      size: 130,
+      size: 110,
       cell: ({ row }) => formatCalendarDate(row.original.start),
     },
     {
       id: 'end',
       accessorFn: (row) => row.end ?? '',
       header: 'End',
-      size: 130,
+      size: 110,
       cell: ({ row }) =>
         row.original.end ? formatCalendarDate(row.original.end) : 'No end',
     },
@@ -96,13 +103,13 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
       id: 'percent',
       accessorKey: 'percent',
       header: 'Percent',
-      size: 110,
+      size: 90,
       cell: ({ row }) => `${row.original.percent}%`,
     },
     {
       id: 'actions',
       header: '',
-      size: 90,
+      size: 80,
       enableSorting: false,
       enableColumnFilter: false,
       cell: ({ row }) =>
@@ -154,6 +161,14 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
           minDate={timeline.minDate}
           maxDate={timeline.maxDate}
           storageKey="employee-allocations"
+          height={Math.min(
+            TIMELINE_MAX_HEIGHT,
+            Math.max(
+              TIMELINE_MIN_HEIGHT,
+              TIMELINE_CHROME_HEIGHT +
+                timeline.groups.length * TIMELINE_LANE_HEIGHT,
+            ),
+          )}
           editable={false}
           isLoading={isLoading}
           emptyMessage="None of this person's time is allocated to a team."

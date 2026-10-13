@@ -47,6 +47,7 @@ export enum QueryTags {
   EmployeeWorkItems = 'Organizations.EmployeeWorkItems',
   EmployeeOption = 'Organizations.EmployeeOption',
   EmployeeAllocation = 'Organizations.EmployeeAllocation',
+  TeamCapacity = 'Organizations.TeamCapacity',
   Team = 'Organizations.Team',
   TeamOptions = 'Organizations.TeamOptions',
   TeamBacklog = 'Organizations.TeamBacklog',

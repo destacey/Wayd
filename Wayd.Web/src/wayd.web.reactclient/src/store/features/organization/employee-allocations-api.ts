@@ -45,8 +45,11 @@ export const employeeAllocationsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // A team's capacity is made of its people's allocations, and one change
+      // can touch several teams, so every team's capacity is refetched.
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.EmployeeAllocation, id: arg.employeeId },
+        QueryTags.TeamCapacity,
       ],
     }),
 
@@ -66,8 +69,11 @@ export const employeeAllocationsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // A team's capacity is made of its people's allocations, and one change
+      // can touch several teams, so every team's capacity is refetched.
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.EmployeeAllocation, id: arg.employeeId },
+        QueryTags.TeamCapacity,
       ],
     }),
   }),

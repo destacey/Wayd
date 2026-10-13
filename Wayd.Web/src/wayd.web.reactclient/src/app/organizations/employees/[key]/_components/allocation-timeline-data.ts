@@ -4,7 +4,11 @@ import type {
 } from '@/src/components/common/timeline'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { EmployeeAllocationDto } from '@/src/store/features/organization/employee-allocations-api'
-import { addCalendarDays, CalendarDate } from '@/src/utils'
+import {
+  addCalendarDays,
+  CalendarDate,
+  startOfCalendarDate as startOfDay,
+} from '@/src/utils'
 import { allocationPeriods } from './allocation-periods'
 
 /** The lane every team's allocations are added up in. */
@@ -35,12 +39,6 @@ export interface AllocationTimelineData {
   windowEnd: number
   minDate: number
   maxDate: number
-}
-
-/** Local midnight of the day, as the timeline's own date math reads a day. */
-const startOfDay = (day: CalendarDate): number => {
-  const [year, month, date] = day.split('-').map(Number)
-  return new Date(year, month - 1, date).getTime()
 }
 
 /**

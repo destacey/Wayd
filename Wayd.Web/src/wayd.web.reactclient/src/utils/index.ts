@@ -13,6 +13,7 @@ export {
   compareCalendarDates,
   formatCalendarDate,
   parseCalendarDate,
+  startOfCalendarDate,
   toCalendarDate,
   todayCalendarDate,
 } from './calendar-date'

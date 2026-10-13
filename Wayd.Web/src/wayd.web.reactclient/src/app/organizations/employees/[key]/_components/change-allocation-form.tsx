@@ -20,7 +20,9 @@ const { Item: FormItem } = Form
 /** The allocation a change starts from, when changing one that exists. */
 export interface AllocationToChange {
   teamId: string
+  teamName: string
   roleId?: string
+  roleName?: string
   start: CalendarDate
   end?: CalendarDate
   percent: number
@@ -42,6 +44,38 @@ interface FormValues {
   percent: number
 }
 
+/**
+ * The changes that turn `allocation` into the values entered. The API sets a
+ * percent over a date range and leaves other days alone, so moving the start
+ * later or the end earlier would otherwise leave the days dropped as they
+ * were: the original range is cleared first, in the same request.
+ */
+export const changesFor = (
+  allocation: AllocationToChange | undefined,
+  values: FormValues,
+) => {
+  const entered = {
+    teamId: allocation?.teamId ?? values.teamId,
+    roleId: allocation ? allocation.roleId : values.roleId,
+    start: toCalendarDate(values.start),
+    end: values.end ? toCalendarDate(values.end) : undefined,
+    percent: values.percent,
+  }
+
+  return allocation
+    ? [
+        {
+          teamId: allocation.teamId,
+          roleId: allocation.roleId,
+          start: allocation.start,
+          end: allocation.end,
+          percent: 0,
+        },
+        entered,
+      ]
+    : [entered]
+}
+
 const ChangeAllocationForm = ({
   employeeId,
   allocation,
@@ -59,17 +93,7 @@ const ChangeAllocationForm = ({
         try {
           const response = await changeAllocations({
             employeeId,
-            request: {
-              changes: [
-                {
-                  teamId: values.teamId,
-                  roleId: values.roleId,
-                  start: toCalendarDate(values.start),
-                  end: values.end ? toCalendarDate(values.end) : undefined,
-                  percent: values.percent,
-                },
-              ],
-            },
+            request: { changes: changesFor(allocation, values) },
           })
           if (response.error) throw response.error
           messageApi.success('Allocation saved.')
@@ -113,25 +137,36 @@ const ChangeAllocationForm = ({
           percent: allocation?.percent,
         }}
       >
-        <FormItem name="teamId" label="Team" rules={[{ required: true }]}>
-          <Select
-            showSearch={{ optionFilterProp: 'label' }}
-            placeholder="Select a team or team of teams"
-            options={teamOptions}
-          />
-        </FormItem>
-        <FormItem
-          name="roleId"
-          label="Role"
-          extra="What the time is spent on. It need not match a role the person holds as a member."
-        >
-          <Select
-            allowClear
-            showSearch={{ optionFilterProp: 'label' }}
-            placeholder="No role"
-            options={roleOptions}
-          />
-        </FormItem>
+        {allocation ? (
+          // Fixed when changing an allocation: Move is how time goes to
+          // another team or role.
+          <>
+            <FormItem label="Team">{allocation.teamName}</FormItem>
+            <FormItem label="Role">{allocation.roleName ?? 'No role'}</FormItem>
+          </>
+        ) : (
+          <>
+            <FormItem name="teamId" label="Team" rules={[{ required: true }]}>
+              <Select
+                showSearch={{ optionFilterProp: 'label' }}
+                placeholder="Select a team or team of teams"
+                options={teamOptions}
+              />
+            </FormItem>
+            <FormItem
+              name="roleId"
+              label="Role"
+              extra="What the time is spent on. It need not match a role the person holds as a member."
+            >
+              <Select
+                allowClear
+                showSearch={{ optionFilterProp: 'label' }}
+                placeholder="No role"
+                options={roleOptions}
+              />
+            </FormItem>
+          </>
+        )}
         <FormItem name="start" label="Start" rules={[{ required: true }]}>
           <DatePicker />
         </FormItem>
@@ -158,7 +193,11 @@ const ChangeAllocationForm = ({
         <FormItem
           name="percent"
           label="Percent of their time"
-          extra="Replaces what this team and role have on these dates. Enter 0 to end the allocation for them."
+          extra={
+            allocation
+              ? 'Enter 0 to remove this allocation.'
+              : 'Replaces what this team and role have on these dates.'
+          }
           rules={[{ required: true }]}
         >
           <InputNumber min={0} max={100} precision={0} suffix="%" />

@@ -115,7 +115,9 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
                 kind: 'change',
                 allocation: {
                   teamId: row.original.team.id,
+                  teamName: row.original.team.name,
                   roleId: row.original.role?.id,
+                  roleName: row.original.role?.name,
                   start: row.original.start,
                   end: row.original.end,
                   percent: row.original.percent,
@@ -162,7 +164,9 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
               kind: 'change',
               allocation: {
                 teamId: allocation.team.id,
+                teamName: allocation.team.name,
                 roleId: allocation.role?.id,
+                roleName: allocation.role?.name,
                 start: allocation.start,
                 end: allocation.end,
                 percent: allocation.percent,

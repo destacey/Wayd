@@ -35,9 +35,9 @@ import { BaseOptionType } from 'antd/es/select'
 import {
   BacklogHealthThresholds,
   DependencyDto,
-  AllocationDimension,
-  AllocationMeasure,
-  TeamAllocationDto,
+  WorkDistributionDimension,
+  WorkDistributionMeasure,
+  TeamWorkDistributionDto,
   TeamBacklogHealthDto,
   ThemeCounting,
   UnestimatedHandling,
@@ -53,7 +53,7 @@ export interface GetTeamBacklogHealthRequest {
   thresholds?: Partial<BacklogHealthThresholds>
 }
 
-export interface GetTeamAllocationRequest {
+export interface GetTeamWorkDistributionRequest {
   /** Teams of teams are served by their own endpoint, which rolls up every team beneath them. */
   teamType: 'team' | 'team-of-teams'
   teamIdOrCode: string
@@ -61,8 +61,8 @@ export interface GetTeamAllocationRequest {
   from: string
   /** yyyy-MM-dd, inclusive. */
   to: string
-  dimension: AllocationDimension
-  measure: AllocationMeasure
+  dimension: WorkDistributionDimension
+  measure: WorkDistributionMeasure
   unestimated: UnestimatedHandling
   themeCounting: ThemeCounting
 }
@@ -78,7 +78,7 @@ const asOfDateParam = (asOfDate?: CalendarDate): Date | undefined =>
 /**
  * What a team's operating model changes besides itself: the team's details
  * show its sizing method, and the server measures sprint and iteration
- * metrics, backlog health and allocation in it. Invalidated by type, since a
+ * metrics, backlog health and work distribution in it. Invalidated by type, since a
  * sprint, iteration or team of teams is cached under its own key, not the
  * team's.
  */
@@ -231,9 +231,9 @@ export const teamApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    getTeamAllocation: builder.query<
-      TeamAllocationDto,
-      GetTeamAllocationRequest
+    getTeamWorkDistribution: builder.query<
+      TeamWorkDistributionDto,
+      GetTeamWorkDistributionRequest
     >({
       queryFn: async (request) => {
         try {
@@ -248,8 +248,8 @@ export const teamApi = apiSlice.injectEndpoints({
           ] as const
           const data =
             request.teamType === 'team-of-teams'
-              ? await getTeamsOfTeamsClient().getAllocation(...args)
-              : await getTeamsClient().getTeamAllocation(...args)
+              ? await getTeamsOfTeamsClient().getWorkDistribution(...args)
+              : await getTeamsClient().getTeamWorkDistribution(...args)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1167,7 +1167,7 @@ export const {
   useGetTeamOptionsQuery,
   useGetTeamBacklogQuery,
   useGetTeamBacklogHealthQuery,
-  useGetTeamAllocationQuery,
+  useGetTeamWorkDistributionQuery,
   useGetTeamWorkItemsQuery,
   useGetTeamDependenciesQuery,
   useGetTeamSprintsQuery,

@@ -1,5 +1,5 @@
 using Wayd.Common.Application.Dtos;
-using Wayd.Work.Application.WorkTeams.Allocation;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 
 namespace Wayd.Work.Application.WorkTeams.Dtos;
 
@@ -8,24 +8,24 @@ namespace Wayd.Work.Application.WorkTeams.Dtos;
 /// For a team of teams it covers every team beneath it, each placed where it sat on the day the work was done.
 /// </summary>
 /// <remarks>
-/// <see cref="AllocationTeamRowDto.Cells"/> and <see cref="AllocationPeriodDto.Values"/> line up with
+/// <see cref="WorkDistributionTeamRowDto.Cells"/> and <see cref="WorkDistributionPeriodDto.Values"/> line up with
 /// <see cref="Groups"/> by index.
 /// </remarks>
-public sealed record TeamAllocationDto
+public sealed record TeamWorkDistributionDto
 {
     public required WorkTeamNavigationDto Team { get; init; }
     public required LocalDate From { get; init; }
     public required LocalDate To { get; init; }
-    public required AllocationSummaryDto Summary { get; init; }
-    public List<AllocationGroupDto> Groups { get; init; } = [];
+    public required WorkDistributionSummaryDto Summary { get; init; }
+    public List<WorkDistributionGroupDto> Groups { get; init; } = [];
 
     /// <summary>The team hierarchy, pre-ordered from the requested team, each placed under its latest parent in the window.</summary>
-    public List<AllocationTeamRowDto> Teams { get; init; } = [];
+    public List<WorkDistributionTeamRowDto> Teams { get; init; } = [];
 
-    public List<AllocationPeriodDto> Periods { get; init; } = [];
+    public List<WorkDistributionPeriodDto> Periods { get; init; } = [];
 }
 
-public sealed record AllocationSummaryDto
+public sealed record WorkDistributionSummaryDto
 {
     public int ItemsCompleted { get; init; }
 
@@ -48,7 +48,7 @@ public sealed record AllocationSummaryDto
     public int TeamsIncluded { get; init; }
 
     /// <summary>Teams whose work the measure leaves out: under story points, teams that size by anything else.</summary>
-    public List<AllocationTeamReferenceDto> ExcludedTeams { get; init; } = [];
+    public List<WorkDistributionTeamReferenceDto> ExcludedTeams { get; init; } = [];
 
     /// <summary>Items with no project in their ancestry.</summary>
     public int NoProjectItems { get; init; }
@@ -57,14 +57,14 @@ public sealed record AllocationSummaryDto
     public double NoProjectShare { get; init; }
 }
 
-public sealed record AllocationTeamReferenceDto(Guid Id, string Code, string Name);
+public sealed record WorkDistributionTeamReferenceDto(Guid Id, string Code, string Name);
 
-public sealed record AllocationGroupDto
+public sealed record WorkDistributionGroupDto
 {
     /// <summary>Stable within a response; cells and periods refer to groups by position, not by this.</summary>
     public required string Id { get; init; }
 
-    public required AllocationGroupKind Kind { get; init; }
+    public required WorkDistributionGroupKind Kind { get; init; }
 
     /// <summary>The portfolio, program, project or theme's id; null for work types and gap groups.</summary>
     public Guid? RecordId { get; init; }
@@ -100,12 +100,12 @@ public sealed record AllocationGroupDto
     /// <summary>Work type groups only: percent of this group's value with no project.</summary>
     public double? NoProjectShare { get; init; }
 
-    public AllocationContributorDto? LargestContributor { get; init; }
+    public WorkDistributionContributorDto? LargestContributor { get; init; }
 }
 
-public sealed record AllocationContributorDto(Guid TeamId, string Code, string Name, double Value, double Items);
+public sealed record WorkDistributionContributorDto(Guid TeamId, string Code, string Name, double Value, double Items);
 
-public sealed record AllocationTeamRowDto
+public sealed record WorkDistributionTeamRowDto
 {
     public required Guid TeamId { get; init; }
     public required string Code { get; init; }
@@ -122,16 +122,16 @@ public sealed record AllocationTeamRowDto
     public int Items { get; init; }
     public double StoryPoints { get; init; }
     public double Value { get; init; }
-    public List<AllocationCellDto> Cells { get; init; } = [];
+    public List<WorkDistributionCellDto> Cells { get; init; } = [];
 
     /// <summary>Work type dimension only: percent of this row's value with no project.</summary>
     public double? NoProjectShare { get; init; }
 }
 
 /// <param name="Share">Percent of the row's measured total.</param>
-public sealed record AllocationCellDto(double Value, double Share, double Items);
+public sealed record WorkDistributionCellDto(double Value, double Share, double Items);
 
-public sealed record AllocationPeriodDto
+public sealed record WorkDistributionPeriodDto
 {
     public required LocalDate Start { get; init; }
     public required LocalDate End { get; init; }

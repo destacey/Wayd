@@ -1,7 +1,7 @@
-namespace Wayd.Work.Application.WorkTeams.Allocation;
+namespace Wayd.Work.Application.WorkTeams.WorkDistribution;
 
 /// <summary>What completed work is grouped by.</summary>
-public enum AllocationDimension
+public enum WorkDistributionDimension
 {
     Portfolio = 0,
     Program = 1,
@@ -11,7 +11,7 @@ public enum AllocationDimension
 }
 
 /// <summary>How each completed work item is weighed.</summary>
-public enum AllocationMeasure
+public enum WorkDistributionMeasure
 {
     /// <summary>Every item counts as one, in every team, as a team that sizes by count does.</summary>
     Count = 0,
@@ -46,7 +46,7 @@ public enum ThemeCounting
     CountFully = 1,
 }
 
-public enum AllocationGroupKind
+public enum WorkDistributionGroupKind
 {
     Record = 0,
 
@@ -57,8 +57,8 @@ public enum AllocationGroupKind
     MissingLevel = 2,
 }
 
-public sealed record AllocationOptions(
-    AllocationDimension Dimension,
-    AllocationMeasure Measure,
+public sealed record WorkDistributionOptions(
+    WorkDistributionDimension Dimension,
+    WorkDistributionMeasure Measure,
     UnestimatedHandling Unestimated,
     ThemeCounting ThemeCounting);

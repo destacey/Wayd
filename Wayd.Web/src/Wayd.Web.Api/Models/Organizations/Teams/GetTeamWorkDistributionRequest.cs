@@ -1,14 +1,14 @@
 using Wayd.Common.Application.Models.Organizations;
 using Wayd.Web.Api.Extensions;
-using Wayd.Work.Application.WorkTeams.Allocation;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.Application.WorkTeams.Queries;
 
 namespace Wayd.Web.Api.Models.Organizations.Teams;
 
 /// <summary>
-/// An allocation report for a team or a team of teams. Only the dates are required.
+/// A work distribution report for a team or a team of teams. Only the dates are required.
 /// </summary>
-public sealed record GetTeamAllocationRequest
+public sealed record GetTeamWorkDistributionRequest
 {
     /// <summary>The first day of completed work to include (yyyy-MM-dd, UTC).</summary>
     public string? From { get; set; }
@@ -17,10 +17,10 @@ public sealed record GetTeamAllocationRequest
     public string? To { get; set; }
 
     /// <summary>What to group work by (default Portfolio).</summary>
-    public AllocationDimension? Dimension { get; set; }
+    public WorkDistributionDimension? Dimension { get; set; }
 
     /// <summary>How to weigh each work item (default Count).</summary>
-    public AllocationMeasure? Measure { get; set; }
+    public WorkDistributionMeasure? Measure { get; set; }
 
     /// <summary>StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</summary>
     public UnestimatedHandling? Unestimated { get; set; }
@@ -29,7 +29,7 @@ public sealed record GetTeamAllocationRequest
     public ThemeCounting? ThemeCounting { get; set; }
 
     /// <returns>False, with <paramref name="error"/> set, when a date is missing or malformed.</returns>
-    public bool TryToQuery(TeamIdOrCode teamIdOrCode, out GetTeamAllocationQuery? query, out string? error)
+    public bool TryToQuery(TeamIdOrCode teamIdOrCode, out GetTeamWorkDistributionQuery? query, out string? error)
     {
         query = null;
         error = null;
@@ -46,15 +46,15 @@ public sealed record GetTeamAllocationRequest
             return false;
         }
 
-        query = new GetTeamAllocationQuery(
+        query = new GetTeamWorkDistributionQuery(
             teamIdOrCode,
             from.Value,
             to.Value,
-            new AllocationOptions(
-                Dimension ?? AllocationDimension.Portfolio,
-                Measure ?? AllocationMeasure.Count,
+            new WorkDistributionOptions(
+                Dimension ?? WorkDistributionDimension.Portfolio,
+                Measure ?? WorkDistributionMeasure.Count,
                 Unestimated ?? UnestimatedHandling.Exclude,
-                ThemeCounting ?? Wayd.Work.Application.WorkTeams.Allocation.ThemeCounting.SplitEvenly));
+                ThemeCounting ?? Wayd.Work.Application.WorkTeams.WorkDistribution.ThemeCounting.SplitEvenly));
         return true;
     }
 }

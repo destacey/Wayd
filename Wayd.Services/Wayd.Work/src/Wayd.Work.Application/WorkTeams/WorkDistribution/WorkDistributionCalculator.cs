@@ -4,27 +4,27 @@ using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Work.Application.WorkTeams.Dtos;
 
-namespace Wayd.Work.Application.WorkTeams.Allocation;
+namespace Wayd.Work.Application.WorkTeams.WorkDistribution;
 
 /// <param name="ProjectId">The item's own project, or the one inherited from its parent.</param>
-public sealed record AllocationWorkItem(Guid Id, Guid TeamId, string WorkTypeName, LocalDate DoneOn, Guid? ProjectId, double? StoryPoints, double? Effort, double? Size);
+public sealed record WorkDistributionItem(Guid Id, Guid TeamId, string WorkTypeName, LocalDate DoneOn, Guid? ProjectId, double? StoryPoints, double? Effort, double? Size);
 
 /// <summary>
 /// Groups completed work items by one dimension in one measure. Pure: everything it needs is passed in.
 /// </summary>
-public static class AllocationCalculator
+public static class WorkDistributionCalculator
 {
     public const string NoProjectGroupId = "no-project";
     public const string MissingLevelGroupId = "missing-level";
 
-    public static TeamAllocationDto Calculate(
+    public static TeamWorkDistributionDto Calculate(
         WorkTeamNavigationDto team,
         LocalDate from,
         LocalDate to,
         TeamStructure structure,
-        IReadOnlyList<AllocationWorkItem> workItems,
+        IReadOnlyList<WorkDistributionItem> workItems,
         IReadOnlyDictionary<Guid, ProjectClassification> projects,
-        AllocationOptions options)
+        WorkDistributionOptions options)
     {
         var teamsById = structure.Teams.ToDictionary(t => t.Id);
         var parentEdges = structure.Memberships.ToLookup(m => m.ChildId);
@@ -79,19 +79,19 @@ public static class AllocationCalculator
 
         var total = placed.Sum(p => p.Value ?? 0);
         var orderedGroups = groups.Values
-            .OrderBy(g => g.Kind switch { AllocationGroupKind.Record => 0, AllocationGroupKind.MissingLevel => 1, _ => 2 })
+            .OrderBy(g => g.Kind switch { WorkDistributionGroupKind.Record => 0, WorkDistributionGroupKind.MissingLevel => 1, _ => 2 })
             .ThenByDescending(g => g.Value)
             .ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         var teamRows = TeamRows(structure, teamsById, rows, orderedGroups, options);
 
-        return new TeamAllocationDto
+        return new TeamWorkDistributionDto
         {
             Team = team,
             From = from,
             To = to,
-            Summary = new AllocationSummaryDto
+            Summary = new WorkDistributionSummaryDto
             {
                 ItemsCompleted = placed.Count,
                 ItemsInPointSizedTeams = placed.Count(p => p.UsesPoints),
@@ -102,7 +102,7 @@ public static class AllocationCalculator
                 TeamsIncluded = placed.Select(p => p.Item.TeamId).Distinct().Count(),
                 ExcludedTeams = [.. teamRows
                     .Where(r => r.Excluded && !r.IsTeamOfTeams)
-                    .Select(r => new AllocationTeamReferenceDto(r.TeamId, r.Code, r.Name))],
+                    .Select(r => new WorkDistributionTeamReferenceDto(r.TeamId, r.Code, r.Name))],
                 NoProjectItems = placed.Count(p => p.Project is null),
                 NoProjectShare = Percent(placed.Where(p => p.Project is null).Sum(p => p.Value ?? 0), total),
             },
@@ -130,7 +130,7 @@ public static class AllocationCalculator
         return path;
     }
 
-    private static void Measure(List<PlacedItem> placed, AllocationOptions options)
+    private static void Measure(List<PlacedItem> placed, WorkDistributionOptions options)
     {
         var fillByTeamAndType = new Dictionary<(Guid, SizingMethod, string), double>();
         var fillByTeam = new Dictionary<(Guid, SizingMethod), double>();
@@ -168,12 +168,12 @@ public static class AllocationCalculator
 
         switch (options.Measure)
         {
-            case AllocationMeasure.Count:
+            case WorkDistributionMeasure.Count:
                 foreach (var p in placed)
                     p.Value = 1;
                 break;
 
-            case AllocationMeasure.StoryPoints:
+            case WorkDistributionMeasure.StoryPoints:
                 foreach (var p in placed)
                     p.Value = p.UsesPoints ? Estimated(p) : null;
                 break;
@@ -181,7 +181,7 @@ public static class AllocationCalculator
             // A team's split is measured in each sizing method it used in the window, then weighed by that
             // unit's share of completed items: estimates are never added across units, not even one team's
             // before and after it changed how it sizes.
-            case AllocationMeasure.TeamEffort:
+            case WorkDistributionMeasure.TeamEffort:
                 foreach (var teamItems in placed.GroupBy(p => (p.Item.TeamId, p.SizingMethod)))
                 {
                     var own = teamItems.Select(p => (Item: p, Value: p.SizingMethod == SizingMethod.Count ? 1 : Estimated(p))).ToList();
@@ -202,28 +202,28 @@ public static class AllocationCalculator
         }
     }
 
-    private static IEnumerable<(string GroupId, double Weight)> GroupsOf(PlacedItem p, AllocationOptions options)
+    private static IEnumerable<(string GroupId, double Weight)> GroupsOf(PlacedItem p, WorkDistributionOptions options)
     {
         var project = p.Project;
         switch (options.Dimension)
         {
-            case AllocationDimension.WorkType:
+            case WorkDistributionDimension.WorkType:
                 yield return ($"type:{TypeKey(p.Item.WorkTypeName)}", 1);
                 yield break;
 
-            case AllocationDimension.Portfolio when project is not null:
+            case WorkDistributionDimension.Portfolio when project is not null:
                 yield return ($"portfolio:{project.Portfolio.Id}", 1);
                 yield break;
 
-            case AllocationDimension.Program when project is not null:
+            case WorkDistributionDimension.Program when project is not null:
                 yield return project.Program is null ? (MissingLevelGroupId, 1) : ($"program:{project.Program.Id}", 1);
                 yield break;
 
-            case AllocationDimension.Project when project is not null:
+            case WorkDistributionDimension.Project when project is not null:
                 yield return ($"project:{project.ProjectId}", 1);
                 yield break;
 
-            case AllocationDimension.StrategicTheme when project is not null:
+            case WorkDistributionDimension.StrategicTheme when project is not null:
                 if (project.Themes.Count == 0)
                 {
                     yield return (MissingLevelGroupId, 1);
@@ -241,12 +241,12 @@ public static class AllocationCalculator
         }
     }
 
-    private static List<AllocationTeamRowDto> TeamRows(
+    private static List<WorkDistributionTeamRowDto> TeamRows(
         TeamStructure structure,
         Dictionary<Guid, TeamStructureTeam> teamsById,
         Dictionary<Guid, RowAccumulator> rows,
         List<GroupAccumulator> groups,
-        AllocationOptions options)
+        WorkDistributionOptions options)
     {
         // A team that moved inside the window is drawn under its latest parent; its work still rolls up to
         // whichever parent it had on the day each item was done.
@@ -257,7 +257,7 @@ public static class AllocationCalculator
             .Where(x => x.Key != structure.RootId && teamsById.ContainsKey(x.Key))
             .ToLookup(x => x.Value, x => teamsById[x.Key]);
 
-        var result = new List<AllocationTeamRowDto>(teamsById.Count);
+        var result = new List<WorkDistributionTeamRowDto>(teamsById.Count);
         var visited = new HashSet<Guid>();
         var pending = new Stack<(TeamStructureTeam Team, Guid? ParentId, int Level)>();
         if (teamsById.TryGetValue(structure.RootId, out var root))
@@ -269,9 +269,9 @@ public static class AllocationCalculator
                 continue;
 
             var row = rows.GetValueOrDefault(next.Team.Id) ?? new RowAccumulator();
-            var excluded = options.Measure == AllocationMeasure.StoryPoints && row.Items > 0 && row.PointSizedItems == 0;
+            var excluded = options.Measure == WorkDistributionMeasure.StoryPoints && row.Items > 0 && row.PointSizedItems == 0;
 
-            result.Add(new AllocationTeamRowDto
+            result.Add(new WorkDistributionTeamRowDto
             {
                 TeamId = next.Team.Id,
                 Code = next.Team.Code,
@@ -287,9 +287,9 @@ public static class AllocationCalculator
                 Cells = [.. groups.Select(g =>
                 {
                     var (value, items) = row.ByGroup.GetValueOrDefault(g.Id);
-                    return new AllocationCellDto(value, Percent(value, row.Value), items);
+                    return new WorkDistributionCellDto(value, Percent(value, row.Value), items);
                 })],
-                NoProjectShare = options.Dimension == AllocationDimension.WorkType ? Percent(row.NoProjectValue, row.Value) : null,
+                NoProjectShare = options.Dimension == WorkDistributionDimension.WorkType ? Percent(row.NoProjectValue, row.Value) : null,
             });
 
             // Pushed in reverse so they pop in name order.
@@ -348,9 +348,9 @@ public static class AllocationCalculator
         return value;
     }
 
-    private sealed class PlacedItem(AllocationWorkItem item, List<Guid> path, SizingMethod sizingMethod, double? estimate, ProjectClassification? project)
+    private sealed class PlacedItem(WorkDistributionItem item, List<Guid> path, SizingMethod sizingMethod, double? estimate, ProjectClassification? project)
     {
-        public AllocationWorkItem Item { get; } = item;
+        public WorkDistributionItem Item { get; } = item;
 
         /// <summary>The item's team, then each parent up to the root, as of the day it was done.</summary>
         public List<Guid> Path { get; } = path;
@@ -381,7 +381,7 @@ public static class AllocationCalculator
         private readonly Dictionary<Guid, (double Value, double Items)> _byTeam = [];
 
         public required string Id { get; init; }
-        public required AllocationGroupKind Kind { get; init; }
+        public required WorkDistributionGroupKind Kind { get; init; }
         public Guid? RecordId { get; init; }
         public string? RecordKey { get; init; }
         public required string Name { get; init; }
@@ -394,41 +394,41 @@ public static class AllocationCalculator
         public double Value { get; private set; }
         public double NoProjectValue { get; private set; }
 
-        public static GroupAccumulator For(string id, PlacedItem first, AllocationDimension dimension)
+        public static GroupAccumulator For(string id, PlacedItem first, WorkDistributionDimension dimension)
         {
             if (id == NoProjectGroupId)
-                return new GroupAccumulator { Id = id, Kind = AllocationGroupKind.NoProject, Name = "No project" };
+                return new GroupAccumulator { Id = id, Kind = WorkDistributionGroupKind.NoProject, Name = "No project" };
 
             if (id == MissingLevelGroupId)
             {
-                var name = dimension == AllocationDimension.Program ? "No program" : "No theme";
-                return new GroupAccumulator { Id = id, Kind = AllocationGroupKind.MissingLevel, Name = name };
+                var name = dimension == WorkDistributionDimension.Program ? "No program" : "No theme";
+                return new GroupAccumulator { Id = id, Kind = WorkDistributionGroupKind.MissingLevel, Name = name };
             }
 
             var project = first.Project;
             return dimension switch
             {
-                AllocationDimension.Portfolio => Record(id, project!.Portfolio),
-                AllocationDimension.Program => Record(id, project!.Program!, project.Portfolio),
-                AllocationDimension.Project => new GroupAccumulator
+                WorkDistributionDimension.Portfolio => Record(id, project!.Portfolio),
+                WorkDistributionDimension.Program => Record(id, project!.Program!, project.Portfolio),
+                WorkDistributionDimension.Project => new GroupAccumulator
                 {
                     Id = id,
-                    Kind = AllocationGroupKind.Record,
+                    Kind = WorkDistributionGroupKind.Record,
                     RecordId = project!.ProjectId,
                     RecordKey = project.ProjectKey,
                     Name = project.ProjectName,
                     Portfolio = project.Portfolio,
                     Program = project.Program,
                 },
-                AllocationDimension.StrategicTheme => Record(id, project!.Themes.Single(t => id == $"theme:{t.Id}")),
-                _ => new GroupAccumulator { Id = id, Kind = AllocationGroupKind.Record, Name = first.Item.WorkTypeName.Trim() },
+                WorkDistributionDimension.StrategicTheme => Record(id, project!.Themes.Single(t => id == $"theme:{t.Id}")),
+                _ => new GroupAccumulator { Id = id, Kind = WorkDistributionGroupKind.Record, Name = first.Item.WorkTypeName.Trim() },
             };
         }
 
         private static GroupAccumulator Record(string id, PpmRecordReference record, PpmRecordReference? portfolio = null) => new()
         {
             Id = id,
-            Kind = AllocationGroupKind.Record,
+            Kind = WorkDistributionGroupKind.Record,
             RecordId = record.Id,
             RecordKey = record.Key.ToString(),
             Name = record.Name,
@@ -457,7 +457,7 @@ public static class AllocationCalculator
             _byTeam[p.Item.TeamId] = (teamValue + weight * value, teamItems + weight);
         }
 
-        public AllocationGroupDto ToDto(double total, Dictionary<Guid, TeamStructureTeam> teamsById, AllocationDimension dimension)
+        public WorkDistributionGroupDto ToDto(double total, Dictionary<Guid, TeamStructureTeam> teamsById, WorkDistributionDimension dimension)
         {
             var largest = _byTeam
                 .Where(x => teamsById.ContainsKey(x.Key))
@@ -466,7 +466,7 @@ public static class AllocationCalculator
                 .Select(x => (KeyValuePair<Guid, (double Value, double Items)>?)x)
                 .FirstOrDefault();
 
-            return new AllocationGroupDto
+            return new WorkDistributionGroupDto
             {
                 Id = Id,
                 Kind = Kind,
@@ -482,10 +482,10 @@ public static class AllocationCalculator
                 FilledStoryPoints = FilledStoryPoints,
                 Value = Value,
                 Share = Percent(Value, total),
-                NoProjectValue = dimension == AllocationDimension.WorkType ? NoProjectValue : null,
-                NoProjectShare = dimension == AllocationDimension.WorkType ? Percent(NoProjectValue, Value) : null,
+                NoProjectValue = dimension == WorkDistributionDimension.WorkType ? NoProjectValue : null,
+                NoProjectShare = dimension == WorkDistributionDimension.WorkType ? Percent(NoProjectValue, Value) : null,
                 LargestContributor = largest is { } l
-                    ? new AllocationContributorDto(l.Key, teamsById[l.Key].Code, teamsById[l.Key].Name, l.Value.Value, l.Value.Items)
+                    ? new WorkDistributionContributorDto(l.Key, teamsById[l.Key].Code, teamsById[l.Key].Name, l.Value.Value, l.Value.Items)
                     : null,
             };
         }
@@ -542,7 +542,7 @@ public static class AllocationCalculator
         public void AddToGroup(string groupId, double value) =>
             _byGroup[groupId] = _byGroup.GetValueOrDefault(groupId) + value;
 
-        public AllocationPeriodDto ToDto(List<GroupAccumulator> groups) => new()
+        public WorkDistributionPeriodDto ToDto(List<GroupAccumulator> groups) => new()
         {
             Start = Start,
             End = End,

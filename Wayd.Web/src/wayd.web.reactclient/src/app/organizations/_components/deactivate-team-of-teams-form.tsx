@@ -10,6 +10,7 @@ import { DatePicker, Form, Modal } from 'antd'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
+import DeactivateTeamAllocationsAlert from './deactivate-team-allocations-alert'
 
 const { Item } = Form
 
@@ -102,6 +103,7 @@ const DeactivateTeamOfTeamsForm = ({
           <DatePicker />
         </Item>
       </Form>
+      <DeactivateTeamAllocationsAlert />
     </Modal>
   )
 }

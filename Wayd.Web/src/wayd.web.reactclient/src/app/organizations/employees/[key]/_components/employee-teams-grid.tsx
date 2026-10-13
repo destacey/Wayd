@@ -14,6 +14,10 @@ import {
   useGetEmployeeTeamMembershipsQuery,
 } from '@/src/store/features/organization/team-members-api'
 import { useGetTeamMemberRolesQuery } from '@/src/store/features/organization/team-member-roles-api'
+import { useGetEmployeeAllocationsQuery } from '@/src/store/features/organization/employee-allocations-api'
+import { useFeatureFlag } from '@/src/hooks'
+import { todayCalendarDate } from '@/src/utils'
+import { allocatedOn } from './allocation-periods'
 
 interface Props {
   employeeId: string
@@ -34,6 +38,14 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
   } = useGetEmployeeTeamMembershipsQuery({ employeeId }, { skip: !employeeId })
 
   const { data: allRoles } = useGetTeamMemberRolesQuery(false)
+
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
+  const { data: allocations } = useGetEmployeeAllocationsQuery(
+    { employeeId },
+    { skip: !employeeId || !capacityEnabled },
+  )
   const roleDescriptionById = useMemo(() => {
     const map = new Map<string, string | undefined>()
     allRoles?.forEach((r) => map.set(r.id, r.description ?? undefined))
@@ -88,8 +100,25 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
           </Flex>
         ),
       },
+      ...(capacityEnabled
+        ? [
+            {
+              id: 'allocation',
+              // The share of the person's time this team has today, in every role.
+              accessorFn: (row: TeamMemberDto) =>
+                allocatedOn(
+                  (allocations ?? []).filter((a) => a.team.id === row.team.id),
+                  todayCalendarDate(),
+                ),
+              header: 'Allocation',
+              size: 120,
+              cell: ({ getValue }: { getValue: () => number }) =>
+                `${getValue()}%`,
+            },
+          ]
+        : []),
     ],
-    [roleDescriptionById, roleFilterOptions],
+    [roleDescriptionById, roleFilterOptions, capacityEnabled, allocations],
   )
 
   return (

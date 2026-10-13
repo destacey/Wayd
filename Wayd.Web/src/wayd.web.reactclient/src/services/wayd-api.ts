@@ -36566,6 +36566,80 @@ export class TeamsClient {
     }
 
     /**
+     * Get the capacity of a team over a date range, from the time people are allocated to it.
+     * @param from (optional) 
+     * @param to (optional) 
+     */
+    getCapacity(id: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/capacity?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacity(_response);
+        });
+    }
+
+    protected processGetCapacity(response: AxiosResponse): Promise<TeamCapacityDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityDto>(null as any);
+    }
+
+    /**
      * Forecast how many of a team's open backlog work items it will finish from today through `targetDate`, by Monte Carlo simulation of its recent daily throughput.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
@@ -38605,6 +38679,80 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamAllocationDto>(null as any);
+    }
+
+    /**
+     * Get the capacity of a team of teams over a date range, from the time people are allocated to it.
+     * @param from (optional) 
+     * @param to (optional) 
+     */
+    getCapacity(id: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/capacity?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacity(_response);
+        });
+    }
+
+    protected processGetCapacity(response: AxiosResponse): Promise<TeamCapacityDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityDto>(null as any);
     }
 
     /**
@@ -51887,6 +52035,33 @@ export enum UnestimatedHandling {
 export enum ThemeCounting {
     SplitEvenly = "SplitEvenly",
     CountFully = "CountFully",
+}
+
+export interface TeamCapacityDto {
+    from: string;
+    to: string;
+    workingDays: number;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    canManage: boolean;
+    people: TeamCapacityPersonDto[];
+}
+
+export interface TeamCapacityPersonDto {
+    employee: NavigationDto;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    elsewherePersonDays: number;
+    allocations: TeamCapacityAllocationDto[];
+}
+
+export interface TeamCapacityAllocationDto {
+    id: string;
+    role?: NavigationDto | undefined;
+    countsTowardDeliveryCapacity: boolean;
+    start: string;
+    end?: string | undefined;
+    percent: number;
 }
 
 export interface TeamThroughputForecastDto {

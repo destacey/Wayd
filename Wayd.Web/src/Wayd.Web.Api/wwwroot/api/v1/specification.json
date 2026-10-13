@@ -32371,6 +32371,85 @@
         ]
       }
     },
+    "/api/organization/teams/{id}/capacity": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get the capacity of a team over a date range, from the time people are allocated to it.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Teams_GetCapacity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCapacityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/teams/{idOrCode}/throughput-forecast": {
       "get": {
         "tags": [
@@ -34330,6 +34409,85 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/capacity": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Get the capacity of a team of teams over a date range, from the time people are allocated to it.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "TeamsOfTeams_GetCapacity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCapacityDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -62469,6 +62627,126 @@
           "SplitEvenly",
           "CountFully"
         ]
+      },
+      "TeamCapacityDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "workingDays",
+          "allocatedPersonDays",
+          "deliveryPersonDays",
+          "people",
+          "canManage"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "workingDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "allocatedPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "deliveryPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityPersonDto"
+            }
+          }
+        }
+      },
+      "TeamCapacityPersonDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "employee",
+          "allocatedPersonDays",
+          "deliveryPersonDays",
+          "elsewherePersonDays",
+          "allocations"
+        ],
+        "properties": {
+          "employee": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "allocatedPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "deliveryPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "elsewherePersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityAllocationDto"
+            }
+          }
+        }
+      },
+      "TeamCapacityAllocationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "countsTowardDeliveryCapacity",
+          "start",
+          "percent"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "role": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "percent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "TeamThroughputForecastDto": {
         "type": "object",

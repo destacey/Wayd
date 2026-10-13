@@ -69393,10 +69393,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team of teams over a date range, from the time people are allocated to it.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, over the system default working week and holidays; `capacity/rollup` adds the teams beneath it. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamCapacityDto> GetCapacityAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team of teams over a date range with the teams beneath it rolled up.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the time allocated to the team of teams directly plus the time allocated to every team beneath it, at any depth. `allocatedPersonDays` and `deliveryPersonDays` are the totals; `directAllocatedPersonDays` and `directDeliveryPersonDays` are the team of teams' own part, which is what the `capacity` endpoint returns in detail. `children` is the tree of teams beneath it. Each has the `periods` of the range it counts for (the days its membership of its parent covers, less any its parent was itself out of the hierarchy), its own `workingDays` within them, the `people` allocated to it with each allocation's `personDays` over those days, its direct figures, and its totals including its own `children`. A team is counted over its own working week and holidays, a team of teams over the system defaults, and a team with nothing allocated is still listed. A team that moved between two parents in the range appears under each for its days there. An allocation counts once, on the team it was made to, so a person allocated at two levels has time at each and none of it twice; `people` counts that person once. `roles` breaks the total down by team member role and adds up to `allocatedPersonDays`. Nothing is stored and nothing can be changed here: change a team's allocations through that team. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCapacityRollupDto> GetCapacityRollupAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -70204,7 +70214,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team of teams over a date range, from the time people are allocated to it.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, over the system default working week and holidays; `capacity/rollup` adds the teams beneath it. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamCapacityDto> GetCapacityAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -70264,6 +70274,117 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team of teams over a date range with the teams beneath it rolled up.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the time allocated to the team of teams directly plus the time allocated to every team beneath it, at any depth. `allocatedPersonDays` and `deliveryPersonDays` are the totals; `directAllocatedPersonDays` and `directDeliveryPersonDays` are the team of teams' own part, which is what the `capacity` endpoint returns in detail. `children` is the tree of teams beneath it. Each has the `periods` of the range it counts for (the days its membership of its parent covers, less any its parent was itself out of the hierarchy), its own `workingDays` within them, the `people` allocated to it with each allocation's `personDays` over those days, its direct figures, and its totals including its own `children`. A team is counted over its own working week and holidays, a team of teams over the system defaults, and a team with nothing allocated is still listed. A team that moved between two parents in the range appears under each for its days there. An allocation counts once, on the team it was made to, so a person allocated at two levels has time at each and none of it twice; `people` counts that person once. `roles` breaks the total down by team member role and adds up to `allocatedPersonDays`. Nothing is stored and nothing can be changed here: change a team's allocations through that team. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCapacityRollupDto> GetCapacityRollupAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/capacity/rollup"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity/rollup");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityRollupDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -101847,6 +101968,118 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("teamOfTeams")]
         public TeamNavigationDto? TeamOfTeams { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityRollupDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("directAllocatedPersonDays")]
+        public decimal DirectAllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("directDeliveryPersonDays")]
+        public decimal DirectDeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("people")]
+        public int People { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("roles")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityRoleDto> Roles { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRoleDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("children")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityRollupNodeDto> Children { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRollupNodeDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityRollupNodeDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public TeamNavigationDto Team { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPeriodDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        public int WorkingDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("directAllocatedPersonDays")]
+        public decimal DirectAllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("directDeliveryPersonDays")]
+        public decimal DirectDeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("people")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityRollupPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRollupPersonDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("children")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityRollupNodeDto> Children { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRollupNodeDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityPeriodDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityRollupPersonDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("employee")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public NavigationDto Employee { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocations")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityAllocationDto> Allocations { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityAllocationDto>();
 
     }
 

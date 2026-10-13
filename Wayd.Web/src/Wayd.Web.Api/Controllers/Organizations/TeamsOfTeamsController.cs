@@ -111,7 +111,7 @@ public class TeamsOfTeamsController : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [OpenApiOperation(
         "Get the capacity of a team of teams over a date range, from the time people are allocated to it.",
-        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. It counts only people allocated to the team of teams directly, over the system default working week and holidays; `capacity/rollup` adds the teams beneath it. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -127,6 +127,30 @@ public class TeamsOfTeamsController : ControllerBase
 
         return capacity is not null
             ? Ok(capacity)
+            : NotFound();
+    }
+
+    [HttpGet("{id:guid}/capacity/rollup")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [OpenApiOperation(
+        "Get the capacity of a team of teams over a date range with the teams beneath it rolled up.",
+        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the time allocated to the team of teams directly plus the time allocated to every team beneath it, at any depth. `allocatedPersonDays` and `deliveryPersonDays` are the totals; `directAllocatedPersonDays` and `directDeliveryPersonDays` are the team of teams' own part, which is what the `capacity` endpoint returns in detail. `children` is the tree of teams beneath it. Each has the `periods` of the range it counts for (the days its membership of its parent covers, less any its parent was itself out of the hierarchy), its own `workingDays` within them, the `people` allocated to it with each allocation's `personDays` over those days, its direct figures, and its totals including its own `children`. A team is counted over its own working week and holidays, a team of teams over the system defaults, and a team with nothing allocated is still listed. A team that moved between two parents in the range appears under each for its days there. An allocation counts once, on the team it was made to, so a person allocated at two levels has time at each and none of it twice; `people` counts that person once. `roles` breaks the total down by team member role and adds up to `allocatedPersonDays`. Nothing is stored and nothing can be changed here: change a team's allocations through that team. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamCapacityRollupDto>> GetCapacityRollup(Guid id, [FromQuery] string? from, [FromQuery] string? to, CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(from, out var firstDay) || !IsoDateQuery.TryParse(to, out var lastDay))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        if (firstDay is null || lastDay is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest("Both from and to dates are required.", HttpContext));
+
+        var rollup = await _dispatcher.Send(new GetTeamOfTeamsCapacityRollupQuery(id, firstDay.Value, lastDay.Value), cancellationToken);
+
+        return rollup is not null
+            ? Ok(rollup)
             : NotFound();
     }
 

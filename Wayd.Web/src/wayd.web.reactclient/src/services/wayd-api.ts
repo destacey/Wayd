@@ -38827,6 +38827,80 @@ export class TeamsOfTeamsClient {
     }
 
     /**
+     * Get the capacity of a team of teams over a date range with the teams beneath it rolled up.
+     * @param from (optional) 
+     * @param to (optional) 
+     */
+    getCapacityRollup(id: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityRollupDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/capacity/rollup?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacityRollup(_response);
+        });
+    }
+
+    protected processGetCapacityRollup(response: AxiosResponse): Promise<TeamCapacityRollupDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityRollupDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityRollupDto>(null as any);
+    }
+
+    /**
      * Propose allocations for a team of teams from its members, without saving anything.
      * @param from (optional) 
      */
@@ -52438,6 +52512,42 @@ export interface TeamOfTeamsDetailsDto {
     inactiveDate?: string | undefined;
     isActive: boolean;
     teamOfTeams?: TeamNavigationDto | undefined;
+}
+
+export interface TeamCapacityRollupDto {
+    from: string;
+    to: string;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    directAllocatedPersonDays: number;
+    directDeliveryPersonDays: number;
+    people: number;
+    roles: TeamCapacityRoleDto[];
+    children: TeamCapacityRollupNodeDto[];
+}
+
+export interface TeamCapacityRollupNodeDto {
+    team: TeamNavigationDto;
+    periods: TeamCapacityPeriodDto[];
+    workingDays: number;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    directAllocatedPersonDays: number;
+    directDeliveryPersonDays: number;
+    people: TeamCapacityRollupPersonDto[];
+    children: TeamCapacityRollupNodeDto[];
+}
+
+export interface TeamCapacityPeriodDto {
+    start: string;
+    end: string;
+}
+
+export interface TeamCapacityRollupPersonDto {
+    employee: NavigationDto;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    allocations: TeamCapacityAllocationDto[];
 }
 
 export interface CreateTeamOfTeamsRequest {

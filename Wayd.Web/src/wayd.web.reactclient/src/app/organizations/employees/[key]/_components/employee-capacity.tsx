@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Flex, Progress, Statistic, Typography } from 'antd'
+import { Button, Flex, Statistic, theme } from 'antd'
 import { WaydGrid, renderTeamLink } from '@/src/components/common/wayd-grid'
+import { WaydTimeline } from '@/src/components/common/timeline'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import useAuth from '@/src/components/contexts/auth'
 import { formatCalendarDate, todayCalendarDate } from '@/src/utils'
@@ -10,14 +11,13 @@ import {
   EmployeeAllocationDto,
   useGetEmployeeAllocationsQuery,
 } from '@/src/store/features/organization/employee-allocations-api'
-import { allocatedOn, allocationPeriods } from './allocation-periods'
+import { allocatedOn } from './allocation-periods'
+import { allocationTimelineData } from './allocation-timeline-data'
 import ChangeAllocationForm, {
   AllocationToChange,
 } from './change-allocation-form'
 import MoveAllocationForm from './move-allocation-form'
 import styles from './employee-capacity.module.css'
-
-const { Text } = Typography
 
 const FULL_ALLOCATION = 100
 
@@ -45,7 +45,13 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
 
   const today = todayCalendarDate()
   const allocatedToday = allocatedOn(allocations, today)
-  const periods = allocationPeriods(allocations, today)
+  // The timeline takes colors as values, so the tokens are read here.
+  const { token } = theme.useToken()
+  const timeline = allocationTimelineData(allocations, today, {
+    allocation: token.colorPrimary,
+    partTotal: token.colorInfo,
+    fullTotal: token.colorSuccess,
+  })
   const canMove = canUpdateTeams && allocations.some((a) => a.canManage)
 
   const columns: ColumnDef<EmployeeAllocationDto, any>[] = [
@@ -136,22 +142,34 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
         />
       </Flex>
 
-      <div className={styles.periods}>
-        <Text strong>Total allocation from today</Text>
-        {periods.map((period) => (
-          <Flex key={period.start} align="center" gap="middle">
-            <Text className={styles.periodDates}>
-              {formatCalendarDate(period.start)}
-              {' – '}
-              {period.end ? formatCalendarDate(period.end) : 'No end'}
-            </Text>
-            <Progress
-              className={styles.periodBar}
-              percent={period.percent}
-              format={(percent) => `${percent}%`}
-            />
-          </Flex>
-        ))}
+      <div className={styles.timeline}>
+        <WaydTimeline<EmployeeAllocationDto>
+          variant="timeline"
+          items={timeline.items}
+          groups={timeline.groups}
+          windowStart={timeline.windowStart}
+          windowEnd={timeline.windowEnd}
+          minDate={timeline.minDate}
+          maxDate={timeline.maxDate}
+          storageKey="employee-allocations"
+          editable={false}
+          isLoading={isLoading}
+          emptyMessage="None of this person's time is allocated to a team."
+          onItemClick={(item) => {
+            const allocation = item.data
+            if (!allocation || !canUpdateTeams || !allocation.canManage) return
+            setOpenForm({
+              kind: 'change',
+              allocation: {
+                teamId: allocation.team.id,
+                roleId: allocation.role?.id,
+                start: allocation.start,
+                end: allocation.end,
+                percent: allocation.percent,
+              },
+            })
+          }}
+        />
       </div>
 
       <WaydGrid

@@ -19,6 +19,9 @@ let mockStaleCapacity: Record<string, unknown> | undefined
 let mockIsFetching = false
 let mockError: unknown
 const mockCapacityArgs = jest.fn()
+let mockRollup: Record<string, unknown> | undefined
+let mockRollupError: unknown
+const mockRollupArgs = jest.fn()
 jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
   useGetTeamCapacityQuery: (arg: unknown) => {
     mockCapacityArgs(arg)
@@ -28,6 +31,15 @@ jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
       isLoading: false,
       isFetching: mockIsFetching,
       error: mockError,
+      refetch: jest.fn(),
+    }
+  },
+  useGetTeamOfTeamsCapacityRollupQuery: (arg: unknown, options: unknown) => {
+    mockRollupArgs(arg, options)
+    return {
+      currentData: mockRollup,
+      isFetching: false,
+      error: mockRollupError,
       refetch: jest.fn(),
     }
   },
@@ -70,6 +82,15 @@ jest.mock('./initialize-allocations-form', () => ({
   default: (props: unknown) => {
     mockInitializeForm(props)
     return <div data-testid="initialize-form" />
+  },
+}))
+
+const mockRollupGrid = jest.fn()
+jest.mock('./team-capacity-rollup', () => ({
+  __esModule: true,
+  default: (props: unknown) => {
+    mockRollupGrid(props)
+    return <div data-testid="rollup-grid" />
   },
 }))
 
@@ -130,6 +151,57 @@ const team = { id: 'team-1', name: 'Cards', isActive: true }
 const renderSection = (overrides: Partial<typeof team> = {}) =>
   render(<TeamCapacity team={{ ...team, ...overrides }} teamType="Team" />)
 
+const cardsNode = {
+  team: { id: 'team-2', key: 2, name: 'Cards', code: 'CARDS', type: 'Team' },
+  periods: [{ start: '2027-02-01', end: '2027-02-28' }],
+  workingDays: 20,
+  allocatedPersonDays: 30,
+  deliveryPersonDays: 25,
+  directAllocatedPersonDays: 30,
+  directDeliveryPersonDays: 25,
+  people: [],
+  children: [],
+}
+
+const rollupOf = (overrides: Record<string, unknown> = {}) => ({
+  from: '2027-02-01',
+  to: '2027-02-28',
+  allocatedPersonDays: 40,
+  deliveryPersonDays: 33,
+  directAllocatedPersonDays: 10,
+  directDeliveryPersonDays: 10,
+  people: 4,
+  roles: [
+    {
+      role: { id: 'role-3', key: 3, name: 'Tester' },
+      countsTowardDeliveryCapacity: true,
+      personDays: 33,
+    },
+    {
+      role: { id: 'role-2', key: 2, name: 'Lead' },
+      countsTowardDeliveryCapacity: false,
+      personDays: 7,
+    },
+  ],
+  children: [cardsNode],
+  ...overrides,
+})
+
+const renderTeamOfTeamsSection = () =>
+  render(
+    <TeamCapacity
+      team={{ id: 'tot-1', name: 'Payments', isActive: true }}
+      teamType="TeamOfTeams"
+    />,
+  )
+
+/** The value shown under a summary statistic's title. */
+const statistic = (title: string) =>
+  screen
+    .getByText(title)
+    .closest('.ant-statistic')
+    ?.querySelector('.ant-statistic-content-value')?.textContent
+
 describe('TeamCapacity', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -139,6 +211,8 @@ describe('TeamCapacity', () => {
     mockIsFetching = false
     mockError = undefined
     mockMembers = [{ employee: { id: 'member-1' } }]
+    mockRollup = rollupOf()
+    mockRollupError = undefined
   })
 
   it('asks for the current month by default', () => {
@@ -365,5 +439,85 @@ describe('TeamCapacity', () => {
     )
 
     expect(mockChangeForm.mock.calls[0][0].endDateFor).toBeUndefined()
+  })
+
+  describe('on a team', () => {
+    it('does not read a rollup and totals its own allocations', () => {
+      renderSection()
+
+      expect(mockRollupArgs.mock.calls[0][1]).toEqual({ skip: true })
+      expect(statistic('People')).toBe('1')
+      expect(statistic('Allocated person-days')).toBe('10')
+      expect(screen.queryByTestId('rollup-grid')).not.toBeInTheDocument()
+      expect(screen.queryByText('Direct allocations')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('on a team of teams', () => {
+    it('reads the rollup for the same range as its direct allocations', () => {
+      renderTeamOfTeamsSection()
+
+      const range = mockCapacityArgs.mock.calls[0][0]
+      expect(mockRollupArgs.mock.calls[0]).toEqual([
+        { teamId: 'tot-1', from: range.from, to: range.to },
+        { skip: false },
+      ])
+    })
+
+    it('totals the teams beneath it with its direct allocations', () => {
+      renderTeamOfTeamsSection()
+
+      expect(statistic('People')).toBe('4')
+      expect(statistic('Allocated person-days')).toBe('40')
+      expect(statistic('Delivery person-days')).toBe('33')
+      expect(statistic('Working days (direct allocations)')).toBe('20')
+    })
+
+    it('breaks the whole rollup down by role', () => {
+      renderTeamOfTeamsSection()
+
+      expect(screen.getByText('Tester')).toBeInTheDocument()
+      expect(screen.getByText('Non-delivery')).toBeInTheDocument()
+      expect(screen.getByText('7')).toBeInTheDocument()
+      expect(screen.queryByText('7.5')).not.toBeInTheDocument()
+    })
+
+    it('keeps its direct allocations editable above the teams beneath it', () => {
+      renderTeamOfTeamsSection()
+
+      expect(screen.getByText('Direct allocations')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Change' })).toBeInTheDocument()
+      expect(mockRollupGrid.mock.calls[0][0]).toMatchObject({
+        nodes: [cardsNode],
+        range: {
+          from: mockCapacityArgs.mock.calls[0][0].from,
+          to: mockCapacityArgs.mock.calls[0][0].to,
+        },
+      })
+    })
+
+    it('still offers to initialize when only the teams beneath it have capacity', () => {
+      mockCapacity = capacity({ people: [], roles: [] })
+
+      renderTeamOfTeamsSection()
+
+      expect(
+        screen.getByRole('button', { name: 'Initialize' }),
+      ).toBeInTheDocument()
+    })
+
+    it('shows the reason when the rollup fails to load', () => {
+      mockRollup = undefined
+      mockRollupError = { detail: 'The date range is too long.' }
+
+      renderTeamOfTeamsSection()
+
+      expect(
+        screen.getByText('The date range is too long.'),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByText('Allocated person-days'),
+      ).not.toBeInTheDocument()
+    })
   })
 })

@@ -1,12 +1,16 @@
 import {
   capacityRows,
   clipToRange,
+  formatPeriods,
   formatPersonDays,
   monthOf,
   overProposed,
   proposalRequests,
   roleLines,
+  rollupRows,
 } from './team-capacity-data'
+
+jest.unmock('dayjs')
 
 describe('monthOf', () => {
   it.each([
@@ -242,5 +246,118 @@ describe('overProposed', () => {
     ])
 
     expect([...over]).toEqual(['e-1'])
+  })
+})
+
+describe('rollupRows', () => {
+  const person = (id: string, name: string, allocated: number) => ({
+    employee: { id, key: Number(id.slice(2)), name },
+    allocatedPersonDays: allocated,
+    deliveryPersonDays: allocated / 2,
+    allocations: [],
+  })
+
+  const node = (
+    id: string,
+    key: number,
+    name: string,
+    type: string,
+    rest: { people?: unknown[]; children?: unknown[] } = {},
+  ) =>
+    ({
+      team: { id, key, name, code: name.toUpperCase(), type },
+      periods: [{ start: '2027-02-08', end: '2027-02-14' }],
+      workingDays: 5,
+      allocatedPersonDays: 9,
+      deliveryPersonDays: 7,
+      directAllocatedPersonDays: 2,
+      directDeliveryPersonDays: 0,
+      people: [],
+      children: [],
+      ...rest,
+    }) as never
+
+  it('puts the people allocated to a team under it, ahead of the teams beneath it', () => {
+    const rows = rollupRows([
+      node('t-1', 1, 'Lending', 'Team of Teams', {
+        people: [person('e-7', 'Grace Hopper', 2)],
+        children: [
+          node('t-2', 2, 'Loans', 'Team', {
+            people: [person('e-8', 'Ada Lovelace', 4)],
+          }),
+        ],
+      }),
+    ])
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      kind: 'team',
+      name: 'Lending',
+      type: 'Team of Teams',
+      href: '/organizations/team-of-teams/1',
+      workingDays: 5,
+      allocatedPersonDays: 9,
+      deliveryPersonDays: 7,
+    })
+    expect(rows[0].children.map((c) => [c.kind, c.name, c.href])).toEqual([
+      ['person', 'Grace Hopper', '/organizations/employees/7'],
+      ['team', 'Loans', '/organizations/teams/2'],
+    ])
+    expect(rows[0].children[0]).toMatchObject({
+      type: 'Person',
+      allocatedPersonDays: 2,
+      deliveryPersonDays: 1,
+    })
+    expect(rows[0].children[0].periods).toBeUndefined()
+    expect(rows[0].children[0].workingDays).toBeUndefined()
+    expect(rows[0].children[1].children.map((c) => c.name)).toEqual([
+      'Ada Lovelace',
+    ])
+  })
+
+  it('gives a team that appears under two parents, and a person on two teams, a different id each time', () => {
+    const moved = () =>
+      node('t-9', 9, 'Cards', 'Team', {
+        people: [person('e-7', 'Grace Hopper', 2)],
+      })
+    const rows = rollupRows([
+      node('t-1', 1, 'Lending', 'Team of Teams', { children: [moved()] }),
+      node('t-2', 2, 'Retail', 'Team of Teams', { children: [moved()] }),
+    ])
+
+    const ids = rows.flatMap((r) => [
+      r.id,
+      ...r.children.flatMap((c) => [c.id, ...c.children.map((p) => p.id)]),
+    ])
+    expect(ids).toHaveLength(6)
+    expect(new Set(ids).size).toBe(6)
+  })
+})
+
+describe('formatPeriods', () => {
+  const range = { from: '2027-02-01', to: '2027-02-28' }
+
+  it('says so when the team was in the hierarchy for the whole range', () => {
+    expect(
+      formatPeriods([{ start: '2027-02-01', end: '2027-02-28' }], range),
+    ).toBe('Whole range')
+  })
+
+  it('lists each run of days, a single day on its own', () => {
+    const text = formatPeriods(
+      [
+        { start: '2027-02-01', end: '2027-02-05' },
+        { start: '2027-02-20', end: '2027-02-20' },
+      ],
+      range,
+    )
+
+    expect(text).toBe('Feb 1, 2027 to Feb 5, 2027; Feb 20, 2027')
+  })
+
+  it('does not call one run the whole range when it only starts with it', () => {
+    expect(
+      formatPeriods([{ start: '2027-02-01', end: '2027-02-05' }], range),
+    ).not.toBe('Whole range')
   })
 })

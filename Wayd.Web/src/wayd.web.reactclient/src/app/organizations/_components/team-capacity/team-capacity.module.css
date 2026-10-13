@@ -14,3 +14,7 @@
 .notice {
   margin-bottom: var(--ant-margin);
 }
+
+.rollupTitle {
+  margin-top: var(--ant-margin-lg);
+}

@@ -1,4 +1,4 @@
-import { addCalendarDays, CalendarDate } from '@/src/utils'
+import { addCalendarDays, CalendarDate, formatCalendarDate } from '@/src/utils'
 import {
   ChangeEmployeeAllocationsRequest,
   EmployeeAllocationChangeRequest,
@@ -7,6 +7,7 @@ import {
 import {
   TeamCapacityPersonDto,
   TeamCapacityRoleDto,
+  TeamCapacityRollupNodeDto,
 } from '@/src/store/features/organization/team-capacity-api'
 
 /** An inclusive range of calendar dates. */
@@ -181,4 +182,94 @@ export function overProposed(
       .filter(([, total]) => total.proposed > total.remaining)
       .map(([employeeId]) => employeeId),
   )
+}
+
+export const PERSON_TYPE_LABEL = 'Person'
+export const WHOLE_RANGE_LABEL = 'Whole range'
+
+/**
+ * A row of the rollup tree: a team beneath the team of teams, or a person
+ * allocated to one.
+ */
+export interface RollupRow {
+  /** Unique in the tree. A team that moved appears once under each parent. */
+  id: string
+  kind: 'team' | 'person'
+  name: string
+  href: string
+  /** The team's type, or `Person`. */
+  type: string
+  /** The days a team counts for. Absent for a person. */
+  periods?: { start: CalendarDate; end: CalendarDate }[]
+  /** A team's own working days in its periods. Absent for a person. */
+  workingDays?: number
+  /** For a team, everything beneath it included. */
+  allocatedPersonDays: number
+  deliveryPersonDays: number
+  children: RollupRow[]
+}
+
+/**
+ * The rollup as tree rows. Under each team come the people allocated to it
+ * and then the teams beneath it, each in the order they arrive.
+ */
+export function rollupRows(
+  nodes: TeamCapacityRollupNodeDto[],
+  parentId = '',
+): RollupRow[] {
+  return nodes.map((node) => {
+    const id = `${parentId}/${node.team.id}`
+
+    return {
+      id,
+      kind: 'team',
+      name: node.team.name,
+      href:
+        node.team.type === 'Team'
+          ? `/organizations/teams/${node.team.key}`
+          : `/organizations/team-of-teams/${node.team.key}`,
+      type: node.team.type,
+      periods: node.periods,
+      workingDays: node.workingDays,
+      allocatedPersonDays: node.allocatedPersonDays,
+      deliveryPersonDays: node.deliveryPersonDays,
+      children: [
+        ...node.people.map((person): RollupRow => ({
+          id: `${id}/${person.employee.id}`,
+          kind: 'person',
+          name: person.employee.name,
+          href: `/organizations/employees/${person.employee.key}`,
+          type: PERSON_TYPE_LABEL,
+          allocatedPersonDays: person.allocatedPersonDays,
+          deliveryPersonDays: person.deliveryPersonDays,
+          children: [],
+        })),
+        ...rollupRows(node.children, id),
+      ],
+    }
+  })
+}
+
+/**
+ * The days a team counts for, as text: `Whole range` when it was in the
+ * hierarchy throughout, or else each run of days.
+ */
+export function formatPeriods(
+  periods: { start: CalendarDate; end: CalendarDate }[],
+  range: CapacityRange,
+): string {
+  if (
+    periods.length === 1 &&
+    periods[0].start === range.from &&
+    periods[0].end === range.to
+  )
+    return WHOLE_RANGE_LABEL
+
+  return periods
+    .map((p) =>
+      p.start === p.end
+        ? formatCalendarDate(p.start)
+        : `${formatCalendarDate(p.start)} to ${formatCalendarDate(p.end)}`,
+    )
+    .join('; ')
 }

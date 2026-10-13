@@ -2,7 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Alert, Button, DatePicker, Descriptions, Flex, Statistic } from 'antd'
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Descriptions,
+  Flex,
+  Statistic,
+  Typography,
+} from 'antd'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import useAuth from '@/src/components/contexts/auth'
@@ -16,6 +24,7 @@ import {
 import {
   CapacityTeamType,
   useGetTeamCapacityQuery,
+  useGetTeamOfTeamsCapacityRollupQuery,
 } from '@/src/store/features/organization/team-capacity-api'
 import {
   useGetTeamMembersQuery,
@@ -24,6 +33,7 @@ import {
 import ChangeAllocationForm from '@/src/app/organizations/_components/allocations/change-allocation-form'
 import MoveAllocationForm from '@/src/app/organizations/_components/allocations/move-allocation-form'
 import InitializeAllocationsForm from './initialize-allocations-form'
+import TeamCapacityRollup from './team-capacity-rollup'
 import {
   CapacityRange,
   CapacityRow,
@@ -37,12 +47,17 @@ import {
 import styles from './team-capacity.module.css'
 
 const { RangePicker } = DatePicker
+const { Title } = Typography
 
 /** The longest range the capacity endpoint reads, in days. */
 const MAX_RANGE_DAYS = 731
 
 // Sorts an allocation with no end after every dated one.
 const NO_END_SORT_VALUE = '9999-12-31'
+
+// On a team of teams the section holds two grids, so neither can take the rest
+// of the viewport as a lone grid does.
+const DIRECT_GRID_HEIGHT = 320
 
 interface Props {
   team: { id: string; name: string; isActive: boolean }
@@ -59,7 +74,8 @@ type OpenForm =
 /**
  * A team's capacity over a date range: who is allocated to it and what that
  * comes to in person-days. It holds no plan of its own; every edit changes
- * the person's allocations.
+ * the person's allocations. A team of teams also shows the teams beneath it,
+ * read-only, and its totals include them.
  */
 const TeamCapacity = ({ team, teamType }: Props) => {
   const [range, setRange] = useState<CapacityRange>(() =>
@@ -80,6 +96,17 @@ const TeamCapacity = ({ team, teamType }: Props) => {
     refetch,
   } = useGetTeamCapacityQuery({ teamId: team.id, teamType, ...range })
 
+  const isTeamOfTeams = teamType === 'TeamOfTeams'
+  const {
+    currentData: rollup,
+    isFetching: rollupIsFetching,
+    error: rollupError,
+    refetch: refetchRollup,
+  } = useGetTeamOfTeamsCapacityRollupQuery(
+    { teamId: team.id, ...range },
+    { skip: !isTeamOfTeams },
+  )
+
   const { data: teamMembers } = useGetTeamMembersQuery(
     { teamId: team.id },
     { skip: teamType !== 'Team' },
@@ -95,7 +122,22 @@ const TeamCapacity = ({ team, teamType }: Props) => {
   const canEdit = canUpdateTeams && data?.canManage === true && team.isActive
 
   const rows = capacityRows(data?.people ?? [])
-  const lines = roleLines(data?.roles ?? [])
+  // A team of teams' totals and roles cover the teams beneath it too.
+  const totals = isTeamOfTeams
+    ? {
+        people: rollup?.people ?? 0,
+        allocatedPersonDays: rollup?.allocatedPersonDays ?? 0,
+        deliveryPersonDays: rollup?.deliveryPersonDays ?? 0,
+        roles: rollup?.roles ?? [],
+      }
+    : {
+        people: data?.people.length ?? 0,
+        allocatedPersonDays: data?.allocatedPersonDays ?? 0,
+        deliveryPersonDays: data?.deliveryPersonDays ?? 0,
+        roles: data?.roles ?? [],
+      }
+  const lines = roleLines(totals.roles)
+  const loadError = error ?? rollupError
   const closeForm = () => setOpenForm(null)
 
   const columns: ColumnDef<CapacityRow, any>[] = [
@@ -220,26 +262,33 @@ const TeamCapacity = ({ team, teamType }: Props) => {
         />
       </Flex>
 
-      {error ? (
+      {loadError ? (
         <Alert
           type="error"
           showIcon
           className={styles.notice}
           title="The team's capacity could not be loaded for this date range."
-          description={isApiError(error) ? error.detail : undefined}
+          description={isApiError(loadError) ? loadError.detail : undefined}
         />
       ) : (
         <>
           <Flex gap="large" wrap className={styles.summary}>
-            <Statistic title="Working days" value={data?.workingDays ?? 0} />
-            <Statistic title="People" value={data?.people.length ?? 0} />
+            <Statistic
+              title={
+                isTeamOfTeams
+                  ? 'Working days (direct allocations)'
+                  : 'Working days'
+              }
+              value={data?.workingDays ?? 0}
+            />
+            <Statistic title="People" value={totals.people} />
             <Statistic
               title="Allocated person-days"
-              value={formatPersonDays(data?.allocatedPersonDays ?? 0)}
+              value={formatPersonDays(totals.allocatedPersonDays)}
             />
             <Statistic
               title="Delivery person-days"
-              value={formatPersonDays(data?.deliveryPersonDays ?? 0)}
+              value={formatPersonDays(totals.deliveryPersonDays)}
             />
           </Flex>
 
@@ -278,10 +327,13 @@ const TeamCapacity = ({ team, teamType }: Props) => {
         </>
       )}
 
+      {isTeamOfTeams && <Title level={5}>Direct allocations</Title>}
+
       <WaydGrid
         columns={columns}
         data={rows}
         isLoading={isFetching}
+        height={isTeamOfTeams ? DIRECT_GRID_HEIGHT : undefined}
         onRefresh={() => {
           refetch()
         }}
@@ -296,6 +348,22 @@ const TeamCapacity = ({ team, teamType }: Props) => {
         persistStateKey="team-capacity"
         csvFileName="team-capacity"
       />
+
+      {isTeamOfTeams && (
+        <>
+          <Title level={5} className={styles.rollupTitle}>
+            Teams
+          </Title>
+          <TeamCapacityRollup
+            nodes={rollup?.children ?? []}
+            range={range}
+            isLoading={rollupIsFetching}
+            onRefresh={() => {
+              refetchRollup()
+            }}
+          />
+        </>
+      )}
 
       {openForm?.kind === 'add' && (
         <ChangeAllocationForm

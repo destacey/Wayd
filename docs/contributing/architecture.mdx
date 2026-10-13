@@ -221,8 +221,8 @@ of `ManageTeams`, or any new FK to a copy, needs the same guard.
 
 A copy is worth keeping when a domain writes against the concept or reads it on every request. A report
 that only needs another domain's data now and then asks the owner instead, through a request in
-`Common.Application/Requests` that the owning module handles. The team allocation report
-(`GetTeamAllocationQuery`, Work) does this twice:
+`Common.Application/Requests` that the owning module handles. The team work distribution report
+(`GetTeamWorkDistributionQuery`, Work) does this twice:
 
 - `GetTeamStructureQuery` (Organization) returns a team and every team beneath it over a date range as
   **dated membership edges** plus each team's sizing periods, not one resolved tree — a team can change
@@ -230,7 +230,7 @@ that only needs another domain's data now and then asks the owner instead, throu
 - `GetProjectClassificationsQuery` (PPM) returns each project's portfolio, program and **effective themes**
   (the project's own, or its program's when it has none).
 
-Keep the calculation out of the handler: `AllocationCalculator` is a pure function over those results and
+Keep the calculation out of the handler: `WorkDistributionCalculator` is a pure function over those results and
 the queried work items, so its rules are unit tested without a context or a dispatcher.
 
 ### Domain events and the activity log

@@ -31,6 +31,13 @@ const nextConfig = {
         destination: '/work/sprints/:key',
         permanent: true,
       },
+      // The in-app docs page for the report once named the Allocation Report.
+      {
+        source: '/docs/user-guide/work-management/allocation-report',
+        destination:
+          '/docs/user-guide/work-management/work-distribution-report',
+        permanent: true,
+      },
     ]
   },
 }

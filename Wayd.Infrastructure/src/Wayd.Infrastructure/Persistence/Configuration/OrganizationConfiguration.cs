@@ -123,6 +123,7 @@ public class TeamMemberRoleConfig : IEntityTypeConfiguration<TeamMemberRole>
         builder.Property(r => r.Description).HasMaxLength(1024);
 
         builder.Property(r => r.IsActive);
+        builder.Property(r => r.CountsTowardDeliveryCapacity);
 
         // Soft Delete
         builder.Property(r => r.Deleted);

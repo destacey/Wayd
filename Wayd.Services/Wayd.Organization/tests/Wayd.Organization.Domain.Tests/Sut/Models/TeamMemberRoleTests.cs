@@ -155,4 +155,32 @@ public class TeamMemberRoleTests
     }
 
     #endregion
+
+    #region SetCountsTowardDeliveryCapacity
+
+    [Fact]
+    public void Create_CountsTowardDeliveryCapacityByDefault()
+    {
+        // Act
+        var role = TeamMemberRole.Create("Engineer", null).Value;
+
+        // Assert
+        role.CountsTowardDeliveryCapacity.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetCountsTowardDeliveryCapacity_ChangesTheSetting()
+    {
+        // Arrange
+        var role = TeamMemberRole.Create("Manager", null).Value;
+
+        // Act
+        var result = role.SetCountsTowardDeliveryCapacity(false);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        role.CountsTowardDeliveryCapacity.Should().BeFalse();
+    }
+
+    #endregion
 }

@@ -48,6 +48,25 @@ public class DeleteTeamMemberRoleCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldFail_WhenAnAllocationUsesTheRole()
+    {
+        // Arrange
+        var role = TeamMemberRole.Create("Tech Lead", "Tech Lead role").Value;
+        _dbContext.AddTeamMemberRole(role);
+        var capacity = EmployeeCapacity.Create(Guid.NewGuid());
+        capacity.ChangeAllocations([new AllocationChange(Guid.NewGuid(), role.Id, new NodaTime.LocalDate(2027, 1, 1), null, 50)], EventActor.System, Timestamp);
+        _dbContext.AddEmployeeCapacity(capacity);
+
+        // Act
+        var result = await _handler.Handle(new DeleteTeamMemberRoleCommand(role.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("allocations");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_ShouldFail_WhenRoleIsInUse()
     {
         // Arrange

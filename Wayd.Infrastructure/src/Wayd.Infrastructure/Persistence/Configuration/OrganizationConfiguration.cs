@@ -174,6 +174,63 @@ public class HolidayConfig : IEntityTypeConfiguration<Holiday>
     }
 }
 
+public class EmployeeCapacityConfig : IEntityTypeConfiguration<EmployeeCapacity>
+{
+    public void Configure(EntityTypeBuilder<EmployeeCapacity> builder)
+    {
+        builder.ToTable("EmployeeCapacities", SchemaNames.Organization);
+
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.Id).ValueGeneratedNever();
+
+        // The id is the employee's, so an employee has at most one.
+        builder.HasOne<Employee>()
+            .WithOne()
+            .HasForeignKey<EmployeeCapacity>(c => c.Id)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // A change to an allocation writes only that allocation's row, so without this two concurrent changes
+        // that each fit within 100% could both save and together exceed it.
+        builder.Property(c => c.Revision).IsConcurrencyToken();
+
+        builder.HasMany(c => c.Allocations)
+            .WithOne()
+            .HasForeignKey(a => a.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class EmployeeTeamAllocationConfig : IEntityTypeConfiguration<EmployeeTeamAllocation>
+{
+    public void Configure(EntityTypeBuilder<EmployeeTeamAllocation> builder)
+    {
+        builder.ToTable("EmployeeTeamAllocations", SchemaNames.Organization);
+
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).ValueGeneratedNever();
+
+        builder.Property(a => a.Start).IsRequired();
+        builder.Property(a => a.End);
+        builder.Property(a => a.Percent).IsRequired();
+
+        builder.HasIndex(a => new { a.EmployeeId, a.Start });
+
+        // A team's capacity over a date range reads every allocation to it.
+        builder.HasIndex(a => new { a.TeamId, a.Start })
+            .IncludeProperties(a => new { a.EmployeeId, a.RoleId, a.End, a.Percent });
+
+        builder.HasOne<BaseTeam>()
+            .WithMany()
+            .HasForeignKey(a => a.TeamId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne<TeamMemberRole>()
+            .WithMany()
+            .HasForeignKey(a => a.RoleId)
+            .OnDelete(DeleteBehavior.NoAction);
+    }
+}
+
 public class TeamMemberConfig : IEntityTypeConfiguration<TeamMember>
 {
     public void Configure(EntityTypeBuilder<TeamMember> builder)

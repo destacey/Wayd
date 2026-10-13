@@ -840,6 +840,28 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void EmployeeAllocationsChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — one allocation open-ended with no role, the other closed with one, and an empty collection
+        var teamId = Guid.NewGuid();
+        var added = new EmployeeAllocationDetails(teamId, RoleId: null, new LocalDate(2027, 1, 1), End: null, Percent: 60);
+        var kept = new EmployeeAllocationDetails(Guid.NewGuid(), Guid.NewGuid(), new LocalDate(2027, 2, 1), new LocalDate(2027, 2, 7), 40);
+        var original = new EmployeeAllocationsChangedEvent(
+            id: Guid.NewGuid(),
+            added: [added],
+            removed: [],
+            allocations: [added, kept],
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 10, 12, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
     public void TeamMembershipDatesChangedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange — one range open-ended, the other closed

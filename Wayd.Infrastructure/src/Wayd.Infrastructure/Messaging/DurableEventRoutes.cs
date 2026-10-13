@@ -94,6 +94,10 @@ public static class DurableEventRoutes
         typeof(TeamActivatedEvent),
         typeof(TeamDeactivatedEvent),
 
+        // Organization Employee → their EmployeeCapacity, whose allocations end when they are deactivated. No
+        // in-request reader; a people sync deactivates many at once and none may be lost.
+        typeof(EmployeeDeactivatedEvent),
+
         // Superseded by TeamDetailsUpdatedEvent; routed durably for envelopes written before the switch.
 #pragma warning disable CS0618
         typeof(TeamUpdatedEvent),

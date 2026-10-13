@@ -84,7 +84,7 @@ public class TeamsOfTeamsController : ControllerBase
     [OpenApiOperation(
         "Report where the completed work of a team of teams, and every team beneath it, went.",
         "Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.")]
-    [McpTool("TeamsOfTeams_GetAllocation", "Report team of teams work distribution")]
+    [McpTool("TeamsOfTeams_GetWorkDistribution", "Report team of teams work distribution")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

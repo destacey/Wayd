@@ -4158,8 +4158,22 @@
       ]
     },
     {
-      "name": "TeamsOfTeams_GetAllocation",
-      "title": "Report team of teams allocation",
+      "name": "TeamsOfTeams_GetList",
+      "title": "List teams of teams",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "includeInactive"
+      ],
+      "required": []
+    },
+    {
+      "name": "TeamsOfTeams_GetWorkDistribution",
+      "title": "Report team of teams work distribution",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4180,20 +4194,6 @@
         "idOrCode",
         "to"
       ]
-    },
-    {
-      "name": "TeamsOfTeams_GetList",
-      "title": "List teams of teams",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "includeInactive"
-      ],
-      "required": []
     },
     {
       "name": "Teams_GetActivities",
@@ -4279,8 +4279,8 @@
       ]
     },
     {
-      "name": "Teams_GetTeamAllocation",
-      "title": "Report team allocation",
+      "name": "Teams_GetTeamWorkDistribution",
+      "title": "Report team work distribution",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

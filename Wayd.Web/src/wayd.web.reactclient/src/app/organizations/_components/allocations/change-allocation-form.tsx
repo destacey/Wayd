@@ -45,11 +45,6 @@ interface Props {
   team?: { id: string; name: string }
   /** Absent when allocating the employee to a team afresh. */
   allocation?: AllocationToChange
-  /**
-   * With `allocation`: set the percent on the dates entered and leave the
-   * allocation's other days as they were, instead of replacing it whole.
-   */
-  rangeOnly?: boolean
   /** The dates the form opens with. Defaults to the allocation's own. */
   initialDates?: AllocationDates
   /** The end date to offer once a person is chosen; undefined for no end. */
@@ -71,13 +66,11 @@ interface FormValues {
  * The changes that turn `allocation` into the values entered. The API sets a
  * percent over a date range and leaves other days alone, so moving the start
  * later or the end earlier would otherwise leave the days dropped as they
- * were: the original range is cleared first, in the same request. A
- * `rangeOnly` change skips that, so only the dates entered are touched.
+ * were: the original range is cleared first, in the same request.
  */
 export const changesFor = (
   allocation: AllocationToChange | undefined,
   values: Omit<FormValues, 'employeeId'>,
-  rangeOnly = false,
 ) => {
   const entered = {
     teamId: allocation?.teamId ?? values.teamId,
@@ -87,7 +80,7 @@ export const changesFor = (
     percent: values.percent,
   }
 
-  return allocation && !rangeOnly
+  return allocation
     ? [
         {
           teamId: allocation.teamId,
@@ -106,7 +99,6 @@ const ChangeAllocationForm = ({
   employeeName,
   team,
   allocation,
-  rangeOnly = false,
   initialDates,
   endDateFor,
   onFormComplete,
@@ -129,11 +121,10 @@ const ChangeAllocationForm = ({
           const response = await changeAllocations({
             employeeId: employeeId ?? values.employeeId!,
             request: {
-              changes: changesFor(
-                allocation,
-                { ...values, teamId: team?.id ?? values.teamId },
-                rangeOnly,
-              ),
+              changes: changesFor(allocation, {
+                ...values,
+                teamId: team?.id ?? values.teamId,
+              }),
             },
           })
           if (response.error) throw response.error
@@ -266,11 +257,9 @@ const ChangeAllocationForm = ({
           name="percent"
           label="Percent of their time"
           extra={
-            !allocation
-              ? 'Replaces what this team and role have on these dates.'
-              : rangeOnly
-                ? 'Applies to these dates only. Enter 0 to remove the allocation on them.'
-                : 'Enter 0 to remove this allocation.'
+            allocation
+              ? 'Enter 0 to remove this allocation.'
+              : 'Replaces what this team and role have on these dates.'
           }
           rules={[{ required: true }]}
         >

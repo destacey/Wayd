@@ -14,7 +14,8 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 /// <paramref name="TeamType"/> with that id.
 /// </summary>
 /// <remarks>
-/// A team of teams counts only the people allocated to it directly, not those allocated to the teams beneath it.
+/// A team of teams counts only the people allocated to it directly. <see cref="GetTeamOfTeamsCapacityRollupQuery"/>
+/// adds the teams beneath it.
 /// </remarks>
 public sealed record GetTeamCapacityQuery(Guid TeamId, TeamType TeamType, LocalDate From, LocalDate To) : IQuery<TeamCapacityDto?>;
 

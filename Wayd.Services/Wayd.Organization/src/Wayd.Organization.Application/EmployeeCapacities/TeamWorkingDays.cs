@@ -23,12 +23,31 @@ internal static class TeamWorkingDays
         LocalDate to,
         CancellationToken cancellationToken)
     {
-        var periods = await organizationDbContext.Teams
-            .Where(t => t.Id == teamId)
-            .SelectMany(t => t.OperatingModels)
-            .Where(m => m.DateRange.Start <= to && (m.DateRange.End == null || m.DateRange.End >= from))
-            .Select(m => new { m.DateRange.Start, m.DateRange.End, m.WorkingWeek, m.HolidayCalendarId })
-            .ToListAsync(cancellationToken);
+        var workingDays = await Load(organizationDbContext, dispatcher, schedulingSettings, [teamId], from, to, cancellationToken);
+        return workingDays[teamId];
+    }
+
+    /// <summary>
+    /// The working days of each of <paramref name="teamIds"/> from <paramref name="from"/> to
+    /// <paramref name="to"/>, by team id, each as the single-team read gives them. Every id asked for has an
+    /// entry, whatever it names.
+    /// </summary>
+    public static async Task<IReadOnlyDictionary<Guid, IReadOnlyList<LocalDate>>> Load(
+        IOrganizationDbContext organizationDbContext,
+        IDispatcher dispatcher,
+        ISettings<SchedulingSettings> schedulingSettings,
+        IReadOnlyCollection<Guid> teamIds,
+        LocalDate from,
+        LocalDate to,
+        CancellationToken cancellationToken)
+    {
+        var periodsByTeam = (await organizationDbContext.Teams
+            .Where(t => teamIds.Contains(t.Id))
+            .SelectMany(t => t.OperatingModels, (t, m) => new { TeamId = t.Id, Model = m })
+            .Where(x => x.Model.DateRange.Start <= to && (x.Model.DateRange.End == null || x.Model.DateRange.End >= from))
+            .Select(x => new { x.TeamId, x.Model.DateRange.Start, x.Model.DateRange.End, x.Model.WorkingWeek, x.Model.HolidayCalendarId })
+            .ToListAsync(cancellationToken))
+            .ToLookup(p => p.TeamId);
 
         var defaultWorkingWeek = (await schedulingSettings.Get(cancellationToken)).DefaultWorkingWeek();
 
@@ -46,16 +65,24 @@ internal static class TeamWorkingDays
             return holidays;
         }
 
-        List<LocalDate> workingDays = [];
-        for (var day = from; day <= to; day = day.PlusDays(1))
+        Dictionary<Guid, IReadOnlyList<LocalDate>> workingDaysByTeam = [];
+        foreach (var teamId in teamIds.Distinct())
         {
-            var period = periods.Find(p => p.Start <= day && (p.End is null || p.End >= day));
-            var workingWeek = period?.WorkingWeek ?? defaultWorkingWeek;
+            var periods = periodsByTeam[teamId].ToList();
 
-            if (workingWeek.Includes(day) && !(await Holidays(period?.HolidayCalendarId)).Contains(day))
-                workingDays.Add(day);
+            List<LocalDate> workingDays = [];
+            for (var day = from; day <= to; day = day.PlusDays(1))
+            {
+                var period = periods.Find(p => p.Start <= day && (p.End is null || p.End >= day));
+                var workingWeek = period?.WorkingWeek ?? defaultWorkingWeek;
+
+                if (workingWeek.Includes(day) && !(await Holidays(period?.HolidayCalendarId)).Contains(day))
+                    workingDays.Add(day);
+            }
+
+            workingDaysByTeam[teamId] = workingDays;
         }
 
-        return workingDays;
+        return workingDaysByTeam;
     }
 }

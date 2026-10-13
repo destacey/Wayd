@@ -6,6 +6,8 @@ import {
   TeamCapacityDto,
   TeamCapacityPersonDto,
   TeamCapacityRoleDto,
+  TeamCapacityRollupDto,
+  TeamCapacityRollupNodeDto,
 } from '@/src/services/wayd-api'
 import { CalendarDate } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
@@ -18,6 +20,8 @@ export type {
   TeamCapacityDto,
   TeamCapacityPersonDto,
   TeamCapacityRoleDto,
+  TeamCapacityRollupDto,
+  TeamCapacityRollupNodeDto,
 }
 
 /** Which of the two team endpoints a capacity read goes to. */
@@ -51,6 +55,31 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getTeamOfTeamsCapacityRollup: builder.query<
+      TeamCapacityRollupDto,
+      { teamId: string; from: CalendarDate; to: CalendarDate }
+    >({
+      queryFn: async ({ teamId, from, to }) => {
+        try {
+          const data = await getTeamsOfTeamsClient().getCapacityRollup(
+            teamId,
+            from,
+            to,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The rollup is made of the allocations of every team beneath this one
+      // and of which teams those are, so a change to either refetches it.
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.TeamCapacity, id: arg.teamId },
+        { type: QueryTags.TeamMembership, id: 'LIST' },
+      ],
+    }),
+
     getTeamAllocationProposal: builder.query<
       TeamAllocationProposalDto,
       { teamId: string; teamType: CapacityTeamType; from: CalendarDate }
@@ -74,5 +103,8 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
   }),
 })
 
-export const { useGetTeamCapacityQuery, useGetTeamAllocationProposalQuery } =
-  teamCapacityApi
+export const {
+  useGetTeamCapacityQuery,
+  useGetTeamOfTeamsCapacityRollupQuery,
+  useGetTeamAllocationProposalQuery,
+} = teamCapacityApi

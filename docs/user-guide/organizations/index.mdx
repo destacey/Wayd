@@ -229,13 +229,22 @@ The section keeps no plan of its own: it is a view of people's allocations, and 
 - **By role** — Person-days for each role that counts toward delivery capacity, then one **Non-delivery** line for the roles that do not, so the lines add up to everything allocated
 - A grid with a row for each allocation in the range: Person, Role, Delivery, Percent, Start, End, **Person-days** on this team and **Elsewhere**, the person-days the same person has allocated to other teams on the same days
 
-A team of teams shows the people allocated to it directly.
+A team of teams' section also covers the teams beneath it, at any depth:
+
+- **Direct allocations** is the grid of people allocated to the team of teams itself. It works as it does on a team
+- **Teams** lists the teams beneath it. Open a team to see the people allocated to it, and a team of teams to see its own people and then its teams. Each team name opens that team's page
+- **In hierarchy** shows the days of the range a team counts for. A team counts only for the days it belonged to the team of teams, so one that joined or left part-way through, or left and came back, counts for those days alone. A team inside a nested team of teams counts only while that team of teams was itself in the hierarchy
+- Each team is counted over its own **Working days**, so teams with different working weeks add up in person-days. A team with no one allocated is still listed, at 0
+- **People**, **Allocated person-days**, **Delivery person-days** and **By role** total the direct allocations and every team beneath. **Working days (direct allocations)** is the team of teams' own
+- Someone allocated to the team of teams and to a team beneath it has time at each level and none of it twice, and counts once in **People**
+
+The teams beneath are read-only here. To change a team's allocations, open that team.
 
 If you can change the team's allocations:
 
 - **Initialize** is offered when no one is allocated in the range. It proposes each active member, one row per role they hold, at what is left of their time from the start of the range on, split evenly between their roles. Adjust the percents and click **Save**; nothing is saved before that. A member with nothing left is listed and marked **Nothing left**, not left out. A member who already has a later allocation to the team is proposed only up to the day before it, shown in an **Ends** column, so that allocation is left as it is. If some people cannot be saved, the form stays open on them with the reason for each, and everyone else is saved
 - **Allocate Person** gives the team a share of anyone's time, member or not, with an optional role. A member's allocation has no end by default; a non-member's ends with the range
-- **Change** on a row sets that person's percent for the dates you enter, which start as the days of the range that allocation covers. Days outside them keep what they had; entering 0 removes the allocation on those dates
+- **Change** on a row edits that allocation: its start, end and percent, opening on the values it has now whatever the date range shown. Entering 0 removes it
 - **Rebalance** on a row moves a share of the person's time from another team to this one in one step, for someone who has nothing left. It is offered when the person has time on another team whose allocations you can also change
 
 Anyone else sees the section read-only, as does everyone on an inactive team.

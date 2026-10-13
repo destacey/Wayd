@@ -1,4 +1,5 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
@@ -122,7 +123,7 @@ public class TeamsOfTeamsController : ControllerBase
         if (firstDay is null || lastDay is null)
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("Both from and to dates are required.", HttpContext));
 
-        var capacity = await _dispatcher.Send(new GetTeamCapacityQuery(id, firstDay.Value, lastDay.Value), cancellationToken);
+        var capacity = await _dispatcher.Send(new GetTeamCapacityQuery(id, TeamType.TeamOfTeams, firstDay.Value, lastDay.Value), cancellationToken);
 
         return capacity is not null
             ? Ok(capacity)

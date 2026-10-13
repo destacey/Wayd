@@ -7,6 +7,7 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Commands;
@@ -429,7 +430,7 @@ public class TeamsController(
         if (firstDay is null || lastDay is null)
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("Both from and to dates are required.", HttpContext));
 
-        var capacity = await _dispatcher.Send(new GetTeamCapacityQuery(id, firstDay.Value, lastDay.Value), cancellationToken);
+        var capacity = await _dispatcher.Send(new GetTeamCapacityQuery(id, TeamType.Team, firstDay.Value, lastDay.Value), cancellationToken);
 
         return capacity is not null
             ? Ok(capacity)

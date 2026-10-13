@@ -192,7 +192,11 @@ public class EmployeesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<EmployeeAllocationDto>>> GetAllocations(Guid id, CancellationToken cancellationToken)
     {
-        return Ok(await _dispatcher.Send(new GetEmployeeAllocationsQuery(id), cancellationToken));
+        var allocations = await _dispatcher.Send(new GetEmployeeAllocationsQuery(id), cancellationToken);
+
+        return allocations is not null
+            ? Ok(allocations)
+            : NotFound();
     }
 
     [HttpPut("{id:guid}/allocations")]

@@ -1,7 +1,7 @@
 using FluentAssertions;
 using NodaTime;
-using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Xunit;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkTeams.Queries;

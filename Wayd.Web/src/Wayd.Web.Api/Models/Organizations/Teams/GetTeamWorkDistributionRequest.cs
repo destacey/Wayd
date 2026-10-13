@@ -1,7 +1,7 @@
 using Wayd.Common.Application.Models.Organizations;
 using Wayd.Web.Api.Extensions;
-using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 
 namespace Wayd.Web.Api.Models.Organizations.Teams;
 

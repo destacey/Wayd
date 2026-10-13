@@ -4,8 +4,8 @@ using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Application.Persistence;
-using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.Application.WorkTeams.Dtos;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 
 namespace Wayd.Work.Application.WorkTeams.Queries;
 

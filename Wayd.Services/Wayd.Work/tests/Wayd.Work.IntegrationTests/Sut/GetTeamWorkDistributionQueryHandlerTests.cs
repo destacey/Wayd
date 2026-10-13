@@ -4,8 +4,8 @@ using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
-using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
 namespace Wayd.Work.IntegrationTests.Sut;

@@ -3,8 +3,8 @@ using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.Application.WorkTeams.Dtos;
+using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Xunit;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkTeams.WorkDistribution;

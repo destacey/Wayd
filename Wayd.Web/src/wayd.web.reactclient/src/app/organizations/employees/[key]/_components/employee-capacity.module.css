@@ -1,0 +1,20 @@
+.summary {
+  margin-bottom: var(--ant-margin);
+}
+
+.periods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xxs);
+  max-width: 640px;
+  margin-bottom: var(--ant-margin-lg);
+}
+
+.periodDates {
+  flex: 0 0 220px;
+}
+
+.periodBar {
+  flex: 1;
+  margin: 0;
+}

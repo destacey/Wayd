@@ -109,6 +109,7 @@ jest.mock('@/src/hooks/use-document-title', () => ({
 
 jest.mock('@/src/hooks', () => ({
   useAppDispatch: () => jest.fn(),
+  useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
   // The facts rail remembers whether it is hidden. The global localStorage
   // stub has no backing store, so stand in a plain state hook.
   useLocalStorageState: (_key: string, initial: unknown) =>
@@ -126,6 +127,12 @@ jest.mock('@/src/store/features/organizations/employee-api', () => ({
     isLoading: false,
   })),
 }))
+
+jest.mock('./_components/employee-capacity', () => {
+  const MockEmployeeCapacity = () => <div data-testid="employee-capacity" />
+  MockEmployeeCapacity.displayName = 'MockEmployeeCapacity'
+  return MockEmployeeCapacity
+})
 
 jest.mock('./_components/employee-teams-grid', () => {
   const EmployeeTeamsGrid = () => <div>Employee Teams Grid</div>

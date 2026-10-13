@@ -7,6 +7,7 @@ export {
 } from './dates'
 export {
   type CalendarDate,
+  addCalendarDays,
   calendarDateInZone,
   calendarDaysBetween,
   compareCalendarDates,

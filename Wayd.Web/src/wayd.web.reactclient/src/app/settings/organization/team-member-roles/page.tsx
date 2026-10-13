@@ -7,7 +7,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
 import { TeamMemberRoleDto } from '@/src/services/wayd-api'
 import {
   useGetTeamMemberRolesQuery,
@@ -42,6 +42,9 @@ const TeamMemberRolesPage = () => {
   const { hasPermissionClaim } = useAuth()
 
   const canCreate = hasPermissionClaim('Permissions.TeamMemberRoles.Create')
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
   const canUpdate = hasPermissionClaim('Permissions.TeamMemberRoles.Update')
   const canDelete = hasPermissionClaim('Permissions.TeamMemberRoles.Delete')
 
@@ -140,8 +143,25 @@ const TeamMemberRolesPage = () => {
         header: 'Active',
         meta: { columnType: 'yesNo' },
       },
+      ...(capacityEnabled
+        ? [
+            {
+              id: 'countsTowardDeliveryCapacity',
+              accessorKey: 'countsTowardDeliveryCapacity',
+              header: 'Delivery Capacity',
+              meta: { columnType: 'yesNo' as const },
+            },
+          ]
+        : []),
     ]
-  }, [canUpdate, canDelete, activateRole, deactivateRole, messageApi])
+  }, [
+    canUpdate,
+    canDelete,
+    activateRole,
+    deactivateRole,
+    messageApi,
+    capacityEnabled,
+  ])
 
   const controlItems: ItemType[] = [
     {

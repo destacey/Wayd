@@ -4,8 +4,8 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { TeamMemberRoleDto } from '@/src/services/wayd-api'
 import { useUpdateTeamMemberRoleMutation } from '@/src/store/features/organization/team-member-roles-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, Modal } from 'antd'
-import { useModalForm } from '@/src/hooks'
+import { Form, Input, Modal, Switch } from 'antd'
+import { useFeatureFlag, useModalForm } from '@/src/hooks'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -19,6 +19,7 @@ export interface EditTeamMemberRoleFormProps {
 interface FormValues {
   name: string
   description?: string
+  countsTowardDeliveryCapacity?: boolean
 }
 
 const EditTeamMemberRoleForm = ({
@@ -28,6 +29,9 @@ const EditTeamMemberRoleForm = ({
 }: EditTeamMemberRoleFormProps) => {
   const messageApi = useMessage()
   const [updateTeamMemberRole] = useUpdateTeamMemberRoleMutation()
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<FormValues>({
@@ -37,6 +41,7 @@ const EditTeamMemberRoleForm = ({
             id: role.id,
             name: values.name,
             description: values.description || undefined,
+            countsTowardDeliveryCapacity: values.countsTowardDeliveryCapacity,
           })
           if (response.error) throw response.error
           messageApi.success('Team member role updated successfully.')
@@ -78,7 +83,11 @@ const EditTeamMemberRoleForm = ({
         size="small"
         layout="vertical"
         name="edit-team-member-role-form"
-        initialValues={{ name: role.name, description: role.description }}
+        initialValues={{
+          name: role.name,
+          description: role.description,
+          countsTowardDeliveryCapacity: role.countsTowardDeliveryCapacity,
+        }}
       >
         <Item
           label="Name"
@@ -93,6 +102,16 @@ const EditTeamMemberRoleForm = ({
         <Item label="Description" name="description" rules={[{ max: 1024 }]}>
           <TextArea showCount maxLength={1024} rows={4} />
         </Item>
+        {capacityEnabled && (
+          <Item
+            label="Counts toward delivery capacity"
+            name="countsTowardDeliveryCapacity"
+            valuePropName="checked"
+            extra="Turn off for a role, such as a manager's, whose time on a team does not burn the team's planned work. The time still counts toward the person's 100%."
+          >
+            <Switch />
+          </Item>
+        )}
       </Form>
     </Modal>
   )

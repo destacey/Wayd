@@ -5,23 +5,28 @@ using Wayd.Organization.Application.Models;
 
 namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 
-/// <summary>Every allocation of an employee's time, across all teams, in date order.</summary>
-public sealed record GetEmployeeAllocationsQuery(Guid EmployeeId) : IQuery<IReadOnlyList<EmployeeAllocationDto>>;
+/// <summary>
+/// Every allocation of an employee's time, across all teams, in date order. Null when the employee does not exist.
+/// </summary>
+public sealed record GetEmployeeAllocationsQuery(Guid EmployeeId) : IQuery<IReadOnlyList<EmployeeAllocationDto>?>;
 
 public sealed class GetEmployeeAllocationsQueryHandler(
     IOrganizationDbContext organizationDbContext,
     IDispatcher dispatcher,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider)
-    : IQueryHandler<GetEmployeeAllocationsQuery, IReadOnlyList<EmployeeAllocationDto>>
+    : IQueryHandler<GetEmployeeAllocationsQuery, IReadOnlyList<EmployeeAllocationDto>?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<IReadOnlyList<EmployeeAllocationDto>> Handle(GetEmployeeAllocationsQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<EmployeeAllocationDto>?> Handle(GetEmployeeAllocationsQuery request, CancellationToken cancellationToken)
     {
+        if (!await _organizationDbContext.Employees.AnyAsync(e => e.Id == request.EmployeeId, cancellationToken))
+            return null;
+
         var rows = await (
             from allocation in _organizationDbContext.EmployeeTeamAllocations
             where allocation.EmployeeId == request.EmployeeId

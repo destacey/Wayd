@@ -43,12 +43,6 @@ public static class TeamAllocationAuthorization
         if (employeeId is null)
             return manageable;
 
-        foreach (var teamId in teamIds.Distinct())
-        {
-            if (await dispatcher.Send(new IsTeamMemberQuery(teamId, employeeId.Value, asOf), cancellationToken))
-                manageable.Add(teamId);
-        }
-
-        return manageable;
+        return await dispatcher.Send(new GetTeamsWithMemberQuery([.. teamIds.Distinct()], employeeId.Value, asOf), cancellationToken);
     }
 }

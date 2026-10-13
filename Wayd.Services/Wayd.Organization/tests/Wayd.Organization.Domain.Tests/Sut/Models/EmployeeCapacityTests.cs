@@ -177,6 +177,26 @@ public class EmployeeCapacityTests
     }
 
     [Fact]
+    public void ChangeAllocations_ClearingARangeThenSettingALaterStart_MovesTheStart()
+    {
+        // Arrange
+        var capacity = WithAllocations(new AllocationChange(_teamA, null, Jan1, null, 50));
+
+        // Act — setting the later start alone would merge back into the allocation and change nothing
+        var result = capacity.ChangeAllocations(
+        [
+            new AllocationChange(_teamA, null, Jan1, null, 0),
+            new AllocationChange(_teamA, null, Feb1, null, 50),
+        ], EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.Allocations.Should().ContainSingle()
+            .Which.ToDetails().Should().Be(new EmployeeAllocationDetails(_teamA, null, Feb1, null, 50));
+        capacity.DomainEvents.Should().ContainSingle();
+    }
+
+    [Fact]
     public void ChangeAllocations_WhenNothingChanges_RaisesNoEvent()
     {
         // Arrange

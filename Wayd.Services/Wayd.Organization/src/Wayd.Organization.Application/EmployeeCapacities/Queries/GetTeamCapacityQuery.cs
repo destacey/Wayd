@@ -1,6 +1,7 @@
 using NodaTime;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 
@@ -8,12 +9,13 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 
 /// <summary>
 /// The capacity of a team or team of teams from <paramref name="From"/> to <paramref name="To"/>, both
-/// inclusive: who is allocated to it, and their person-days over its working days. Null when it does not exist.
+/// inclusive: who is allocated to it, and their person-days over its working days. Null when there is no
+/// <paramref name="TeamType"/> with that id.
 /// </summary>
 /// <remarks>
 /// A team of teams counts only the people allocated to it directly, not those allocated to the teams beneath it.
 /// </remarks>
-public sealed record GetTeamCapacityQuery(Guid TeamId, LocalDate From, LocalDate To) : IQuery<TeamCapacityDto?>;
+public sealed record GetTeamCapacityQuery(Guid TeamId, TeamType TeamType, LocalDate From, LocalDate To) : IQuery<TeamCapacityDto?>;
 
 public sealed class GetTeamCapacityQueryValidator : CustomValidator<GetTeamCapacityQuery>
 {
@@ -55,7 +57,8 @@ public sealed class GetTeamCapacityQueryHandler(
         var firstDay = request.From;
         var lastDay = request.To;
 
-        if (!await _organizationDbContext.BaseTeams.AnyAsync(t => t.Id == teamId, cancellationToken))
+        var teamType = request.TeamType;
+        if (!await _organizationDbContext.BaseTeams.AnyAsync(t => t.Id == teamId && t.Type == teamType, cancellationToken))
             return null;
 
         var workingDays = await TeamWorkingDays.Load(_organizationDbContext, _dispatcher, _schedulingSettings, teamId, firstDay, lastDay, cancellationToken);

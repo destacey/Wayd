@@ -68,20 +68,14 @@ public sealed class ChangeEmployeeAllocationsCommandHandler(
             if (!teamIds.TrueForAll(manageable.Contains))
                 return Result.Failure(TeamAllocationAuthorization.NotAMemberError);
 
-            var capacity = await AllocationTargets.LoadOrCreateCapacity(_organizationDbContext, request.EmployeeId, cancellationToken);
+            var (capacity, isNew) = await AllocationTargets.LoadOrCreateCapacity(_organizationDbContext, request.EmployeeId, cancellationToken);
 
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
             var result = capacity.ChangeAllocations(request.Changes, EventActor.User(_currentUser.GetUserId(), employeeId), now);
             if (result.IsFailure)
                 return result;
 
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return Result.Failure(AllocationTargets.ChangedElsewhereError);
+            return await AllocationTargets.Save(_organizationDbContext, capacity, isNew, cancellationToken);
         }
         catch (Exception ex)
         {

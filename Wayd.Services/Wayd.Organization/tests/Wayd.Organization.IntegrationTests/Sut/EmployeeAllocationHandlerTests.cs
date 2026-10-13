@@ -127,7 +127,7 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         var seeded = await Seed(cancellationToken);
 
         await using var context = _fixture.CreateContext();
-        var handler = ChangeHandler(context, Updater(seeded.EmployeeId), isMember: false);
+        var handler = ChangeHandler(context, Updater(seeded.EmployeeId));
 
         // Act
         var result = await handler.Handle(
@@ -154,7 +154,7 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = ChangeHandler(context, Updater(plannerId), isMember: true);
+        var handler = ChangeHandler(context, Updater(plannerId), seeded.TeamAId);
 
         // Act
         var result = await handler.Handle(
@@ -199,7 +199,7 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, Jan1, null, 100));
 
         await using var context = _fixture.CreateContext();
-        var handler = new MoveEmployeeAllocationCommandHandler(context, Dispatcher(false), CurrentUser(), Administrator(), Clock(), NullLogger<MoveEmployeeAllocationCommandHandler>.Instance);
+        var handler = MoveHandler(context, Administrator());
 
         // Act
         var result = await handler.Handle(
@@ -226,14 +226,14 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
             new AllocationChange(seeded.TeamBId, null, Feb1, Feb7, 30));
 
         await using var context = _fixture.CreateContext();
-        var handler = new GetEmployeeAllocationsQueryHandler(context, Dispatcher(false), Administrator(), Clock());
+        var handler = new GetEmployeeAllocationsQueryHandler(context, Dispatcher(), Administrator(), Clock());
 
         // Act
         var allocations = await handler.Handle(new GetEmployeeAllocationsQuery(seeded.EmployeeId), cancellationToken);
 
         // Assert
         allocations.Should().HaveCount(2);
-        var first = allocations[0];
+        var first = allocations![0];
         first.Team.Id.Should().Be(seeded.TeamAId);
         first.Team.Name.Should().Be("Cards");
         first.Team.Code.Should().Be("CARDS");
@@ -276,20 +276,174 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
     [Fact]
     public async Task EmployeeDeactivated_DeliveredAfterTheEmployeeWasReactivated_ChangesNothing()
     {
-        // Arrange
+        // Arrange — deactivated, reactivated an hour later, then allocated
         var cancellationToken = TestContext.Current.CancellationToken;
         var seeded = await Seed(cancellationToken);
+        var deactivatedAt = SqlServerDbContextFixture.FixedNow;
+        await SetActive(seeded.EmployeeId, false, cancellationToken, deactivatedAt);
+        await SetActive(seeded.EmployeeId, true, cancellationToken, deactivatedAt.Plus(Duration.FromHours(1)));
         await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, Jan1, null, 60));
 
         await using var context = _fixture.CreateContext();
         var handler = DeactivationHandler(context);
 
         // Act
-        await handler.Handle(new EmployeeDeactivatedEvent(seeded.EmployeeId, EventActor.System, SqlServerDbContextFixture.FixedNow), cancellationToken);
+        await handler.Handle(new EmployeeDeactivatedEvent(seeded.EmployeeId, EventActor.System, deactivatedAt), cancellationToken);
 
         // Assert
         await using var assertContext = _fixture.CreateContext();
         (await assertContext.EmployeeTeamAllocations.SingleAsync(a => a.EmployeeId == seeded.EmployeeId, cancellationToken)).End.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task EmployeeDeactivated_FromBeforeALaterReactivationAndDeactivation_DoesNotCutWhatWasAllocatedInBetween()
+    {
+        // Arrange — deactivated, reactivated, allocated from the next week, then deactivated again a month on
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        var firstDeactivation = SqlServerDbContextFixture.FixedNow;
+        var secondDeactivation = firstDeactivation.Plus(Duration.FromDays(30));
+        var allocatedFrom = new LocalDate(2026, 1, 20);
+        await SetActive(seeded.EmployeeId, false, cancellationToken, firstDeactivation);
+        await SetActive(seeded.EmployeeId, true, cancellationToken, firstDeactivation.Plus(Duration.FromHours(1)));
+        await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, allocatedFrom, null, 60));
+        await SetActive(seeded.EmployeeId, false, cancellationToken, secondDeactivation);
+
+        await using var context = _fixture.CreateContext();
+        var handler = DeactivationHandler(context);
+
+        // Act — the second deactivation is handled, then the first is redelivered late
+        await handler.Handle(new EmployeeDeactivatedEvent(seeded.EmployeeId, EventActor.System, secondDeactivation), cancellationToken);
+        await handler.Handle(new EmployeeDeactivatedEvent(seeded.EmployeeId, EventActor.System, firstDeactivation), cancellationToken);
+
+        // Assert
+        await using var assertContext = _fixture.CreateContext();
+        var allocation = await assertContext.EmployeeTeamAllocations.SingleAsync(a => a.EmployeeId == seeded.EmployeeId, cancellationToken);
+        allocation.Start.Should().Be(allocatedFrom);
+        allocation.End.Should().Be(secondDeactivation.InUtc().Date);
+    }
+
+    [Fact]
+    public async Task Change_ByAnAdministratorWhoIsNotAMember_Succeeds()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = ChangeHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new ChangeEmployeeAllocationsCommand(seeded.EmployeeId, [new AllocationChange(seeded.TeamAId, null, Jan1, null, 60)]),
+            cancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+    }
+
+    [Fact]
+    public async Task Change_ByAnUpdaterLinkedToNoEmployee_Fails()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = ChangeHandler(context, Updater(null), seeded.TeamAId);
+
+        // Act
+        var result = await handler.Handle(
+            new ChangeEmployeeAllocationsCommand(seeded.EmployeeId, [new AllocationChange(seeded.TeamAId, null, Jan1, null, 60)]),
+            cancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(TeamAllocationAuthorization.NotAMemberError);
+    }
+
+    [Fact]
+    public async Task Change_ThatChangesNothingForAnEmployeeWithNoAllocations_LeavesNoRecord()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = ChangeHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new ChangeEmployeeAllocationsCommand(seeded.EmployeeId, [new AllocationChange(seeded.TeamAId, null, Jan1, null, 0)]),
+            cancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeCapacities.AnyAsync(c => c.Id == seeded.EmployeeId, cancellationToken)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Save_OfAFirstAllocationAnotherWriterMadeFirst_FailsAsChangedElsewhere()
+    {
+        // Arrange — both writers found no record and each built a new one
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+
+        await using var firstContext = _fixture.CreateContext();
+        await using var secondContext = _fixture.CreateContext();
+        var (first, firstIsNew) = await AllocationTargets.LoadOrCreateCapacity(firstContext, seeded.EmployeeId, cancellationToken);
+        var (second, secondIsNew) = await AllocationTargets.LoadOrCreateCapacity(secondContext, seeded.EmployeeId, cancellationToken);
+        first.ChangeAllocations([new AllocationChange(seeded.TeamAId, null, Jan1, null, 80)], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+        second.ChangeAllocations([new AllocationChange(seeded.TeamBId, null, Jan1, null, 40)], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+        (await AllocationTargets.Save(firstContext, first, firstIsNew, cancellationToken)).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = await AllocationTargets.Save(secondContext, second, secondIsNew, cancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(AllocationTargets.ChangedElsewhereError);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.Where(a => a.EmployeeId == seeded.EmployeeId).SumAsync(a => a.Percent, cancellationToken)).Should().Be(80);
+    }
+
+    [Fact]
+    public async Task Move_ByAMemberOfOnlyOneOfTheTwoTeams_Fails()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, Jan1, null, 100));
+
+        await using var context = _fixture.CreateContext();
+        var handler = MoveHandler(context, Updater(seeded.EmployeeId), seeded.TeamAId);
+
+        // Act
+        var result = await handler.Handle(
+            new MoveEmployeeAllocationCommand(seeded.EmployeeId, seeded.TeamAId, null, seeded.TeamBId, null, Feb1, Feb7, 50),
+            cancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(TeamAllocationAuthorization.NotAMemberError);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.CountAsync(a => a.EmployeeId == seeded.EmployeeId, cancellationToken)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetEmployeeAllocations_ForAnEmployeeThatDoesNotExist_ReturnsNull()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var context = _fixture.CreateContext();
+        var handler = new GetEmployeeAllocationsQueryHandler(context, Dispatcher(), Administrator(), Clock());
+
+        // Act
+        var allocations = await handler.Handle(new GetEmployeeAllocationsQuery(Guid.NewGuid()), cancellationToken);
+
+        // Assert
+        allocations.Should().BeNull();
     }
 
     private async Task<(Guid EmployeeId, Guid TeamAId, Guid TeamBId, Guid RoleId)> Seed(CancellationToken cancellationToken)
@@ -314,34 +468,39 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task SetActive(Guid employeeId, bool isActive, CancellationToken cancellationToken)
+    private async Task SetActive(Guid employeeId, bool isActive, CancellationToken cancellationToken, Instant? at = null)
     {
         await using var context = _fixture.CreateContext();
         var employee = await context.Employees.SingleAsync(e => e.Id == employeeId, cancellationToken);
-        var args = EmployeeActivatableArgs.Create(EventActor.System, SqlServerDbContextFixture.FixedNow);
+        var args = EmployeeActivatableArgs.Create(EventActor.System, at ?? SqlServerDbContextFixture.FixedNow);
         (isActive ? employee.Activate(args) : employee.Deactivate(args)).IsSuccess.Should().BeTrue();
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private static ChangeEmployeeAllocationsCommandHandler ChangeHandler(WaydDbContext context, ICurrentPrincipal principal, bool isMember = false) =>
-        new(context, Dispatcher(isMember), CurrentUser(), principal, Clock(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
+    private static ChangeEmployeeAllocationsCommandHandler ChangeHandler(WaydDbContext context, ICurrentPrincipal principal, params Guid[] memberOf) =>
+        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
+
+    private static MoveEmployeeAllocationCommandHandler MoveHandler(WaydDbContext context, ICurrentPrincipal principal, params Guid[] memberOf) =>
+        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), NullLogger<MoveEmployeeAllocationCommandHandler>.Instance);
 
     private static EmployeeDeactivatedAllocationHandler DeactivationHandler(WaydDbContext context)
     {
         var settings = new Mock<ISettings<SchedulingSettings>>();
         settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
-        return new EmployeeDeactivatedAllocationHandler(context, settings.Object, NullLogger<EmployeeDeactivatedAllocationHandler>.Instance);
+        return new EmployeeDeactivatedAllocationHandler(context, context, settings.Object, NullLogger<EmployeeDeactivatedAllocationHandler>.Instance);
     }
 
+    /// <summary>A caller with Update and Administer, linked to no employee and a member of no team.</summary>
     private static ICurrentPrincipal Administrator()
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
         return principal.Object;
     }
 
     /// <summary>A caller with the Update permission and no Administer, acting as the given employee.</summary>
-    private static ICurrentPrincipal Updater(Guid employeeId)
+    private static ICurrentPrincipal Updater(Guid? employeeId)
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(TeamAllocationAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -350,10 +509,11 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         return principal.Object;
     }
 
-    private static IDispatcher Dispatcher(bool isMember)
+    /// <summary>A dispatcher whose membership read answers with <paramref name="memberOf"/>.</summary>
+    private static IDispatcher Dispatcher(params Guid[] memberOf)
     {
         var dispatcher = new Mock<IDispatcher>();
-        dispatcher.Setup(d => d.Send(It.IsAny<IQuery<bool>>(), It.IsAny<CancellationToken>())).ReturnsAsync(isMember);
+        dispatcher.Setup(d => d.Send(It.IsAny<IQuery<IReadOnlySet<Guid>>>(), It.IsAny<CancellationToken>())).ReturnsAsync(memberOf.ToHashSet());
         return dispatcher.Object;
     }
 

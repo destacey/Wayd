@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
@@ -68,7 +69,7 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         var handler = Handler(context);
 
         // Act
-        var capacity = await handler.Handle(new GetTeamCapacityQuery(teamId, From, To), cancellationToken);
+        var capacity = await handler.Handle(new GetTeamCapacityQuery(teamId, TeamType.Team, From, To), cancellationToken);
 
         // Assert — nine working days once the holiday is out
         capacity.Should().NotBeNull();
@@ -103,7 +104,29 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         var handler = Handler(context);
 
         // Act
-        var capacity = await handler.Handle(new GetTeamCapacityQuery(Guid.NewGuid(), From, To), cancellationToken);
+        var capacity = await handler.Handle(new GetTeamCapacityQuery(Guid.NewGuid(), TeamType.Team, From, To), cancellationToken);
+
+        // Assert
+        capacity.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ForATeamAskedForAsATeamOfTeams_ReturnsNull()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        Guid teamId;
+        await using (var seedContext = _fixture.CreateContext())
+        {
+            teamId = (await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken)).Id;
+        }
+
+        await using var context = _fixture.CreateContext();
+        var handler = Handler(context);
+
+        // Act
+        var capacity = await handler.Handle(new GetTeamCapacityQuery(teamId, TeamType.TeamOfTeams, From, To), cancellationToken);
 
         // Assert
         capacity.Should().BeNull();

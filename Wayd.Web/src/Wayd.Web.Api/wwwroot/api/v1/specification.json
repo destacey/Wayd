@@ -29961,6 +29961,190 @@
         ]
       }
     },
+    "/api/organization/employees/{id}/allocations": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Get how an employee's time is allocated to teams over time.",
+        "description": "Returns every allocation across all teams in date order: the team, the role the time is spent in when one was chosen, the date range (`end` is null when it has no end) and the `percent` of the employee's time. An employee's allocations never add up to more than 100% on any day. `canManage` says whether the caller may change that team's allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_GetAllocations",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeAllocationDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Set the share of an employee's time one or more teams have over date ranges.",
+        "description": "Each change replaces what its team and role have over its date range and leaves other days as they were, so a change inside a longer allocation splits it; a `percent` of 0 ends the allocation for the range. The changes apply together or not at all, and fail if any day would then exceed 100% across all teams. The caller must be a member of every team named, or of its team of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_ChangeAllocations",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmployeeAllocationsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/employees/{id}/allocations/move": {
+      "post": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Move a share of an employee's time from one team and role to another over a date range.",
+        "description": "Lowers the source and raises the target by `percent` on every day of the range as one change, so a fully allocated employee can be moved between teams. Fails if the source has less than `percent` on any day of the range. The caller must be a member of both teams, or of their teams of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_MoveAllocation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveEmployeeAllocationRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/employees/{id}/work-items": {
       "get": {
         "tags": [
@@ -60338,6 +60522,171 @@
           }
         }
       },
+      "EmployeeAllocationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team",
+          "start",
+          "percent",
+          "canManage"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "team": {
+            "$ref": "#/components/schemas/TeamNavigationDto"
+          },
+          "role": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "percent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canManage": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ChangeEmployeeAllocationsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "changes"
+        ],
+        "properties": {
+          "changes": {
+            "type": "array",
+            "description": "The changes to make, applied together or not at all. Each sets what one team and role have over its date\nrange and leaves the days outside it as they were.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "$ref": "#/components/schemas/EmployeeAllocationChangeRequest"
+            }
+          }
+        }
+      },
+      "EmployeeAllocationChangeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teamId",
+          "start",
+          "percent"
+        ],
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "description": "The team or team of teams. The employee need not be a member of it.",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "roleId": {
+            "type": "string",
+            "description": "The team member role the time is spent in, or null for none.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "start": {
+            "type": "string",
+            "description": "The first day the change covers.",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "description": "The last day the change covers, or null for every day from the start on.",
+            "format": "date",
+            "nullable": true
+          },
+          "percent": {
+            "type": "integer",
+            "description": "The share of the employee's time, from 0 to 100. Zero ends the allocation for the date range.",
+            "format": "int32"
+          }
+        }
+      },
+      "MoveEmployeeAllocationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fromTeamId",
+          "toTeamId",
+          "start",
+          "percent"
+        ],
+        "properties": {
+          "fromTeamId": {
+            "type": "string",
+            "description": "The team or team of teams the time is taken from.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "fromRoleId": {
+            "type": "string",
+            "description": "The role the time is taken from on that team, or null for the allocation with no role.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "toTeamId": {
+            "type": "string",
+            "description": "The team or team of teams the time is given to. It can be the same team, in another role.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "toRoleId": {
+            "type": "string",
+            "description": "The role the time is given to on that team, or null for none.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "start": {
+            "type": "string",
+            "description": "The first day of the move.",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "description": "The last day of the move, or null for every day from the start on.",
+            "format": "date",
+            "nullable": true
+          },
+          "percent": {
+            "type": "integer",
+            "description": "The share of the employee's time to move, from 1 to 100.",
+            "format": "int32",
+            "maximum": 100.0,
+            "minimum": 1.0
+          }
+        }
+      },
       "WorkStatusCategory": {
         "type": "string",
         "description": "",
@@ -60551,7 +60900,8 @@
           "name",
           "id",
           "key",
-          "isActive"
+          "isActive",
+          "countsTowardDeliveryCapacity"
         ],
         "properties": {
           "id": {
@@ -60573,6 +60923,9 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean"
           }
         }
       },
@@ -60584,10 +60937,17 @@
         ],
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The role's name, unique across roles."
           },
           "description": {
             "type": "string",
+            "description": "What the role is for.",
+            "nullable": true
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean",
+            "description": "Whether time allocated to a team in this role adds to the team's delivery capacity. Defaults to true; false\nsuits a role such as a manager's, whose time on the team does not burn its planned work.",
             "nullable": true
           }
         }
@@ -60602,15 +60962,23 @@
         "properties": {
           "id": {
             "type": "string",
+            "description": "The role's id, which must match the route.",
             "format": "guid",
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The role's name, unique across roles."
           },
           "description": {
             "type": "string",
+            "description": "What the role is for.",
+            "nullable": true
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean",
+            "description": "Whether time allocated to a team in this role adds to the team's delivery capacity. Omit to leave it as it is.",
             "nullable": true
           }
         }

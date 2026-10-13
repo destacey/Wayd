@@ -61206,6 +61206,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get how an employee's time is allocated to teams over time.
+        /// </summary>
+        /// <remarks>
+        /// Returns every allocation across all teams in date order: the team, the role the time is spent in when one was chosen, the date range (`end` is null when it has no end) and the `percent` of the employee's time. An employee's allocations never add up to more than 100% on any day. `canManage` says whether the caller may change that team's allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeAllocationDto>> GetAllocationsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the share of an employee's time one or more teams have over date ranges.
+        /// </summary>
+        /// <remarks>
+        /// Each change replaces what its team and role have over its date range and leaves other days as they were, so a change inside a longer allocation splits it; a `percent` of 0 ends the allocation for the range. The changes apply together or not at all, and fail if any day would then exceed 100% across all teams. The caller must be a member of every team named, or of its team of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeAllocationsAsync(System.Guid id, ChangeEmployeeAllocationsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Move a share of an employee's time from one team and role to another over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Lowers the source and raises the target by `percent` on every day of the range as one change, so a fully allocated employee can be moved between teams. Fails if the source has less than `percent` on any day of the range. The caller must be a member of both teams, or of their teams of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task MoveAllocationAsync(System.Guid id, MoveEmployeeAllocationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the work items assigned to an employee.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62062,6 +62092,301 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how an employee's time is allocated to teams over time.
+        /// </summary>
+        /// <remarks>
+        /// Returns every allocation across all teams in date order: the team, the role the time is spent in when one was chosen, the date range (`end` is null when it has no end) and the `percent` of the employee's time. An employee's allocations never add up to more than 100% on any day. `canManage` says whether the caller may change that team's allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeAllocationDto>> GetAllocationsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/employees/{id}/allocations"
+                    urlBuilder_.Append("api/organization/employees/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/allocations");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<EmployeeAllocationDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the share of an employee's time one or more teams have over date ranges.
+        /// </summary>
+        /// <remarks>
+        /// Each change replaces what its team and role have over its date range and leaves other days as they were, so a change inside a longer allocation splits it; a `percent` of 0 ends the allocation for the range. The changes apply together or not at all, and fail if any day would then exceed 100% across all teams. The caller must be a member of every team named, or of its team of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeAllocationsAsync(System.Guid id, ChangeEmployeeAllocationsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/employees/{id}/allocations"
+                    urlBuilder_.Append("api/organization/employees/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/allocations");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Move a share of an employee's time from one team and role to another over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Lowers the source and raises the target by `percent` on every day of the range as one change, so a fully allocated employee can be moved between teams. Fails if the source has less than `percent` on any day of the range. The caller must be a member of both teams, or of their teams of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task MoveAllocationAsync(System.Guid id, MoveEmployeeAllocationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/employees/{id}/allocations/move"
+                    urlBuilder_.Append("api/organization/employees/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/allocations/move");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -64331,7 +64656,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<TeamWorkDistributionDto> GetTeamWorkDistributionAsync(string idOrCode, string? from = null, string? to = null, WorkDistributionDimension? dimension = null, WorkDistributionMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team over a date range, from the time people are allocated to it.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCapacityDto> GetCapacityAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -66179,7 +66514,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<TeamWorkDistributionDto> GetTeamWorkDistributionAsync(string idOrCode, string? from = null, string? to = null, WorkDistributionDimension? dimension = null, WorkDistributionMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrCode == null)
                 throw new System.ArgumentNullException("idOrCode");
@@ -66195,10 +66530,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/organization/teams/{idOrCode}/allocation"
+                    // Operation Path: "api/organization/teams/{idOrCode}/work-distribution"
                     urlBuilder_.Append("api/organization/teams/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/allocation");
+                    urlBuilder_.Append("/work-distribution");
                     urlBuilder_.Append('?');
                     if (from != null)
                     {
@@ -66251,7 +66586,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<TeamAllocationDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamWorkDistributionDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -66287,6 +66622,117 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team over a date range, from the time people are allocated to it.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCapacityDto> GetCapacityAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{id}/capacity"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -68823,7 +69269,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<TeamWorkDistributionDto> GetWorkDistributionAsync(string idOrCode, string? from = null, string? to = null, WorkDistributionDimension? dimension = null, WorkDistributionMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team of teams over a date range, from the time people are allocated to it.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCapacityDto> GetCapacityAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -69487,7 +69943,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
         /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<TeamWorkDistributionDto> GetWorkDistributionAsync(string idOrCode, string? from = null, string? to = null, WorkDistributionDimension? dimension = null, WorkDistributionMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrCode == null)
                 throw new System.ArgumentNullException("idOrCode");
@@ -69503,10 +69959,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/organization/teams-of-teams/{idOrCode}/allocation"
+                    // Operation Path: "api/organization/teams-of-teams/{idOrCode}/work-distribution"
                     urlBuilder_.Append("api/organization/teams-of-teams/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/allocation");
+                    urlBuilder_.Append("/work-distribution");
                     urlBuilder_.Append('?');
                     if (from != null)
                     {
@@ -69559,7 +70015,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<TeamAllocationDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamWorkDistributionDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -69595,6 +70051,117 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team of teams over a date range, from the time people are allocated to it.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team of teams with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. It counts only people allocated to the team of teams directly, not to the teams beneath it, over the system default working week and holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCapacityDto> GetCapacityAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/capacity"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -98763,6 +99330,146 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EmployeeAllocationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public TeamNavigationDto Team { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        public NavigationDto? Role { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("percent")]
+        public int Percent { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeEmployeeAllocationsRequest
+    {
+
+        /// <summary>
+        /// The changes to make, applied together or not at all. Each sets what one team and role have over its date
+        /// <br/>range and leaves the days outside it as they were.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("changes")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeAllocationChangeRequest> Changes { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeAllocationChangeRequest>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EmployeeAllocationChangeRequest
+    {
+
+        /// <summary>
+        /// The team or team of teams. The employee need not be a member of it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid TeamId { get; set; } = default!;
+
+        /// <summary>
+        /// The team member role the time is spent in, or null for none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roleId")]
+        public System.Guid? RoleId { get; set; } = default!;
+
+        /// <summary>
+        /// The first day the change covers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The last day the change covers, or null for every day from the start on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        /// <summary>
+        /// The share of the employee's time, from 0 to 100. Zero ends the allocation for the date range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("percent")]
+        public int Percent { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MoveEmployeeAllocationRequest
+    {
+
+        /// <summary>
+        /// The team or team of teams the time is taken from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fromTeamId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid FromTeamId { get; set; } = default!;
+
+        /// <summary>
+        /// The role the time is taken from on that team, or null for the allocation with no role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fromRoleId")]
+        public System.Guid? FromRoleId { get; set; } = default!;
+
+        /// <summary>
+        /// The team or team of teams the time is given to. It can be the same team, in another role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("toTeamId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid ToTeamId { get; set; } = default!;
+
+        /// <summary>
+        /// The role the time is given to on that team, or null for none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("toRoleId")]
+        public System.Guid? ToRoleId { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of the move.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The last day of the move, or null for every day from the start on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        /// <summary>
+        /// The share of the employee's time to move, from 1 to 100.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("percent")]
+        [System.ComponentModel.DataAnnotations.Range(1, 100)]
+        public int Percent { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum WorkStatusCategory
     {
 
@@ -98947,18 +99654,34 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
+        public bool CountsTowardDeliveryCapacity { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateTeamMemberRoleRequest
     {
 
+        /// <summary>
+        /// The role's name, unique across roles.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What the role is for.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// Whether time allocated to a team in this role adds to the team's delivery capacity. Defaults to true; false
+        /// <br/>suits a role such as a manager's, whose time on the team does not burn its planned work.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
+        public bool? CountsTowardDeliveryCapacity { get; set; } = default!;
 
     }
 
@@ -98966,16 +99689,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class UpdateTeamMemberRoleRequest
     {
 
+        /// <summary>
+        /// The role's id, which must match the route.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The role's name, unique across roles.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What the role is for.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// Whether time allocated to a team in this role adds to the team's delivery capacity. Omit to leave it as it is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
+        public bool? CountsTowardDeliveryCapacity { get; set; } = default!;
 
     }
 
@@ -99716,7 +100454,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class TeamAllocationDto
+    public partial class TeamWorkDistributionDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("team")]
@@ -99735,24 +100473,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("summary")]
         [System.ComponentModel.DataAnnotations.Required]
-        public AllocationSummaryDto Summary { get; set; } = new AllocationSummaryDto();
+        public WorkDistributionSummaryDto Summary { get; set; } = new WorkDistributionSummaryDto();
 
         [System.Text.Json.Serialization.JsonPropertyName("groups")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<AllocationGroupDto> Groups { get; set; } = new System.Collections.ObjectModel.Collection<AllocationGroupDto>();
+        public System.Collections.Generic.ICollection<WorkDistributionGroupDto> Groups { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionGroupDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("teams")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<AllocationTeamRowDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<AllocationTeamRowDto>();
+        public System.Collections.Generic.ICollection<WorkDistributionTeamRowDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionTeamRowDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("periods")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<AllocationPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<AllocationPeriodDto>();
+        public System.Collections.Generic.ICollection<WorkDistributionPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionPeriodDto>();
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AllocationSummaryDto
+    public partial class WorkDistributionSummaryDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("itemsCompleted")]
@@ -99778,7 +100516,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("excludedTeams")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<AllocationTeamReferenceDto> ExcludedTeams { get; set; } = new System.Collections.ObjectModel.Collection<AllocationTeamReferenceDto>();
+        public System.Collections.Generic.ICollection<WorkDistributionTeamReferenceDto> ExcludedTeams { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionTeamReferenceDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("noProjectItems")]
         public int NoProjectItems { get; set; } = default!;
@@ -99789,7 +100527,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AllocationTeamReferenceDto
+    public partial class WorkDistributionTeamReferenceDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
@@ -99807,7 +100545,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AllocationGroupDto
+    public partial class WorkDistributionGroupDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
@@ -99816,8 +100554,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AllocationGroupKind>))]
-        public AllocationGroupKind Kind { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkDistributionGroupKind>))]
+        public WorkDistributionGroupKind Kind { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("recordId")]
         public System.Guid? RecordId { get; set; } = default!;
@@ -99864,12 +100602,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public double? NoProjectShare { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("largestContributor")]
-        public AllocationContributorDto? LargestContributor { get; set; } = default!;
+        public WorkDistributionContributorDto? LargestContributor { get; set; } = default!;
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum AllocationGroupKind
+    public enum WorkDistributionGroupKind
     {
 
         [System.Runtime.Serialization.EnumMember(Value = @"Record")]
@@ -99884,7 +100622,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AllocationContributorDto
+    public partial class WorkDistributionContributorDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
@@ -99908,7 +100646,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AllocationTeamRowDto
+    public partial class WorkDistributionTeamRowDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
@@ -99949,7 +100687,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("cells")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<AllocationCellDto> Cells { get; set; } = new System.Collections.ObjectModel.Collection<AllocationCellDto>();
+        public System.Collections.Generic.ICollection<WorkDistributionCellDto> Cells { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionCellDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
         public double? NoProjectShare { get; set; } = default!;
@@ -99957,7 +100695,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AllocationCellDto
+    public partial class WorkDistributionCellDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("value")]
@@ -99972,7 +100710,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AllocationPeriodDto
+    public partial class WorkDistributionPeriodDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("start")]
@@ -100005,7 +100743,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum AllocationDimension
+    public enum WorkDistributionDimension
     {
 
         [System.Runtime.Serialization.EnumMember(Value = @"Portfolio")]
@@ -100026,7 +100764,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum AllocationMeasure
+    public enum WorkDistributionMeasure
     {
 
         [System.Runtime.Serialization.EnumMember(Value = @"Count")]
@@ -100061,6 +100799,89 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"CountFully")]
         CountFully = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        public int WorkingDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("people")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPersonDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityPersonDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("employee")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public NavigationDto Employee { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("elsewherePersonDays")]
+        public decimal ElsewherePersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocations")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityAllocationDto> Allocations { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityAllocationDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityAllocationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        public NavigationDto? Role { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
+        public bool CountsTowardDeliveryCapacity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("percent")]
+        public int Percent { get; set; } = default!;
 
     }
 

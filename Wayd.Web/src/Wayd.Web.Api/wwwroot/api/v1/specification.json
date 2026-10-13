@@ -32227,14 +32227,14 @@
         ]
       }
     },
-    "/api/organization/teams/{idOrCode}/allocation": {
+    "/api/organization/teams/{idOrCode}/work-distribution": {
       "get": {
         "tags": [
           "Teams"
         ],
         "summary": "Report where a team's completed work went.",
         "description": "Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.",
-        "operationId": "Teams_GetTeamAllocation",
+        "operationId": "Teams_GetTeamWorkDistribution",
         "parameters": [
           {
             "name": "idOrCode",
@@ -32273,7 +32273,7 @@
               "nullable": true,
               "oneOf": [
                 {
-                  "$ref": "#/components/schemas/AllocationDimension"
+                  "$ref": "#/components/schemas/WorkDistributionDimension"
                 }
               ]
             },
@@ -32287,7 +32287,7 @@
               "nullable": true,
               "oneOf": [
                 {
-                  "$ref": "#/components/schemas/AllocationMeasure"
+                  "$ref": "#/components/schemas/WorkDistributionMeasure"
                 }
               ]
             },
@@ -32328,7 +32328,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TeamAllocationDto"
+                  "$ref": "#/components/schemas/TeamWorkDistributionDto"
                 }
               }
             }
@@ -34277,14 +34277,14 @@
         ]
       }
     },
-    "/api/organization/teams-of-teams/{idOrCode}/allocation": {
+    "/api/organization/teams-of-teams/{idOrCode}/work-distribution": {
       "get": {
         "tags": [
           "TeamsOfTeams"
         ],
         "summary": "Report where the completed work of a team of teams, and every team beneath it, went.",
         "description": "Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.",
-        "operationId": "TeamsOfTeams_GetAllocation",
+        "operationId": "TeamsOfTeams_GetWorkDistribution",
         "parameters": [
           {
             "name": "idOrCode",
@@ -34323,7 +34323,7 @@
               "nullable": true,
               "oneOf": [
                 {
-                  "$ref": "#/components/schemas/AllocationDimension"
+                  "$ref": "#/components/schemas/WorkDistributionDimension"
                 }
               ]
             },
@@ -34337,7 +34337,7 @@
               "nullable": true,
               "oneOf": [
                 {
-                  "$ref": "#/components/schemas/AllocationMeasure"
+                  "$ref": "#/components/schemas/WorkDistributionMeasure"
                 }
               ]
             },
@@ -34378,7 +34378,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TeamAllocationDto"
+                  "$ref": "#/components/schemas/TeamWorkDistributionDto"
                 }
               }
             }
@@ -62149,7 +62149,7 @@
           }
         }
       },
-      "TeamAllocationDto": {
+      "TeamWorkDistributionDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62174,29 +62174,29 @@
             "format": "date"
           },
           "summary": {
-            "$ref": "#/components/schemas/AllocationSummaryDto"
+            "$ref": "#/components/schemas/WorkDistributionSummaryDto"
           },
           "groups": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AllocationGroupDto"
+              "$ref": "#/components/schemas/WorkDistributionGroupDto"
             }
           },
           "teams": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AllocationTeamRowDto"
+              "$ref": "#/components/schemas/WorkDistributionTeamRowDto"
             }
           },
           "periods": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AllocationPeriodDto"
+              "$ref": "#/components/schemas/WorkDistributionPeriodDto"
             }
           }
         }
       },
-      "AllocationSummaryDto": {
+      "WorkDistributionSummaryDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62243,7 +62243,7 @@
           "excludedTeams": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AllocationTeamReferenceDto"
+              "$ref": "#/components/schemas/WorkDistributionTeamReferenceDto"
             }
           },
           "noProjectItems": {
@@ -62256,7 +62256,7 @@
           }
         }
       },
-      "AllocationTeamReferenceDto": {
+      "WorkDistributionTeamReferenceDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62279,7 +62279,7 @@
           }
         }
       },
-      "AllocationGroupDto": {
+      "WorkDistributionGroupDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62299,7 +62299,7 @@
             "type": "string"
           },
           "kind": {
-            "$ref": "#/components/schemas/AllocationGroupKind"
+            "$ref": "#/components/schemas/WorkDistributionGroupKind"
           },
           "recordId": {
             "type": "string",
@@ -62374,13 +62374,13 @@
             "nullable": true,
             "oneOf": [
               {
-                "$ref": "#/components/schemas/AllocationContributorDto"
+                "$ref": "#/components/schemas/WorkDistributionContributorDto"
               }
             ]
           }
         }
       },
-      "AllocationGroupKind": {
+      "WorkDistributionGroupKind": {
         "type": "string",
         "description": "",
         "x-enumNames": [
@@ -62394,7 +62394,7 @@
           "MissingLevel"
         ]
       },
-      "AllocationContributorDto": {
+      "WorkDistributionContributorDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62427,7 +62427,7 @@
           }
         }
       },
-      "AllocationTeamRowDto": {
+      "WorkDistributionTeamRowDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62490,7 +62490,7 @@
           "cells": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AllocationCellDto"
+              "$ref": "#/components/schemas/WorkDistributionCellDto"
             }
           },
           "noProjectShare": {
@@ -62500,7 +62500,7 @@
           }
         }
       },
-      "AllocationCellDto": {
+      "WorkDistributionCellDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62523,7 +62523,7 @@
           }
         }
       },
-      "AllocationPeriodDto": {
+      "WorkDistributionPeriodDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -62572,7 +62572,7 @@
           }
         }
       },
-      "AllocationDimension": {
+      "WorkDistributionDimension": {
         "type": "string",
         "description": "",
         "x-enumNames": [
@@ -62590,7 +62590,7 @@
           "WorkType"
         ]
       },
-      "AllocationMeasure": {
+      "WorkDistributionMeasure": {
         "type": "string",
         "description": "",
         "x-enumNames": [

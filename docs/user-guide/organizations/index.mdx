@@ -141,6 +141,30 @@ Key rules:
 
 **Team Member Roles** are configurable per organization — see [Team Member Roles](../settings/index.mdx#team-member-roles) in Settings.
 
+### Allocations
+
+:::note
+Allocations are part of **Team Capacity Management**, which an administrator turns on under **Settings > Feature Management**.
+:::
+
+An **allocation** is the share of a person's time a team has over a stretch of days. It is separate from membership: membership says who belongs to a team and in what role, and an allocation says whose time the team has and when.
+
+An allocation has:
+- **Team** — A team or a team of teams
+- **Role** — Optional. What the time is spent on, from the same list as team member roles
+- **Start** and **End** — The days it covers. An allocation with no end runs until it is changed
+- **Percent** — The share of the person's time, from 1 to 100
+
+Key rules:
+- A person's allocations never add up to more than 100% on any day, across all teams and roles
+- A person does not have to be a member of a team to be allocated to it, such as someone borrowed for one sprint
+- A person can have several allocations on one team in different roles, such as 30% as a lead and 70% as an engineer
+- The role on an allocation need not match a role the person holds as a member
+- Time cannot be given to an inactive employee, an inactive team or an inactive role, but can always be taken away from one
+- When an employee is deactivated, their allocations end that day, and any that start later are removed
+
+Who can change a team's allocations is covered under [Allocations: team membership](../settings/permissions.mdx#allocations-team-membership).
+
 ### Team Memberships
 
 **Team Memberships** define the parent-child relationships in the organizational hierarchy. Each membership has a date range, allowing the hierarchy to change over time.
@@ -393,6 +417,20 @@ To correct the current model instead, open **Operating Model History** from the 
 Each employee's detail page includes a **Teams** section showing all teams the employee is currently a member of, with columns for Team name, Team type, and Roles. Team names link to their respective detail pages.
 
 The employee detail page also includes a **Reports > Cycle Time Report** action. This opens the same [Cycle Time Report](../work-management/cycle-time-report.mdx) used on team pages, scoped to Requirement-tier work items assigned to the employee.
+
+### Capacity
+
+With **Team Capacity Management** turned on, the employee detail page has a **Capacity** section showing how the person's time is [allocated](#allocations) to teams:
+
+- **Allocated today** and **Unallocated today** — The share of their time that is and is not allocated today
+- **Total allocation from today** — The total across all teams for each stretch of days from today on, starting a new line wherever it changes. This is where you see whether someone has time free in a given period
+- A grid of every allocation, past and future, with its Team, Type, Role, Start, End and Percent
+
+For teams whose allocations you can change:
+
+- **Allocate** gives a team a share of the person's time over a date range
+- **Change** on a row sets a new percent for that team and role over a date range. Days outside the range keep what they had, so changing one week of a longer allocation splits it, and entering 0 ends it for those days
+- **Move** takes a share from one team and role and gives it to another over a date range in one step. Use it for someone who is fully allocated, where raising one team first would exceed 100%
 
 ## Teams List Page
 

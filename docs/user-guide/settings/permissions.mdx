@@ -93,6 +93,14 @@ The seeded **Admin** role includes this permission.
 
 Viewing sprints needs only `Permissions.Iterations.View`.
 
+## Allocations: team membership
+
+Changing [how much of a person's time a team has](../organizations/index.mdx#allocations) needs `Permissions.Teams.Update` **and** membership of that team, in any role. Members of the team of teams the team belongs to on the day also qualify — only its direct team of teams, not the ones above it. A change that touches several teams, such as moving a person's time from one team to another, needs this for each of them.
+
+`Permissions.Teams.Administer` waives the membership for every team's allocations. It never substitutes for the `Update` permission. The seeded **Admin** role includes both.
+
+Viewing a person's allocations needs only `Permissions.Employees.View`.
+
 ## Why an action might be unavailable
 
 When a PPM or sprint action is missing from a menu or rejected on submit, it is one of:

@@ -242,13 +242,14 @@ Viewing calendars requires `Permissions.HolidayCalendars.View`; creating, updati
 Roles have:
 - **Name** — A unique name (up to 128 characters)
 - **Active** — Whether the role is available for assignment
+- **Counts toward delivery capacity** — Whether time [allocated](../organizations/index.mdx#allocations) to a team in this role adds to the team's delivery capacity. On by default. Turn it off for a role, such as a manager's, whose time on a team does not burn the team's planned work; that time still counts toward the person's 100%. Shown when **Team Capacity Management** is turned on
 
 Managing roles:
 1. Navigate to **Settings > Organization > Team Member Roles**
 2. Use **Create Team Member Role** to add new roles
 3. Edit a role's name from the row menu
 4. **Deactivate** a role to prevent it from being assigned to new members (existing assignments are unaffected)
-5. **Delete** a role — only possible if no team members are currently assigned to it
+5. **Delete** a role — only possible if no team members are currently assigned to it and no allocation uses it
 
 ## Work Management Settings
 

@@ -1,6 +1,5 @@
 import {
   capacityRows,
-  clipToRange,
   formatPeriods,
   formatPersonDays,
   monthOf,
@@ -97,25 +96,6 @@ describe('capacityRows', () => {
       personDays: 3,
     })
   })
-})
-
-describe('clipToRange', () => {
-  const range = { from: '2027-02-01', to: '2027-02-28' }
-
-  it.each([
-    ['2027-02-15', '2027-02-20', '2027-02-15', '2027-02-20'],
-    ['2027-01-01', undefined, '2027-02-01', '2027-02-28'],
-    ['2027-01-01', '2027-02-10', '2027-02-01', '2027-02-10'],
-    ['2027-02-10', '2027-06-30', '2027-02-10', '2027-02-28'],
-  ])(
-    'keeps the days of %s to %s that fall in the range',
-    (start, end, expectedStart, expectedEnd) => {
-      expect(clipToRange({ start, end }, range)).toEqual({
-        start: expectedStart,
-        end: expectedEnd,
-      })
-    },
-  )
 })
 
 describe('roleLines', () => {

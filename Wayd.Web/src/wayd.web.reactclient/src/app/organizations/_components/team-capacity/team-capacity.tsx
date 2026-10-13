@@ -38,7 +38,6 @@ import {
   CapacityRange,
   CapacityRow,
   capacityRows,
-  clipToRange,
   formatPersonDays,
   monthOf,
   NO_ROLE_LABEL,
@@ -396,8 +395,6 @@ const TeamCapacity = ({ team, teamType }: Props) => {
             end: openForm.row.end,
             percent: openForm.row.percent,
           }}
-          rangeOnly
-          initialDates={clipToRange(openForm.row, range)}
           onFormComplete={closeForm}
           onFormCancel={closeForm}
         />

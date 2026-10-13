@@ -276,51 +276,23 @@ describe('TeamCapacity', () => {
     ).not.toBeInTheDocument()
   })
 
-  it("opens a change on the row's own days when they fall inside the range", async () => {
-    renderSection()
-    const range = mockCapacityArgs.mock.calls[0][0]
-    const person = capacity().people[0]
-    const inside = `${range.from.slice(0, 7)}-10`
-    mockCapacity = capacity({
-      people: [
-        {
-          ...person,
-          allocations: [
-            {
-              ...person.allocations[0],
-              start: inside,
-              end: `${range.from.slice(0, 7)}-12`,
-            },
-          ],
-        },
-      ],
-    })
-    renderSection()
-
-    await userEvent.click(screen.getAllByRole('button', { name: 'Change' })[1])
-
-    const props = mockChangeForm.mock.calls[0][0]
-    expect(props).toMatchObject({
-      employeeId: 'employee-1',
-      rangeOnly: true,
-      allocation: { teamId: 'team-1', roleId: 'role-1', percent: 50 },
-    })
-    expect(props.initialDates).toEqual({
-      start: inside,
-      end: `${range.from.slice(0, 7)}-12`,
-    })
-  })
-
-  it('opens a change on the range when the allocation runs past both ends of it', async () => {
+  it('opens a change on the allocation as it stands, not cut down to the range', async () => {
     renderSection()
 
     await userEvent.click(screen.getByRole('button', { name: 'Change' }))
 
-    const { from, to } = mockCapacityArgs.mock.calls[0][0]
-    expect(mockChangeForm.mock.calls[0][0].initialDates).toEqual({
-      start: from,
-      end: to,
+    const props = mockChangeForm.mock.calls[0][0]
+    expect(props).toMatchObject({
+      employeeId: 'employee-1',
+      allocation: {
+        teamId: 'team-1',
+        roleId: 'role-1',
+        start: '2020-01-01',
+        percent: 50,
+      },
     })
+    expect(props.allocation.end).toBeUndefined()
+    expect(props.initialDates).toBeUndefined()
   })
 
   it('shows nothing from the previous range while a new one loads', () => {

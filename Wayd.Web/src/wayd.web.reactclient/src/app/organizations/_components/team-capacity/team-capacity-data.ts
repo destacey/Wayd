@@ -65,21 +65,6 @@ export function capacityRows(people: TeamCapacityPersonDto[]): CapacityRow[] {
   )
 }
 
-/**
- * The days of `range` an allocation covers, which is what a change to it from
- * this range starts from.
- */
-export function clipToRange(
-  allocation: { start: CalendarDate; end?: CalendarDate },
-  range: CapacityRange,
-): { start: CalendarDate; end: CalendarDate } {
-  return {
-    start: allocation.start > range.from ? allocation.start : range.from,
-    end:
-      allocation.end && allocation.end < range.to ? allocation.end : range.to,
-  }
-}
-
 /** A line of the capacity-by-role summary. */
 export interface RoleLine {
   key: string

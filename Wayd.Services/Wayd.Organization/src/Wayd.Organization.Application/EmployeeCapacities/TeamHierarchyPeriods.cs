@@ -9,6 +9,7 @@ public sealed record HierarchyMembership(Guid ChildId, Guid ParentId, LocalDate 
 /// <summary>A run of days, both inclusive.</summary>
 public sealed record HierarchyPeriod(LocalDate Start, LocalDate End)
 {
+    /// <summary>Whether <paramref name="day"/> is one of the days.</summary>
     public bool Includes(LocalDate day) => Start <= day && day <= End;
 
     /// <summary>Whether a range from <paramref name="start"/> to <paramref name="end"/>, or with no end, shares a day with this one.</summary>

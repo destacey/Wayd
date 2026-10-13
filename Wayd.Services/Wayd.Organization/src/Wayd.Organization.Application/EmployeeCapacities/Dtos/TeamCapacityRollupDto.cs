@@ -30,8 +30,9 @@ public sealed record TeamCapacityRollupDto
     public required decimal DirectDeliveryPersonDays { get; set; }
 
     /// <summary>
-    /// How many different people have time allocated to the team of teams or to a team beneath it. Someone
-    /// allocated at more than one level is one person.
+    /// How many different people have an allocation to the team of teams or to a team beneath it on the days it
+    /// counts. Someone allocated at more than one level is one person. An allocation that falls on none of
+    /// the team's working days still counts its person, at no person-days.
     /// </summary>
     public required int People { get; set; }
 
@@ -50,6 +51,7 @@ public sealed record TeamCapacityRollupDto
 /// </summary>
 public sealed record TeamCapacityRollupNodeDto
 {
+    /// <summary>The team or team of teams this node is for.</summary>
     public required TeamNavigationDto Team { get; set; }
 
     /// <summary>
@@ -76,7 +78,10 @@ public sealed record TeamCapacityRollupNodeDto
     /// <summary>The part of <see cref="DirectAllocatedPersonDays"/> in roles that count toward delivery capacity.</summary>
     public required decimal DirectDeliveryPersonDays { get; set; }
 
-    /// <summary>Everyone with time allocated to the team itself within <see cref="Periods"/>, by name.</summary>
+    /// <summary>
+    /// Everyone with an allocation to the team itself within <see cref="Periods"/>, by name, including anyone
+    /// whose allocation falls on none of its working days there.
+    /// </summary>
     public required IReadOnlyList<TeamCapacityRollupPersonDto> People { get; set; }
 
     /// <summary>The teams directly beneath this one within <see cref="Periods"/>, by name. Empty for a team.</summary>
@@ -86,14 +91,17 @@ public sealed record TeamCapacityRollupNodeDto
 /// <summary>A run of days a team counts toward a rollup, both inclusive.</summary>
 public sealed record TeamCapacityPeriodDto
 {
+    /// <summary>The first day of the run.</summary>
     public required LocalDate Start { get; set; }
 
+    /// <summary>The last day of the run.</summary>
     public required LocalDate End { get; set; }
 }
 
 /// <summary>One person's time on a team beneath the one a rollup is for.</summary>
 public sealed record TeamCapacityRollupPersonDto
 {
+    /// <summary>The person allocated.</summary>
     public required NavigationDto Employee { get; set; }
 
     /// <summary>Their time allocated to the team in every role on the days it counts, in person-days.</summary>

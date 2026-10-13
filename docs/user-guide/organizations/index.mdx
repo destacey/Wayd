@@ -346,7 +346,7 @@ Wayd renders a **Functional Organization Chart** that visualizes the complete te
 2. Open the row menu for the member and click **Remove**
 3. Confirm the removal — all role assignments for that employee are removed
 
-Removing a member does not change their [allocation](#allocations) on its own. When the person has time allocated to the team that you can change, the confirmation offers **Also end their allocation to this team from today**, which is on by default.
+Removing a member does not change their [allocation](#allocations) on its own. When the person has time allocated to the team that you can change, the confirmation offers **Also end their allocation to this team from today**, which is on by default. The allocation is ended first, so if that fails the member is not removed.
 
 ### Creating a Team
 
@@ -430,8 +430,8 @@ With **Team Capacity Management** turned on, the employee detail page has a **Ca
 
 For teams whose allocations you can change:
 
-- **Allocate** gives a team a share of the person's time over a date range
-- **Change** on a row, or clicking an allocation on the timeline, sets a new percent for that team and role over a date range. Days outside the range keep what they had, so changing one week of a longer allocation splits it, and entering 0 ends it for those days
+- **Allocate** gives a team a share of the person's time over a date range. On a team and role the person already has time on, it sets the percent for just the dates you enter: days outside them keep what they had, so one week of a longer allocation at a different percent splits it
+- **Change** on a row, or clicking an allocation on the timeline, edits that allocation: its start, end and percent. The team and role are fixed; entering 0 removes it
 - **Move** takes a share from one team and role and gives it to another over a date range in one step. Use it for someone who is fully allocated, where raising one team first would exceed 100%
 
 ## Teams List Page

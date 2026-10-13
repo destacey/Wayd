@@ -218,6 +218,28 @@ Members are managed from the **Actions menu → Team Management**:
 - **Edit** (row menu) — Update the roles assigned to a member.
 - **Remove** (row menu) — Remove the employee from the team entirely (all role assignments).
 
+### Capacity
+
+With **Team Capacity Management** turned on, team and team of teams pages have a **Capacity** section. It shows whose time the team has over a date range, from their [allocations](#allocations), and what that comes to in person-days. One person-day is one person allocated in full for one of the team's working days.
+
+The section keeps no plan of its own: it is a view of people's allocations, and every edit made here changes the same allocations the [employee page](#employee-detail-page) shows.
+
+- **Date range** — Any range of up to two years, starting on the current month
+- **Working days**, **People**, **Allocated person-days** and **Delivery person-days** — Totals for the range. Delivery person-days leave out time in roles that do not count toward delivery capacity
+- **By role** — Person-days for each role that counts toward delivery capacity, then one **Non-delivery** line for the roles that do not, so the lines add up to everything allocated
+- A grid with a row for each allocation in the range: Person, Role, Delivery, Percent, Start, End, **Person-days** on this team and **Elsewhere**, the person-days the same person has allocated to other teams on the same days
+
+A team of teams shows the people allocated to it directly.
+
+If you can change the team's allocations:
+
+- **Initialize** is offered when no one is allocated in the range. It proposes each active member, one row per role they hold, at what is left of their time from the start of the range on, split evenly between their roles. Adjust the percents and click **Save**; nothing is saved before that. A member with nothing left is listed and marked **Nothing left**, not left out. A member who already has a later allocation to the team is proposed only up to the day before it, shown in an **Ends** column, so that allocation is left as it is. If some people cannot be saved, the form stays open on them with the reason for each, and everyone else is saved
+- **Allocate Person** gives the team a share of anyone's time, member or not, with an optional role. A member's allocation has no end by default; a non-member's ends with the range
+- **Change** on a row sets that person's percent for the dates you enter, which start as the days of the range that allocation covers. Days outside them keep what they had; entering 0 removes the allocation on those dates
+- **Rebalance** on a row moves a share of the person's time from another team to this one in one step, for someone who has nothing left. It is offered when the person has time on another team whose allocations you can also change
+
+Anyone else sees the section read-only, as does everyone on an inactive team.
+
 ### Backlog
 
 The **Backlog** section shows all work items assigned to the team across all workspaces. This gives the team a unified view of their work regardless of which workspace it lives in.

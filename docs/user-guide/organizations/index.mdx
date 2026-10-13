@@ -162,6 +162,7 @@ Key rules:
 - The role on an allocation need not match a role the person holds as a member
 - Time cannot be given to an inactive employee, an inactive team or an inactive role, but can always be taken away from one
 - When an employee is deactivated, their allocations end that day, and any that start later are removed
+- When a team or team of teams is deactivated, everyone's allocations to it end on its inactive date, and any that start later are removed. Their time on other teams is unchanged, and from the next day it can be allocated elsewhere. Reactivating the team does not bring the allocations back
 
 Who can change a team's allocations is covered under [Allocations: team membership](../settings/permissions.mdx#allocations-team-membership).
 
@@ -433,6 +434,10 @@ To correct the current model instead, open **Operating Model History** from the 
 
 > A team cannot be deactivated if it has active parent memberships that extend past the deactivation date. Those memberships must be ended first.
 
+Deactivating a team or team of teams also ends people's [allocations](#allocations) to it on the inactive date. With **Team Capacity Management** turned on, the dialog says so. This happens a moment after the team is deactivated. Each person's change is recorded in the [activity log](../activity-log.mdx) against whoever deactivated the team.
+
+> An inactive date in the past cuts allocations back to that date. Time people had on the team after it is removed, so the team's capacity for those days drops to nothing.
+
 ### Viewing Team Metrics
 
 1. Navigate to the team's detail page
@@ -492,6 +497,10 @@ Features:
 | Active member required | Only active employees can be added to teams |
 | Active team required | Members can only be added to active teams |
 | Role required | A role must be selected when adding or editing a team member |
+| Allocation limit | A person's allocations cannot add up to more than 100% on any day, across all teams and roles |
+| Allocation needs active records | Time cannot be given to an inactive employee, team or role, but can always be taken away from one |
+| Employee deactivation ends allocations | Deactivating an employee ends their allocations that day and removes any that start later |
+| Team deactivation ends allocations | Deactivating a team or team of teams ends allocations to it on its inactive date and removes any that start later; reactivating does not restore them |
 
 ## Related
 

@@ -84,11 +84,15 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
 
         // Act
         var rollup = await handler.Handle(new GetTeamOfTeamsCapacityRollupQuery(paymentsId, From, To), cancellationToken);
+        var direct = await DirectHandler(context).Handle(new GetTeamCapacityQuery(paymentsId, TeamType.TeamOfTeams, From, To), cancellationToken);
 
-        // Assert — Ada's half of Payments' nine working days is the only direct time
+        // Assert — Ada's half of Payments' nine working days is the only direct time, and it is what the
+        // direct read, which the same page shows beside the rollup, makes of it
         rollup.Should().NotBeNull();
         rollup!.DirectAllocatedPersonDays.Should().Be(4.5m);
         rollup.DirectDeliveryPersonDays.Should().Be(4.5m);
+        direct!.AllocatedPersonDays.Should().Be(rollup.DirectAllocatedPersonDays);
+        direct.DeliveryPersonDays.Should().Be(rollup.DirectDeliveryPersonDays);
         rollup.Children.Select(c => c.Team.Code).Should().Equal("CARDS", "LEND");
 
         // Cards counts for the 1st and 2nd, then the 11th and 12th: four working days
@@ -278,17 +282,37 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         return capacity;
     }
 
-    private static GetTeamOfTeamsCapacityRollupQueryHandler Handler(DbContext context)
+    private static GetTeamOfTeamsCapacityRollupQueryHandler Handler(DbContext context) =>
+        new((Wayd.Infrastructure.Persistence.Context.WaydDbContext)context, Dispatcher(), Settings());
+
+    /// <summary>The direct capacity read, over the same holidays and working week as <see cref="Handler"/>.</summary>
+    private static GetTeamCapacityQueryHandler DirectHandler(DbContext context)
+    {
+        var principal = new Mock<ICurrentPrincipal>();
+        principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        var clock = new Mock<IDateTimeProvider>();
+        clock.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
+
+        return new GetTeamCapacityQueryHandler(
+            (Wayd.Infrastructure.Persistence.Context.WaydDbContext)context,
+            Dispatcher(),
+            principal.Object,
+            Settings(),
+            clock.Object);
+    }
+
+    private static IDispatcher Dispatcher()
     {
         var dispatcher = new Mock<IDispatcher>();
         dispatcher.Setup(d => d.Send(It.IsAny<IQuery<IReadOnlyList<LocalDate>>>(), It.IsAny<CancellationToken>())).ReturnsAsync([Holiday]);
+        return dispatcher.Object;
+    }
 
+    private static ISettings<SchedulingSettings> Settings()
+    {
         var settings = new Mock<ISettings<SchedulingSettings>>();
         settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
-
-        return new GetTeamOfTeamsCapacityRollupQueryHandler(
-            (Wayd.Infrastructure.Persistence.Context.WaydDbContext)context,
-            dispatcher.Object,
-            settings.Object);
+        return settings.Object;
     }
 }

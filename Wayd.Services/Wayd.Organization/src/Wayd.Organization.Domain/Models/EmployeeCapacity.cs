@@ -110,23 +110,39 @@ public sealed class EmployeeCapacity : BaseAuditableEntity
     /// Ends the employee's time on every team after <paramref name="lastDay"/>: an allocation running past it
     /// ends that day, and one starting later is removed. What came before is kept.
     /// </summary>
-    public Result EndAllocations(LocalDate lastDay, EventActor actor, Instant timestamp)
+    public Result EndAllocations(LocalDate lastDay, EventActor actor, Instant timestamp) =>
+        EndAfter(lastDay, _ => true, actor, timestamp);
+
+    /// <summary>
+    /// Ends the employee's time on one team, in every role, after <paramref name="lastDay"/>: an allocation
+    /// running past it ends that day, and one starting later is removed. What came before, and the time on
+    /// every other team, is kept.
+    /// </summary>
+    public Result EndAllocationsTo(Guid teamId, LocalDate lastDay, EventActor actor, Instant timestamp)
     {
-        var target = Current();
-        var firstDayOff = lastDay.PlusDays(1);
+        if (teamId == Guid.Empty)
+            return Result.Failure("An allocation needs a team.");
 
-        foreach (var (teamId, roleId) in target.Select(a => (a.TeamId, a.RoleId)).Distinct().ToList())
-        {
-            target = AllocationTimeline.Set(target, new AllocationChange(teamId, roleId, firstDayOff, null, 0));
-        }
-
-        return Apply(target, actor, timestamp);
+        return EndAfter(lastDay, a => a.TeamId == teamId, actor, timestamp);
     }
 
     /// <summary>Creates the capacity record for an employee, with nothing allocated.</summary>
     public static EmployeeCapacity Create(Guid employeeId) => new(employeeId);
 
     private List<EmployeeAllocationDetails> Current() => [.. _allocations.Select(a => a.ToDetails())];
+
+    private Result EndAfter(LocalDate lastDay, Func<EmployeeAllocationDetails, bool> ending, EventActor actor, Instant timestamp)
+    {
+        var target = Current();
+        var firstDayOff = lastDay.PlusDays(1);
+
+        foreach (var (teamId, roleId) in target.Where(ending).Select(a => (a.TeamId, a.RoleId)).Distinct().ToList())
+        {
+            target = AllocationTimeline.Set(target, new AllocationChange(teamId, roleId, firstDayOff, null, 0));
+        }
+
+        return Apply(target, actor, timestamp);
+    }
 
     private static Result ValidateRange(LocalDate start, LocalDate? end) =>
         end < start

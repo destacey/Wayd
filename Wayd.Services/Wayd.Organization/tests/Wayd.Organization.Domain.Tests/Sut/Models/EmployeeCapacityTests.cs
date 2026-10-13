@@ -397,6 +397,86 @@ public class EmployeeCapacityTests
         capacity.DomainEvents.Should().BeEmpty();
     }
 
+    [Fact]
+    public void EndAllocationsTo_EndsTheTeamsAllocationsInEveryRoleAndLeavesOtherTeamsAlone()
+    {
+        // Arrange — team A in two roles, one open and one starting later, beside an open one on team B
+        var capacity = WithAllocations(
+            new AllocationChange(_teamA, _engineer, Jan1, null, 30),
+            new AllocationChange(_teamA, _lead, Feb7, null, 20),
+            new AllocationChange(_teamB, null, Jan1, null, 40));
+
+        // Act
+        var result = capacity.EndAllocationsTo(_teamA, Feb1, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.Allocations.Select(a => a.ToDetails()).Should().BeEquivalentTo(
+        [
+            new EmployeeAllocationDetails(_teamA, _engineer, Jan1, Feb1, 30),
+            new EmployeeAllocationDetails(_teamB, null, Jan1, null, 40),
+        ]);
+        capacity.Revision.Should().Be(2);
+        var raised = capacity.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<EmployeeAllocationsChangedEvent>().Subject;
+        raised.Added.Should().Equal(new EmployeeAllocationDetails(_teamA, _engineer, Jan1, Feb1, 30));
+        raised.Removed.Should().BeEquivalentTo(
+        [
+            new EmployeeAllocationDetails(_teamA, _engineer, Jan1, null, 30),
+            new EmployeeAllocationDetails(_teamA, _lead, Feb7, null, 20),
+        ]);
+        raised.Allocations.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void EndAllocationsTo_KeepsAnAllocationThatEndsOnTheLastDay()
+    {
+        // Arrange
+        var capacity = WithAllocations(
+            new AllocationChange(_teamA, null, Jan1, Feb1, 60),
+            new AllocationChange(_teamB, null, Jan1, null, 40));
+
+        // Act
+        var result = capacity.EndAllocationsTo(_teamA, Feb1, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.Allocations.Should().HaveCount(2);
+        capacity.Revision.Should().Be(1);
+        capacity.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void EndAllocationsTo_FreesTheTimeFromTheNextDay()
+    {
+        // Arrange
+        var capacity = WithAllocations(new AllocationChange(_teamA, null, Jan1, null, 100));
+        capacity.EndAllocationsTo(_teamA, Feb1, EventActor.System, Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var onTheLastDay = capacity.ChangeAllocations([new AllocationChange(_teamB, null, Feb1, null, 100)], EventActor.System, Now);
+        var fromTheNextDay = capacity.ChangeAllocations([new AllocationChange(_teamB, null, Feb1.PlusDays(1), null, 100)], EventActor.System, Now);
+
+        // Assert
+        onTheLastDay.IsFailure.Should().BeTrue();
+        fromTheNextDay.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EndAllocationsTo_WithNoTeam_FailsAndChangesNothing()
+    {
+        // Arrange
+        var capacity = WithAllocations(new AllocationChange(_teamA, null, Jan1, null, 60));
+
+        // Act
+        var result = capacity.EndAllocationsTo(Guid.Empty, Feb1, EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("An allocation needs a team.");
+        capacity.Allocations.Should().ContainSingle().Which.End.Should().BeNull();
+        capacity.DomainEvents.Should().BeEmpty();
+    }
+
     private static EmployeeCapacity WithAllocations(params AllocationChange[] changes)
     {
         var capacity = EmployeeCapacity.Create(Guid.NewGuid());

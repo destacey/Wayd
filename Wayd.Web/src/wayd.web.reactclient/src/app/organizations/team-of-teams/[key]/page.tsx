@@ -7,11 +7,13 @@ import RisksGrid, {
   RisksGridProps,
 } from '@/src/components/common/planning/risks-grid'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useFeatureFlag } from '@/src/hooks'
 import {
   EditTeamForm,
   TeamMembershipsGrid,
 } from '@/src/app/organizations/_components'
 import TeamMembersGrid from '@/src/app/organizations/teams/_components/team-members-grid'
+import TeamCapacity from '@/src/app/organizations/_components/team-capacity/team-capacity'
 import AddTeamMemberForm from '@/src/app/organizations/teams/_components/add-team-member-form'
 import useAuth from '@/src/components/contexts/auth'
 import {
@@ -58,6 +60,7 @@ enum TeamOfTeamsTabs {
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
+  Capacity = 'capacity',
   Activities = 'activities',
   OperatingModelHistory = 'operating-model-history',
   WorkDistribution = 'work-distribution',
@@ -68,6 +71,10 @@ const TeamOfTeamsDetailsPage = (props: {
 }) => {
   const { key } = use(props.params)
   const teamKey = Number(key)
+
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
 
   useDocumentTitle('Team of Teams Details')
 
@@ -239,6 +246,17 @@ const TeamOfTeamsDetailsPage = (props: {
         return (
           <TeamMembersGrid teamId={team?.id ?? ''} teamType="TeamOfTeams" />
         )
+      case TeamOfTeamsTabs.Capacity:
+        return capacityEnabled ? (
+          <TeamCapacity
+            team={{
+              id: team!.id,
+              name: team!.name,
+              isActive: team!.isActive,
+            }}
+            teamType="TeamOfTeams"
+          />
+        ) : null
       case TeamOfTeamsTabs.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       case TeamOfTeamsTabs.OperatingModelHistory:
@@ -268,6 +286,9 @@ const TeamOfTeamsDetailsPage = (props: {
     { id: TeamOfTeamsTabs.Overview, label: 'Overview' },
     { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
+    ...(capacityEnabled
+      ? [{ id: TeamOfTeamsTabs.Capacity, label: 'Capacity' }]
+      : []),
     { id: TeamOfTeamsTabs.TeamMemberships, label: 'Team Memberships' },
     { id: TeamOfTeamsTabs.Activities, label: 'Activity' },
   ]

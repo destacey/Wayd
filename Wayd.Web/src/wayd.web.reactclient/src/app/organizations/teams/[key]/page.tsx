@@ -43,6 +43,7 @@ import {
   TeamMembershipsGrid,
 } from '@/src/app/organizations/_components'
 import TeamMembersGrid from '@/src/app/organizations/teams/_components/team-members-grid'
+import TeamCapacity from '@/src/app/organizations/_components/team-capacity/team-capacity'
 import TeamDetailsLoading from './loading'
 import TeamOverview from './_components/team-overview'
 import TeamFacts from '@/src/app/organizations/teams/[key]/_components/team-facts'
@@ -104,6 +105,7 @@ enum TeamTabs {
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
+  Capacity = 'capacity',
   OperatingModelHistory = 'operating-model-history',
   CycleTimeReport = 'cycle-time-report',
   BacklogHealth = 'backlog-health',
@@ -119,6 +121,9 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { isEnabled: forecastingEnabled } = useFeatureFlag(
     'delivery-forecasting',
+  )
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
   )
 
   // The active section lives in the URL (?section=), owned by RecordLayout.
@@ -337,6 +342,17 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         )
       case TeamTabs.Members:
         return <TeamMembersGrid teamId={team!.id!} teamType="Team" />
+      case TeamTabs.Capacity:
+        return capacityEnabled ? (
+          <TeamCapacity
+            team={{
+              id: team!.id,
+              name: team!.name,
+              isActive: team!.isActive,
+            }}
+            teamType="Team"
+          />
+        ) : null
       case TeamTabs.CycleTimeReport:
         return <CycleTimeReport teamCode={team!.code} />
       case TeamTabs.BacklogHealth:
@@ -378,6 +394,9 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       { id: TeamTabs.DependencyManagement, label: 'Dependencies' },
       { id: TeamTabs.RiskManagement, label: 'Risks' },
       { id: TeamTabs.Members, label: 'Members' },
+      ...(capacityEnabled
+        ? [{ id: TeamTabs.Capacity, label: 'Capacity' }]
+        : []),
       { id: TeamTabs.TeamMemberships, label: 'Team Memberships' },
       { id: TeamTabs.Activities, label: 'Activity' },
     )

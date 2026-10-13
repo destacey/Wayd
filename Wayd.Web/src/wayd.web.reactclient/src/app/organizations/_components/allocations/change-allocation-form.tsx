@@ -11,6 +11,7 @@ import {
   type ApiError,
   type CalendarDate,
 } from '@/src/utils'
+import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
 import { useGetTeamMemberRolesQuery } from '@/src/store/features/organization/team-member-roles-api'
 import { useChangeEmployeeAllocationsMutation } from '@/src/store/features/organization/employee-allocations-api'
@@ -28,15 +29,37 @@ export interface AllocationToChange {
   percent: number
 }
 
+/** The dates a change covers, as the form first shows them. */
+export interface AllocationDates {
+  start: CalendarDate
+  /** Absent for no end. */
+  end?: CalendarDate
+}
+
 interface Props {
-  employeeId: string
+  /** Absent when the person is chosen in the form. */
+  employeeId?: string
+  /** Shown in place of the picker when the person is fixed and worth naming. */
+  employeeName?: string
+  /** The team a new allocation is for, when the form does not offer the choice. */
+  team?: { id: string; name: string }
   /** Absent when allocating the employee to a team afresh. */
   allocation?: AllocationToChange
+  /**
+   * With `allocation`: set the percent on the dates entered and leave the
+   * allocation's other days as they were, instead of replacing it whole.
+   */
+  rangeOnly?: boolean
+  /** The dates the form opens with. Defaults to the allocation's own. */
+  initialDates?: AllocationDates
+  /** The end date to offer once a person is chosen; undefined for no end. */
+  endDateFor?: (employeeId: string) => CalendarDate | undefined
   onFormComplete: () => void
   onFormCancel: () => void
 }
 
 interface FormValues {
+  employeeId?: string
   teamId: string
   roleId?: string
   start: Dayjs
@@ -48,11 +71,13 @@ interface FormValues {
  * The changes that turn `allocation` into the values entered. The API sets a
  * percent over a date range and leaves other days alone, so moving the start
  * later or the end earlier would otherwise leave the days dropped as they
- * were: the original range is cleared first, in the same request.
+ * were: the original range is cleared first, in the same request. A
+ * `rangeOnly` change skips that, so only the dates entered are touched.
  */
 export const changesFor = (
   allocation: AllocationToChange | undefined,
-  values: FormValues,
+  values: Omit<FormValues, 'employeeId'>,
+  rangeOnly = false,
 ) => {
   const entered = {
     teamId: allocation?.teamId ?? values.teamId,
@@ -62,7 +87,7 @@ export const changesFor = (
     percent: values.percent,
   }
 
-  return allocation
+  return allocation && !rangeOnly
     ? [
         {
           teamId: allocation.teamId,
@@ -78,12 +103,22 @@ export const changesFor = (
 
 const ChangeAllocationForm = ({
   employeeId,
+  employeeName,
+  team,
   allocation,
+  rangeOnly = false,
+  initialDates,
+  endDateFor,
   onFormComplete,
   onFormCancel,
 }: Props) => {
   const messageApi = useMessage()
-  const { data: teamOptions } = useGetTeamOptionsQuery(false)
+  const { data: employeeOptions } = useGetEmployeeOptionsQuery(false, {
+    skip: !!employeeId,
+  })
+  const { data: teamOptions } = useGetTeamOptionsQuery(false, {
+    skip: !!allocation || !!team,
+  })
   const { data: roles } = useGetTeamMemberRolesQuery(false)
   const [changeAllocations] = useChangeEmployeeAllocationsMutation()
 
@@ -92,8 +127,14 @@ const ChangeAllocationForm = ({
       onSubmit: async (values) => {
         try {
           const response = await changeAllocations({
-            employeeId,
-            request: { changes: changesFor(allocation, values) },
+            employeeId: employeeId ?? values.employeeId!,
+            request: {
+              changes: changesFor(
+                allocation,
+                { ...values, teamId: team?.id ?? values.teamId },
+                rangeOnly,
+              ),
+            },
           })
           if (response.error) throw response.error
           messageApi.success('Allocation saved.')
@@ -111,10 +152,17 @@ const ChangeAllocationForm = ({
     })
 
   const roleOptions = roles?.map((r) => ({ label: r.name, value: r.id })) ?? []
+  const dates = initialDates ?? allocation
 
   return (
     <Modal
-      title={allocation ? 'Change Allocation' : 'Allocate to a Team'}
+      title={
+        allocation
+          ? 'Change Allocation'
+          : team
+            ? 'Allocate a Person'
+            : 'Allocate to a Team'
+      }
       open={isOpen}
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid }}
@@ -132,11 +180,31 @@ const ChangeAllocationForm = ({
         initialValues={{
           teamId: allocation?.teamId,
           roleId: allocation?.roleId,
-          start: allocation ? parseCalendarDate(allocation.start) : undefined,
-          end: allocation?.end ? parseCalendarDate(allocation.end) : undefined,
+          start: dates ? parseCalendarDate(dates.start) : undefined,
+          end: dates?.end ? parseCalendarDate(dates.end) : undefined,
           percent: allocation?.percent,
         }}
       >
+        {employeeId ? (
+          employeeName && <FormItem label="Person">{employeeName}</FormItem>
+        ) : (
+          <FormItem
+            name="employeeId"
+            label="Person"
+            rules={[{ required: true }]}
+          >
+            <Select
+              showSearch={{ optionFilterProp: 'label' }}
+              placeholder="Select a person"
+              options={employeeOptions}
+              onChange={(value: string) => {
+                if (!endDateFor) return
+                const end = endDateFor(value)
+                form.setFieldValue('end', end ? parseCalendarDate(end) : null)
+              }}
+            />
+          </FormItem>
+        )}
         {allocation ? (
           // Fixed when changing an allocation: Move is how time goes to
           // another team or role.
@@ -146,13 +214,17 @@ const ChangeAllocationForm = ({
           </>
         ) : (
           <>
-            <FormItem name="teamId" label="Team" rules={[{ required: true }]}>
-              <Select
-                showSearch={{ optionFilterProp: 'label' }}
-                placeholder="Select a team or team of teams"
-                options={teamOptions}
-              />
-            </FormItem>
+            {team ? (
+              <FormItem label="Team">{team.name}</FormItem>
+            ) : (
+              <FormItem name="teamId" label="Team" rules={[{ required: true }]}>
+                <Select
+                  showSearch={{ optionFilterProp: 'label' }}
+                  placeholder="Select a team or team of teams"
+                  options={teamOptions}
+                />
+              </FormItem>
+            )}
             <FormItem
               name="roleId"
               label="Role"
@@ -194,9 +266,11 @@ const ChangeAllocationForm = ({
           name="percent"
           label="Percent of their time"
           extra={
-            allocation
-              ? 'Enter 0 to remove this allocation.'
-              : 'Replaces what this team and role have on these dates.'
+            !allocation
+              ? 'Replaces what this team and role have on these dates.'
+              : rangeOnly
+                ? 'Applies to these dates only. Enter 0 to remove the allocation on them.'
+                : 'Enter 0 to remove this allocation.'
           }
           rules={[{ required: true }]}
         >

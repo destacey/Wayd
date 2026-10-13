@@ -88,4 +88,21 @@ public class TeamCapacityCalculatorTests
         // Assert
         capacity[Employee].Should().Be(new PersonCapacity(0m, 0m, 0m));
     }
+
+    [Theory]
+    [InlineData(2027, 1, 1, null, 50, 5)]
+    [InlineData(2027, 2, 3, 8, 100, 4)]
+    [InlineData(2027, 2, 13, null, 100, 0)]
+    public void PersonDays_IsThePercentOfEachWorkingDayCovered(int startYear, int startMonth, int startDay, int? endDay, int percent, decimal expected)
+    {
+        // Arrange
+        var start = new LocalDate(startYear, startMonth, startDay);
+        LocalDate? end = endDay is { } day ? new LocalDate(2027, 2, day) : null;
+
+        // Act
+        var personDays = TeamCapacityCalculator.PersonDays(WorkingDays, start, end, percent);
+
+        // Assert
+        personDays.Should().Be(expected);
+    }
 }

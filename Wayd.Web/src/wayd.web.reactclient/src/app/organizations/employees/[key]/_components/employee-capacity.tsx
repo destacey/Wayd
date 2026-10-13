@@ -15,8 +15,8 @@ import { allocatedOn } from './allocation-periods'
 import { allocationTimelineData } from './allocation-timeline-data'
 import ChangeAllocationForm, {
   AllocationToChange,
-} from './change-allocation-form'
-import MoveAllocationForm from './move-allocation-form'
+} from '@/src/app/organizations/_components/allocations/change-allocation-form'
+import MoveAllocationForm from '@/src/app/organizations/_components/allocations/move-allocation-form'
 import styles from './employee-capacity.module.css'
 
 const FULL_ALLOCATION = 100

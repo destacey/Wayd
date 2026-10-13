@@ -1,0 +1,16 @@
+.controls {
+  margin-bottom: var(--ant-margin);
+}
+
+.summary {
+  margin-bottom: var(--ant-margin);
+}
+
+.roles {
+  max-width: 420px;
+  margin-bottom: var(--ant-margin-lg);
+}
+
+.notice {
+  margin-bottom: var(--ant-margin);
+}

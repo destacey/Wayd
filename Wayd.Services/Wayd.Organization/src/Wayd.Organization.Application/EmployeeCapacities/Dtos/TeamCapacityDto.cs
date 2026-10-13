@@ -27,8 +27,27 @@ public sealed record TeamCapacityDto
     /// <summary>Whether the caller may change this team's allocations.</summary>
     public bool CanManage { get; set; }
 
+    /// <summary>
+    /// The allocated time by team member role, by role name with the time in no role last. The lines add up to
+    /// <see cref="AllocatedPersonDays"/>.
+    /// </summary>
+    public required IReadOnlyList<TeamCapacityRoleDto> Roles { get; set; }
+
     /// <summary>Everyone with time allocated to the team in the range, by name.</summary>
     public required IReadOnlyList<TeamCapacityPersonDto> People { get; set; }
+}
+
+/// <summary>The time allocated to a team in one team member role over a date range.</summary>
+public sealed record TeamCapacityRoleDto
+{
+    /// <summary>The team member role, or null for time allocated in no role.</summary>
+    public NavigationDto? Role { get; set; }
+
+    /// <summary>Whether the role's time adds to the team's delivery capacity. True for time in no role.</summary>
+    public required bool CountsTowardDeliveryCapacity { get; set; }
+
+    /// <summary>The time allocated in the role, in person-days.</summary>
+    public required decimal PersonDays { get; set; }
 }
 
 /// <summary>One person's time on a team over a date range.</summary>
@@ -47,6 +66,12 @@ public sealed record TeamCapacityPersonDto
 
     /// <summary>Their allocations to the team that fall in the range, in date order.</summary>
     public required IReadOnlyList<TeamCapacityAllocationDto> Allocations { get; set; }
+
+    /// <summary>
+    /// Their allocations to other teams that fall in the range, in date order: what
+    /// <see cref="ElsewherePersonDays"/> is made of, and where time can be moved from.
+    /// </summary>
+    public required IReadOnlyList<EmployeeAllocationDto> ElsewhereAllocations { get; set; }
 }
 
 /// <summary>An allocation of a person's time to the team.</summary>
@@ -68,4 +93,7 @@ public sealed record TeamCapacityAllocationDto
 
     /// <summary>The share of the person's time, from 1 to 100.</summary>
     public required int Percent { get; set; }
+
+    /// <summary>What the allocation is worth over the team's working days in the range, in person-days.</summary>
+    public required decimal PersonDays { get; set; }
 }

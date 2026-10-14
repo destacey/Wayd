@@ -162,8 +162,9 @@ export interface CommitmentHealthParams {
   /**
    * The ideal line as shares of the committed work still to remain, in time
    * order. When given, the progress expected at a moment is read from it, so
-   * weekends, holidays and team days off expect none; otherwise progress is
-   * expected evenly over the time from start to end.
+   * weekends, holidays and team days off expect none and a day part of the
+   * team is away expects less; otherwise progress is expected evenly over the
+   * time from start to end.
    */
   ideal?: IdealPoint[]
   /** Optional moment to measure at (defaults to now) */
@@ -204,7 +205,8 @@ export function idealDoneAt(
  * as a share of the commitment, against the share the burn-down's ideal line
  * expects done by now, on the same thresholds as
  * {@link calculateIterationHealth}. The line falls only on the team's working
- * days, so health asks for exactly the progress the line shows; without it,
+ * days, and by less when part of the team is away, so health asks for exactly
+ * the progress the line shows; without it,
  * the share of the time elapsed from the commitment point to the effective
  * end. Work added or re-estimated after the commitment point doesn't count
  * against the team; delivery past the commitment isn't capped, so it always

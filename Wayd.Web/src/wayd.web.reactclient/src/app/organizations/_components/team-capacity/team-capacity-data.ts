@@ -8,6 +8,7 @@ import {
   TeamCapacityPersonDto,
   TeamCapacityRoleDto,
   TeamCapacityRollupNodeDto,
+  TeamCapacityTimeAwayDto,
 } from '@/src/store/features/organization/team-capacity-api'
 
 /** An inclusive range of calendar dates. */
@@ -63,6 +64,20 @@ export function capacityRows(people: TeamCapacityPersonDto[]): CapacityRow[] {
       personDays: allocation.personDays,
     })),
   )
+}
+
+/**
+ * A person's time away as their teammates read it, a line per stretch: the
+ * days and how much of each, never why.
+ */
+export function timeAwayLines(timeAway: TeamCapacityTimeAwayDto[]): string[] {
+  return timeAway.map((t) => {
+    const days =
+      t.start === t.end
+        ? formatCalendarDate(t.start)
+        : `${formatCalendarDate(t.start)} to ${formatCalendarDate(t.end)}`
+    return `${days}: ${t.percentAway}% of the day`
+  })
 }
 
 /** A line of the capacity-by-role summary. */

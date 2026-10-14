@@ -110,6 +110,7 @@ const capacity = (overrides: Record<string, unknown> = {}) => ({
   workingDays: 20,
   allocatedPersonDays: 10,
   deliveryPersonDays: 10,
+  awayPersonDays: 0,
   canManage: true,
   roles: [
     {
@@ -129,6 +130,8 @@ const capacity = (overrides: Record<string, unknown> = {}) => ({
       allocatedPersonDays: 10,
       deliveryPersonDays: 10,
       elsewherePersonDays: 10,
+      awayPersonDays: 0,
+      timeAway: [],
       allocations: [
         {
           id: 'allocation-1',
@@ -414,6 +417,28 @@ describe('TeamCapacity', () => {
   })
 
   describe('on a team', () => {
+    it('shows what time away takes, for the team and for each person', () => {
+      const base = capacity()
+      mockCapacity = capacity({
+        awayPersonDays: 1.25,
+        people: [
+          {
+            ...base.people[0],
+            awayPersonDays: 1.25,
+            timeAway: [
+              { start: '2027-02-01', end: '2027-02-05', percentAway: 50 },
+            ],
+          },
+        ],
+      })
+
+      renderSection()
+
+      expect(statistic('Time away person-days')).toBe('1.25')
+      expect(screen.getByText('Away')).toBeInTheDocument()
+      expect(screen.getByRole('cell', { name: '1.25' })).toBeInTheDocument()
+    })
+
     it('does not read a rollup and totals its own allocations', () => {
       renderSection()
 

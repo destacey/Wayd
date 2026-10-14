@@ -8,6 +8,7 @@ import {
   TeamCapacityRoleDto,
   TeamCapacityRollupDto,
   TeamCapacityRollupNodeDto,
+  TeamCapacityTimeAwayDto,
 } from '@/src/services/wayd-api'
 import { CalendarDate } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
@@ -22,6 +23,7 @@ export type {
   TeamCapacityRoleDto,
   TeamCapacityRollupDto,
   TeamCapacityRollupNodeDto,
+  TeamCapacityTimeAwayDto,
 }
 
 /** Which of the two team endpoints a capacity read goes to. */

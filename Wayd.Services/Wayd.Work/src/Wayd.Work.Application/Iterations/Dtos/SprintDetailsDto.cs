@@ -37,6 +37,12 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public required WorkTeamNavigationDto Team { get; set; }
 
     /// <summary>
+    /// Whether the sprint's team is active. An inactive team's allocations can no longer be added to, so its
+    /// capacity plan is read-only.
+    /// </summary>
+    public bool TeamIsActive { get; set; }
+
+    /// <summary>
     /// When the team started the sprint, if it did.
     /// </summary>
     public Instant? Started { get; set; }
@@ -130,6 +136,7 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => src.Team)
+            .Map(dest => dest.TeamIsActive, src => src.Team != null && src.Team.IsActive)
             .Ignore(dest => dest.ActiveFrom)
             .Ignore(dest => dest.ActiveUntil)
             .Ignore(dest => dest.TimeZone)

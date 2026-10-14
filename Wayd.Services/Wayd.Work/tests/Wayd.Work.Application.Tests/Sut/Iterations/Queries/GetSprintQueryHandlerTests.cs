@@ -81,6 +81,21 @@ public class GetSprintQueryHandlerTests : IDisposable
         result.CanStart.Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ReportsWhetherTheSprintsTeamIsActive(bool isActive)
+    {
+        // Arrange
+        _scenario.Team.ApplyActivation(isActive, Instant.FromUtc(2026, 1, 1, 0, 0));
+
+        // Act
+        var result = await _handler.Handle(new GetSprintQuery(new IdOrKey(_scenario.Sprint2.Key.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.TeamIsActive.Should().Be(isActive);
+    }
+
     [Fact]
     public async Task Handle_ForASprintNeitherSetNorMapped_IsStandardByDefault()
     {

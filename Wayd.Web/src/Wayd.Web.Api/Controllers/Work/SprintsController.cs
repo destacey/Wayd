@@ -1,6 +1,8 @@
-﻿using Wayd.Common.Application.Activities.Dtos;
+﻿using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Planning.Application.PlanningSprints.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Work.Sprints;
@@ -124,6 +126,23 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
         return burn is not null
             ? Ok(burn)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/capacity")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
+    [OpenApiOperation(
+        "Get a sprint's capacity beside its scope.",
+        "The team's capacity over the sprint's planned dates (`start` to `end`) in person-days after holidays and time away: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `awayPersonDays` that time away took. Beside it, the sprint's `scope` in `sizingMethod` (by count under Count): the work in the sprint now before its commitment point (`scopeBasis` Planned), and the committed work after it (Committed). `expectedScope` is what the capacity is expected to deliver: the team's velocity per person-day of delivery capacity over the completed sprints its sprint metrics count now that ended no later than this sprint (`priorSprints`), in the same unit, times this sprint's. A sprint some way back therefore draws on fewer prior sprints than the team had at the time, or none. `isOverCapacity` is true when the scope is above it on a sprint that has not ended. `outcome` says whether the comparison was made, or why not: NoCapacity, NoPriorSprints, NoPriorCapacity. Not found when the sprint has no team or no planned dates. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SprintCapacityDto>> GetSprintCapacity(string idOrKey, CancellationToken cancellationToken)
+    {
+        var capacity = await _dispatcher.Send(new GetSprintCapacityQuery(idOrKey), cancellationToken);
+
+        return capacity is not null
+            ? Ok(capacity)
             : NotFound();
     }
 

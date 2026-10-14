@@ -35,6 +35,7 @@ const sprint: SprintDetailsDto = {
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   teamDaysOff: ['2026-09-02'],
+  teamIsActive: true,
   canManageSprint: true,
   canStart: false,
   canComplete: false,

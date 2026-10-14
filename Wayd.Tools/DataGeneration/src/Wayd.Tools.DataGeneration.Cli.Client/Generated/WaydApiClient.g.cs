@@ -54952,6 +54952,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get a sprint's capacity beside its scope.
+        /// </summary>
+        /// <remarks>
+        /// The team's capacity over the sprint's planned dates (`start` to `end`) in person-days after holidays and time away: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `awayPersonDays` that time away took. Beside it, the sprint's `scope` in `sizingMethod` (by count under Count): the work in the sprint now before its commitment point (`scopeBasis` Planned), and the committed work after it (Committed). `expectedScope` is what the capacity is expected to deliver: the team's velocity per person-day of delivery capacity over the completed sprints its sprint metrics count now that ended no later than this sprint (`priorSprints`), in the same unit, times this sprint's. A sprint some way back therefore draws on fewer prior sprints than the team had at the time, or none. `isOverCapacity` is true when the scope is above it on a sprint that has not ended. `outcome` says whether the comparison was made, or why not: NoCapacity, NoPriorSprints, NoPriorCapacity. Not found when the sprint has no team or no planned dates. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<SprintCapacityDto> GetSprintCapacityAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Start a sprint.
         /// </summary>
         /// <remarks>
@@ -55736,6 +55746,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<SprintBurnDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a sprint's capacity beside its scope.
+        /// </summary>
+        /// <remarks>
+        /// The team's capacity over the sprint's planned dates (`start` to `end`) in person-days after holidays and time away: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `awayPersonDays` that time away took. Beside it, the sprint's `scope` in `sizingMethod` (by count under Count): the work in the sprint now before its commitment point (`scopeBasis` Planned), and the committed work after it (Committed). `expectedScope` is what the capacity is expected to deliver: the team's velocity per person-day of delivery capacity over the completed sprints its sprint metrics count now that ended no later than this sprint (`priorSprints`), in the same unit, times this sprint's. A sprint some way back therefore draws on fewer prior sprints than the team had at the time, or none. `isOverCapacity` is true when the scope is above it on a sprint that has not ended. `outcome` says whether the comparison was made, or why not: NoCapacity, NoPriorSprints, NoPriorCapacity. Not found when the sprint has no team or no planned dates. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<SprintCapacityDto> GetSprintCapacityAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/work/sprints/{idOrKey}/capacity"
+                    urlBuilder_.Append("api/work/sprints/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<SprintCapacityDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -65312,6 +65413,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the capacity of a team over a date range day by day, to plan against.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Propose allocations for a team from its members, without saving anything.
         /// </summary>
         /// <remarks>
@@ -67360,6 +67471,117 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team over a date range day by day, to plan against.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{id}/capacity/plan"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity/plan");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityPlanDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -70052,6 +70274,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the capacity of a team of teams over a date range day by day, to plan against.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the system default working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Propose allocations for a team of teams from its members, without saving anything.
         /// </summary>
         /// <remarks>
@@ -71027,6 +71259,117 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityRollupDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of a team of teams over a date range day by day, to plan against.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the system default working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/capacity/plan"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity/plan");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityPlanDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -98682,6 +99025,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public WorkTeamNavigationDto Team { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("teamIsActive")]
+        public bool TeamIsActive { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("started")]
         public System.DateTimeOffset? Started { get; set; } = default!;
 
@@ -99063,6 +99409,92 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("completed")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Completed { get; set; } = new SprintScopeMeasureDto();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintCapacityDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("sprintId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid SprintId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("awayPersonDays")]
+        public decimal AwayPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("scopeBasis")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintCapacityScopeBasis>))]
+        public SprintCapacityScopeBasis ScopeBasis { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        public double Scope { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("outcome")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintCapacityOutcome>))]
+        public SprintCapacityOutcome Outcome { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("expectedScope")]
+        public double? ExpectedScope { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("priorSprints")]
+        public int PriorSprints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isOverCapacity")]
+        public bool IsOverCapacity { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum SprintCapacityScopeBasis
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Planned")]
+        Planned = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Committed")]
+        Committed = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum SprintCapacityOutcome
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Compared")]
+        Compared = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NoCapacity")]
+        NoCapacity = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NoPriorSprints")]
+        NoPriorSprints = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NoPriorCapacity")]
+        NoPriorCapacity = 3,
 
     }
 
@@ -102066,6 +102498,95 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("percent")]
+        public int Percent { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("personDays")]
+        public decimal PersonDays { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityPlanDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("capacity")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public TeamCapacityDto Capacity { get; set; } = new TeamCapacityDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("days")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.DateTimeOffset> Days { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("people")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPlanPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanPersonDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityPlanPersonDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid EmployeeId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("days")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPlanPersonDayDto> Days { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanPersonDayDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("rows")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPlanRowDto> Rows { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanRowDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityPlanPersonDayDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Date { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isHoliday")]
+        public bool IsHoliday { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("percentAway")]
+        public int PercentAway { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("elsewherePercent")]
+        public int ElsewherePercent { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityPlanRowDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        public NavigationDto? Role { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
+        public bool CountsTowardDeliveryCapacity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("days")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPlanDayDto> Days { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanDayDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityPlanDayDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Date { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("percent")]
         public int Percent { get; set; } = default!;

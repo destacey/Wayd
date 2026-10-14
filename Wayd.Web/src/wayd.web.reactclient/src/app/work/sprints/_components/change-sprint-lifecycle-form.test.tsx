@@ -66,6 +66,7 @@ const sprint: SprintDetailsDto = {
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   teamDaysOff: [],
+  teamIsActive: true,
   canManageSprint: true,
   canStart: true,
   canComplete: false,

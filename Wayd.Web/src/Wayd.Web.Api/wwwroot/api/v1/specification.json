@@ -27257,6 +27257,54 @@
         ]
       }
     },
+    "/api/work/sprints/{idOrKey}/capacity": {
+      "get": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Get a sprint's capacity beside its scope.",
+        "description": "The team's capacity over the sprint's planned dates (`start` to `end`) in person-days after holidays and time away: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `awayPersonDays` that time away took. Beside it, the sprint's `scope` in `sizingMethod` (by count under Count): the work in the sprint now before its commitment point (`scopeBasis` Planned), and the committed work after it (Committed). `expectedScope` is what the capacity is expected to deliver: the team's velocity per person-day of delivery capacity over the completed sprints its sprint metrics count now that ended no later than this sprint (`priorSprints`), in the same unit, times this sprint's. A sprint some way back therefore draws on fewer prior sprints than the team had at the time, or none. `isOverCapacity` is true when the scope is above it on a sprint that has not ended. `outcome` says whether the comparison was made, or why not: NoCapacity, NoPriorSprints, NoPriorCapacity. Not found when the sprint has no team or no planned dates. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Sprints_GetSprintCapacity",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintCapacityDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/{id}/start": {
       "post": {
         "tags": [
@@ -32813,6 +32861,85 @@
         ]
       }
     },
+    "/api/organization/teams/{id}/capacity/plan": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get the capacity of a team over a date range day by day, to plan against.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Teams_GetCapacityPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCapacityPlanDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/teams/{id}/capacity/proposal": {
       "get": {
         "tags": [
@@ -34980,6 +35107,85 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TeamCapacityRollupDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/capacity/plan": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Get the capacity of a team of teams over a date range day by day, to plan against.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the system default working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "TeamsOfTeams_GetCapacityPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCapacityPlanDto"
                 }
               }
             }
@@ -59144,6 +59350,7 @@
           "key",
           "start",
           "end",
+          "teamIsActive",
           "teamDaysOff",
           "sprintType",
           "sprintTypeSource",
@@ -59181,6 +59388,9 @@
           },
           "team": {
             "$ref": "#/components/schemas/WorkTeamNavigationDto"
+          },
+          "teamIsActive": {
+            "type": "boolean"
           },
           "started": {
             "type": "string",
@@ -59676,6 +59886,105 @@
             "$ref": "#/components/schemas/SprintScopeMeasureDto"
           }
         }
+      },
+      "SprintCapacityDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sprintId",
+          "start",
+          "end",
+          "allocatedPersonDays",
+          "deliveryPersonDays",
+          "awayPersonDays",
+          "sizingMethod",
+          "scopeBasis",
+          "scope",
+          "outcome",
+          "priorSprints",
+          "isOverCapacity"
+        ],
+        "properties": {
+          "sprintId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "allocatedPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "deliveryPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "awayPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
+          "scopeBasis": {
+            "$ref": "#/components/schemas/SprintCapacityScopeBasis"
+          },
+          "scope": {
+            "type": "number",
+            "format": "double"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/SprintCapacityOutcome"
+          },
+          "expectedScope": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "priorSprints": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isOverCapacity": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SprintCapacityScopeBasis": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Planned",
+          "Committed"
+        ],
+        "enum": [
+          "Planned",
+          "Committed"
+        ]
+      },
+      "SprintCapacityOutcome": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Compared",
+          "NoCapacity",
+          "NoPriorSprints",
+          "NoPriorCapacity"
+        ],
+        "enum": [
+          "Compared",
+          "NoCapacity",
+          "NoPriorSprints",
+          "NoPriorCapacity"
+        ]
       },
       "StartSprintRequest": {
         "type": "object",
@@ -63571,6 +63880,139 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "percent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personDays": {
+            "type": "number",
+            "format": "decimal"
+          }
+        }
+      },
+      "TeamCapacityPlanDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capacity",
+          "days",
+          "people"
+        ],
+        "properties": {
+          "capacity": {
+            "$ref": "#/components/schemas/TeamCapacityDto"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityPlanPersonDto"
+            }
+          }
+        }
+      },
+      "TeamCapacityPlanPersonDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "employeeId",
+          "days",
+          "rows"
+        ],
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityPlanPersonDayDto"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityPlanRowDto"
+            }
+          }
+        }
+      },
+      "TeamCapacityPlanPersonDayDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "isHoliday",
+          "percentAway",
+          "elsewherePercent"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "isHoliday": {
+            "type": "boolean"
+          },
+          "percentAway": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "elsewherePercent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TeamCapacityPlanRowDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "countsTowardDeliveryCapacity",
+          "days"
+        ],
+        "properties": {
+          "role": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityPlanDayDto"
+            }
+          }
+        }
+      },
+      "TeamCapacityPlanDayDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "percent",
+          "personDays"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
           },
           "percent": {
             "type": "integer",

@@ -862,6 +862,86 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void EmployeeTimeAwayRecordedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new EmployeeTimeAwayRecordedEvent(
+            id: Guid.NewGuid(),
+            timeAwayId: Guid.NewGuid(),
+            start: new LocalDate(2027, 2, 1),
+            end: new LocalDate(2027, 2, 7),
+            percentAway: 50,
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 10, 13, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public void EmployeeTimeAwayChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new EmployeeTimeAwayChangedEvent(
+            id: Guid.NewGuid(),
+            timeAwayId: Guid.NewGuid(),
+            start: new LocalDate(2027, 2, 2),
+            end: new LocalDate(2027, 2, 8),
+            percentAway: 50,
+            previousStart: new LocalDate(2027, 2, 1),
+            previousEnd: new LocalDate(2027, 2, 7),
+            previousPercentAway: 100,
+            reasonChanged: true,
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 10, 13, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public void EmployeeTimeAwayRemovedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new EmployeeTimeAwayRemovedEvent(
+            id: Guid.NewGuid(),
+            timeAwayId: Guid.NewGuid(),
+            start: new LocalDate(2027, 2, 1),
+            end: new LocalDate(2027, 2, 7),
+            percentAway: 100,
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 10, 13, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Theory]
+    [InlineData(typeof(EmployeeTimeAwayRecordedEvent))]
+    [InlineData(typeof(EmployeeTimeAwayChangedEvent))]
+    [InlineData(typeof(EmployeeTimeAwayRemovedEvent))]
+    public void EmployeeTimeAwayEvents_CarryNoReason(Type eventType)
+    {
+        // Arrange — why someone is away is shown to fewer people than can read an employee's activity
+        var payloadTypes = eventType.GetProperties().Select(p => p.PropertyType);
+
+        // Act
+        var carriesTheReason = payloadTypes.Any(t => (Nullable.GetUnderlyingType(t) ?? t) == typeof(TimeAwayReason));
+
+        // Assert
+        carriesTheReason.Should().BeFalse();
+    }
+
+    [Fact]
     public void TeamMembershipDatesChangedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange — one range open-ended, the other closed

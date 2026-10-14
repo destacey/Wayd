@@ -96,6 +96,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<HolidayCalendar> HolidayCalendars => Set<HolidayCalendar>();
     public DbSet<EmployeeCapacity> EmployeeCapacities => Set<EmployeeCapacity>();
     public DbSet<EmployeeTeamAllocation> EmployeeTeamAllocations => Set<EmployeeTeamAllocation>();
+    public DbSet<EmployeeTimeAway> EmployeeTimeAway => Set<EmployeeTimeAway>();
 
     #endregion IOrganization
 

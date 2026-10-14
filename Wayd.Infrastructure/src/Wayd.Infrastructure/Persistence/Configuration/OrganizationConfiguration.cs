@@ -198,6 +198,40 @@ public class EmployeeCapacityConfig : IEntityTypeConfiguration<EmployeeCapacity>
             .WithOne()
             .HasForeignKey(a => a.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(c => c.TimeAway)
+            .WithOne()
+            .HasForeignKey(t => t.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<HolidayCalendar>()
+            .WithMany()
+            .HasForeignKey(c => c.HolidayCalendarId)
+            .OnDelete(DeleteBehavior.NoAction);
+    }
+}
+
+public class EmployeeTimeAwayConfig : IEntityTypeConfiguration<EmployeeTimeAway>
+{
+    public void Configure(EntityTypeBuilder<EmployeeTimeAway> builder)
+    {
+        builder.ToTable("EmployeeTimeAway", SchemaNames.Organization);
+
+        builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).ValueGeneratedNever();
+
+        builder.Property(t => t.Start).IsRequired();
+        builder.Property(t => t.End).IsRequired();
+        builder.Property(t => t.PercentAway).IsRequired();
+
+        builder.Property(t => t.Reason)
+            .HasConversion<EnumConverter<TimeAwayReason>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        // A team's capacity over a date range reads the time away of everyone allocated to it.
+        builder.HasIndex(t => new { t.EmployeeId, t.Start })
+            .IncludeProperties(t => new { t.End, t.PercentAway });
     }
 }
 

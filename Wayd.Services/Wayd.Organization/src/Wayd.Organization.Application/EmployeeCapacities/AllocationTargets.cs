@@ -9,7 +9,7 @@ internal sealed record AllocationTarget(Guid TeamId, Guid? RoleId, bool Allocate
 /// <summary>What the allocation commands share: checking who and what is being allocated, and loading the record.</summary>
 internal static class AllocationTargets
 {
-    public const string ChangedElsewhereError = "The employee's allocations were changed by someone else. Reload them and try again.";
+    public const string ChangedElsewhereError = EmployeeCapacityRecords.ChangedElsewhereError;
 
     /// <summary>
     /// Fails when the employee, a team or a role does not exist, or when time is being given to or by one that
@@ -63,48 +63,11 @@ internal static class AllocationTargets
         return Result.Success();
     }
 
-    /// <summary>
-    /// The employee's capacity record with its allocations. When they have none yet it is new and not tracked:
-    /// <see cref="Save"/> adds it once it holds something.
-    /// </summary>
-    public static async Task<(EmployeeCapacity Capacity, bool IsNew)> LoadOrCreateCapacity(IOrganizationDbContext organizationDbContext, Guid employeeId, CancellationToken cancellationToken)
-    {
-        var capacity = await organizationDbContext.EmployeeCapacities
-            .Include(c => c.Allocations)
-            .FirstOrDefaultAsync(c => c.Id == employeeId, cancellationToken);
+    /// <summary>The employee's capacity record with its allocations, new and untracked when they have none yet.</summary>
+    public static Task<(EmployeeCapacity Capacity, bool IsNew)> LoadOrCreateCapacity(IOrganizationDbContext organizationDbContext, Guid employeeId, CancellationToken cancellationToken) =>
+        EmployeeCapacityRecords.LoadOrCreate(organizationDbContext, employeeId, CapacityPart.Allocations, cancellationToken);
 
-        return capacity is not null
-            ? (capacity, false)
-            : (EmployeeCapacity.Create(employeeId), true);
-    }
-
-    /// <summary>
-    /// Saves a change to the employee's allocations. A call that changed nothing saves nothing, so no empty
-    /// record is left behind. Fails with <see cref="ChangedElsewhereError"/> when someone else changed the
-    /// allocations first, including by creating the employee's record at the same moment.
-    /// </summary>
-    public static async Task<Result> Save(IOrganizationDbContext organizationDbContext, EmployeeCapacity capacity, bool isNew, CancellationToken cancellationToken)
-    {
-        if (capacity.DomainEvents.Count == 0)
-            return Result.Success();
-
-        try
-        {
-            if (isNew)
-                await organizationDbContext.EmployeeCapacities.AddAsync(capacity, cancellationToken);
-
-            await organizationDbContext.SaveChangesAsync(cancellationToken);
-            return Result.Success();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return Result.Failure(ChangedElsewhereError);
-        }
-        // The record's id is the employee's, so a failed insert of a new one is a second writer's having
-        // inserted it first.
-        catch (DbUpdateException) when (isNew)
-        {
-            return Result.Failure(ChangedElsewhereError);
-        }
-    }
+    /// <summary>Saves a change to the employee's allocations, failing when someone else changed their record first.</summary>
+    public static Task<Result> Save(IOrganizationDbContext organizationDbContext, EmployeeCapacity capacity, bool isNew, CancellationToken cancellationToken) =>
+        EmployeeCapacityRecords.Save(organizationDbContext, capacity, isNew, cancellationToken);
 }

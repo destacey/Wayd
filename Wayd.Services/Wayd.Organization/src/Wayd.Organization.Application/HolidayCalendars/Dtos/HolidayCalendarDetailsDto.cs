@@ -24,6 +24,10 @@ public sealed record HolidayCalendarDetailsDto
     [Required]
     public int OperatingModelCount { get; init; }
 
+    /// <summary>How many employees follow this calendar instead of the system default. A calendar in use cannot be deleted.</summary>
+    [Required]
+    public int EmployeeCount { get; init; }
+
     /// <summary>The holidays, in date order.</summary>
     [Required]
     public required IReadOnlyList<HolidayDto> Holidays { get; init; }

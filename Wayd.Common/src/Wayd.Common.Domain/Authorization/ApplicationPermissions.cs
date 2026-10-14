@@ -57,6 +57,7 @@ public static class ApplicationResource
     public const string Employees = nameof(Employees);
     public const string Teams = nameof(Teams);
     public const string TeamMemberRoles = nameof(TeamMemberRoles);
+    public const string EmployeeTimeAway = nameof(EmployeeTimeAway);
     public const string HolidayCalendars = nameof(HolidayCalendars);
 
     public const string PlanningIntervals = nameof(PlanningIntervals);
@@ -236,6 +237,9 @@ public static class ApplicationPermissions
         new("Update Employees", ApplicationAction.Update, ApplicationResource.Employees, OrganizationCategory),
         new("Delete Employees", ApplicationAction.Delete, ApplicationResource.Employees, OrganizationCategory),
         new("Import Employees", ApplicationAction.Import, ApplicationResource.Employees, OrganizationCategory),
+        // An employee records their own time away, and so does anyone they report up to, with no permission.
+        // This one is for everyone else: people with no manager here, and time away recorded on someone's behalf.
+        new("Administer Employee Time Away", ApplicationAction.Administer, ApplicationResource.EmployeeTimeAway, OrganizationCategory),
 
         new("View Teams and Teams of Teams", ApplicationAction.View, ApplicationResource.Teams, OrganizationCategory),
         new("Create Teams", ApplicationAction.Create, ApplicationResource.Teams, OrganizationCategory),

@@ -49,7 +49,7 @@ internal static class OrganizationSeeder
         return team;
     }
 
-    public static async Task<Employee> SeedEmployee(WaydDbContext context, string employeeNumber, string email, CancellationToken cancellationToken)
+    public static async Task<Employee> SeedEmployee(WaydDbContext context, string employeeNumber, string email, CancellationToken cancellationToken, Guid? managerId = null)
     {
         var employee = Employee.Create(
             new PersonName("Ada", null, "Lovelace"),
@@ -59,7 +59,7 @@ internal static class OrganizationSeeder
             jobTitle: "Engineer",
             department: "Engineering",
             officeLocation: null,
-            managerId: null,
+            managerId: managerId,
             isActive: true,
             employeeType: null,
             EventActor.System,

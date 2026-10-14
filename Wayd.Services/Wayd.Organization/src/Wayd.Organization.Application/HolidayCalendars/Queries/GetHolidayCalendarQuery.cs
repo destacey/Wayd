@@ -49,6 +49,9 @@ public sealed class GetHolidayCalendarQueryHandler(
         var operatingModelCount = await _organizationDbContext.TeamOperatingModels
             .CountAsync(m => m.HolidayCalendarId == calendar.Id, cancellationToken);
 
+        var employeeCount = await _organizationDbContext.EmployeeCapacities
+            .CountAsync(c => c.HolidayCalendarId == calendar.Id, cancellationToken);
+
         return new HolidayCalendarDetailsDto
         {
             Id = calendar.Id,
@@ -57,6 +60,7 @@ public sealed class GetHolidayCalendarQueryHandler(
             Description = calendar.Description,
             IsDefault = calendar.Id == defaultId,
             OperatingModelCount = operatingModelCount,
+            EmployeeCount = employeeCount,
             Holidays = calendar.Holidays,
         };
     }

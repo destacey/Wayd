@@ -223,13 +223,15 @@ Every change is recorded in the page's **Activity** section, with who made it an
 
 A **Holiday Calendar** is a named set of days off, such as a country's public holidays. A team's [operating model](../organizations/index.mdx#operating-model) points at one, or uses the default calendar from the [scheduling settings](#scheduling). A sprint's ideal burn-down line stays flat on the team's holidays.
 
-A calendar holds only the days a **whole team** is off. A calendar is not tied to a team, so teams that share their days off share a calendar. A team spread across regions uses a calendar of the holidays its members share: a regional holiday that takes only some members out does not stop the team, which still burns, just more slowly.
+A team's calendar holds only the days the **whole team** is off. A calendar is not tied to a team, so teams that share their days off share a calendar. A team spread across regions uses a calendar of the holidays its members share: a regional holiday that takes only some members out does not stop the team, which still burns, just more slowly.
+
+With **Team Capacity Management** turned on, each person follows a calendar too: the one assigned to them for where they work, such as their country's, or otherwise the [system default](#scheduling). Their team's calendar does not decide their holidays (see [Time Away and Holiday Calendars](../organizations/index.mdx#time-away-and-holiday-calendars)). A holiday only some of a team's people take then lowers the team's capacity that day, and the ideal burn-down line drops by less, in proportion to who is there. Because people follow the system default unless assigned another calendar, set a default: the Holiday Calendars page warns when none is set.
 
 Managing calendars:
 1. Navigate to **Settings > Organization > Holiday Calendars**
 2. Use **Create Holiday Calendar** and give it a unique **Name** and, optionally, a **Description**
 3. Open the calendar and use **Add Holiday** to add a **Date** and **Name** for each day off. A calendar holds at most one holiday per date. Edit or remove a holiday from its row menu
-4. **Delete** a calendar, with its holidays, from the row menu or the calendar's actions. A calendar a team operating model uses, or the default calendar, cannot be deleted
+4. **Delete** a calendar, with its holidays, from the row menu or the calendar's actions. A calendar a team operating model or an employee uses, or the default calendar, cannot be deleted. The calendar's page counts both
 
 The calendar's **Activity** section records its creation, changes to its name or description, and every holiday added, changed or removed, with who made the change.
 

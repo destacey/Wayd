@@ -101,6 +101,20 @@ Changing [how much of a person's time a team has](../organizations/index.mdx#all
 
 Viewing a person's allocations needs only `Permissions.Employees.View`.
 
+## Time away: the person and their managers
+
+Recording, changing and removing a person's [time away](../organizations/index.mdx#time-away-and-holiday-calendars) needs **no permission**. It is allowed for:
+
+- The person, for their own time away
+- Anyone the person reports up to: their manager, their manager's manager, and so on to the top
+- Anyone holding `Permissions.EmployeeTimeAway.Administer`
+
+The first two come from who you are, so your user account must be linked to an employee. The `Administer` permission covers everyone else: people with no manager in Wayd, and time away recorded on someone's behalf. The seeded **Admin** role includes it.
+
+The same people are the only ones shown the **reason** for a stretch of time away. Everyone who can view the employee (`Permissions.Employees.View`) sees the days and how much of each, and so does everyone who can see a team's capacity.
+
+Setting the holiday calendar a person takes is not time away: it needs `Permissions.Employees.Update`.
+
 ## Why an action might be unavailable
 
 When a PPM or sprint action is missing from a menu or rejected on submit, it is one of:
@@ -110,6 +124,7 @@ When a PPM or sprint action is missing from a menu or rejected on submit, it is 
 | Missing the permission claim | Ask an administrator to grant it via **Settings → Roles** |
 | Not leading the record | Ask an Owner or Manager of the record — or of its program or portfolio — to assign you a role, or to perform the action |
 | Not on the sprint's team | Ask to be added to the team or its team of teams, or ask a member to perform the action |
+| Not the person or one of their managers | A person's time away is recorded by them or by someone they report up to. Ask one of them, or a time away administrator |
 | No linked employee record | PPM and sprint changes are attributed to an employee. Ask an administrator to link your user account to one. |
 | A domain rule blocks it | The action may be invalid for the record's current state — for example, a portfolio cannot close while it still contains open projects |
 

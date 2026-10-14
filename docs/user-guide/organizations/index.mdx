@@ -166,6 +166,38 @@ Key rules:
 
 Who can change a team's allocations is covered under [Allocations: team membership](../settings/permissions.mdx#allocations-team-membership).
 
+### Time Away and Holiday Calendars
+
+:::note
+Time away and the holiday calendar a person follows are part of **Team Capacity Management**, which an administrator turns on under **Settings > Feature Management**.
+:::
+
+:::warning Before turning on Team Capacity Management
+Once people are allocated, each person's holidays come from the calendar they follow, otherwise the system default, and no longer from their team's calendar. Before turning the feature on, set the **Default Holiday Calendar** in **Settings > System > Scheduling**, and assign the right calendar to everyone who works somewhere with different holidays. Otherwise their teams' capacity and sprint ideal lines count them as working on their holidays and off on the default's.
+:::
+
+How much of a person's allocated time a team really has on a day depends on whether they are there. Three things decide it, each kept where it belongs:
+
+- **The team's working week** — from its [operating model](#operating-model). Nobody is counted on a day the team does not work
+- **Holidays** — from the [holiday calendar](../settings/index.mdx#holiday-calendars) the person follows. Calendars are shared: an administrator assigns a person the calendar for where they work, such as their country's, and many people follow the same one. A person who follows none takes the system default calendar. The calendar they follow replaces the system default rather than adding to it, and applies on every team they are allocated to, so a person's holidays never depend on which team is asking. A team's own calendar is not used here; it decides the days a team is off when it is read as a whole, with nobody allocated
+- **Time away** — leave, business travel, training. It is recorded for the person, not for a team
+
+A stretch of **time away** has:
+- **First day** and **Last day** — The days it covers, the same day for a single day
+- **Share of each day** — From 1% to 100%: 100% for whole days, 50% for half days
+- **Reason** — Paid time off, Business travel, Training or Other
+
+Key rules:
+- Time away is not an allocation. It takes nothing from the person's 100%, and it lowers their time on **every** team they are allocated to in proportion: someone 60% on one team and 40% on another who is away for a day takes 0.6 of a person-day from the first and 0.4 from the second
+- Being away from one team only is a change to that team's [allocation](#allocations), not time away
+- Stretches may overlap, such as training in the morning and leave in the afternoon, but a day cannot add up to more than a whole day away
+- Time away cannot be recorded or changed for an inactive employee. It can still be removed
+- Everyone who can see the person sees **that** they are away and for how much of the day. The **reason** is shown only to the person, the people they report up to and time away administrators, and is never written to the [activity log](../activity-log.mdx)
+
+A person's availability to a team on a day is their allocation to it, times whether the day is in the team's working week, times whether it is a holiday in the calendar they follow, times the share of the day they are not away. The team's [Capacity](#capacity) section and the [sprint burn-down's ideal line](../work-management/sprints.mdx#burn-up-and-burn-down) both read it.
+
+Who can record a person's time away is covered under [Time away: the person and their managers](../settings/permissions.mdx#time-away-the-person-and-their-managers).
+
 ### Team Memberships
 
 **Team Memberships** define the parent-child relationships in the organizational hierarchy. Each membership has a date range, allowing the hierarchy to change over time.
@@ -221,14 +253,15 @@ Members are managed from the **Actions menu → Team Management**:
 
 ### Capacity
 
-With **Team Capacity Management** turned on, team and team of teams pages have a **Capacity** section. It shows whose time the team has over a date range, from their [allocations](#allocations), and what that comes to in person-days. One person-day is one person allocated in full for one of the team's working days.
+With **Team Capacity Management** turned on, team and team of teams pages have a **Capacity** section. It shows whose time the team has over a date range, from their [allocations](#allocations), and what that comes to in person-days once the [holidays each person takes and their time away](#time-away-and-holiday-calendars) are left out. One person-day is one person allocated in full, and there, for one of the team's working days.
 
 The section keeps no plan of its own: it is a view of people's allocations, and every edit made here changes the same allocations the [employee page](#employee-detail-page) shows.
 
 - **Date range** — Any range of up to two years, starting on the current month
-- **Working days**, **People**, **Allocated person-days** and **Delivery person-days** — Totals for the range. Delivery person-days leave out time in roles that do not count toward delivery capacity
+- **Working days**, **People**, **Allocated person-days** and **Delivery person-days** — Totals for the range. Working days are the days of the team's working week that are not holidays in its own calendar; each person's person-days follow the calendar they follow, so they may be there on more or fewer of them. Delivery person-days leave out time in roles that do not count toward delivery capacity
+- **Time away person-days** — What people's time away takes from the team in the range. It is already left out of the allocated and delivery person-days. A team of teams does not show it
 - **By role** — Person-days for each role that counts toward delivery capacity, then one **Non-delivery** line for the roles that do not, so the lines add up to everything allocated
-- A grid with a row for each allocation in the range: Person, Role, Delivery, Percent, Start, End, **Person-days** on this team and **Elsewhere**, the person-days the same person has allocated to other teams on the same days
+- A grid with a row for each allocation in the range: Person, Role, Delivery, Percent, Start, End, **Person-days** on this team, **Elsewhere**, the person-days the same person has allocated to other teams on the same days, and **Away**, the person-days their time away takes from this team. Hover over **Away** to see the days the person is away and how much of each. The reason is never shown here
 
 A team of teams' section also covers the teams beneath it, at any depth:
 
@@ -461,7 +494,7 @@ The employee detail page also includes a **Reports > Cycle Time Report** action.
 With **Team Capacity Management** turned on, the employee detail page has a **Capacity** section showing how the person's time is [allocated](#allocations) to teams:
 
 - **Allocated today** and **Unallocated today** — The share of their time that is and is not allocated today
-- A timeline with a **Total** lane and a lane for each team. A team's lane shows each allocation as a bar with its percent and role, and one with no end runs to the edge. The Total lane adds every team up, starting a new bar wherever the total changes and marking the stretches where all of the person's time is allocated; a gap is time with nothing allocated. This is where you see whether someone has time free in a given period
+- A timeline with a **Total** lane, a **Time away** lane when the person has any, and a lane for each team. A team's lane shows each allocation as a bar with its percent and role, and one with no end runs to the edge. The Total lane adds every team up, starting a new bar wherever the total changes and marking the stretches where all of the person's time is allocated; a gap is time with nothing allocated. The Time away lane shows each stretch as **Away**, with the share of the day when it is not the whole day. This is where you see whether someone has time free in a given period
 - A grid of every allocation, past and future, with its Team, Type, Role, Start, End and Percent
 
 For teams whose allocations you can change:
@@ -469,6 +502,17 @@ For teams whose allocations you can change:
 - **Allocate** gives a team a share of the person's time over a date range. On a team and role the person already has time on, it sets the percent for just the dates you enter: days outside them keep what they had, so one week of a longer allocation at a different percent splits it
 - **Change** on a row, or clicking an allocation on the timeline, edits that allocation: its start, end and percent. The team and role are fixed; entering 0 removes it
 - **Move** takes a share from one team and role and gives it to another over a date range in one step. Use it for someone who is fully allocated, where raising one team first would exceed 100%
+
+Below the allocations, **Time away** shows the person's [time away and holiday calendar](#time-away-and-holiday-calendars):
+
+- **Holiday calendar** — The calendar the person follows, or **System default** when they follow none. **Change** sets it, and needs `Permissions.Employees.Update`
+- A grid of every stretch of time away, past and future, with its First day, Last day and Share of day
+
+If you are the person, someone they report up to, or a time away administrator, the grid also shows each stretch's **Reason**, and:
+
+- **Record Time Away** adds a stretch
+- **Change** on a row edits its days, share of the day or reason
+- **Remove** on a row deletes it, so the person counts as there on those days again
 
 ## Teams List Page
 
@@ -501,6 +545,11 @@ Features:
 | Allocation needs active records | Time cannot be given to an inactive employee, team or role, but can always be taken away from one |
 | Employee deactivation ends allocations | Deactivating an employee ends their allocations that day and removes any that start later |
 | Team deactivation ends allocations | Deactivating a team or team of teams ends allocations to it on its inactive date and removes any that start later; reactivating does not restore them |
+| Time away is not allocation | Time away never counts toward the 100% allocation limit, and lowers the person's time on every team they are allocated to in proportion |
+| Time away limit | A person's time away cannot add up to more than a whole day on any day |
+| Time away needs an active employee | Time away cannot be recorded or changed for an inactive employee, but can always be removed |
+| Time away reason is private | The reason is shown only to the person, the people they report up to and time away administrators, and is not recorded in the activity log |
+| A person's holidays follow their calendar | A person takes the holidays of the calendar assigned to them, otherwise the system default, on every team; a team's own calendar only applies when it is read as a whole |
 
 ## Related
 

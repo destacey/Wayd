@@ -9,6 +9,7 @@ import {
   Descriptions,
   Flex,
   Statistic,
+  Tooltip,
   Typography,
 } from 'antd'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
@@ -42,6 +43,7 @@ import {
   monthOf,
   NO_ROLE_LABEL,
   roleLines,
+  timeAwayLines,
 } from './team-capacity-data'
 import styles from './team-capacity.module.css'
 
@@ -204,6 +206,27 @@ const TeamCapacity = ({ team, teamType }: Props) => {
       cell: ({ row }) =>
         formatPersonDays(row.original.person.elsewherePersonDays),
     },
+    {
+      id: 'away',
+      accessorFn: (row) => row.person.awayPersonDays,
+      header: 'Away',
+      size: 90,
+      cell: ({ row }) => {
+        const lines = timeAwayLines(row.original.person.timeAway)
+        const away = formatPersonDays(row.original.person.awayPersonDays)
+        return lines.length > 0 ? (
+          <Tooltip
+            title={lines.map((line) => (
+              <div key={line}>{line}</div>
+            ))}
+          >
+            <span>{away}</span>
+          </Tooltip>
+        ) : (
+          away
+        )
+      },
+    },
     ...(canEdit
       ? [
           {
@@ -289,6 +312,12 @@ const TeamCapacity = ({ team, teamType }: Props) => {
               title="Delivery person-days"
               value={formatPersonDays(totals.deliveryPersonDays)}
             />
+            {!isTeamOfTeams && (
+              <Statistic
+                title="Time away person-days"
+                value={formatPersonDays(data?.awayPersonDays ?? 0)}
+              />
+            )}
           </Flex>
 
           {lines.length > 0 && (

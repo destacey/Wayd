@@ -13,7 +13,8 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 /// every team beneath it rolled up. Null when there is no team of teams with that id.
 /// </summary>
 /// <remarks>
-/// A team beneath it counts only for the days it was in the hierarchy, over its own working days. An
+/// A team beneath it counts only for the days it was in the hierarchy, over its own working days, after the
+/// holidays each person takes and their time away. An
 /// allocation counts once, on the team it was made to, so someone allocated to the team of teams and to a
 /// team beneath it has time at each level and none of it twice. Nothing is stored: the rollup is worked out
 /// from the allocations and the team memberships as they stand.
@@ -39,12 +40,10 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryValidator : CustomValidator
 
 public sealed class GetTeamOfTeamsCapacityRollupQueryHandler(
     IOrganizationDbContext organizationDbContext,
-    IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings)
     : IQueryHandler<GetTeamOfTeamsCapacityRollupQuery, TeamCapacityRollupDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
-    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
 
     public async Task<TeamCapacityRollupDto?> Handle(GetTeamOfTeamsCapacityRollupQuery request, CancellationToken cancellationToken)
@@ -77,7 +76,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandler(
             .Select(t => new { t.Id, t.Key, t.Name, Code = t.Code.Value, t.Type })
             .ToDictionaryAsync(t => t.Id, cancellationToken);
 
-        var workingDays = await TeamWorkingDays.Load(_organizationDbContext, _dispatcher, _schedulingSettings, teamIds, firstDay, lastDay, cancellationToken);
+        var teamDays = await TeamWorkingDays.Load(_organizationDbContext, _schedulingSettings, teamIds, firstDay, lastDay, cancellationToken);
 
         var allocations = (await (
             from allocation in _organizationDbContext.EmployeeTeamAllocations
@@ -102,13 +101,22 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandler(
             .ToListAsync(cancellationToken))
             .ToLookup(a => a.TeamId);
 
+        var availability = await AvailabilityLoader.Load(
+            _organizationDbContext,
+            _schedulingSettings,
+            [.. allocations.SelectMany(team => team).Select(a => a.EmployeeId).Distinct()],
+            teamDays.Values.SelectMany(days => days).Select(d => d.HolidayCalendarId).Distinct(),
+            firstDay,
+            lastDay,
+            cancellationToken);
+
         // Every allocation the rollup counts, from the root and each node, for the figures that span the tree.
         List<(Guid EmployeeId, TeamCapacityAllocationDto Allocation)> counted = [];
 
         List<TeamCapacityRollupPersonDto> PeopleOf(Guid teamId, IReadOnlyList<HierarchyPeriod> periods, out int workingDayCount)
         {
-            List<LocalDate> days = [.. workingDays[teamId].Where(d => periods.Any(p => p.Includes(d)))];
-            workingDayCount = days.Count;
+            List<TeamDay> days = [.. teamDays[teamId].Where(d => periods.Any(p => p.Includes(d.Date)))];
+            workingDayCount = days.Count(d => !availability.IsTeamHoliday(d));
 
             List<TeamCapacityRollupPersonDto> people = [.. allocations[teamId]
                 .Where(a => periods.Any(p => p.Overlaps(a.Start, a.End)))
@@ -129,7 +137,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandler(
                             Start = a.Start,
                             End = a.End,
                             Percent = a.Percent,
-                            PersonDays = TeamCapacityCalculator.PersonDays(days, a.Start, a.End, a.Percent),
+                            PersonDays = TeamCapacityCalculator.PersonDays(days, person.Key, a.Start, a.End, a.Percent, availability),
                         })];
 
                     return new TeamCapacityRollupPersonDto

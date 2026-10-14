@@ -91,6 +91,24 @@ public class DeleteHolidayCalendarCommandHandlerTests : IDisposable
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Handle_WhenAnEmployeeTakesIt_FailsWithoutDeleting()
+    {
+        // Arrange
+        var capacity = EmployeeCapacity.Create(Guid.NewGuid());
+        capacity.ChangeHolidayCalendar(_calendar.Id, EventActor.System, _dateTimeProvider.Now);
+        _dbContext.AddEmployeeCapacity(capacity);
+
+        // Act
+        var result = await _handler.Handle(new DeleteHolidayCalendarCommand(_calendar.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("used by 1 employee");
+        _dbContext.HolidayCalendars.Should().ContainSingle();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

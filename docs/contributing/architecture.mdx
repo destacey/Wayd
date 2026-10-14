@@ -233,6 +233,13 @@ that only needs another domain's data now and then asks the owner instead, throu
 Keep the calculation out of the handler: `WorkDistributionCalculator` is a pure function over those results and
 the queried work items, so its rules are unit tested without a context or a dispatcher.
 
+The sprint burn-down's ideal line does the same for capacity. Work owns the sprint, its working week and its
+team days off; Organization owns allocations, holiday calendars and time away. `SprintScopeHistoryLoader`
+sends `GetTeamDayAvailabilityQuery` and gets back, for each day, how much of the team's allocated delivery
+time is there, then applies its own two facts on top. The feature flag is checked once, in the Organization
+handler, which answers null when it is off — so with the flag off nothing outside Organization can read an
+allocation, and Work draws the line as it did before allocations existed.
+
 ### Domain events and the activity log
 
 Every domain event drained by `SaveChanges` is captured in the activity log, and events follow one set of

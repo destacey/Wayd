@@ -30145,6 +30145,369 @@
         ]
       }
     },
+    "/api/organization/employees/time-away-reasons": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Get the reasons time away can be recorded for.",
+        "description": "Each reason's `code` is what a stretch of time away carries and what the time away requests accept.",
+        "operationId": "Employees_GetTimeAwayReasons",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TimeAwayReasonDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/employees/{id}/time-away": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Get when an employee is away and the holiday calendar they take.",
+        "description": "Returns each stretch of time away in date order with the share of each day it takes (`percentAway`), and the holiday calendar the employee follows when it is not the system default. Time away lowers the employee's availability to every team they are allocated to and never counts toward their 100% allocation. `canManage` says whether the caller may record this employee's time away: the employee, anyone they report up to, and holders of the Administer Employee Time Away permission. Each stretch's `reason` is null unless `canManage` is true. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_GetTimeAway",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeTimeAwayDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Record an employee as away for a stretch of days.",
+        "description": "Records the employee as away from every team they are allocated to for `percentAway` of each day from `start` to `end`. Stretches may overlap, but a day cannot add up to more than a whole day away. Needs no permission: allowed for the employee, anyone they report up to, and holders of the Administer Employee Time Away permission, and the caller must be linked to an employee. Returns the id of the time away. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_RecordTimeAway",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeTimeAwayRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/employees/{id}/time-away/{timeAwayId}": {
+      "put": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Change a stretch of an employee's time away.",
+        "description": "Changes its days, the share of each day it takes, or its reason. Allowed for the same people as recording it. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_ChangeTimeAway",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "timeAwayId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeTimeAwayRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Remove a stretch of an employee's time away.",
+        "description": "The employee counts as available on those days again. Allowed for the same people as recording it, whether or not the employee is still active. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_RemoveTimeAway",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "timeAwayId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/employees/{id}/holiday-calendar": {
+      "put": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Set the holiday calendar an employee follows.",
+        "description": "Calendars are shared: assign the one for where the employee works, such as their country's. They take its holidays instead of the system default's, on every team they are allocated to; with none (`holidayCalendarId` null) they follow the system default. A team's own calendar never decides a person's holidays. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_ChangeHolidayCalendar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmployeeHolidayCalendarRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/employees/{id}/work-items": {
       "get": {
         "tags": [
@@ -61064,6 +61427,169 @@
           }
         }
       },
+      "TimeAwayReasonDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfTimeAwayReason"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CommonEnumDtoOfTimeAwayReason": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/TimeAwayReason"
+              }
+            }
+          }
+        ]
+      },
+      "TimeAwayReason": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "PaidTimeOff",
+          "BusinessTravel",
+          "Training",
+          "Other"
+        ],
+        "enum": [
+          "PaidTimeOff",
+          "BusinessTravel",
+          "Training",
+          "Other"
+        ]
+      },
+      "EmployeeTimeAwayDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "canManage",
+          "entries"
+        ],
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "holidayCalendar": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeTimeAwayEntryDto"
+            }
+          }
+        }
+      },
+      "EmployeeTimeAwayEntryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "start",
+          "end",
+          "percentAway"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "percentAway": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimeAwayReason"
+              }
+            ]
+          }
+        }
+      },
+      "EmployeeTimeAwayRequest": {
+        "type": "object",
+        "description": "A stretch of days an employee is away from every team they are allocated to: leave, business travel, training.",
+        "additionalProperties": false,
+        "required": [
+          "start",
+          "end",
+          "percentAway",
+          "reason"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "description": "The first day away.",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "description": "The last day away. The same as the start for a single day.",
+            "format": "date"
+          },
+          "percentAway": {
+            "type": "integer",
+            "description": "The share of each day the employee is away, from 1 to 100: 100 for whole days, 50 for half days.",
+            "format": "int32",
+            "maximum": 100.0,
+            "minimum": 1.0
+          },
+          "reason": {
+            "description": "Why the employee is away. Shown only to the employee, the people they report up to and time away\nadministrators.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimeAwayReason"
+              }
+            ]
+          }
+        }
+      },
+      "ChangeEmployeeHolidayCalendarRequest": {
+        "type": "object",
+        "description": "Sets the holiday calendar an employee follows instead of the system default.",
+        "additionalProperties": false,
+        "properties": {
+          "holidayCalendarId": {
+            "type": "string",
+            "description": "The shared holiday calendar the employee follows, such as their country's, or null to have them follow the\nsystem default.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
       "WorkStatusCategory": {
         "type": "string",
         "description": "",
@@ -61128,6 +61654,7 @@
           "name",
           "isDefault",
           "operatingModelCount",
+          "employeeCount",
           "holidays"
         ],
         "properties": {
@@ -61154,6 +61681,10 @@
             "type": "boolean"
           },
           "operatingModelCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "employeeCount": {
             "type": "integer",
             "format": "int32"
           },
@@ -62856,6 +63387,7 @@
           "workingDays",
           "allocatedPersonDays",
           "deliveryPersonDays",
+          "awayPersonDays",
           "roles",
           "people",
           "canManage"
@@ -62878,6 +63410,10 @@
             "format": "decimal"
           },
           "deliveryPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "awayPersonDays": {
             "type": "number",
             "format": "decimal"
           },
@@ -62931,6 +63467,8 @@
           "allocatedPersonDays",
           "deliveryPersonDays",
           "elsewherePersonDays",
+          "awayPersonDays",
+          "timeAway",
           "allocations",
           "elsewhereAllocations"
         ],
@@ -62950,6 +63488,16 @@
             "type": "number",
             "format": "decimal"
           },
+          "awayPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "timeAway": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityTimeAwayDto"
+            }
+          },
           "allocations": {
             "type": "array",
             "items": {
@@ -62961,6 +63509,29 @@
             "items": {
               "$ref": "#/components/schemas/EmployeeAllocationDto"
             }
+          }
+        }
+      },
+      "TeamCapacityTimeAwayDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start",
+          "end",
+          "percentAway"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "percentAway": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

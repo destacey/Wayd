@@ -46,6 +46,7 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
     public DbSet<HolidayCalendar> HolidayCalendars => _holidayCalendars.AsDbSet();
     public DbSet<EmployeeCapacity> EmployeeCapacities => _employeeCapacities.AsDbSet();
     public DbSet<EmployeeTeamAllocation> EmployeeTeamAllocations => _employeeCapacities.SelectMany(c => c.Allocations).ToList().AsDbSet();
+    public DbSet<EmployeeTimeAway> EmployeeTimeAway => _employeeCapacities.SelectMany(c => c.TimeAway).ToList().AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
     public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();

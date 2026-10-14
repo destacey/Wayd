@@ -4,8 +4,8 @@ using Wayd.Common.Domain.Settings;
 namespace Wayd.Organization.Application.HolidayCalendars.Commands;
 
 /// <summary>
-/// Deletes a holiday calendar with its holidays. Refused while any team operating model uses it or it is the
-/// system default, since teams would silently lose its holidays.
+/// Deletes a holiday calendar with its holidays. Refused while any team operating model or employee uses it
+/// or it is the system default, since they would silently lose its holidays.
 /// </summary>
 public sealed record DeleteHolidayCalendarCommand(Guid Id) : ICommand;
 
@@ -44,6 +44,12 @@ public sealed class DeleteHolidayCalendarCommandHandler(
                 .CountAsync(cancellationToken);
             if (teamsUsingIt > 0)
                 return Result.Failure($"The holiday calendar is used by {teamsUsingIt} team operating model(s). Choose another calendar for them first.");
+
+            var employeesUsingIt = await _organizationDbContext.EmployeeCapacities
+                .Where(c => c.HolidayCalendarId == calendar.Id)
+                .CountAsync(cancellationToken);
+            if (employeesUsingIt > 0)
+                return Result.Failure($"The holiday calendar is used by {employeesUsingIt} employee(s). Choose another calendar for them first.");
 
             calendar.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             _organizationDbContext.HolidayCalendars.Remove(calendar);

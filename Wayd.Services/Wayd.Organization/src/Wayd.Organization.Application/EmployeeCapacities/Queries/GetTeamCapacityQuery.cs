@@ -10,8 +10,8 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 
 /// <summary>
 /// The capacity of a team or team of teams from <paramref name="From"/> to <paramref name="To"/>, both
-/// inclusive: who is allocated to it, and their person-days over its working days. Null when there is no
-/// <paramref name="TeamType"/> with that id.
+/// inclusive: who is allocated to it, and their person-days over its working days after the holidays each
+/// person takes and their time away. Null when there is no <paramref name="TeamType"/> with that id.
 /// </summary>
 /// <remarks>
 /// A team of teams counts only the people allocated to it directly. <see cref="GetTeamOfTeamsCapacityRollupQuery"/>
@@ -63,7 +63,7 @@ public sealed class GetTeamCapacityQueryHandler(
         if (!await _organizationDbContext.BaseTeams.AnyAsync(t => t.Id == teamId && t.Type == teamType, cancellationToken))
             return null;
 
-        var workingDays = await TeamWorkingDays.Load(_organizationDbContext, _dispatcher, _schedulingSettings, teamId, firstDay, lastDay, cancellationToken);
+        var teamDays = await TeamWorkingDays.Load(_organizationDbContext, _schedulingSettings, teamId, firstDay, lastDay, cancellationToken);
 
         var here = await (
             from allocation in _organizationDbContext.EmployeeTeamAllocations
@@ -114,11 +114,21 @@ public sealed class GetTeamCapacityQueryHandler(
             })
             .ToListAsync(cancellationToken);
 
+        var availability = await AvailabilityLoader.Load(
+            _organizationDbContext,
+            _schedulingSettings,
+            employeeIds,
+            teamDays.Select(d => d.HolidayCalendarId).Distinct(),
+            firstDay,
+            lastDay,
+            cancellationToken);
+
         var capacityByEmployee = TeamCapacityCalculator.Calculate(
             teamId,
-            workingDays,
+            teamDays,
             here.Select(a => new CapacityAllocation(a.EmployeeId, teamId, a.RoleCounts ?? true, a.Start, a.End, a.Percent))
-                .Concat(elsewhere.Select(a => new CapacityAllocation(a.EmployeeId, a.TeamId, true, a.Start, a.End, a.Percent))));
+                .Concat(elsewhere.Select(a => new CapacityAllocation(a.EmployeeId, a.TeamId, true, a.Start, a.End, a.Percent))),
+            availability);
 
         List<Guid> teamIds = [teamId, .. elsewhere.Select(a => a.TeamId).Distinct()];
         var manageable = await _currentPrincipal.TeamsWithManageableAllocations(_dispatcher, teamIds, _dateTimeProvider.Now.InUtc().Date, cancellationToken);
@@ -138,6 +148,9 @@ public sealed class GetTeamCapacityQueryHandler(
                     AllocatedPersonDays = capacity.AllocatedPersonDays,
                     DeliveryPersonDays = capacity.DeliveryPersonDays,
                     ElsewherePersonDays = capacity.ElsewherePersonDays,
+                    AwayPersonDays = capacity.AwayPersonDays,
+                    TimeAway = [.. availability.TimeAwayOf(person.Key)
+                        .Select(t => new TeamCapacityTimeAwayDto { Start = t.Start, End = t.End, PercentAway = t.PercentAway })],
                     Allocations = [.. person
                         .OrderBy(a => a.Start)
                         .ThenBy(a => a.RoleName, StringComparer.OrdinalIgnoreCase)
@@ -149,7 +162,7 @@ public sealed class GetTeamCapacityQueryHandler(
                             Start = a.Start,
                             End = a.End,
                             Percent = a.Percent,
-                            PersonDays = TeamCapacityCalculator.PersonDays(workingDays, a.Start, a.End, a.Percent),
+                            PersonDays = TeamCapacityCalculator.PersonDays(teamDays, person.Key, a.Start, a.End, a.Percent, availability),
                         })],
                     ElsewhereAllocations = [.. elsewhereByEmployee[person.Key]
                         .OrderBy(a => a.Start)
@@ -192,9 +205,10 @@ public sealed class GetTeamCapacityQueryHandler(
         {
             From = firstDay,
             To = lastDay,
-            WorkingDays = workingDays.Count,
+            WorkingDays = teamDays.Count(d => !availability.IsTeamHoliday(d)),
             AllocatedPersonDays = people.Sum(p => p.AllocatedPersonDays),
             DeliveryPersonDays = people.Sum(p => p.DeliveryPersonDays),
+            AwayPersonDays = people.Sum(p => p.AwayPersonDays),
             CanManage = manageable.Contains(teamId),
             Roles = byRole,
             People = people,

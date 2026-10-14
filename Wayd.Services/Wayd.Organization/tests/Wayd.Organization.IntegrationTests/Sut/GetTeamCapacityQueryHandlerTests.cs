@@ -34,6 +34,7 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
         Guid teamId, adaId, graceId;
 
         await using (var seedContext = _fixture.CreateContext())
@@ -66,7 +67,7 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = Handler(context);
+        var handler = Handler(context, defaultCalendarId);
 
         // Act
         var capacity = await handler.Handle(new GetTeamCapacityQuery(teamId, TeamType.Team, From, To), cancellationToken);
@@ -108,6 +109,70 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
     }
 
     [Fact]
+    public async Task Handle_TakesEachPersonsHolidaysAndTimeAwayOutOfTheirPersonDays()
+    {
+        // Arrange — Ada takes a calendar of her own, off on the 9th and not on the team's holiday; Grace is
+        // away for half of the 10th and 11th and takes the team's holidays
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
+        var adasCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, new LocalDate(2027, 2, 9));
+        Guid teamId, adaId, graceId;
+
+        await using (var seedContext = _fixture.CreateContext())
+        {
+            var team = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
+            var otherTeam = await OrganizationSeeder.SeedTeam(seedContext, "LOANS", "Loans", cancellationToken);
+            var ada = await OrganizationSeeder.SeedEmployee(seedContext, "E-1001", "ada@acme.example", cancellationToken);
+            var grace = await OrganizationSeeder.SeedEmployee(seedContext, "E-1002", "grace@acme.example", cancellationToken);
+
+            var adaCapacity = EmployeeCapacity.Create(ada.Id);
+            adaCapacity.ChangeAllocations([new AllocationChange(team.Id, null, new LocalDate(2027, 1, 1), null, 100)], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            adaCapacity.ChangeHolidayCalendar(adasCalendarId, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+
+            var graceCapacity = EmployeeCapacity.Create(grace.Id);
+            graceCapacity.ChangeAllocations(
+            [
+                new AllocationChange(team.Id, null, new LocalDate(2027, 1, 1), null, 60),
+                new AllocationChange(otherTeam.Id, null, new LocalDate(2027, 1, 1), null, 40),
+            ], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            graceCapacity.RecordTimeAway(new LocalDate(2027, 2, 10), new LocalDate(2027, 2, 11), 50, TimeAwayReason.Training, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+
+            await seedContext.EmployeeCapacities.AddRangeAsync([adaCapacity, graceCapacity], cancellationToken);
+            await seedContext.SaveChangesAsync(cancellationToken);
+
+            (teamId, adaId, graceId) = (team.Id, ada.Id, grace.Id);
+        }
+
+        await using var context = _fixture.CreateContext();
+        var handler = Handler(context, defaultCalendarId);
+
+        // Act
+        var capacity = await handler.Handle(new GetTeamCapacityQuery(teamId, TeamType.Team, From, To), cancellationToken);
+
+        // Assert — the team still counts nine working days of its own
+        capacity!.WorkingDays.Should().Be(9);
+
+        // Ada works the team's holiday and is off on her own: nine of the ten weekdays
+        var adaRow = capacity.People.Single(p => p.Employee.Id == adaId);
+        adaRow.AllocatedPersonDays.Should().Be(9m);
+        adaRow.AwayPersonDays.Should().Be(0m);
+        adaRow.TimeAway.Should().BeEmpty();
+
+        // Grace has nine days less two half days, at 60% here and 40% elsewhere
+        var graceRow = capacity.People.Single(p => p.Employee.Id == graceId);
+        graceRow.AllocatedPersonDays.Should().Be(4.8m);
+        graceRow.ElsewherePersonDays.Should().Be(3.2m);
+        graceRow.AwayPersonDays.Should().Be(0.6m);
+        graceRow.Allocations.Should().ContainSingle().Which.PersonDays.Should().Be(4.8m);
+        var away = graceRow.TimeAway.Should().ContainSingle().Subject;
+        (away.Start, away.End, away.PercentAway).Should().Be((new LocalDate(2027, 2, 10), new LocalDate(2027, 2, 11), 50));
+
+        capacity.AllocatedPersonDays.Should().Be(13.8m);
+        capacity.AwayPersonDays.Should().Be(0.6m);
+    }
+
+    [Fact]
     public async Task Handle_ForATeamThatDoesNotExist_ReturnsNull()
     {
         // Arrange
@@ -128,6 +193,7 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
         Guid teamId;
         await using (var seedContext = _fixture.CreateContext())
         {
@@ -135,7 +201,7 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = Handler(context);
+        var handler = Handler(context, defaultCalendarId);
 
         // Act
         var capacity = await handler.Handle(new GetTeamCapacityQuery(teamId, TeamType.TeamOfTeams, From, To), cancellationToken);
@@ -144,16 +210,15 @@ public sealed class GetTeamCapacityQueryHandlerTests(SqlServerDbContextFixture f
         capacity.Should().BeNull();
     }
 
-    private static GetTeamCapacityQueryHandler Handler(DbContext context)
+    private static GetTeamCapacityQueryHandler Handler(DbContext context, Guid? defaultCalendarId = null)
     {
         var dispatcher = new Mock<IDispatcher>();
-        dispatcher.Setup(d => d.Send(It.IsAny<IQuery<IReadOnlyList<LocalDate>>>(), It.IsAny<CancellationToken>())).ReturnsAsync([Holiday]);
 
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var settings = new Mock<ISettings<SchedulingSettings>>();
-        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings { DefaultHolidayCalendarId = defaultCalendarId });
 
         var clock = new Mock<IDateTimeProvider>();
         clock.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);

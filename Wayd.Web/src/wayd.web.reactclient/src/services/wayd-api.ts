@@ -34297,6 +34297,396 @@ export class EmployeesClient {
     }
 
     /**
+     * Get the reasons time away can be recorded for.
+     */
+    getTimeAwayReasons( cancelToken?: CancelToken): Promise<TimeAwayReasonDto[]> {
+        let url_ = this.baseUrl + "/api/organization/employees/time-away-reasons";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTimeAwayReasons(_response);
+        });
+    }
+
+    protected processGetTimeAwayReasons(response: AxiosResponse): Promise<TimeAwayReasonDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TimeAwayReasonDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TimeAwayReasonDto[]>(null as any);
+    }
+
+    /**
+     * Get when an employee is away and the holiday calendar they take.
+     */
+    getTimeAway(id: string, cancelToken?: CancelToken): Promise<EmployeeTimeAwayDto> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/time-away";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTimeAway(_response);
+        });
+    }
+
+    protected processGetTimeAway(response: AxiosResponse): Promise<EmployeeTimeAwayDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeTimeAwayDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeTimeAwayDto>(null as any);
+    }
+
+    /**
+     * Record an employee as away for a stretch of days.
+     */
+    recordTimeAway(id: string, request: EmployeeTimeAwayRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/time-away";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRecordTimeAway(_response);
+        });
+    }
+
+    protected processRecordTimeAway(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<string>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Change a stretch of an employee's time away.
+     */
+    changeTimeAway(id: string, timeAwayId: string, request: EmployeeTimeAwayRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/time-away/{timeAwayId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (timeAwayId === undefined || timeAwayId === null)
+            throw new globalThis.Error("The parameter 'timeAwayId' must be defined.");
+        url_ = url_.replace("{timeAwayId}", encodeURIComponent("" + timeAwayId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeTimeAway(_response);
+        });
+    }
+
+    protected processChangeTimeAway(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Remove a stretch of an employee's time away.
+     */
+    removeTimeAway(id: string, timeAwayId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/time-away/{timeAwayId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (timeAwayId === undefined || timeAwayId === null)
+            throw new globalThis.Error("The parameter 'timeAwayId' must be defined.");
+        url_ = url_.replace("{timeAwayId}", encodeURIComponent("" + timeAwayId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveTimeAway(_response);
+        });
+    }
+
+    protected processRemoveTimeAway(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set the holiday calendar an employee follows.
+     */
+    changeHolidayCalendar(id: string, request: ChangeEmployeeHolidayCalendarRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/holiday-calendar";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeHolidayCalendar(_response);
+        });
+    }
+
+    protected processChangeHolidayCalendar(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get the work items assigned to an employee.
      * @param statusCategories (optional) 
      * @param doneFrom (optional) 
@@ -51822,6 +52212,54 @@ export interface MoveEmployeeAllocationRequest {
     percent: number;
 }
 
+export interface CommonEnumDtoOfTimeAwayReason extends CommonEnumDto {
+    code: TimeAwayReason;
+}
+
+export interface TimeAwayReasonDto extends CommonEnumDtoOfTimeAwayReason {
+}
+
+export enum TimeAwayReason {
+    PaidTimeOff = "PaidTimeOff",
+    BusinessTravel = "BusinessTravel",
+    Training = "Training",
+    Other = "Other",
+}
+
+export interface EmployeeTimeAwayDto {
+    canManage: boolean;
+    holidayCalendar?: NavigationDto | undefined;
+    entries: EmployeeTimeAwayEntryDto[];
+}
+
+export interface EmployeeTimeAwayEntryDto {
+    id: string;
+    start: string;
+    end: string;
+    percentAway: number;
+    reason?: TimeAwayReason | undefined;
+}
+
+/** A stretch of days an employee is away from every team they are allocated to: leave, business travel, training. */
+export interface EmployeeTimeAwayRequest {
+    /** The first day away. */
+    start: string;
+    /** The last day away. The same as the start for a single day. */
+    end: string;
+    /** The share of each day the employee is away, from 1 to 100: 100 for whole days, 50 for half days. */
+    percentAway: number;
+    /** Why the employee is away. Shown only to the employee, the people they report up to and time away
+administrators. */
+    reason: TimeAwayReason;
+}
+
+/** Sets the holiday calendar an employee follows instead of the system default. */
+export interface ChangeEmployeeHolidayCalendarRequest {
+    /** The shared holiday calendar the employee follows, such as their country's, or null to have them follow the
+system default. */
+    holidayCalendarId?: string | undefined;
+}
+
 export enum WorkStatusCategory {
     Proposed = "Proposed",
     Active = "Active",
@@ -51845,6 +52283,7 @@ export interface HolidayCalendarDetailsDto {
     description?: string | undefined;
     isDefault: boolean;
     operatingModelCount: number;
+    employeeCount: number;
     holidays: HolidayDto[];
 }
 
@@ -52259,6 +52698,7 @@ export interface TeamCapacityDto {
     workingDays: number;
     allocatedPersonDays: number;
     deliveryPersonDays: number;
+    awayPersonDays: number;
     canManage: boolean;
     roles: TeamCapacityRoleDto[];
     people: TeamCapacityPersonDto[];
@@ -52275,8 +52715,16 @@ export interface TeamCapacityPersonDto {
     allocatedPersonDays: number;
     deliveryPersonDays: number;
     elsewherePersonDays: number;
+    awayPersonDays: number;
+    timeAway: TeamCapacityTimeAwayDto[];
     allocations: TeamCapacityAllocationDto[];
     elsewhereAllocations: EmployeeAllocationDto[];
+}
+
+export interface TeamCapacityTimeAwayDto {
+    start: string;
+    end: string;
+    percentAway: number;
 }
 
 export interface TeamCapacityAllocationDto {

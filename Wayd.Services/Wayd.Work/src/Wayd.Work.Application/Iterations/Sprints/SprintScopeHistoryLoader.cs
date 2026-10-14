@@ -131,7 +131,8 @@ public static class SprintScopeHistoryLoader
 
     /// <summary>
     /// The team's working week, less its calendar's holidays and the sprint's team days off, over the days the
-    /// window touches in the team's zone.
+    /// window touches in the team's zone. When the team has people allocated to it, each day they are
+    /// allocated on is weighed by how much of their time is there instead.
     /// </summary>
     private static async Task<SprintWorkingDays> LoadWorkingDays(
         IDispatcher dispatcher,
@@ -144,7 +145,21 @@ public static class SprintScopeHistoryLoader
         var to = window.End.InZone(window.TimeZone).Date;
 
         var holidays = await dispatcher.Send(new GetHolidayDatesQuery(schedule.HolidayCalendarId, from, to), cancellationToken);
-        return new SprintWorkingDays(schedule.WorkingWeek, holidays.Concat(sprint.TeamDaysOff));
+
+        var availability = sprint.TeamId is { } teamId
+            ? await dispatcher.Send(new GetTeamDayAvailabilityQuery(teamId, from, to), cancellationToken)
+            : null;
+
+        // Nothing to weigh by — the feature is off, or nobody is allocated — so the days are counted exactly
+        // as they were before allocations existed, through the same constructor.
+        if (availability is null || availability.Count == 0)
+            return new SprintWorkingDays(schedule.WorkingWeek, holidays.Concat(sprint.TeamDaysOff));
+
+        return new SprintWorkingDays(
+            schedule.WorkingWeek,
+            holidays,
+            sprint.TeamDaysOff,
+            availability.ToDictionary(day => day.Key, day => (double)day.Value.Share));
     }
 
     /// <summary>

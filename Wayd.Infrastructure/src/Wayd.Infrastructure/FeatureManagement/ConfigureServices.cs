@@ -15,6 +15,7 @@ internal static class ConfigureServices
             sp.GetRequiredService<DatabaseFeatureDefinitionProvider>());
 
         services.AddFeatureManagement();
+        services.AddScoped<IFeatureFlags, FeatureFlagReader>();
 
         return services;
     }

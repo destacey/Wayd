@@ -9,6 +9,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Organization.Domain.Models;
 using Wayd.Tests.Containers;
 using Wolverine.EntityFrameworkCore;
 
@@ -112,6 +113,23 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             events.Object,
             outbox.Object,
             correlationId.Object);
+    }
+
+    /// <summary>
+    /// Saves a holiday calendar holding <paramref name="holidays"/> and returns its id. Calendars are never
+    /// reset, so each gets a name of its own.
+    /// </summary>
+    public async Task<Guid> SeedHolidayCalendar(CancellationToken cancellationToken, params LocalDate[] holidays)
+    {
+        await using var context = CreateContext();
+
+        var calendar = HolidayCalendar.Create($"Calendar {Guid.NewGuid():N}", null, EventActor.System, FixedNow);
+        foreach (var holiday in holidays)
+            calendar.AddHoliday(holiday, $"Holiday {holiday:yyyy-MM-dd}", EventActor.System, FixedNow);
+
+        await context.HolidayCalendars.AddAsync(calendar, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+        return calendar.Id;
     }
 
     /// <summary>

@@ -234,7 +234,7 @@ const SetTeamOperatingModelForm = ({
         <FormItem
           name="holidayCalendarId"
           label="Holiday Calendar"
-          extra="The days the whole team is off. Leave empty to use the system default calendar, which follows the scheduling settings."
+          extra="The holidays the team takes. Leave empty to use the system default calendar, which follows the scheduling settings."
         >
           <HolidayCalendarSelect
             emptyLabel="System default"

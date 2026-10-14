@@ -1,6 +1,8 @@
 ﻿using CsvHelper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Organization.Application.EmployeeCapacities.Commands;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Common.Application.Employees.Commands;
@@ -229,6 +231,108 @@ public class EmployeesController(
     public async Task<ActionResult> MoveAllocation(Guid id, [FromBody] MoveEmployeeAllocationRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToMoveEmployeeAllocationCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("time-away-reasons")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
+    [OpenApiOperation(
+        "Get the reasons time away can be recorded for.",
+        "Each reason's `code` is what a stretch of time away carries and what the time away requests accept.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<TimeAwayReasonDto>>> GetTimeAwayReasons(CancellationToken cancellationToken)
+    {
+        var reasons = await _dispatcher.Send(new GetTimeAwayReasonsQuery(), cancellationToken);
+        return Ok(reasons.OrderBy(r => r.Order));
+    }
+
+    [HttpGet("{id:guid}/time-away")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
+    [OpenApiOperation(
+        "Get when an employee is away and the holiday calendar they take.",
+        "Returns each stretch of time away in date order with the share of each day it takes (`percentAway`), and the holiday calendar the employee follows when it is not the system default. Time away lowers the employee's availability to every team they are allocated to and never counts toward their 100% allocation. `canManage` says whether the caller may record this employee's time away: the employee, anyone they report up to, and holders of the Administer Employee Time Away permission. Each stretch's `reason` is null unless `canManage` is true. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<EmployeeTimeAwayDto>> GetTimeAway(Guid id, CancellationToken cancellationToken)
+    {
+        var timeAway = await _dispatcher.Send(new GetEmployeeTimeAwayQuery(id), cancellationToken);
+
+        return timeAway is not null
+            ? Ok(timeAway)
+            : NotFound();
+    }
+
+    [HttpPost("{id:guid}/time-away")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [Authorize]
+    [OpenApiOperation(
+        "Record an employee as away for a stretch of days.",
+        "Records the employee as away from every team they are allocated to for `percentAway` of each day from `start` to `end`. Stretches may overlap, but a day cannot add up to more than a whole day away. Needs no permission: allowed for the employee, anyone they report up to, and holders of the Administer Employee Time Away permission, and the caller must be linked to an employee. Returns the id of the time away. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Guid>> RecordTimeAway(Guid id, [FromBody] EmployeeTimeAwayRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToRecordEmployeeTimeAwayCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id:guid}/time-away/{timeAwayId:guid}")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [Authorize]
+    [OpenApiOperation(
+        "Change a stretch of an employee's time away.",
+        "Changes its days, the share of each day it takes, or its reason. Allowed for the same people as recording it. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ChangeTimeAway(Guid id, Guid timeAwayId, [FromBody] EmployeeTimeAwayRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToChangeEmployeeTimeAwayCommand(id, timeAwayId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpDelete("{id:guid}/time-away/{timeAwayId:guid}")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [Authorize]
+    [OpenApiOperation(
+        "Remove a stretch of an employee's time away.",
+        "The employee counts as available on those days again. Allowed for the same people as recording it, whether or not the employee is still active. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> RemoveTimeAway(Guid id, Guid timeAwayId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new RemoveEmployeeTimeAwayCommand(id, timeAwayId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id:guid}/holiday-calendar")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Employees)]
+    [OpenApiOperation(
+        "Set the holiday calendar an employee follows.",
+        "Calendars are shared: assign the one for where the employee works, such as their country's. They take its holidays instead of the system default's, on every team they are allocated to; with none (`holidayCalendarId` null) they follow the system default. A team's own calendar never decides a person's holidays. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ChangeHolidayCalendar(Guid id, [FromBody] ChangeEmployeeHolidayCalendarRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new ChangeEmployeeHolidayCalendarCommand(id, request.HolidayCalendarId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

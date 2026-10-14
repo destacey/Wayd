@@ -4,6 +4,7 @@ import type {
 } from '@/src/components/common/timeline'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { EmployeeAllocationDto } from '@/src/store/features/organization/employee-allocations-api'
+import type { EmployeeTimeAwayEntryDto } from '@/src/store/features/organization/employee-time-away-api'
 import {
   addCalendarDays,
   CalendarDate,
@@ -14,7 +15,11 @@ import { allocationPeriods } from './allocation-periods'
 /** The lane every team's allocations are added up in. */
 export const TOTAL_GROUP_ID = 'total'
 
+/** The lane a person's time away from every team is drawn in. */
+export const TIME_AWAY_GROUP_ID = 'time-away'
+
 const FULL_ALLOCATION = 100
+const WHOLE_DAY = 100
 
 /** Days shown either side of today when the timeline opens. */
 const WINDOW_DAYS_BEFORE = 30
@@ -30,6 +35,8 @@ export interface AllocationTimelineColors {
   partTotal: string
   /** A stretch where all of the person's time is allocated. */
   fullTotal: string
+  /** A stretch the person is away from every team. */
+  timeAway: string
 }
 
 export interface AllocationTimelineData {
@@ -43,22 +50,23 @@ export interface AllocationTimelineData {
 
 /**
  * A person's allocations as timeline lanes: a Total lane adding every team
- * up, then one lane per team. An allocation with no end is drawn to the edge
- * of the timeline.
+ * up, a Time away lane when they have any, then one lane per team. An
+ * allocation with no end is drawn to the edge of the timeline.
  */
 export function allocationTimelineData(
   allocations: EmployeeAllocationDto[],
+  timeAway: EmployeeTimeAwayEntryDto[],
   today: CalendarDate,
   colors: AllocationTimelineColors,
 ): AllocationTimelineData {
   const windowStartDay = addCalendarDays(today, -WINDOW_DAYS_BEFORE)
   const windowEndDay = addCalendarDays(today, WINDOW_DAYS_AFTER)
 
-  const firstDay = allocations.reduce(
+  const firstDay = [...allocations, ...timeAway].reduce(
     (first, a) => (a.start < first ? a.start : first),
     windowStartDay,
   )
-  const lastDay = allocations.reduce(
+  const lastDay = [...allocations, ...timeAway].reduce(
     (last, a) => (a.end && a.end > last ? a.end : last),
     windowEndDay,
   )
@@ -73,12 +81,36 @@ export function allocationTimelineData(
   for (const allocation of allocations)
     teams.set(allocation.team.id, allocation.team.name)
 
-  const groups: TimelineGroup[] = [
+  const fixedGroups: TimelineGroup[] = [
     { id: TOTAL_GROUP_ID, label: 'Total', order: 0 },
+    ...(timeAway.length > 0
+      ? [{ id: TIME_AWAY_GROUP_ID, label: 'Time away', order: 1 }]
+      : []),
+  ]
+  const groups: TimelineGroup[] = [
+    ...fixedGroups,
     ...[...teams.entries()]
       .sort(([, a], [, b]) => caseInsensitiveCompare(a, b))
-      .map(([id, label], index) => ({ id, label, order: index + 1 })),
+      .map(([id, label], index) => ({
+        id,
+        label,
+        order: fixedGroups.length + index,
+      })),
   ]
+
+  // Without data, so a stretch of time away is not opened as an allocation.
+  const timeAwayItems: TimelineItem<EmployeeAllocationDto>[] = timeAway.map(
+    (entry) => ({
+      id: `${TIME_AWAY_GROUP_ID}-${entry.id}`,
+      kind: 'range',
+      groupId: TIME_AWAY_GROUP_ID,
+      start: startOfDay(entry.start),
+      end: endOf(entry.end),
+      label:
+        entry.percentAway >= WHOLE_DAY ? 'Away' : `Away ${entry.percentAway}%`,
+      color: colors.timeAway,
+    }),
+  )
 
   const teamItems: TimelineItem<EmployeeAllocationDto>[] = allocations.map(
     (allocation) => ({
@@ -113,7 +145,7 @@ export function allocationTimelineData(
 
   return {
     groups,
-    items: [...totalItems, ...teamItems],
+    items: [...totalItems, ...timeAwayItems, ...teamItems],
     windowStart: startOfDay(windowStartDay),
     windowEnd: startOfDay(windowEndDay),
     minDate: startOfDay(minDay),

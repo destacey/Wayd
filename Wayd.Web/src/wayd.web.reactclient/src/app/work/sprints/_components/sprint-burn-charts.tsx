@@ -66,7 +66,7 @@ const SprintBurnCharts: FC<SprintBurnChartsProps> = ({
       />
       <BurnChart
         title="Burn-down"
-        tooltip={`The ${measure} still to do at the end of each day in the team's zone. Reopened work counts as remaining again. The ideal line falls evenly from the committed ${measure} to zero at the sprint's end.`}
+        tooltip={`The ${measure} still to do at the end of each day in the team's zone. Reopened work counts as remaining again. The ideal line falls from the committed ${measure} to zero at the sprint's end, across the days the team works and by less on a day only part of the team is there.`}
         data={burnDown}
         series={[BurnSeries.Remaining, BurnSeries.Ideal]}
         colors={[token.colorPrimary, token.colorTextQuaternary]}

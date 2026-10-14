@@ -7,6 +7,7 @@ import {
   proposalRequests,
   roleLines,
   rollupRows,
+  timeAwayLines,
 } from './team-capacity-data'
 
 jest.unmock('dayjs')
@@ -41,6 +42,8 @@ describe('capacityRows', () => {
       allocatedPersonDays: 8,
       deliveryPersonDays: 5,
       elsewherePersonDays: 2,
+      awayPersonDays: 0,
+      timeAway: [],
       allocations: [
         {
           id: 'a-1',
@@ -68,6 +71,8 @@ describe('capacityRows', () => {
       allocatedPersonDays: 10,
       deliveryPersonDays: 10,
       elsewherePersonDays: 0,
+      awayPersonDays: 0,
+      timeAway: [],
       allocations: [
         {
           id: 'a-3',
@@ -95,6 +100,24 @@ describe('capacityRows', () => {
       end: '2027-06-30',
       personDays: 3,
     })
+  })
+})
+
+describe('timeAwayLines', () => {
+  it('says when a person is away and how much of each day, a line per stretch', () => {
+    const lines = timeAwayLines([
+      { start: '2027-02-01', end: '2027-02-05', percentAway: 100 },
+      { start: '2027-02-10', end: '2027-02-10', percentAway: 50 },
+    ])
+
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toMatch(/ to .*: 100% of the day$/)
+    expect(lines[1]).not.toContain(' to ')
+    expect(lines[1]).toMatch(/: 50% of the day$/)
+  })
+
+  it('is empty when the person has no time away', () => {
+    expect(timeAwayLines([])).toEqual([])
   })
 })
 

@@ -267,6 +267,8 @@ Every mutating method on these aggregates requires a `PpmActor`, so the compiler
 
 The read side mirrors the rule as `canManageProject` / `canManageProgram` / `canManagePortfolio` DTO fields; the UI gates on permission **and** flag. Those projections and the aggregate predicates must stay in agreement.
 
+**Time away is relationship-gated, with no permission claim.** Recording, changing or removing an employee's time away is allowed for the employee, anyone above them in the manager chain, or a holder of `Permissions.EmployeeTimeAway.Administer` (`TimeAwayAuthorization.CanManageTimeAway` → `ManagerChain.IsAbove`). The endpoints carry `[Authorize]` only, so the handler's check is the whole gate. The same call decides the read DTO's `canManage` and whether each stretch's `reason` is returned. **The reason must never leave through any other door**: it is in no domain event, no team capacity DTO and no log line.
+
 **Sprint lifecycle is membership-gated too**, but in the handler rather than the aggregate: start/complete/reopen need `Permissions.Iterations.Update` plus membership of the sprint's team or its direct team of teams (`SprintAuthorization.CanManageTeamSprints` → `IsTeamMemberQuery`), waived by `Permissions.Iterations.Administer`. The lifecycle rules themselves live in `TeamSprintTimeline`, which `GetSprintQuery` reuses for the DTO's `CanStart`/`CanComplete`/`CanReopen`.
 
 See [docs/contributing/architecture.mdx](docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization) and [docs/user-guide/settings/permissions.mdx](docs/user-guide/settings/permissions.mdx).
@@ -276,7 +278,7 @@ See [docs/contributing/architecture.mdx](docs/contributing/architecture.mdx#perm
 Microsoft.FeatureManagement — defined in code, stored in database, managed via Settings UI.
 
 1. Define in `Wayd.Common.Domain/FeatureManagement/FeatureFlags.cs`
-2. Gate backend: `[FeatureGate(FeatureFlags.Names.MyFlag)]` or `IFeatureManager.IsEnabledAsync()`
+2. Gate backend: `[FeatureGate(FeatureFlags.Names.MyFlag)]` on the controller for an endpoint that exists only with the flag on; inject `IFeatureFlags` (`Common.Application`) in a handler for behaviour a flag changes inside an endpoint. The application layers do not reference `Microsoft.FeatureManagement`
 3. Gate frontend: `requireFeatureFlag` HOC or `useFeatureFlag` hook
 4. Gate menus: pass flag state into menu builder functions
 5. Deploy — seeder creates flag as disabled; admin enables via UI

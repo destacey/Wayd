@@ -59,6 +59,6 @@ Build the UI:
 If the feature should be gradually rolled out:
 
 1. Add flag definition in `FeatureFlags.cs`
-2. Gate the controller with `[FeatureGate]`
+2. Gate the controller with `[FeatureGate]`. Where a flag changes behaviour inside an endpoint that exists either way, inject `IFeatureFlags` into the handler that owns the behaviour instead
 3. Gate the UI with `useFeatureFlag` or `requireFeatureFlag`
 4. See [Feature Flags](../reference/feature-flags.mdx) for details

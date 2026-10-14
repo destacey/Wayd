@@ -2016,6 +2016,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("HolidayCalendarId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("int");
@@ -2035,6 +2038,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HolidayCalendarId");
 
                     b.ToTable("EmployeeCapacities", "Organization");
                 });
@@ -2087,6 +2092,51 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TeamId", "Start"), new[] { "EmployeeId", "RoleId", "End", "Percent" });
 
                     b.ToTable("EmployeeTeamAllocations", "Organization");
+                });
+
+            modelBuilder.Entity("Wayd.Organization.Domain.Models.EmployeeTimeAway", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("End")
+                        .HasColumnType("date");
+
+                    b.Property<int>("PercentAway")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("Start")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId", "Start");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmployeeId", "Start"), new[] { "End", "PercentAway" });
+
+                    b.ToTable("EmployeeTimeAway", "Organization");
                 });
 
             modelBuilder.Entity("Wayd.Organization.Domain.Models.Holiday", b =>
@@ -7938,6 +7988,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Organization.Domain.Models.EmployeeCapacity", b =>
                 {
+                    b.HasOne("Wayd.Organization.Domain.Models.HolidayCalendar", null)
+                        .WithMany()
+                        .HasForeignKey("HolidayCalendarId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
                         .WithOne()
                         .HasForeignKey("Wayd.Organization.Domain.Models.EmployeeCapacity", "Id")
@@ -7962,6 +8017,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .WithMany()
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Organization.Domain.Models.EmployeeTimeAway", b =>
+                {
+                    b.HasOne("Wayd.Organization.Domain.Models.EmployeeCapacity", null)
+                        .WithMany("TimeAway")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
@@ -9610,6 +9674,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.Organization.Domain.Models.EmployeeCapacity", b =>
                 {
                     b.Navigation("Allocations");
+
+                    b.Navigation("TimeAway");
                 });
 
             modelBuilder.Entity("Wayd.Organization.Domain.Models.HolidayCalendar", b =>

@@ -62,8 +62,8 @@ export const sprintBurnSeries = (
   }))
 
   // The server's ideal line, as shares of the committed work: it falls across
-  // the team's working days and stays flat across weekends, holidays and team
-  // days off.
+  // the team's working days, by less on a day only part of the team is there,
+  // and stays flat across weekends, holidays and team days off.
   const committed = value(burn.committed)
   const ideal = burn.ideal.map((p) => ({
     at: new Date(p.at),

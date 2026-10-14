@@ -41,6 +41,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         // week and holds Loans. Ada is allocated to Payments itself and to Cards.
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
         Guid paymentsId, adaId, graceId, hopperId;
 
         await using (var seedContext = _fixture.CreateContext())
@@ -80,11 +81,11 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = Handler(context);
+        var handler = Handler(context, defaultCalendarId);
 
         // Act
         var rollup = await handler.Handle(new GetTeamOfTeamsCapacityRollupQuery(paymentsId, From, To), cancellationToken);
-        var direct = await DirectHandler(context).Handle(new GetTeamCapacityQuery(paymentsId, TeamType.TeamOfTeams, From, To), cancellationToken);
+        var direct = await DirectHandler(context, defaultCalendarId).Handle(new GetTeamCapacityQuery(paymentsId, TeamType.TeamOfTeams, From, To), cancellationToken);
 
         // Assert — Ada's half of Payments' nine working days is the only direct time, and it is what the
         // direct read, which the same page shows beside the rollup, makes of it
@@ -145,6 +146,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         // Arrange — Cards is in Payments with no one allocated; Loans left before the range and has someone
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
         Guid paymentsId;
 
         await using (var seedContext = _fixture.CreateContext())
@@ -164,7 +166,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = Handler(context);
+        var handler = Handler(context, defaultCalendarId);
 
         // Act
         var rollup = await handler.Handle(new GetTeamOfTeamsCapacityRollupQuery(paymentsId, From, To), cancellationToken);
@@ -186,6 +188,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         // Arrange — Cards joins in the second week; Ada's time on it ended in the first, Grace's runs on
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
         Guid paymentsId, graceId;
 
         await using (var seedContext = _fixture.CreateContext())
@@ -208,7 +211,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = Handler(context);
+        var handler = Handler(context, defaultCalendarId);
 
         // Act
         var rollup = await handler.Handle(new GetTeamOfTeamsCapacityRollupQuery(paymentsId, From, To), cancellationToken);
@@ -243,6 +246,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
         Guid teamId;
         await using (var seedContext = _fixture.CreateContext())
         {
@@ -250,7 +254,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = Handler(context);
+        var handler = Handler(context, defaultCalendarId);
 
         // Act
         var rollup = await handler.Handle(new GetTeamOfTeamsCapacityRollupQuery(teamId, From, To), cancellationToken);
@@ -282,11 +286,11 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
         return capacity;
     }
 
-    private static GetTeamOfTeamsCapacityRollupQueryHandler Handler(DbContext context) =>
-        new((Wayd.Infrastructure.Persistence.Context.WaydDbContext)context, Dispatcher(), Settings());
+    private static GetTeamOfTeamsCapacityRollupQueryHandler Handler(DbContext context, Guid? defaultCalendarId = null) =>
+        new((Wayd.Infrastructure.Persistence.Context.WaydDbContext)context, Settings(defaultCalendarId));
 
     /// <summary>The direct capacity read, over the same holidays and working week as <see cref="Handler"/>.</summary>
-    private static GetTeamCapacityQueryHandler DirectHandler(DbContext context)
+    private static GetTeamCapacityQueryHandler DirectHandler(DbContext context, Guid? defaultCalendarId)
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -296,23 +300,16 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
 
         return new GetTeamCapacityQueryHandler(
             (Wayd.Infrastructure.Persistence.Context.WaydDbContext)context,
-            Dispatcher(),
+            new Mock<IDispatcher>().Object,
             principal.Object,
-            Settings(),
+            Settings(defaultCalendarId),
             clock.Object);
     }
 
-    private static IDispatcher Dispatcher()
-    {
-        var dispatcher = new Mock<IDispatcher>();
-        dispatcher.Setup(d => d.Send(It.IsAny<IQuery<IReadOnlyList<LocalDate>>>(), It.IsAny<CancellationToken>())).ReturnsAsync([Holiday]);
-        return dispatcher.Object;
-    }
-
-    private static ISettings<SchedulingSettings> Settings()
+    private static ISettings<SchedulingSettings> Settings(Guid? defaultCalendarId)
     {
         var settings = new Mock<ISettings<SchedulingSettings>>();
-        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings { DefaultHolidayCalendarId = defaultCalendarId });
         return settings.Object;
     }
 }

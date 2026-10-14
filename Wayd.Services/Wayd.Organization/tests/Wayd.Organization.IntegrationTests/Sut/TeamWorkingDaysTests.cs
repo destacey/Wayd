@@ -1,6 +1,4 @@
 using Moq;
-using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
@@ -27,42 +25,41 @@ public sealed class TeamWorkingDaysTests(SqlServerDbContextFixture fixture)
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
     [Fact]
-    public async Task Load_AcrossTwoOperatingModels_TakesEachDaysWorkingWeekAndHolidaysFromItsOwnModel()
+    public async Task Load_AcrossTwoOperatingModels_TakesEachDaysWorkingWeekAndCalendarFromItsOwnModel()
     {
         // Arrange — Monday to Friday on the default calendar, then Monday to Thursday on the team's own
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
-        Guid teamId, calendarId;
+        var calendarId = await _fixture.SeedHolidayCalendar(cancellationToken, new LocalDate(2027, 2, 9));
+        Guid teamId;
 
         await using (var seedContext = _fixture.CreateContext())
         {
-            var calendar = HolidayCalendar.Create($"Calendar {Guid.NewGuid():N}", null, EventActor.System, SqlServerDbContextFixture.FixedNow);
-            await seedContext.HolidayCalendars.AddAsync(calendar, cancellationToken);
-            await seedContext.SaveChangesAsync(cancellationToken);
-
             var team = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
             var mondayToThursday = WorkingWeek.Create([IsoDayOfWeek.Monday, IsoDayOfWeek.Tuesday, IsoDayOfWeek.Wednesday, IsoDayOfWeek.Thursday]).Value;
-            team.SetOperatingModel(SecondWeek, Methodology.Kanban, SizingMethod.Count, "UTC", 1, mondayToThursday, calendar.Id, EventActor.System, SqlServerDbContextFixture.FixedNow)
+            team.SetOperatingModel(SecondWeek, Methodology.Kanban, SizingMethod.Count, "UTC", 1, mondayToThursday, calendarId, EventActor.System, SqlServerDbContextFixture.FixedNow)
                 .IsSuccess.Should().BeTrue();
             await seedContext.SaveChangesAsync(cancellationToken);
 
-            (teamId, calendarId) = (team.Id, calendar.Id);
+            teamId = team.Id;
         }
-
-        // The default calendar is off on the 3rd and the 10th; the team's own on the 9th.
-        var dispatcher = Holidays(asked => asked is null
-            ? [new LocalDate(2027, 2, 3), new LocalDate(2027, 2, 10)]
-            : asked == calendarId ? [new LocalDate(2027, 2, 9)] : []);
 
         await using var context = _fixture.CreateContext();
 
         // Act
-        var workingDays = await TeamWorkingDays.Load(context, dispatcher, Settings(new SchedulingSettings()), teamId, From, To, cancellationToken);
+        var teamDays = await TeamWorkingDays.Load(context, Settings(new SchedulingSettings()), teamId, From, To, cancellationToken);
 
-        // Assert — the 10th is worked: it is a holiday only in the calendar the second model does not use
-        workingDays.Should().Equal(
-            new LocalDate(2027, 2, 1), new LocalDate(2027, 2, 2), new LocalDate(2027, 2, 4), new LocalDate(2027, 2, 5),
-            new LocalDate(2027, 2, 8), new LocalDate(2027, 2, 10), new LocalDate(2027, 2, 11));
+        // Assert — the 9th is still a day of the working week: whether it is a holiday depends on the person
+        teamDays.Should().Equal(
+            new TeamDay(new LocalDate(2027, 2, 1), null),
+            new TeamDay(new LocalDate(2027, 2, 2), null),
+            new TeamDay(new LocalDate(2027, 2, 3), null),
+            new TeamDay(new LocalDate(2027, 2, 4), null),
+            new TeamDay(new LocalDate(2027, 2, 5), null),
+            new TeamDay(new LocalDate(2027, 2, 8), calendarId),
+            new TeamDay(new LocalDate(2027, 2, 9), calendarId),
+            new TeamDay(new LocalDate(2027, 2, 10), calendarId),
+            new TeamDay(new LocalDate(2027, 2, 11), calendarId));
     }
 
     [Fact]
@@ -81,34 +78,21 @@ public sealed class TeamWorkingDaysTests(SqlServerDbContextFixture fixture)
             teamOfTeamsId = teamOfTeams.Id;
         }
 
-        List<Guid?> calendarsRead = [];
-        var dispatcher = Holidays(calendarId =>
-        {
-            calendarsRead.Add(calendarId);
-            return [new LocalDate(2027, 2, 2)];
-        });
         var settings = Settings(new SchedulingSettings { DefaultWorkingDays = [IsoDayOfWeek.Monday, IsoDayOfWeek.Tuesday, IsoDayOfWeek.Wednesday] });
 
         await using var context = _fixture.CreateContext();
 
         // Act
-        var workingDays = await TeamWorkingDays.Load(context, dispatcher, settings, teamOfTeamsId, From, To, cancellationToken);
+        var teamDays = await TeamWorkingDays.Load(context, settings, teamOfTeamsId, From, To, cancellationToken);
 
-        // Assert
-        workingDays.Should().Equal(
-            new LocalDate(2027, 2, 1), new LocalDate(2027, 2, 3),
-            new LocalDate(2027, 2, 8), new LocalDate(2027, 2, 9), new LocalDate(2027, 2, 10));
-        calendarsRead.Should().Equal([null]);
-    }
-
-    /// <summary>A dispatcher answering the holiday read with <paramref name="holidaysOf"/> the calendar asked for.</summary>
-    private static IDispatcher Holidays(Func<Guid?, IReadOnlyList<LocalDate>> holidaysOf)
-    {
-        var dispatcher = new Mock<IDispatcher>();
-        dispatcher
-            .Setup(d => d.Send(It.IsAny<IQuery<IReadOnlyList<LocalDate>>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IQuery<IReadOnlyList<LocalDate>> query, CancellationToken _) => holidaysOf(((GetHolidayDatesQuery)query).HolidayCalendarId));
-        return dispatcher.Object;
+        // Assert — no calendar of its own on any day, which reads as the system default
+        teamDays.Should().Equal(
+            new TeamDay(new LocalDate(2027, 2, 1), null),
+            new TeamDay(new LocalDate(2027, 2, 2), null),
+            new TeamDay(new LocalDate(2027, 2, 3), null),
+            new TeamDay(new LocalDate(2027, 2, 8), null),
+            new TeamDay(new LocalDate(2027, 2, 9), null),
+            new TeamDay(new LocalDate(2027, 2, 10), null));
     }
 
     private static ISettings<SchedulingSettings> Settings(SchedulingSettings value)

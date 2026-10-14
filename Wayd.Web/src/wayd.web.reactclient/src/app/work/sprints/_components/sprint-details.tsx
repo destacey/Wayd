@@ -4,12 +4,15 @@ import { IterationState } from '@/src/components/types'
 import { SprintDetailsDto } from '@/src/services/wayd-api'
 import { Alert, Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
+import SprintCapacitySummary from './sprint-capacity-summary'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import { sprintActiveDays } from '@/src/utils'
 import { FC, ReactNode } from 'react'
 
 export interface SprintDetailsProps {
   sprint: SprintDetailsDto
+  /** Whether to set the sprint's capacity beside its scope: the Team Capacity Management feature is on. */
+  showsCapacity?: boolean
   onHealthIndicatorReady?: (indicator: ReactNode) => void
 }
 
@@ -39,6 +42,7 @@ export const sprintOverlapWarning = (
 
 const SprintDetails: FC<SprintDetailsProps> = ({
   sprint,
+  showsCapacity = false,
   onHealthIndicatorReady,
 }: SprintDetailsProps) => {
   if (!sprint) return null
@@ -68,6 +72,7 @@ const SprintDetails: FC<SprintDetailsProps> = ({
         end={activeDays.end}
         dateFormat="MMM D, YYYY"
       />
+      {showsCapacity && <SprintCapacitySummary sprintKey={sprint.key} />}
       {showMetrics && (
         <SprintMetrics
           sprint={sprint}

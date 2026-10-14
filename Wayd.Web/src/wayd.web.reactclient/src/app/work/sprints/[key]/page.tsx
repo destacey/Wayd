@@ -4,7 +4,7 @@ import { IconMenu, PageActions, WaydTooltip } from '@/src/components/common'
 import { scopeIsReadable } from '@/src/components/common/metrics'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
 import { compareCalendarDates } from '@/src/utils'
 import {
   useGetSprintActivitiesQuery,
@@ -43,14 +43,10 @@ import { SwapOutlined } from '@ant-design/icons'
 import { SprintType } from '@/src/services/wayd-api'
 import { Alert, Segmented, Space, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { RecordLayout, RecordSection } from '@/src/components/common/record'
+import { RecordLayout } from '@/src/components/common/record'
 import SprintFacts from './_components/sprint-facts'
-
-enum SprintSections {
-  Overview = 'overview',
-  Backlog = 'backlog',
-  Activities = 'activities',
-}
+import { SprintSections, sprintSections } from './_components/sprint-sections'
+import SprintCapacitySection from '../_components/sprint-capacity-section'
 
 enum BacklogView {
   Scope = 'scope',
@@ -73,6 +69,12 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const router = useRouter()
   const { hasPermissionClaim } = useAuth()
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
+  // A sprint's capacity is its team's, which only those who may view teams see.
+  const showsCapacity =
+    capacityEnabled && hasPermissionClaim('Permissions.Teams.View')
 
   // The active section lives in the URL, owned by RecordLayout. Read here only
   // to gate the backlog, which is the expensive query.
@@ -223,16 +225,14 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const nextSprint =
     sprintIndex >= 0 ? timelineSprints[sprintIndex + 1] : undefined
 
-  const sections: RecordSection[] = [
-    { id: SprintSections.Overview, label: 'Overview' },
-    { id: SprintSections.Backlog, label: 'Backlog' },
-    { id: SprintSections.Activities, label: 'Activity' },
-  ]
+  const sections = sprintSections(showsCapacity)
 
   const renderSection = (section: SprintSections) => {
     switch (section) {
       case SprintSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
+      case SprintSections.Capacity:
+        return showsCapacity ? <SprintCapacitySection sprint={sprint} /> : null
       case SprintSections.Backlog:
         // Block-level children: the grid collapses as a flex item.
         return (
@@ -295,6 +295,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return (
           <SprintDetails
             sprint={sprint}
+            showsCapacity={showsCapacity}
             onHealthIndicatorReady={setHealthIndicator}
           />
         )

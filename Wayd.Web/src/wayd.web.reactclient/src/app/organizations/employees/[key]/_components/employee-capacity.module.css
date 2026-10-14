@@ -5,3 +5,11 @@
 .timeline {
   margin-bottom: var(--ant-margin-lg);
 }
+
+.timeAway {
+  margin-top: var(--ant-margin-lg);
+}
+
+.holidayCalendar {
+  margin-bottom: var(--ant-margin-sm);
+}

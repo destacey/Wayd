@@ -11,12 +11,14 @@ import {
   EmployeeAllocationDto,
   useGetEmployeeAllocationsQuery,
 } from '@/src/store/features/organization/employee-allocations-api'
+import { useGetEmployeeTimeAwayQuery } from '@/src/store/features/organization/employee-time-away-api'
 import { allocatedOn } from './allocation-periods'
 import { allocationTimelineData } from './allocation-timeline-data'
 import ChangeAllocationForm, {
   AllocationToChange,
 } from '@/src/app/organizations/_components/allocations/change-allocation-form'
 import MoveAllocationForm from '@/src/app/organizations/_components/allocations/move-allocation-form'
+import EmployeeTimeAway from './employee-time-away'
 import styles from './employee-capacity.module.css'
 
 const FULL_ALLOCATION = 100
@@ -50,15 +52,27 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
   )
   const allocations = data ?? []
 
+  const {
+    data: timeAway,
+    isLoading: timeAwayIsLoading,
+    refetch: refetchTimeAway,
+  } = useGetEmployeeTimeAwayQuery({ employeeId }, { skip: !employeeId })
+
   const today = todayCalendarDate()
   const allocatedToday = allocatedOn(allocations, today)
   // The timeline takes colors as values, so the tokens are read here.
   const { token } = theme.useToken()
-  const timeline = allocationTimelineData(allocations, today, {
-    allocation: token.colorPrimary,
-    partTotal: token.colorInfo,
-    fullTotal: token.colorSuccess,
-  })
+  const timeline = allocationTimelineData(
+    allocations,
+    timeAway?.entries ?? [],
+    today,
+    {
+      allocation: token.colorPrimary,
+      partTotal: token.colorInfo,
+      fullTotal: token.colorSuccess,
+      timeAway: token.colorWarning,
+    },
+  )
   const canMove = canUpdateTeams && allocations.some((a) => a.canManage)
 
   const columns: ColumnDef<EmployeeAllocationDto, any>[] = [
@@ -170,7 +184,7 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
             ),
           )}
           editable={false}
-          isLoading={isLoading}
+          isLoading={isLoading || timeAwayIsLoading}
           emptyMessage="None of this person's time is allocated to a team."
           onItemClick={(item) => {
             const allocation = item.data
@@ -219,6 +233,15 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
         }
         persistStateKey="employee-allocations"
         csvFileName="employee-allocations"
+      />
+
+      <EmployeeTimeAway
+        employeeId={employeeId}
+        timeAway={timeAway}
+        isLoading={timeAwayIsLoading}
+        onRefresh={() => {
+          refetchTimeAway()
+        }}
       />
 
       {(openForm?.kind === 'allocate' || openForm?.kind === 'change') && (

@@ -46,10 +46,14 @@ export const employeeAllocationsApi = apiSlice.injectEndpoints({
         }
       },
       // A team's capacity is made of its people's allocations, and one change
-      // can touch several teams, so every team's capacity is refetched.
+      // can touch several teams, so every team's capacity is refetched. So is
+      // every sprint's burn and scope: the ideal line is weighed by who is
+      // allocated.
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.EmployeeAllocation, id: arg.employeeId },
         QueryTags.TeamCapacity,
+        QueryTags.SprintBurn,
+        QueryTags.SprintScope,
       ],
     }),
 
@@ -70,10 +74,14 @@ export const employeeAllocationsApi = apiSlice.injectEndpoints({
         }
       },
       // A team's capacity is made of its people's allocations, and one change
-      // can touch several teams, so every team's capacity is refetched.
+      // can touch several teams, so every team's capacity is refetched. So is
+      // every sprint's burn and scope: the ideal line is weighed by who is
+      // allocated.
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.EmployeeAllocation, id: arg.employeeId },
         QueryTags.TeamCapacity,
+        QueryTags.SprintBurn,
+        QueryTags.SprintScope,
       ],
     }),
   }),

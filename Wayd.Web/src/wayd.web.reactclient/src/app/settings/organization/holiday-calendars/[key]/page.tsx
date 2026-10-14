@@ -182,6 +182,9 @@ const HolidayCalendarDetailsPage = (props: {
             <LabeledContent label="Operating Models">
               {calendar.operatingModelCount}
             </LabeledContent>
+            <LabeledContent label="Employees">
+              {calendar.employeeCount}
+            </LabeledContent>
             {calendar.description && (
               <LabeledContent label="Description">
                 {calendar.description}

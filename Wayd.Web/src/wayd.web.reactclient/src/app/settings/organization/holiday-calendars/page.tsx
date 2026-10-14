@@ -13,7 +13,7 @@ import { useDocumentTitle } from '@/src/hooks'
 import { HolidayCalendarListDto } from '@/src/services/wayd-api'
 import { useGetHolidayCalendarsQuery } from '@/src/store/features/organization/holiday-calendars-api'
 import { isApiError } from '@/src/utils'
-import { Button, Tag } from 'antd'
+import { Alert, Button, Tag } from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -126,9 +126,28 @@ const HolidayCalendarsPage = () => {
     <div className="page-gutters">
       <PageTitle
         title="Holiday Calendars"
-        subtitle="Days a whole team is off. A team's ideal burn-down stays flat on its calendar's holidays."
+        subtitle="Named sets of holidays. A team's ideal burn-down stays flat on its calendar's holidays."
         actions={actions}
       />
+
+      {calendars && !calendars.some((c) => c.isDefault) && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 'var(--ant-margin)' }}
+          title="No default holiday calendar is set"
+          description={
+            <>
+              Teams with no calendar, and people who follow none, take no
+              holidays. Choose the default in{' '}
+              <Link href="/settings/system/scheduling">
+                Scheduling settings
+              </Link>
+              .
+            </>
+          }
+        />
+      )}
 
       <WaydGrid
         columns={columns}

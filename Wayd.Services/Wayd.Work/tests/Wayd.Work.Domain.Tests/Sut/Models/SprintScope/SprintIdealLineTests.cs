@@ -79,6 +79,28 @@ public class SprintIdealLineTests
         line[^1].Remaining.Should().Be(0);
     }
 
+    [Theory]
+    [InlineData(0.625)] // three of eight people share a holiday
+    [InlineData(0.875)] // one of four people is away for half the day
+    public void Build_OnADayPartOfTheTeamIsThere_DropsByThatShareOfANormalDay(double share)
+    {
+        // Arrange — Monday to Friday, with part of the team there on the Wednesday
+        var monday = new LocalDate(2026, 9, 21);
+        var wednesday = monday.PlusDays(2);
+        var window = Window(At(monday), At(monday.PlusDays(5)));
+        var workingDays = new SprintWorkingDays(WorkingWeek.MondayToFriday, [], [], new Dictionary<LocalDate, double> { [wednesday] = share });
+
+        // Act
+        var line = SprintIdealLine.Build(window, workingDays);
+
+        // Assert
+        var normalDay = RemainingAt(line, At(monday)) - RemainingAt(line, At(monday.PlusDays(1)));
+        var partDay = RemainingAt(line, At(wednesday)) - RemainingAt(line, At(wednesday.PlusDays(1)));
+        normalDay.Should().BeApproximately(1 / (4 + share), 1e-9);
+        (partDay / normalDay).Should().BeApproximately(share, 1e-9);
+        line[^1].Remaining.Should().Be(0);
+    }
+
     [Fact]
     public void Build_WithEveryDayOff_FallsBackToEveryDay()
     {

@@ -37,6 +37,80 @@ public class SprintWorkingDaysTests
     }
 
     [Fact]
+    public void Weight_OnADayWithAvailability_IsTheShareOfTheTeamThatIsThere()
+    {
+        // Arrange
+        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, [], [], Availability((Monday, 0.625)));
+
+        // Act
+        var weight = sut.Weight(Monday);
+
+        // Assert
+        weight.Should().Be(0.625);
+    }
+
+    [Fact]
+    public void Weight_OnADayWithAvailability_DoesNotTakeTheTeamsHolidayAsWell()
+    {
+        // Arrange — the availability already leaves out the holidays each person takes
+        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, holidays: [Monday], teamDaysOff: [], Availability((Monday, 0.375)));
+
+        // Act
+        var weight = sut.Weight(Monday);
+
+        // Assert
+        weight.Should().Be(0.375);
+    }
+
+    [Fact]
+    public void Weight_OnATeamDayOff_IsZeroWhateverTheAvailability()
+    {
+        // Arrange
+        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, holidays: [], teamDaysOff: [Monday], Availability((Monday, 0.875)));
+
+        // Act
+        var weight = sut.Weight(Monday);
+
+        // Assert
+        weight.Should().Be(0);
+    }
+
+    [Fact]
+    public void Weight_OutsideTheWorkingWeek_IsZeroWhateverTheAvailability()
+    {
+        // Arrange
+        var sunday = Monday.PlusDays(-1);
+        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, [], [], Availability((sunday, 1)));
+
+        // Act
+        var weight = sut.Weight(sunday);
+
+        // Assert
+        weight.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(0, 0)] // Monday: a holiday in the team's calendar
+    [InlineData(1, 0)] // Tuesday: a team day off
+    [InlineData(2, 1)] // Wednesday: worked
+    [InlineData(5, 0)] // Saturday: outside the working week
+    public void Weight_OnADayWithNoAvailability_IsReadAsAWholeTeam(int daysAfterMonday, double expected)
+    {
+        // Arrange — only Thursday has anyone allocated
+        var sut = new SprintWorkingDays(
+            WorkingWeek.MondayToFriday,
+            holidays: [Monday],
+            teamDaysOff: [Monday.PlusDays(1)],
+            Availability((Monday.PlusDays(3), 0.5)));
+
+        // Act
+        var weight = sut.Weight(Monday.PlusDays(daysAfterMonday));
+
+        // Assert
+        weight.Should().Be(expected);
+    }
+
+    [Fact]
     public void EveryDay_WorksTheWeekend()
     {
         // Act
@@ -45,4 +119,7 @@ public class SprintWorkingDaysTests
         // Assert
         weight.Should().Be(1);
     }
+
+    private static Dictionary<LocalDate, double> Availability(params (LocalDate Day, double Share)[] days) =>
+        days.ToDictionary(d => d.Day, d => d.Share);
 }

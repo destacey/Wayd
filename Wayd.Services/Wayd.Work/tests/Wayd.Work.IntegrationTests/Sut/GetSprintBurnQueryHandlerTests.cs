@@ -2,11 +2,20 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Interfaces.Organization;
+using Wayd.Common.Domain.Models;
+using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Work.Domain.Models;
+using Wayd.Work.Domain.Models.SprintScope;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
 namespace Wayd.Work.IntegrationTests.Sut;
@@ -95,6 +104,90 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
     }
 
     [Fact]
+    public async Task Handle_ForATeamWithPeopleAllocated_DropsADayByTheShareOfThemThere()
+    {
+        // Arrange — five of eight people are there on Wednesday 16th, and seven eighths of the team on Thursday 17th
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var teamId = await SeedTeam(ct);
+        var sprintId = await SeedTeamSprint(teamId, ct);
+        var wednesday = new LocalDate(2026, 9, 16);
+        var thursday = wednesday.PlusDays(1);
+
+        var dispatcher = TeamDispatcher(new Dictionary<LocalDate, TeamDayAvailability>
+        {
+            [wednesday] = new(8m, 5m),
+            [thursday] = new(2m, 1.75m),
+        });
+
+        // Act
+        var result = await Handle(sprintId, ct, dispatcher.Object);
+
+        // Assert — Tuesday 15th is a whole day
+        result.Should().NotBeNull();
+        var normalDay = Ideal(result!, wednesday.PlusDays(-1)) - Ideal(result!, wednesday);
+        var fiveEighths = Ideal(result!, wednesday) - Ideal(result!, thursday);
+        var sevenEighths = Ideal(result!, thursday) - Ideal(result!, thursday.PlusDays(1));
+        normalDay.Should().BeGreaterThan(0);
+        (fiveEighths / normalDay).Should().BeApproximately(0.625, 1e-9);
+        (sevenEighths / normalDay).Should().BeApproximately(0.875, 1e-9);
+        result!.Ideal[^1].Remaining.Should().Be(0);
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamDayAvailabilityQuery>(q => q.TeamId == teamId && q.From == SprintStart.PlusDays(1) && q.To == SprintEnd.PlusDays(1)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(false)] // the feature is off, or nobody is allocated: no answer
+    [InlineData(true)] // an answer with no days in it
+    public async Task Handle_ForATeamWithNoAvailabilityToWeighBy_DrawsTheLineExactlyAsItDidBeforeAllocations(bool answersWithNoDays)
+    {
+        // Arrange — a holiday on Monday 21st and a team day off on Wednesday 23rd
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var teamId = await SeedTeam(ct);
+        var sprintId = await SeedTeamSprint(teamId, ct);
+        var holiday = new LocalDate(2026, 9, 21);
+        var dayOff = new LocalDate(2026, 9, 23);
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            var sprint = await accessor.Context.Iterations.SingleAsync(i => i.Id == sprintId, ct);
+            sprint.SetTeamDaysOff([dayOff], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
+            await accessor.Context.SaveChangesAsync(ct);
+        }
+
+        var dispatcher = TeamDispatcher(answersWithNoDays ? [] : null, holiday);
+
+        // Act
+        var result = await Handle(sprintId, ct, dispatcher.Object);
+
+        // Assert — point for point what the whole-team reading gives, with no tolerance
+        result.Should().NotBeNull();
+        var window = new SprintScopeWindow(sprintId, result!.EffectiveStart, result.EffectiveEnd, result.EffectiveEnd, result.EffectiveStart, null, false, false, DateTimeZone.Utc);
+        var asBefore = SprintIdealLine.Build(window, new SprintWorkingDays(WorkingWeek.MondayToFriday, [holiday, dayOff]));
+        result.Ideal.Select(p => (p.At, p.Remaining)).Should().Equal(asBefore.Select(p => (p.At, p.Remaining)));
+        Ideal(result, holiday.PlusDays(1)).Should().Be(Ideal(result, holiday));
+        dispatcher.Verify(d => d.Send(It.Is<GetTeamDayAvailabilityQuery>(q => q.TeamId == teamId), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ForASprintWithNoTeam_DoesNotAskForAvailability()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var sprintId = await WorkItemHistorySeeder.SeedSprint(_fixture, SprintStart, SprintEnd, ct);
+        var dispatcher = HolidayDispatcher.With();
+
+        // Act
+        var result = await Handle(sprintId, ct, dispatcher.Object);
+
+        // Assert
+        result.Should().NotBeNull();
+        dispatcher.Verify(d => d.Send(It.IsAny<GetTeamDayAvailabilityQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_UnknownSprint_ReturnsNull()
     {
         // Arrange
@@ -106,6 +199,49 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
         // Assert
         result.Should().BeNull();
     }
+
+    /// <summary>
+    /// A dispatcher for a team with no operating model, so its sprints take the system defaults, answering the
+    /// availability read with <paramref name="availability"/>.
+    /// </summary>
+    private static Mock<IDispatcher> TeamDispatcher(Dictionary<LocalDate, TeamDayAvailability>? availability, params LocalDate[] holidays)
+    {
+        var dispatcher = HolidayDispatcher.With(holidays);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamDayAvailabilityQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(availability);
+        return dispatcher;
+    }
+
+    private async Task<Guid> SeedTeam(CancellationToken ct)
+    {
+        var key = Random.Shared.Next(100_000, 999_999);
+        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, "Atlas", new TeamCode($"T{key}"), TeamType.Team, true), SqlServerDbContextFixture.FixedNow);
+
+        await using var accessor = new WaydDbContextAccessor(_fixture);
+        accessor.Context.WorkTeams.Add(team);
+        await accessor.Context.SaveChangesAsync(ct);
+
+        return team.Id;
+    }
+
+    private async Task<Guid> SeedTeamSprint(Guid teamId, CancellationToken ct)
+    {
+        var sprint = Iteration.Create("Team Sprint", IterationType.Sprint,
+            new IterationDateRange(SprintStart, SprintEnd), teamId,
+            OwnershipInfo.CreateWaydOwned(), [], EventActor.System, SqlServerDbContextFixture.FixedNow);
+
+        await using var accessor = new WaydDbContextAccessor(_fixture);
+        accessor.Context.Iterations.Add(sprint);
+        await accessor.Context.SaveChangesAsync(ct);
+
+        return sprint.Id;
+    }
+
+    private sealed record SourceTeam(Guid Id, int Key, string Name, TeamCode Code, TeamType Type, bool IsActive) : ISimpleTeam;
 
     private static Instant Day(int offset) =>
         SprintStart.PlusDays(offset).At(new LocalTime(12, 0)).InUtc().ToInstant();

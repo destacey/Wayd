@@ -107,12 +107,29 @@ The sprint detail page shows:
 - **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), [Correct Actual Dates](#correcting-actual-dates), [Team Days Off](#team-days-off) and [Sprint Type](#sprint-type)
 - **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), the sprint's length in days, its [sprint type](#sprint-type) and where it came from, and its team days off
 - **Team** link and timeline progress bar
+- **Capacity** (with Team Capacity Management on) — the team's capacity for the sprint beside its scope, at the top of the Overview, and a **Capacity** section with the sprint's capacity plan. See [Sprint Capacity](#sprint-capacity) below
 - **Sprint Metrics** (for Active/Completed sprints) — a progress row and a commitment row, with one switch between the team's estimate and counting work items. See [Sprint Metrics](#sprint-metrics) below
 - **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, its **Original** and **Final** estimate (**Original SP** and **Final SP** for a Story Points team: the estimate when it came in, and when it was last in the sprint), and when it was **Added to Sprint** or **Removed from Sprint**, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only
 - **Activity** — the sprint's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx)
 - **Links** section
 
 A **Switch Sprint** dropdown lets you quickly navigate between other sprints on the same team.
+
+### Sprint Capacity
+
+With **Team Capacity Management** turned on, a sprint shows how much of its team's time it has and sets that beside its scope. Capacity is in person-days over the sprint's planned dates, from the people [allocated](../organizations/index.mdx#allocations) to the team, after the [holidays each person takes and their time away](../organizations/index.mdx#time-away-and-holiday-calendars).
+
+At the top of the Overview, for a sprint in any state:
+
+- **Capacity** — the delivery person-days: time in roles that count toward delivery capacity. The person-days time away takes show beneath it
+- **Planned** or **Committed** — before the commitment point, the work in the sprint now; after it, the work committed, at its estimate then. Both are in the team's sizing method, or a count of work items
+- **Expected** — what the capacity is expected to deliver: the work the team completed per person-day of delivery capacity over the completed sprints its [team sprint metrics](#team-sprint-metrics) count, times this sprint's person-days. Sprints in another sizing method, and sprints nobody was allocated for, are left out. The sprints are the team's recent ones as of today, so a sprint some way back draws on fewer of them than the team had at the time, or none
+- **Over capacity** — a warning when the planned or committed work is more than **Expected**, on a sprint that has not ended. A completed sprint shows the figures without it
+- When there is nothing to compare with — no one allocated for the sprint's dates, no completed sprints in the sizing method, or no one allocated during them — a line says so and nothing is expected
+
+The **Capacity** section, for those who may view teams, shows the same figures above the sprint's [capacity plan](../organizations/index.mdx#capacity-plans): the team's people against the sprint's weeks. Those who may change the team's allocations can edit it there. Setting someone to 100% for the first week and 0% for the second changes those two weeks only, so their allocation after the sprint, and the next sprint's plan, stay as they were.
+
+Capacity is worked out each time it is read. The ideal line on the [burn-down](#burn-up-and-burn-down) reads the same allocations, holidays and time away.
 
 ### Sprints List Page
 

@@ -283,6 +283,15 @@ If you can change the team's allocations:
 
 Anyone else sees the section read-only, as does everyone on an inactive team.
 
+#### Capacity plans
+
+A sprint's [Capacity section](../work-management/sprints.mdx#sprint-capacity) shows the same allocations as a **capacity plan**: the team's people against the weeks of the sprint's dates. A plan stores nothing of its own either, and differs from this section in how it is laid out and edited:
+
+- **Weeks** are counted from the plan's first day, so a sprint's first week is its first seven days whatever weekday it starts on. Expand a week to see its working days
+- A **cell** shows the percent of the person's time the team has in that role, or the range of percents when the days differ. Hover over it for the person-days it is worth and any holidays, time away or time on other teams. A day that is a holiday for the person is shaded and a cell with time away is marked; both change on the [employee's page](#employee-detail-page), never here
+- **Edit Plan** turns the cells into inputs. A week sets the person's allocation on all seven of its days, a day on that day alone, and the days before and after them keep what they have. **Save** makes each person's changes together; anyone whose changes are refused keeps their edits, with the reason, and everyone else is saved
+- **Allocate Person** works as it does here, with the plan's dates as the range: a member's allocation has no end, so they are in the next sprint's plan too, and a non-member's ends with the sprint
+
 ### Backlog
 
 The **Backlog** section shows all work items assigned to the team across all workspaces. This gives the team a unified view of their work regardless of which workspace it lives in.
@@ -549,6 +558,7 @@ Features:
 | Time away limit | A person's time away cannot add up to more than a whole day on any day |
 | Time away needs an active employee | Time away cannot be recorded or changed for an inactive employee, but can always be removed |
 | Time away reason is private | The reason is shown only to the person, the people they report up to and time away administrators, and is not recorded in the activity log |
+| Plans change allocations | Editing a week or day of a capacity plan changes the person's allocation for those days only; nothing is stored per day |
 | A person's holidays follow their calendar | A person takes the holidays of the calendar assigned to them, otherwise the system default, on every team; a team's own calendar only applies when it is read as a whole |
 
 ## Related

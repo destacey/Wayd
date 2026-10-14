@@ -63,17 +63,12 @@ export interface SprintCapacitySummaryProps {
 const SprintCapacitySummary = ({ sprintKey }: SprintCapacitySummaryProps) => {
   // `currentData`, not `data`: `data` keeps the previous sprint's figures while
   // the next sprint's load, and they would be shown under it.
-  const { currentData: capacity, isFetching } =
-    useGetSprintCapacityQuery(sprintKey)
+  const { currentData: capacity } = useGetSprintCapacityQuery(sprintKey)
 
-  if (isFetching && !capacity) {
-    return (
-      <div style={METRIC_GRID}>
-        <MetricCard title="Capacity" value={0} loading />
-      </div>
-    )
-  }
-  if (!capacity) return null
+  // Nothing while loading, and nothing for a team with nobody allocated for
+  // the sprint: a team that does not plan capacity would otherwise read as
+  // having none.
+  if (!capacity || capacity.allocatedPersonDays === 0) return null
 
   const measure = sizingMethodMeasure(capacity.sizingMethod)
   const committed = capacity.scopeBasis === SprintCapacityScopeBasis.Committed

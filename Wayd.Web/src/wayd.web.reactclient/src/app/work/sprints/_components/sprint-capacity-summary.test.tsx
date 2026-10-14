@@ -159,6 +159,43 @@ describe('SprintCapacitySummary', () => {
     expect(screen.queryByText('Expected')).not.toBeInTheDocument()
   })
 
+  it('shows nothing for a team with no one allocated for the sprint', () => {
+    // Arrange
+    mockCapacity = capacity({
+      allocatedPersonDays: 0,
+      deliveryPersonDays: 0,
+      awayPersonDays: 0,
+      outcome: SprintCapacityOutcome.NoCapacity,
+      expectedScope: undefined,
+      isOverCapacity: false,
+    })
+
+    // Act
+    const { container } = render(<SprintCapacitySummary sprintKey={201} />)
+
+    // Assert
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('explains a team whose time is only in roles that do not count toward delivery', () => {
+    // Arrange
+    mockCapacity = capacity({
+      allocatedPersonDays: 5,
+      deliveryPersonDays: 0,
+      outcome: SprintCapacityOutcome.NoCapacity,
+      expectedScope: undefined,
+      isOverCapacity: false,
+    })
+
+    // Act
+    render(<SprintCapacitySummary sprintKey={201} />)
+
+    // Assert
+    expect(
+      screen.getByText(/in a role that counts toward delivery/),
+    ).toBeInTheDocument()
+  })
+
   it('shows nothing when the capacity cannot be read', () => {
     // Arrange
     mockCapacity = undefined

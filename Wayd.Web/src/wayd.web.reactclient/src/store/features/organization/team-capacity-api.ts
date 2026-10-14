@@ -5,6 +5,7 @@ import {
   TeamCapacityAllocationDto,
   TeamCapacityDto,
   TeamCapacityPersonDto,
+  TeamCapacityPlanDto,
   TeamCapacityRoleDto,
   TeamCapacityRollupDto,
   TeamCapacityRollupNodeDto,
@@ -20,6 +21,7 @@ export type {
   TeamCapacityAllocationDto,
   TeamCapacityDto,
   TeamCapacityPersonDto,
+  TeamCapacityPlanDto,
   TeamCapacityRoleDto,
   TeamCapacityRollupDto,
   TeamCapacityRollupNodeDto,
@@ -46,6 +48,33 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
       queryFn: async ({ teamId, teamType, from, to }) => {
         try {
           const data = await clientFor(teamType).getCapacity(teamId, from, to)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.TeamCapacity, id: arg.teamId },
+      ],
+    }),
+
+    getTeamCapacityPlan: builder.query<
+      TeamCapacityPlanDto,
+      {
+        teamId: string
+        teamType: CapacityTeamType
+        from: CalendarDate
+        to: CalendarDate
+      }
+    >({
+      queryFn: async ({ teamId, teamType, from, to }) => {
+        try {
+          const data = await clientFor(teamType).getCapacityPlan(
+            teamId,
+            from,
+            to,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -107,6 +136,7 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
 
 export const {
   useGetTeamCapacityQuery,
+  useGetTeamCapacityPlanQuery,
   useGetTeamOfTeamsCapacityRollupQuery,
   useGetTeamAllocationProposalQuery,
 } = teamCapacityApi

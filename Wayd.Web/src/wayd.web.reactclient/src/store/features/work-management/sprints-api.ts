@@ -8,6 +8,7 @@ import {
   SprintDetailsDto,
   SprintListDto,
   SprintBurnDto,
+  SprintCapacityDto,
   SprintScopeDto,
   SprintWorkItemMetricsDto,
   SprintType,
@@ -108,6 +109,25 @@ export const sprintsApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, sprintKey) => [
         { type: QueryTags.SprintBurn, id: sprintKey },
+      ],
+    }),
+
+    getSprintCapacity: builder.query<SprintCapacityDto, number>({
+      queryFn: async (sprintKey: number) => {
+        try {
+          const data = await getSprintsClient().getSprintCapacity(
+            sprintKey.toString(),
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Allocation and time away changes invalidate every sprint's scope tag,
+      // since they change its ideal line, and so refetch this too.
+      providesTags: (result, error, sprintKey) => [
+        { type: QueryTags.SprintScope, id: sprintKey },
       ],
     }),
 
@@ -339,6 +359,7 @@ export const {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
   useGetSprintBurnQuery,
+  useGetSprintCapacityQuery,
   useGetSprintPlanningIntervalsQuery,
   useGetSprintActivitiesQuery,
   useLazyGetSprintActivitiesQuery,

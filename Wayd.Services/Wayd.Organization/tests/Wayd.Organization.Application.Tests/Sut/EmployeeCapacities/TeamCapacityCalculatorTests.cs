@@ -264,6 +264,92 @@ public class TeamCapacityCalculatorTests
         byDay.Keys.Should().BeEquivalentTo([Wednesday, Wednesday.PlusDays(1)]);
     }
 
+    [Fact]
+    public void DailyAllocation_GivesEachCoveredDaysPercentAndWhatItIsWorth()
+    {
+        // Arrange — 100% the first week and 40% from the second Tuesday, half of the first Wednesday away and
+        // the second Wednesday a holiday
+        List<CapacityAllocation> allocations =
+        [
+            new(Employee, Team, true, Monday, Monday.PlusDays(6), 100),
+            new(Employee, Team, true, new LocalDate(2027, 2, 9), null, 40),
+        ];
+        var availability = Availability(
+            holidays: new() { [DefaultCalendar] = [new LocalDate(2027, 2, 10)] },
+            timeAway: [new TimeAwaySpan(Employee, Wednesday, Wednesday, 50)]);
+
+        // Act
+        var days = TeamCapacityCalculator.DailyAllocation(TeamDays, Employee, allocations, availability);
+
+        // Assert — nothing on the second Monday, so no entry for it
+        days.Should().Equal(
+            new CapacityPlanDay(Monday, 100, 1m),
+            new CapacityPlanDay(Monday.PlusDays(1), 100, 1m),
+            new CapacityPlanDay(Wednesday, 100, 0.5m),
+            new CapacityPlanDay(Monday.PlusDays(3), 100, 1m),
+            new CapacityPlanDay(Monday.PlusDays(4), 100, 1m),
+            new CapacityPlanDay(new LocalDate(2027, 2, 9), 40, 0.4m),
+            new CapacityPlanDay(new LocalDate(2027, 2, 10), 40, 0m),
+            new CapacityPlanDay(new LocalDate(2027, 2, 11), 40, 0.4m),
+            new CapacityPlanDay(new LocalDate(2027, 2, 12), 40, 0.4m));
+    }
+
+    [Fact]
+    public void DailyAllocation_AddsUpToWhatPersonDaysGivesForTheSameAllocation()
+    {
+        // Arrange
+        CapacityAllocation allocation = new(Employee, Team, true, Wednesday, null, 60);
+        var availability = Availability(timeAway: [new TimeAwaySpan(Employee, Monday, new LocalDate(2027, 2, 9), 25)]);
+
+        // Act
+        var days = TeamCapacityCalculator.DailyAllocation(TeamDays, Employee, [allocation], availability);
+
+        // Assert
+        days.Sum(d => d.PersonDays).Should().Be(
+            TeamCapacityCalculator.PersonDays(TeamDays, Employee, allocation.Start, allocation.End, allocation.Percent, availability));
+    }
+
+    [Fact]
+    public void DailyConditions_GivesHolidaysTimeAwayAndTimeElsewhereOnlyOnTheDaysTheyFallOn()
+    {
+        // Arrange — a holiday on the first Wednesday, a quarter of the first Thursday away, 30% elsewhere on the
+        // second Monday and 20% more from the second Tuesday
+        List<CapacityAllocation> elsewhere =
+        [
+            new(Employee, OtherTeam, true, new LocalDate(2027, 2, 8), new LocalDate(2027, 2, 8), 30),
+            new(Employee, OtherTeam, true, new LocalDate(2027, 2, 8), null, 20),
+        ];
+        var availability = Availability(
+            holidays: new() { [DefaultCalendar] = [Wednesday] },
+            timeAway: [new TimeAwaySpan(Employee, Wednesday.PlusDays(1), Wednesday.PlusDays(1), 25)]);
+
+        // Act
+        var days = TeamCapacityCalculator.DailyConditions(TeamDays, Employee, elsewhere, availability);
+
+        // Assert
+        days.Should().Equal(
+            new CapacityPlanPersonDay(Wednesday, true, 0, 0),
+            new CapacityPlanPersonDay(Wednesday.PlusDays(1), false, 25, 0),
+            new CapacityPlanPersonDay(new LocalDate(2027, 2, 8), false, 0, 50),
+            new CapacityPlanPersonDay(new LocalDate(2027, 2, 9), false, 0, 20),
+            new CapacityPlanPersonDay(new LocalDate(2027, 2, 10), false, 0, 20),
+            new CapacityPlanPersonDay(new LocalDate(2027, 2, 11), false, 0, 20),
+            new CapacityPlanPersonDay(new LocalDate(2027, 2, 12), false, 0, 20));
+    }
+
+    [Fact]
+    public void DailyConditions_ForSomeoneFullyThereWithNothingElsewhere_IsEmpty()
+    {
+        // Arrange
+        var availability = Availability();
+
+        // Act
+        var days = TeamCapacityCalculator.DailyConditions(TeamDays, Employee, [], availability);
+
+        // Assert
+        days.Should().BeEmpty();
+    }
+
     private static AvailabilityCalculator Availability(
         Dictionary<Guid, Guid>? calendars = null,
         Dictionary<Guid, LocalDate[]>? holidays = null,

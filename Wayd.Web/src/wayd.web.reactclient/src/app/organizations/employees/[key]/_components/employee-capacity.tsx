@@ -72,6 +72,7 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
       fullTotal: token.colorSuccess,
       timeAway: token.colorWarning,
     },
+    timeAway?.workingDayHours,
   )
   const canMove = canUpdateTeams && allocations.some((a) => a.canManage)
 

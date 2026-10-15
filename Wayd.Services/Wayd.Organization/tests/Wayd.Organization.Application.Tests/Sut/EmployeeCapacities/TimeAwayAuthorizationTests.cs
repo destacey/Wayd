@@ -143,6 +143,62 @@ public class TimeAwayAuthorizationTests : IDisposable
         canManage.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task EmployeesWithManageableTimeAway_ForAManager_IsThemselvesAndThoseBelowThem()
+    {
+        // Arrange
+        var principal = TestPrincipal.LinkedTo(_manager.Id);
+
+        // Act
+        var manageable = await principal.EmployeesWithManageableTimeAway(
+            _dbContext, [_director.Id, _manager.Id, _employee.Id, _peer.Id], TestContext.Current.CancellationToken);
+
+        // Assert
+        manageable.Should().BeEquivalentTo([_manager.Id, _employee.Id, _peer.Id]);
+    }
+
+    [Fact]
+    public async Task EmployeesWithManageableTimeAway_ForSomeoneWhoManagesNobody_IsOnlyThemselves()
+    {
+        // Arrange
+        var principal = TestPrincipal.LinkedTo(_employee.Id);
+
+        // Act
+        var manageable = await principal.EmployeesWithManageableTimeAway(
+            _dbContext, [_manager.Id, _employee.Id, _peer.Id], TestContext.Current.CancellationToken);
+
+        // Assert
+        manageable.Should().BeEquivalentTo([_employee.Id]);
+    }
+
+    [Fact]
+    public async Task EmployeesWithManageableTimeAway_ForAnAdministrator_IsEveryone()
+    {
+        // Arrange
+        var principal = TestPrincipal.LinkedTo(null, timeAwayAdministrator: true);
+
+        // Act
+        var manageable = await principal.EmployeesWithManageableTimeAway(
+            _dbContext, [_director.Id, _peer.Id], TestContext.Current.CancellationToken);
+
+        // Assert
+        manageable.Should().BeEquivalentTo([_director.Id, _peer.Id]);
+    }
+
+    [Fact]
+    public async Task EmployeesWithManageableTimeAway_ForACallerLinkedToNoEmployee_IsNobody()
+    {
+        // Arrange
+        var principal = TestPrincipal.LinkedTo(null);
+
+        // Act
+        var manageable = await principal.EmployeesWithManageableTimeAway(
+            _dbContext, [_employee.Id], TestContext.Current.CancellationToken);
+
+        // Assert
+        manageable.Should().BeEmpty();
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

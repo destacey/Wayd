@@ -5,9 +5,10 @@ using Wayd.Common.Domain.Settings;
 namespace Wayd.Common.Application.SystemSettings.Scheduling.Commands;
 
 /// <summary>
-/// Saves the scheduling settings. <paramref name="DefaultWorkingDays"/> left null keeps the saved value.
+/// Saves the scheduling settings. <paramref name="DefaultWorkingDays"/> and <paramref name="WorkingDayHours"/>
+/// left null keep the saved values.
 /// </summary>
-public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek>? DefaultWorkingDays, Guid? DefaultHolidayCalendarId) : ICommand;
+public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek>? DefaultWorkingDays, Guid? DefaultHolidayCalendarId, decimal? WorkingDayHours = null) : ICommand;
 
 public sealed class UpdateSchedulingSettingsCommandHandler(
     ISystemSettingsStore store,
@@ -34,7 +35,8 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
                 && await _dispatcher.Send(new GetHolidayCalendarNavigationQuery(calendarId), cancellationToken) is null)
                 return Result.Failure($"Holiday calendar {calendarId} not found.");
 
-            var workingDays = request.DefaultWorkingDays ?? (await _settings.Get(cancellationToken)).DefaultWorkingDays;
+            var saved = await _settings.Get(cancellationToken);
+            var workingDays = request.DefaultWorkingDays ?? saved.DefaultWorkingDays;
 
             // The store validates the section, so the rules hold for every caller, not just this command.
             var values = new SchedulingSettings
@@ -46,6 +48,7 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
                     ? week.Value.Days
                     : workingDays,
                 DefaultHolidayCalendarId = request.DefaultHolidayCalendarId,
+                WorkingDayHours = request.WorkingDayHours ?? saved.WorkingDayHours,
             };
 
             return await _store.Save(

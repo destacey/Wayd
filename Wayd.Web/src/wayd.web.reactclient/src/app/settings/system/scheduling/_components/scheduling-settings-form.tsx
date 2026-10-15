@@ -23,6 +23,7 @@ interface SchedulingSettingsFormValues {
   defaultCommitmentGraceDays: number
   defaultWorkingDays: IsoDayOfWeek[]
   defaultHolidayCalendarId?: string
+  workingDayHours: number
 }
 
 export interface SchedulingSettingsFormProps {
@@ -51,6 +52,7 @@ const SchedulingSettingsForm = ({
       defaultCommitmentGraceDays: settings.defaultCommitmentGraceDays,
       defaultWorkingDays: settings.defaultWorkingDays,
       defaultHolidayCalendarId: settings.defaultHolidayCalendar?.id,
+      workingDayHours: settings.workingDayHours,
     })
     setIsDirty(false)
   }, [settings, form])
@@ -62,6 +64,7 @@ const SchedulingSettingsForm = ({
         defaultCommitmentGraceDays: values.defaultCommitmentGraceDays,
         defaultWorkingDays: values.defaultWorkingDays,
         defaultHolidayCalendarId: values.defaultHolidayCalendarId,
+        workingDayHours: values.workingDayHours,
       })
       if (response.error) {
         throw response.error
@@ -143,6 +146,21 @@ const SchedulingSettingsForm = ({
           emptyLabel="No holidays"
           current={settings?.defaultHolidayCalendar}
           aria-label="Default holiday calendar"
+        />
+      </Form.Item>
+      <Form.Item
+        name="workingDayHours"
+        label="Working day hours"
+        extra="How long a working day is. Time away entered in hours is a share of it, and capacity can be read in hours: 2 hours away of an 8-hour day is a quarter of it. The same for every person and team."
+        rules={[{ required: true, message: 'Enter the working day hours.' }]}
+      >
+        <InputNumber
+          min={1}
+          max={24}
+          step={0.5}
+          precision={2}
+          suffix="h"
+          aria-label="Working day hours"
         />
       </Form.Item>
       {canUpdate && (

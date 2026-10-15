@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Work.Application.Iterations.Dtos;
 
 namespace Wayd.Work.Application.Iterations.Sprints;
@@ -29,7 +30,12 @@ public static class SprintDetailsLifecycle
 
         details.ActiveFrom = timeline.ActiveFrom(entity);
         details.ActiveUntil = timeline.EffectiveEnd(entity);
-        details.TimeZone = timeline.ScheduleFor(entity).TimeZone.Id;
+        var schedule = timeline.ScheduleFor(entity);
+        details.TimeZone = schedule.TimeZone.Id;
+        details.WorkingDays = schedule.WorkingWeek.Days;
+        details.Holidays = await dispatcher.Send(
+            new GetHolidayDatesQuery(schedule.HolidayCalendarId, entity.DateRange.Start!.Value, entity.DateRange.End!.Value),
+            cancellationToken) ?? [];
         details.OverlapsPreviousSprint = timeline.OverlapsPrevious(entity);
         details.OverlapsNextSprint = timeline.OverlapsNext(entity);
 

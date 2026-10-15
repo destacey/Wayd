@@ -41,6 +41,12 @@ public sealed record TeamCapacityDto
     public bool CanManage { get; set; }
 
     /// <summary>
+    /// How many hours a working day has, from the system settings, so person-days and a share of a day can be read
+    /// in hours.
+    /// </summary>
+    public required decimal WorkingDayHours { get; set; }
+
+    /// <summary>
     /// The allocated time by team member role, by role name with the time in no role last. The lines add up to
     /// <see cref="AllocatedPersonDays"/>.
     /// </summary>

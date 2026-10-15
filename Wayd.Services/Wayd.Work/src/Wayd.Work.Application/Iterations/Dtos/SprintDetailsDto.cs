@@ -37,6 +37,12 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public required WorkTeamNavigationDto Team { get; set; }
 
     /// <summary>
+    /// Whether the sprint's team is active. An inactive team's allocations can no longer be added to, so its
+    /// capacity plan is read-only.
+    /// </summary>
+    public bool TeamIsActive { get; set; }
+
+    /// <summary>
     /// When the team started the sprint, if it did.
     /// </summary>
     public Instant? Started { get; set; }
@@ -70,6 +76,18 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     /// offsite, in date order. Those managing the sprint (<see cref="CanManageSprint"/>) can change them.
     /// </summary>
     public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
+
+    /// <summary>
+    /// The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
+    /// the team names none: days the team is already off, so never a team day off. Empty without a team or dates.
+    /// </summary>
+    public IReadOnlyList<LocalDate> Holidays { get; set; } = [];
+
+    /// <summary>
+    /// The days of the week the team works during the sprint, from its operating model on the sprint's planned
+    /// start. Empty without a team or dates.
+    /// </summary>
+    public IReadOnlyList<IsoDayOfWeek> WorkingDays { get; set; } = [];
 
     /// <summary>
     /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
@@ -130,9 +148,12 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => src.Team)
+            .Map(dest => dest.TeamIsActive, src => src.Team != null && src.Team.IsActive)
             .Ignore(dest => dest.ActiveFrom)
             .Ignore(dest => dest.ActiveUntil)
             .Ignore(dest => dest.TimeZone)
+            .Ignore(dest => dest.Holidays)
+            .Ignore(dest => dest.WorkingDays)
             .Ignore(dest => dest.SprintType)
             .Ignore(dest => dest.SprintTypeSource)
             .Ignore(dest => dest.OverlapsPreviousSprint)

@@ -88,6 +88,29 @@ public class UpdateSchedulingSettingsCommandHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData(null, 6)]
+    [InlineData(7.5, 7.5)]
+    public async Task Handle_SavesTheWorkingDayHoursGivenOrKeepsTheSavedOnes(double? given, double expected)
+    {
+        // Arrange
+        _settings.Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SchedulingSettings { WorkingDayHours = 6m });
+        _store.Setup(s => s.Save(It.IsAny<SchedulingSettings>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new UpdateSchedulingSettingsCommand("UTC", 1, null, null, (decimal?)given), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _store.Verify(s => s.Save(
+            It.Is<SchedulingSettings>(v => v.WorkingDayHours == (decimal)expected),
+            It.IsAny<EventActor>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Fact]
     public async Task Handle_WithAnUnknownDefaultHolidayCalendar_FailsWithoutSaving()
     {

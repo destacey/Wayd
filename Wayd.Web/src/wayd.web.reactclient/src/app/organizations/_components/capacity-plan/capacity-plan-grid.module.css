@@ -1,0 +1,56 @@
+.cell {
+  position: relative;
+  margin: calc(-1 * var(--ant-padding-xxs)) calc(-1 * var(--ant-padding-xs));
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  border-radius: var(--ant-border-radius-sm);
+}
+
+.holiday {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.away {
+  background: var(--ant-color-warning-bg);
+}
+
+.edited {
+  outline: 1px solid var(--ant-color-primary-border);
+}
+
+.marker {
+  position: absolute;
+  top: var(--ant-padding-xxs);
+  right: var(--ant-padding-xxs);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ant-color-warning);
+}
+
+.input {
+  width: 80px;
+}
+
+.weekTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+  white-space: nowrap;
+}
+
+.weekDates {
+  font-size: var(--ant-font-size-sm);
+  font-weight: normal;
+}
+
+.note {
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-warning-text);
+  white-space: nowrap;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+}

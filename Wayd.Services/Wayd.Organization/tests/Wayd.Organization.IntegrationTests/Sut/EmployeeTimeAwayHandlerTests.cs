@@ -1,3 +1,5 @@
+using Wayd.Common.Domain.Settings;
+using Wayd.Common.Application.SystemSettings;
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -218,9 +220,9 @@ public sealed class EmployeeTimeAwayHandlerTests(SqlServerDbContextFixture fixtu
         await using var context = _fixture.CreateContext();
 
         // Act
-        var asTeammate = await new GetEmployeeTimeAwayQueryHandler(context, Employee(seeded.PeerId)).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
-        var asManager = await new GetEmployeeTimeAwayQueryHandler(context, Employee(seeded.ManagerId)).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
-        var asAdministrator = await new GetEmployeeTimeAwayQueryHandler(context, Administrator(seeded.OutsiderId)).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
+        var asTeammate = await new GetEmployeeTimeAwayQueryHandler(context, Employee(seeded.PeerId), SchedulingDefaults()).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
+        var asManager = await new GetEmployeeTimeAwayQueryHandler(context, Employee(seeded.ManagerId), SchedulingDefaults()).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
+        var asAdministrator = await new GetEmployeeTimeAwayQueryHandler(context, Administrator(seeded.OutsiderId), SchedulingDefaults()).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
 
         // Assert
         asTeammate!.CanManage.Should().BeFalse();
@@ -255,7 +257,7 @@ public sealed class EmployeeTimeAwayHandlerTests(SqlServerDbContextFixture fixtu
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         await using var assertContext = _fixture.CreateContext();
         (await assertContext.EmployeeCapacities.SingleAsync(c => c.Id == seeded.EmployeeId, cancellationToken)).HolidayCalendarId.Should().Be(calendarId);
-        var read = await new GetEmployeeTimeAwayQueryHandler(assertContext, Employee(seeded.PeerId)).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
+        var read = await new GetEmployeeTimeAwayQueryHandler(assertContext, Employee(seeded.PeerId), SchedulingDefaults()).Handle(new GetEmployeeTimeAwayQuery(seeded.EmployeeId), cancellationToken);
         read!.HolidayCalendar!.Id.Should().Be(calendarId);
         (await assertContext.ActivityLogs.AnyAsync(a => a.AggregateId == seeded.EmployeeId && a.EventType == nameof(EmployeeHolidayCalendarChangedEvent), cancellationToken))
             .Should().BeTrue();
@@ -314,6 +316,13 @@ public sealed class EmployeeTimeAwayHandlerTests(SqlServerDbContextFixture fixtu
         principal.Setup(p => p.HasPermission(TimeAwayAuthorization.AdministratorPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         return principal.Object;
+    }
+
+    private static ISettings<SchedulingSettings> SchedulingDefaults()
+    {
+        var settings = new Mock<ISettings<SchedulingSettings>>();
+        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        return settings.Object;
     }
 
     private static IDateTimeProvider Clock()

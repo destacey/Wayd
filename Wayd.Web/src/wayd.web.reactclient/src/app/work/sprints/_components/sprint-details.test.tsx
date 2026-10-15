@@ -14,6 +14,12 @@ jest.mock('./sprint-metrics', () => {
   const SprintMetrics = () => <div>Metrics</div>
   return SprintMetrics
 })
+jest.mock('./sprint-capacity-summary', () => {
+  const SprintCapacitySummary = ({ sprintKey }: { sprintKey: number }) => (
+    <div>{`Capacity of ${sprintKey}`}</div>
+  )
+  return SprintCapacitySummary
+})
 
 const sprint: SprintDetailsDto = {
   id: 'sprint-1',
@@ -26,6 +32,9 @@ const sprint: SprintDetailsDto = {
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   teamDaysOff: [],
+  teamIsActive: true,
+  holidays: [],
+  workingDays: [],
   canManageSprint: false,
   canStart: false,
   canComplete: false,
@@ -91,6 +100,22 @@ describe('SprintDetails', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       "overlap the team's next sprint",
     )
+  })
+
+  it("sets the sprint's capacity beside its scope with the capacity feature on", () => {
+    // Arrange / Act
+    render(<SprintDetails sprint={sprint} showsCapacity />)
+
+    // Assert
+    expect(screen.getByText('Capacity of 201')).toBeInTheDocument()
+  })
+
+  it('shows nothing of capacity with the capacity feature off', () => {
+    // Arrange / Act
+    render(<SprintDetails sprint={sprint} />)
+
+    // Assert
+    expect(screen.queryByText(/Capacity of/)).not.toBeInTheDocument()
   })
 
   it('shows no warning without an overlap', () => {

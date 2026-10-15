@@ -34,6 +34,12 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
     public Guid? DefaultHolidayCalendarId { get; init; }
 
     /// <summary>
+    /// How many hours a working day has, which time away entered in hours is a share of: 2 hours of an 8-hour day
+    /// is a quarter of it. The same for every person and team.
+    /// </summary>
+    public decimal WorkingDayHours { get; init; } = 8m;
+
+    /// <summary>
     /// <see cref="DefaultWorkingDays"/> as a working week. Saved settings are validated, so the Monday-to-Friday
     /// fallback is reached only by a stored row edited outside the app.
     /// </summary>
@@ -48,8 +54,9 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
         && DefaultTimeZone == other.DefaultTimeZone
         && DefaultCommitmentGraceDays == other.DefaultCommitmentGraceDays
         && DefaultWorkingDays.SequenceEqual(other.DefaultWorkingDays)
-        && DefaultHolidayCalendarId == other.DefaultHolidayCalendarId;
+        && DefaultHolidayCalendarId == other.DefaultHolidayCalendarId
+        && WorkingDayHours == other.WorkingDayHours;
 
     public override int GetHashCode() =>
-        HashCode.Combine(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays.Aggregate(0, (hash, day) => HashCode.Combine(hash, day)), DefaultHolidayCalendarId);
+        HashCode.Combine(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays.Aggregate(0, (hash, day) => HashCode.Combine(hash, day)), DefaultHolidayCalendarId, WorkingDayHours);
 }

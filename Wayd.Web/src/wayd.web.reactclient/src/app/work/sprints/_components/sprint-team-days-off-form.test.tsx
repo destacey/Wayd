@@ -4,11 +4,13 @@ jest.unmock('dayjs')
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  IsoDayOfWeek,
   SprintDetailsDto,
   SprintType,
   SprintTypeSource,
 } from '@/src/services/wayd-api'
 import SprintTeamDaysOffForm, {
+  alreadyOff,
   sprintPlannedDays,
 } from './sprint-team-days-off-form'
 
@@ -35,6 +37,9 @@ const sprint: SprintDetailsDto = {
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   teamDaysOff: ['2026-09-02'],
+  teamIsActive: true,
+  holidays: [],
+  workingDays: [],
   canManageSprint: true,
   canStart: false,
   canComplete: false,
@@ -118,5 +123,57 @@ describe('SprintTeamDaysOffForm', () => {
       'Only members of the sprint’s team can change its team days off.',
     )
     expect(onFormComplete).not.toHaveBeenCalled()
+  })
+})
+
+describe('alreadyOff', () => {
+  // Monday 31 August to Friday 4 September, worked Monday to Thursday, with
+  // Monday a holiday.
+  const withCalendar: SprintDetailsDto = {
+    ...sprint,
+    holidays: ['2026-08-31'],
+    workingDays: [
+      IsoDayOfWeek.Monday,
+      IsoDayOfWeek.Tuesday,
+      IsoDayOfWeek.Wednesday,
+      IsoDayOfWeek.Thursday,
+    ],
+  }
+
+  it.each([
+    ['2026-08-31', 'Holiday'],
+    ['2026-09-04', 'Not a working day'],
+    ['2026-09-01', undefined],
+  ])('says %s is %p', (day, expected) => {
+    // Act
+    const reason = alreadyOff(withCalendar, day)
+
+    // Assert
+    expect(reason).toBe(expected)
+  })
+
+  it('shows a holiday and a non-working day without letting them be chosen', async () => {
+    // Arrange
+    setTeamDaysOff.mockResolvedValue({ data: undefined })
+    render(
+      <SprintTeamDaysOffForm
+        sprint={{ ...withCalendar, teamDaysOff: [] }}
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+
+    // Act
+    const holiday = screen.getByRole('checkbox', { name: /Mon, Aug 31, 2026/ })
+    const friday = screen.getByRole('checkbox', { name: /Fri, Sep 4, 2026/ })
+
+    // Assert
+    expect(holiday).toBeDisabled()
+    expect(friday).toBeDisabled()
+    expect(screen.getByText(/· Holiday/)).toBeInTheDocument()
+    expect(screen.getByText(/· Not a working day/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('checkbox', { name: 'Tue, Sep 1, 2026' }),
+    ).toBeEnabled()
   })
 })

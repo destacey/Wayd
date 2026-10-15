@@ -1,3 +1,4 @@
+import { timeAwayLabel } from '@/src/app/organizations/_components/time-away/time-away-duration'
 import type {
   TimelineGroup,
   TimelineItem,
@@ -58,6 +59,7 @@ export function allocationTimelineData(
   timeAway: EmployeeTimeAwayEntryDto[],
   today: CalendarDate,
   colors: AllocationTimelineColors,
+  workingDayHours = 8,
 ): AllocationTimelineData {
   const windowStartDay = addCalendarDays(today, -WINDOW_DAYS_BEFORE)
   const windowEndDay = addCalendarDays(today, WINDOW_DAYS_AFTER)
@@ -107,7 +109,9 @@ export function allocationTimelineData(
       start: startOfDay(entry.start),
       end: endOf(entry.end),
       label:
-        entry.percentAway >= WHOLE_DAY ? 'Away' : `Away ${entry.percentAway}%`,
+        entry.percentAway >= WHOLE_DAY
+          ? 'Away'
+          : `Away ${timeAwayLabel(entry.percentAway, workingDayHours).toLowerCase()}`,
       color: colors.timeAway,
     }),
   )

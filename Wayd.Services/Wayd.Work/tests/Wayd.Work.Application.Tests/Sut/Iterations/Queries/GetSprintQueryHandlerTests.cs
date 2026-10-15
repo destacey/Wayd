@@ -1,3 +1,5 @@
+using Wayd.Common.Application.Requests.Organization;
+using Moq;
 using FluentAssertions;
 using NodaTime;
 using Xunit;
@@ -79,6 +81,42 @@ public class GetSprintQueryHandlerTests : IDisposable
         // Assert
         result!.CanManageSprint.Should().BeFalse();
         result.CanStart.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ReportsWhetherTheSprintsTeamIsActive(bool isActive)
+    {
+        // Arrange
+        _scenario.Team.ApplyActivation(isActive, Instant.FromUtc(2026, 1, 1, 0, 0));
+
+        // Act
+        var result = await _handler.Handle(new GetSprintQuery(new IdOrKey(_scenario.Sprint2.Key.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.TeamIsActive.Should().Be(isActive);
+    }
+
+    [Fact]
+    public async Task Handle_GivesTheHolidaysAndWorkingDaysTheTeamIsAlreadyOffOrOn()
+    {
+        // Arrange
+        var holiday = Sprint2Start.PlusDays(7);
+        _scenario.Dispatcher
+            .Setup(d => d.Send(It.IsAny<GetHolidayDatesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetHolidayDatesQuery q, CancellationToken _) =>
+                q.HolidayCalendarId is null && q.From <= holiday && holiday <= q.To ? [holiday] : []);
+
+        // Act
+        var result = await _handler.Handle(new GetSprintQuery(new IdOrKey(_scenario.Sprint2.Key.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Holidays.Should().Equal(holiday);
+        result.WorkingDays.Should().Equal(IsoDayOfWeek.Monday, IsoDayOfWeek.Tuesday, IsoDayOfWeek.Wednesday, IsoDayOfWeek.Thursday, IsoDayOfWeek.Friday);
+        _scenario.Dispatcher.Verify(d => d.Send(
+            It.Is<GetHolidayDatesQuery>(q => q.From == _scenario.Sprint2.DateRange.Start && q.To == _scenario.Sprint2.DateRange.End),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

@@ -17,6 +17,17 @@ public sealed record CapacityAllocation(Guid EmployeeId, Guid TeamId, bool Count
 /// <param name="AwayPersonDays">The time allocated to the team that their time away takes.</param>
 public sealed record PersonCapacity(decimal AllocatedPersonDays, decimal DeliveryPersonDays, decimal ElsewherePersonDays, decimal AwayPersonDays);
 
+/// <summary>One working day of a person's time in one role on a team.</summary>
+/// <param name="Percent">The share of the person's time allocated that day, from 1 to 100.</param>
+/// <param name="PersonDays">What it is worth after the person's holidays and time away.</param>
+public sealed record CapacityPlanDay(LocalDate Date, int Percent, decimal PersonDays);
+
+/// <summary>What else decides a person's time on a team's working day, beside their allocation to it.</summary>
+/// <param name="IsHoliday">Whether the day is a holiday in the calendar the person takes.</param>
+/// <param name="PercentAway">The share of the day the person is away, from 0 to 100.</param>
+/// <param name="ElsewherePercent">The share of the person's time allocated to other teams that day.</param>
+public sealed record CapacityPlanPersonDay(LocalDate Date, bool IsHoliday, int PercentAway, int ElsewherePercent);
+
 /// <summary>
 /// Turns allocations into person-days: an allocation of 50% over ten working days the person is there for is
 /// five. Pure: everything it needs is passed in.
@@ -111,6 +122,62 @@ public static class TeamCapacityCalculator
         }
 
         return byDay;
+    }
+
+    /// <summary>
+    /// One person's time in one team member role, day by day: for each of <paramref name="teamDays"/> that
+    /// <paramref name="allocations"/> cover, the percent allocated and the person-days it is worth. A day with
+    /// nothing allocated has no entry.
+    /// </summary>
+    /// <param name="allocations">The person's allocations to the team in the one role, which never overlap.</param>
+    public static IReadOnlyList<CapacityPlanDay> DailyAllocation(
+        IReadOnlyCollection<TeamDay> teamDays,
+        Guid employeeId,
+        IReadOnlyCollection<CapacityAllocation> allocations,
+        AvailabilityCalculator availability)
+    {
+        List<CapacityPlanDay> days = [];
+
+        foreach (var day in teamDays)
+        {
+            var percent = allocations
+                .Where(a => a.Start <= day.Date && (a.End is null || day.Date <= a.End))
+                .Sum(a => a.Percent);
+
+            if (percent > 0)
+                days.Add(new CapacityPlanDay(day.Date, percent, percent / Whole * availability.Available(employeeId, day)));
+        }
+
+        return days;
+    }
+
+    /// <summary>
+    /// What else decides one person's time on each of <paramref name="teamDays"/>: a holiday in the calendar
+    /// they take, the share of the day they are away, and their time allocated to other teams. A day with none
+    /// of these has no entry.
+    /// </summary>
+    /// <param name="elsewhere">The person's allocations to other teams.</param>
+    public static IReadOnlyList<CapacityPlanPersonDay> DailyConditions(
+        IReadOnlyCollection<TeamDay> teamDays,
+        Guid employeeId,
+        IReadOnlyCollection<CapacityAllocation> elsewhere,
+        AvailabilityCalculator availability)
+    {
+        List<CapacityPlanPersonDay> days = [];
+
+        foreach (var day in teamDays)
+        {
+            var isHoliday = availability.IsHoliday(employeeId, day);
+            var percentAway = (int)Math.Round(availability.ShareAway(employeeId, day.Date) * Whole);
+            var elsewherePercent = elsewhere
+                .Where(a => a.Start <= day.Date && (a.End is null || day.Date <= a.End))
+                .Sum(a => a.Percent);
+
+            if (isHoliday || percentAway > 0 || elsewherePercent > 0)
+                days.Add(new CapacityPlanPersonDay(day.Date, isHoliday, percentAway, elsewherePercent));
+        }
+
+        return days;
     }
 
     private static IEnumerable<TeamDay> Covered(IReadOnlyCollection<TeamDay> teamDays, LocalDate start, LocalDate? end) =>

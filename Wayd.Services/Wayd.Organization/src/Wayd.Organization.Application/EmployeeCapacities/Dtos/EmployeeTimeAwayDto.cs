@@ -15,6 +15,12 @@ public sealed record EmployeeTimeAwayDto
     public required bool CanManage { get; set; }
 
     /// <summary>
+    /// How many hours a working day has, from the system settings, so a share of a day can be read and entered in
+    /// hours: 25% of an 8-hour day is 2 hours.
+    /// </summary>
+    public required decimal WorkingDayHours { get; set; }
+
+    /// <summary>
     /// The holiday calendar the employee follows instead of the system default, or null when they follow the
     /// system default.
     /// </summary>

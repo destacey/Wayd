@@ -30845,6 +30845,67 @@ export class SprintsClient {
     }
 
     /**
+     * Get a sprint's capacity beside its scope.
+     */
+    getSprintCapacity(idOrKey: string, cancelToken?: CancelToken): Promise<SprintCapacityDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/capacity";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintCapacity(_response);
+        });
+    }
+
+    protected processGetSprintCapacity(response: AxiosResponse): Promise<SprintCapacityDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintCapacityDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintCapacityDto>(null as any);
+    }
+
+    /**
      * Start a sprint.
      */
     start(id: string, request: StartSprintRequest, cancelToken?: CancelToken): Promise<void> {
@@ -37030,6 +37091,83 @@ export class TeamsClient {
     }
 
     /**
+     * Get the capacity of a team over a date range day by day, to plan against.
+     * @param from (optional) 
+     * @param to (optional) 
+     * @param daysOff (optional) 
+     */
+    getCapacityPlan(id: string, from?: string | null | undefined, to?: string | null | undefined, daysOff?: string[] | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityPlanDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/capacity/plan?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (daysOff !== undefined && daysOff !== null)
+            daysOff && daysOff.forEach(item => { url_ += "daysOff=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacityPlan(_response);
+        });
+    }
+
+    protected processGetCapacityPlan(response: AxiosResponse): Promise<TeamCapacityPlanDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityPlanDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityPlanDto>(null as any);
+    }
+
+    /**
      * Propose allocations for a team from its members, without saving anything.
      * @param from (optional) 
      */
@@ -39288,6 +39426,80 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamCapacityRollupDto>(null as any);
+    }
+
+    /**
+     * Get the capacity of a team of teams over a date range day by day, to plan against.
+     * @param from (optional) 
+     * @param to (optional) 
+     */
+    getCapacityPlan(id: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityPlanDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/capacity/plan?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacityPlan(_response);
+        });
+    }
+
+    protected processGetCapacityPlan(response: AxiosResponse): Promise<TeamCapacityPlanDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityPlanDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityPlanDto>(null as any);
     }
 
     /**
@@ -51624,12 +51836,15 @@ export interface SprintDetailsDto {
     start: string;
     end: string;
     team: WorkTeamNavigationDto;
+    teamIsActive: boolean;
     started?: Date | undefined;
     completed?: Date | undefined;
     activeFrom?: Date | undefined;
     activeUntil?: Date | undefined;
     timeZone?: string | undefined;
     teamDaysOff: string[];
+    holidays: string[];
+    workingDays: IsoDayOfWeek[];
     sprintType: SprintType;
     sprintTypeSource: SprintTypeSource;
     overlapsPreviousSprint: boolean;
@@ -51641,6 +51856,18 @@ export interface SprintDetailsDto {
     completeWindow?: InstantWindowDto | undefined;
     canReopen: boolean;
     openSprint?: NavigationDto | undefined;
+}
+
+/** Equates the days of the week with their numerical value according to ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which is 7 in the ISO numbering and 0 in System.DayOfWeek. */
+export enum IsoDayOfWeek {
+    None = "None",
+    Monday = "Monday",
+    Tuesday = "Tuesday",
+    Wednesday = "Wednesday",
+    Thursday = "Thursday",
+    Friday = "Friday",
+    Saturday = "Saturday",
+    Sunday = "Sunday",
 }
 
 export interface InstantWindowDto {
@@ -51746,6 +51973,34 @@ export interface SprintBurnPointDto {
     day: string;
     scope: SprintScopeMeasureDto;
     completed: SprintScopeMeasureDto;
+}
+
+export interface SprintCapacityDto {
+    sprintId: string;
+    start: string;
+    end: string;
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    awayPersonDays: number;
+    sizingMethod: SizingMethod;
+    scopeBasis: SprintCapacityScopeBasis;
+    scope: number;
+    outcome: SprintCapacityOutcome;
+    expectedScope?: number | undefined;
+    priorSprints: number;
+    isOverCapacity: boolean;
+}
+
+export enum SprintCapacityScopeBasis {
+    Planned = "Planned",
+    Committed = "Committed",
+}
+
+export enum SprintCapacityOutcome {
+    Compared = "Compared",
+    NoCapacity = "NoCapacity",
+    NoPriorSprints = "NoPriorSprints",
+    NoPriorCapacity = "NoPriorCapacity",
 }
 
 /** Starts a sprint. */
@@ -52228,6 +52483,7 @@ export enum TimeAwayReason {
 
 export interface EmployeeTimeAwayDto {
     canManage: boolean;
+    workingDayHours: number;
     holidayCalendar?: NavigationDto | undefined;
     entries: EmployeeTimeAwayEntryDto[];
 }
@@ -52700,6 +52956,7 @@ export interface TeamCapacityDto {
     deliveryPersonDays: number;
     awayPersonDays: number;
     canManage: boolean;
+    workingDayHours: number;
     roles: TeamCapacityRoleDto[];
     people: TeamCapacityPersonDto[];
 }
@@ -52733,6 +52990,39 @@ export interface TeamCapacityAllocationDto {
     countsTowardDeliveryCapacity: boolean;
     start: string;
     end?: string | undefined;
+    percent: number;
+    personDays: number;
+}
+
+export interface TeamCapacityPlanDto {
+    capacity: TeamCapacityDto;
+    days: string[];
+    teamDaysOff: string[];
+    people: TeamCapacityPlanPersonDto[];
+}
+
+export interface TeamCapacityPlanPersonDto {
+    employeeId: string;
+    canManageTimeAway: boolean;
+    days: TeamCapacityPlanPersonDayDto[];
+    rows: TeamCapacityPlanRowDto[];
+}
+
+export interface TeamCapacityPlanPersonDayDto {
+    date: string;
+    isHoliday: boolean;
+    percentAway: number;
+    elsewherePercent: number;
+}
+
+export interface TeamCapacityPlanRowDto {
+    role?: NavigationDto | undefined;
+    countsTowardDeliveryCapacity: boolean;
+    days: TeamCapacityPlanDayDto[];
+}
+
+export interface TeamCapacityPlanDayDto {
+    date: string;
     percent: number;
     personDays: number;
 }
@@ -52801,18 +53091,6 @@ export interface TeamOperatingModelDetailsDto {
     workingDays: IsoDayOfWeek[];
     holidayCalendar?: NavigationDto | undefined;
     isCurrent: boolean;
-}
-
-/** Equates the days of the week with their numerical value according to ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which is 7 in the ISO numbering and 0 in System.DayOfWeek. */
-export enum IsoDayOfWeek {
-    None = "None",
-    Monday = "Monday",
-    Tuesday = "Tuesday",
-    Wednesday = "Wednesday",
-    Thursday = "Thursday",
-    Friday = "Friday",
-    Saturday = "Saturday",
-    Sunday = "Sunday",
 }
 
 export interface OperatingModelDefaultsDto {
@@ -54100,6 +54378,7 @@ export interface SchedulingSettingsDto {
     defaultCommitmentGraceDays: number;
     defaultWorkingDays: IsoDayOfWeek[];
     defaultHolidayCalendar?: NavigationDto | undefined;
+    workingDayHours: number;
 }
 
 export interface UpdateSchedulingSettingsRequest {
@@ -54111,6 +54390,9 @@ export interface UpdateSchedulingSettingsRequest {
     defaultWorkingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar of every team operating model that has none of its own, or null for none. */
     defaultHolidayCalendarId?: string | undefined;
+    /** How many hours a working day has, from 1 to 24, which time away entered in hours is a share of. Omit to keep
+the saved value. */
+    workingDayHours?: number | undefined;
 }
 
 export interface SprintMetricsSettingsDto {

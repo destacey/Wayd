@@ -48,7 +48,6 @@ public sealed class UpdateSchedulingSettingsRequestValidator : CustomValidator<U
             .When(r => r.DefaultWorkingDays is not null);
 
         RuleFor(r => r.WorkingDayHours)
-            .InclusiveBetween(SchedulingSettingsValidator.MinWorkingDayHours, SchedulingSettingsValidator.MaxWorkingDayHours)
-            .When(r => r.WorkingDayHours is not null);
+            .InclusiveBetween(SchedulingSettingsValidator.MinWorkingDayHours, SchedulingSettingsValidator.MaxWorkingDayHours);
     }
 }

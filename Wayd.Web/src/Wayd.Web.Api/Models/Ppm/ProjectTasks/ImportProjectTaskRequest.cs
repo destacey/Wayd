@@ -132,12 +132,10 @@ public sealed class ImportProjectTaskRequestValidator : CustomValidator<ImportPr
                 .WithMessage("Priority is not a valid task priority.");
 
         RuleFor(t => t.Progress)
-            .InclusiveBetween(0m, 100m)
-            .When(t => t.Progress.HasValue);
+            .InclusiveBetween(0m, 100m);
 
         RuleFor(t => t.EstimatedEffortHours)
-            .GreaterThan(0)
-            .When(t => t.EstimatedEffortHours.HasValue);
+            .GreaterThan(0);
 
         RuleFor(t => t.PlannedEnd)
             .Must((t, end) => end is null || t.PlannedStart is null || t.PlannedStart <= end)

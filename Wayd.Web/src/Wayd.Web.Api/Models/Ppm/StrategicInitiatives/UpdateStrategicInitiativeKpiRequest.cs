@@ -74,19 +74,16 @@ public sealed class UpdateStrategicInitiativeKpiRequestValidator : AbstractValid
             .MaximumLength(64);
 
         RuleFor(x => x.Description)
-            .MaximumLength(512)
-            .When(x => x.Description is not null);
+            .MaximumLength(512);
 
         RuleFor(x => x.TargetValue)
             .NotEmpty();
 
         RuleFor(x => x.Prefix)
-            .MaximumLength(8)
-            .When(x => x.Prefix is not null);
+            .MaximumLength(8);
 
         RuleFor(x => x.Suffix)
-            .MaximumLength(8)
-            .When(x => x.Suffix is not null);
+            .MaximumLength(8);
 
         RuleFor(x => x.TargetDirection)
             .IsInEnum()

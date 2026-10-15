@@ -146,7 +146,6 @@ public sealed class UpdateProjectTaskRequestValidator : CustomValidator<UpdatePr
             .WithMessage("PlannedEnd must be greater than or equal to PlannedStart.");
 
         RuleFor(x => x.EstimatedEffortHours)
-            .GreaterThan(0)
-            .When(x => x.EstimatedEffortHours.HasValue);
+            .GreaterThan(0);
     }
 }

@@ -45,8 +45,9 @@ public sealed class GetTeamDaysOffQueryHandlerTests(SqlServerDbContextFixture fi
         // Act
         var daysOff = await handler.Handle(new GetTeamDaysOffQuery(new LocalDate(2026, 9, 1), new LocalDate(2026, 10, 2)), ct);
 
-        // Assert — the 7th of October is past the range, and Beacon has no entry
-        daysOff.Keys.Should().BeEquivalentTo([atlas]);
+        // Assert — the 7th of October is past the range, and Beacon has no entry. Only these teams are checked:
+        // the reset leaves other tests' sprints, whose teams' days off are read too.
+        daysOff.Should().ContainKey(atlas).And.NotContainKey(beacon);
         daysOff[atlas].Should().Equal(new LocalDate(2026, 9, 16), new LocalDate(2026, 9, 30));
     }
 

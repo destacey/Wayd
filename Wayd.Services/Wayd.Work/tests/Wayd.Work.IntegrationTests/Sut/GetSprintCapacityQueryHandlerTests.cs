@@ -66,6 +66,7 @@ public sealed class GetSprintCapacityQueryHandlerTests(SqlServerDbContextFixture
         capacity.Scope.Should().Be(3);
         capacity.SizingMethod.Should().Be(SizingMethod.Count);
         capacity.DeliveryPersonDays.Should().Be(10m);
+        capacity.HasAllocations.Should().BeTrue();
         capacity.Outcome.Should().Be(SprintCapacityOutcome.Compared);
         capacity.ExpectedScope.Should().BeApproximately(2, 1e-9);
         capacity.PriorSprints.Should().Be(2);
@@ -242,8 +243,8 @@ public sealed class GetSprintCapacityQueryHandlerTests(SqlServerDbContextFixture
                 new Dictionary<Guid, IReadOnlyList<TeamPeriodCapacity>>
                 {
                     [teamId] = [.. q.Periods.Select((p, i) => i == 0
-                        ? new TeamPeriodCapacity(p, sprintDelivery, sprintDelivery, 0m)
-                        : new TeamPeriodCapacity(p, priorDelivery, priorDelivery, 0m))],
+                        ? new TeamPeriodCapacity(p, sprintDelivery, sprintDelivery, 0m, true)
+                        : new TeamPeriodCapacity(p, priorDelivery, priorDelivery, 0m, true))],
                 });
         return dispatcher;
     }

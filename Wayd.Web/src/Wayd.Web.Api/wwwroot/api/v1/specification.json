@@ -19835,6 +19835,54 @@
         ]
       }
     },
+    "/api/planning/planning-intervals/{idOrKey}/capacity": {
+      "get": {
+        "tags": [
+          "PlanningIntervals"
+        ],
+        "summary": "Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.",
+        "description": "Returns the planning interval's `iterations` in date order and, for each team in it, its capacity in person-days after holidays, time away and team days off: a `total` over the whole planning interval and one figure per iteration in `iterations`, each with `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity and `awayPersonDays` that time away took. Iterations are read by the planning interval's own dates, whatever a team's sprint length or cadence. A team of teams is counted as its rollup: its own allocations and those of the teams beneath it for the days they were in its hierarchy, so a team beneath it that is also in the planning interval is counted in both rows. A team's sprint days off count as nobody working, wherever that team is counted, and a team's are listed in `teamDaysOff`. `hasAllocations` is false for a team with nobody allocated in the planning interval. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "PlanningIntervals_GetCapacity",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningIntervalCapacityDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/planning/planning-intervals/{idOrKey}/iterations/{iterationIdOrKey}": {
       "get": {
         "tags": [
@@ -54955,6 +55003,138 @@
           }
         }
       },
+      "PlanningIntervalCapacityDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start",
+          "end",
+          "iterations",
+          "teams"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "iterations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningIntervalCapacityIterationDto"
+            }
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningIntervalTeamCapacityDto"
+            }
+          }
+        }
+      },
+      "PlanningIntervalCapacityIterationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "category",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "PlanningIntervalTeamCapacityDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "team",
+          "isActive",
+          "hasAllocations",
+          "total",
+          "iterations",
+          "teamDaysOff"
+        ],
+        "properties": {
+          "team": {
+            "$ref": "#/components/schemas/PlanningTeamNavigationDto"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "hasAllocations": {
+            "type": "boolean"
+          },
+          "total": {
+            "$ref": "#/components/schemas/PlanningIntervalCapacityFiguresDto"
+          },
+          "iterations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningIntervalCapacityFiguresDto"
+            }
+          },
+          "teamDaysOff": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        }
+      },
+      "PlanningIntervalCapacityFiguresDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "allocatedPersonDays",
+          "deliveryPersonDays",
+          "awayPersonDays"
+        ],
+        "properties": {
+          "allocatedPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "deliveryPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "awayPersonDays": {
+            "type": "number",
+            "format": "decimal"
+          }
+        }
+      },
       "PlanningIntervalIterationDetailsDto": {
         "type": "object",
         "additionalProperties": false,
@@ -59950,6 +60130,7 @@
           "allocatedPersonDays",
           "deliveryPersonDays",
           "awayPersonDays",
+          "hasAllocations",
           "sizingMethod",
           "scopeBasis",
           "scope",
@@ -59983,6 +60164,9 @@
           "awayPersonDays": {
             "type": "number",
             "format": "decimal"
+          },
+          "hasAllocations": {
+            "type": "boolean"
           },
           "sizingMethod": {
             "$ref": "#/components/schemas/SizingMethod"

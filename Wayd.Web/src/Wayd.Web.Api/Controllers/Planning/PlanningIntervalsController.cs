@@ -294,6 +294,23 @@ public class PlanningIntervalsController : ControllerBase
             : NotFound();
     }
 
+    [HttpGet("{idOrKey}/capacity")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
+    [OpenApiOperation(
+        "Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.",
+        "Returns the planning interval's `iterations` in date order and, for each team in it, its capacity in person-days after holidays, time away and team days off: a `total` over the whole planning interval and one figure per iteration in `iterations`, each with `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity and `awayPersonDays` that time away took. Iterations are read by the planning interval's own dates, whatever a team's sprint length or cadence. A team of teams is counted as its rollup: its own allocations and those of the teams beneath it for the days they were in its hierarchy, so a team beneath it that is also in the planning interval is counted in both rows. A team's sprint days off count as nobody working, wherever that team is counted, and a team's are listed in `teamDaysOff`. `hasAllocations` is false for a team with nobody allocated in the planning interval. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PlanningIntervalCapacityDto>> GetCapacity(string idOrKey, CancellationToken cancellationToken)
+    {
+        var capacity = await _dispatcher.Send(new GetPlanningIntervalCapacityQuery(idOrKey), cancellationToken);
+
+        return capacity is not null
+            ? Ok(capacity)
+            : NotFound();
+    }
+
     [HttpGet("{idOrKey}/iterations/{iterationIdOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
     [OpenApiOperation("Get a specific planning interval iteration.", "")]

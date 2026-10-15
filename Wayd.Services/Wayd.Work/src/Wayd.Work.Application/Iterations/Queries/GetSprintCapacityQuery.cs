@@ -111,6 +111,7 @@ public sealed class GetSprintCapacityQueryHandler(
             AllocatedPersonDays = own.AllocatedPersonDays,
             DeliveryPersonDays = own.DeliveryPersonDays,
             AwayPersonDays = own.AwayPersonDays,
+            HasAllocations = own.HasAllocations,
             SizingMethod = sizingMethod,
             ScopeBasis = basis,
             Scope = scope,

@@ -33,6 +33,7 @@ The rail provides:
 - **[Objectives](#objectives)**
 - **[Risks](./risks.mdx)**
 - **Backlog** — Every work item across the PI's sprints
+- **[Capacity](#capacity)** — Each team's capacity for the PI and each of its iterations, with Team Capacity Management turned on
 - **Activity** — The PI's recorded history: edits, date and iteration changes, teams joining and leaving, sprint mappings, and objectives being locked or unlocked. See [Activity Log](../activity-log.mdx).
 - **Objectives Health** — under **Reports**, below the divider
 
@@ -248,6 +249,19 @@ Each team tab shows:
   - **Timeline View** — Objectives displayed on a timeline
 
 The plan review only shows delivery teams (not Teams of Teams). The selected team is held in the URL as `?team=` (the team code, lowercased), alongside `?section=plan-review` — so a link can point directly at one team's plan.
+
+## Capacity
+
+With **Team Capacity Management** turned on, the PI has a **Capacity** section showing how much time each of its teams has, from the people [allocated](../organizations/index.mdx#allocations) to them.
+
+- A row per team in the PI, teams first and then teams of teams, against a column per **iteration** and one for the whole **planning interval**. The IP iteration is marked
+- Each figure is **delivery person-days**: time in roles that count toward delivery capacity, after each person's holidays and [time away](../organizations/index.mdx#time-away-and-holiday-calendars), and with the team's [sprint team days off](../work-management/sprints.mdx#team-days-off) counted as nobody working. Hover over it for the person-days allocated in every role and what time away took
+- **Iterations are read by the PI's own dates**, whatever each team's sprint length or cadence, so teams on different cadences, or with no sprints at all, compare over the same days
+- **A team of teams** is its rollup: its own allocations and those of the teams beneath it, for the days they were in its hierarchy. A team beneath it that is also in the PI has its own row as well, so the rows are not added up
+- A **dash** is a team with no one allocated in the PI: it has nothing to plan with, rather than no time
+- **Plan** on a row, for those who may view teams, opens the team's [capacity plan](../organizations/index.mdx#capacity-plans) over the PI's dates: its people against the PI's weeks. Those who may change the team's allocations can edit it there. For a team of teams it shows the people allocated to it directly
+
+Capacity is worked out each time it is read; nothing is stored for the PI.
 
 ## Common Tasks
 

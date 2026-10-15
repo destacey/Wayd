@@ -12,6 +12,19 @@ import {
   type ApiError,
 } from '@/src/utils'
 import { Checkbox, Flex, Modal, Typography } from 'antd'
+import { IsoDayOfWeek } from '@/src/services/wayd-api'
+
+/** dayjs's day of the week, Sunday 0 to Saturday 6, for each day of the week. */
+const DAYJS_WEEKDAY: Record<IsoDayOfWeek, number> = {
+  [IsoDayOfWeek.None]: -1,
+  [IsoDayOfWeek.Sunday]: 0,
+  [IsoDayOfWeek.Monday]: 1,
+  [IsoDayOfWeek.Tuesday]: 2,
+  [IsoDayOfWeek.Wednesday]: 3,
+  [IsoDayOfWeek.Thursday]: 4,
+  [IsoDayOfWeek.Friday]: 5,
+  [IsoDayOfWeek.Saturday]: 6,
+}
 import { useState } from 'react'
 
 const { Text } = Typography
@@ -29,6 +42,21 @@ export const sprintPlannedDays = (sprint: SprintDetailsDto): string[] => {
   return Array.from({ length: Math.max(count, 0) }, (_, i) =>
     toCalendarDate(start.add(i, 'day')),
   )
+}
+
+/** Why a planned day cannot be a team day off, or undefined when it can. */
+export const alreadyOff = (
+  sprint: SprintDetailsDto,
+  day: string,
+): string | undefined => {
+  if (sprint.holidays.includes(day)) return 'Holiday'
+  const weekday = parseCalendarDate(day).day()
+  if (
+    sprint.workingDays.length > 0 &&
+    !sprint.workingDays.some((d) => DAYJS_WEEKDAY[d] === weekday)
+  )
+    return 'Not a working day'
+  return undefined
 }
 
 /**
@@ -51,7 +79,9 @@ const SprintTeamDaysOffForm = ({
       const response = await setTeamDaysOff({
         id: sprint.id,
         key: sprint.key,
-        teamDaysOff: days.filter((d) => selected.includes(d)),
+        teamDaysOff: days.filter(
+          (d) => selected.includes(d) && !alreadyOff(sprint, d),
+        ),
       })
       if (response.error) throw response.error
       messageApi.success('Team days off saved.')
@@ -78,20 +108,25 @@ const SprintTeamDaysOffForm = ({
       <Flex vertical gap={12}>
         <Text type="secondary">
           Days the whole team is off during this sprint, such as an offsite.
-          Weekends outside the team&apos;s working days and holidays from its
-          calendar are already off and need not be chosen. The ideal burn-down
-          stays flat on these days.
+          Holidays from its calendar and days outside its working week are
+          already off, so they are shown but cannot be chosen. On a team day off
+          nobody counts as working: the ideal burn-down stays flat and the
+          sprint&apos;s capacity leaves it out.
         </Text>
         <Checkbox.Group
           value={selected}
           onChange={(values) => setSelected(values as string[])}
         >
           <Flex vertical gap={4}>
-            {days.map((day) => (
-              <Checkbox key={day} value={day}>
-                {formatCalendarDate(day, 'ddd, MMM D, YYYY')}
-              </Checkbox>
-            ))}
+            {days.map((day) => {
+              const reason = alreadyOff(sprint, day)
+              return (
+                <Checkbox key={day} value={day} disabled={!!reason}>
+                  {formatCalendarDate(day, 'ddd, MMM D, YYYY')}
+                  {reason && <Text type="secondary">{` · ${reason}`}</Text>}
+                </Checkbox>
+              )
+            })}
           </Flex>
         </Checkbox.Group>
       </Flex>

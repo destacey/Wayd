@@ -34,6 +34,8 @@ export interface TeamCapacityPlanProps {
   /** The plan's first and last days, both included. */
   from: CalendarDate
   to: CalendarDate
+  /** Days the whole team is off, such as a sprint's team days off. */
+  daysOff?: CalendarDate[]
 }
 
 /** A person whose changes the API refused, and why. */
@@ -54,6 +56,7 @@ const TeamCapacityPlan = ({
   teamType,
   from,
   to,
+  daysOff,
 }: TeamCapacityPlanProps) => {
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
@@ -74,7 +77,13 @@ const TeamCapacityPlan = ({
     currentData: plan,
     isFetching,
     error,
-  } = useGetTeamCapacityPlanQuery({ teamId: team.id, teamType, from, to })
+  } = useGetTeamCapacityPlanQuery({
+    teamId: team.id,
+    teamType,
+    from,
+    to,
+    daysOff,
+  })
 
   const { data: teamMembers } = useGetTeamMembersQuery(
     { teamId: team.id },
@@ -262,6 +271,7 @@ const TeamCapacityPlan = ({
         unit={unit}
         workingDayHours={workingDayHours}
         onRecordTimeAway={setRecordingFor}
+        teamDaysOff={plan?.teamDaysOff}
         isLoading={isFetching}
       />
 

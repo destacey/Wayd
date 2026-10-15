@@ -56,6 +56,8 @@ export interface CapacityPlanGridProps {
   workingDayHours?: number
   /** Opens the time away form for a row's person; absent to offer none. */
   onRecordTimeAway?: (row: PlanRow) => void
+  /** Days the whole team is off, which count for nothing. */
+  teamDaysOff?: CalendarDate[]
   isLoading?: boolean
 }
 
@@ -67,7 +69,9 @@ export function dayNote(
   row: PlanRow,
   day: CalendarDate,
   workingDayHours: number,
+  teamDaysOff: CalendarDate[] = [],
 ): string | undefined {
+  if (teamDaysOff.includes(day)) return 'Team day off'
   const condition = row.conditionsByDate.get(day)
   if (condition?.isHoliday) return 'Holiday'
   if (condition && condition.percentAway > 0)
@@ -113,6 +117,7 @@ const CapacityPlanGrid = ({
   unit = 'percent',
   workingDayHours = 8,
   onRecordTimeAway,
+  teamDaysOff = [],
   isLoading,
 }: CapacityPlanGridProps) => {
   const inHours = unit === 'hours'
@@ -155,7 +160,10 @@ const CapacityPlanGrid = ({
     const marked = cell.holidays > 0 || cell.awayDays > 0
     const className = [
       styles.cell,
-      cell.holidays > 0 && cell.holidays === days.length ? styles.holiday : '',
+      (cell.holidays > 0 && cell.holidays === days.length) ||
+      days.every((d) => teamDaysOff.includes(d))
+        ? styles.holiday
+        : '',
       cell.awayDays > 0 ? styles.away : '',
       edited ? styles.edited : '',
     ]
@@ -186,7 +194,9 @@ const CapacityPlanGrid = ({
       pendingCell.minPercent === pendingCell.maxPercent
         ? pendingCell.minPercent
         : null
-    const note = day ? dayNote(row, day, workingDayHours) : undefined
+    const note = day
+      ? dayNote(row, day, workingDayHours, teamDaysOff)
+      : undefined
 
     if (editing) {
       return (

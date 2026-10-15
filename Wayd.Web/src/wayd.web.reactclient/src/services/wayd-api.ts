@@ -37094,8 +37094,9 @@ export class TeamsClient {
      * Get the capacity of a team over a date range day by day, to plan against.
      * @param from (optional) 
      * @param to (optional) 
+     * @param daysOff (optional) 
      */
-    getCapacityPlan(id: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityPlanDto> {
+    getCapacityPlan(id: string, from?: string | null | undefined, to?: string | null | undefined, daysOff?: string[] | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityPlanDto> {
         let url_ = this.baseUrl + "/api/organization/teams/{id}/capacity/plan?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -37104,6 +37105,8 @@ export class TeamsClient {
             url_ += "from=" + encodeURIComponent("" + from) + "&";
         if (to !== undefined && to !== null)
             url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (daysOff !== undefined && daysOff !== null)
+            daysOff && daysOff.forEach(item => { url_ += "daysOff=" + encodeURIComponent("" + item) + "&"; });
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -51840,6 +51843,8 @@ export interface SprintDetailsDto {
     activeUntil?: Date | undefined;
     timeZone?: string | undefined;
     teamDaysOff: string[];
+    holidays: string[];
+    workingDays: IsoDayOfWeek[];
     sprintType: SprintType;
     sprintTypeSource: SprintTypeSource;
     overlapsPreviousSprint: boolean;
@@ -51851,6 +51856,18 @@ export interface SprintDetailsDto {
     completeWindow?: InstantWindowDto | undefined;
     canReopen: boolean;
     openSprint?: NavigationDto | undefined;
+}
+
+/** Equates the days of the week with their numerical value according to ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which is 7 in the ISO numbering and 0 in System.DayOfWeek. */
+export enum IsoDayOfWeek {
+    None = "None",
+    Monday = "Monday",
+    Tuesday = "Tuesday",
+    Wednesday = "Wednesday",
+    Thursday = "Thursday",
+    Friday = "Friday",
+    Saturday = "Saturday",
+    Sunday = "Sunday",
 }
 
 export interface InstantWindowDto {
@@ -52980,6 +52997,7 @@ export interface TeamCapacityAllocationDto {
 export interface TeamCapacityPlanDto {
     capacity: TeamCapacityDto;
     days: string[];
+    teamDaysOff: string[];
     people: TeamCapacityPlanPersonDto[];
 }
 
@@ -53073,18 +53091,6 @@ export interface TeamOperatingModelDetailsDto {
     workingDays: IsoDayOfWeek[];
     holidayCalendar?: NavigationDto | undefined;
     isCurrent: boolean;
-}
-
-/** Equates the days of the week with their numerical value according to ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which is 7 in the ISO numbering and 0 in System.DayOfWeek. */
-export enum IsoDayOfWeek {
-    None = "None",
-    Monday = "Monday",
-    Tuesday = "Tuesday",
-    Wednesday = "Wednesday",
-    Thursday = "Thursday",
-    Friday = "Friday",
-    Saturday = "Saturday",
-    Sunday = "Sunday",
 }
 
 export interface OperatingModelDefaultsDto {

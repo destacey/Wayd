@@ -26,6 +26,7 @@ const SprintCapacitySection = ({ sprint }: SprintCapacitySectionProps) => (
       teamType="Team"
       from={sprint.start}
       to={sprint.end}
+      daysOff={sprint.teamDaysOff}
     />
   </Flex>
 )

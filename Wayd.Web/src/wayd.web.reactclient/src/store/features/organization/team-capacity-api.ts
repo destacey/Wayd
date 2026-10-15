@@ -66,15 +66,21 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
         teamType: CapacityTeamType
         from: CalendarDate
         to: CalendarDate
+        /** Days the whole team is off, such as a sprint's team days off. */
+        daysOff?: CalendarDate[]
       }
     >({
-      queryFn: async ({ teamId, teamType, from, to }) => {
+      queryFn: async ({ teamId, teamType, from, to, daysOff }) => {
         try {
-          const data = await clientFor(teamType).getCapacityPlan(
-            teamId,
-            from,
-            to,
-          )
+          const data =
+            teamType === 'Team'
+              ? await getTeamsClient().getCapacityPlan(
+                  teamId,
+                  from,
+                  to,
+                  daysOff,
+                )
+              : await getTeamsOfTeamsClient().getCapacityPlan(teamId, from, to)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

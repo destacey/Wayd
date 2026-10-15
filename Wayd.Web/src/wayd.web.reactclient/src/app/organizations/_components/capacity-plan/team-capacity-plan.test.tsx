@@ -107,6 +107,7 @@ function plan(canManage = true): TeamCapacityPlanDto {
       ],
     },
     days: DAYS,
+    teamDaysOff: [],
     people: [
       {
         employeeId: 'ada',
@@ -161,6 +162,7 @@ describe('TeamCapacityPlan', () => {
       teamType: 'Team',
       from: FROM,
       to: TO,
+      daysOff: undefined,
     })
     expect(screen.getByRole('link', { name: 'Ada Lovelace' })).toHaveAttribute(
       'href',

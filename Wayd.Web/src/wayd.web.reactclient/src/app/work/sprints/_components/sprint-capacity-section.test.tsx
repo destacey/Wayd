@@ -31,6 +31,8 @@ const sprint = (teamIsActive: boolean): SprintDetailsDto => ({
   end: '2026-08-30',
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   teamIsActive,
+  holidays: [],
+  workingDays: [],
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   teamDaysOff: [],
@@ -55,6 +57,7 @@ describe('SprintCapacitySection', () => {
         teamType: 'Team',
         from: '2026-08-17',
         to: '2026-08-30',
+        daysOff: [],
       })
     },
   )

@@ -37,6 +37,8 @@ const sprint: SprintDetailsDto = {
   overlapsNextSprint: false,
   teamDaysOff: [],
   teamIsActive: true,
+  holidays: [],
+  workingDays: [],
   sprintType: SprintType.NonStandard,
   sprintTypeSource: SprintTypeSource.PlanningInterval,
   canManageSprint: true,

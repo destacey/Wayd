@@ -61,6 +61,7 @@ function plan(
       ],
     },
     days: WORKING_DAYS,
+    teamDaysOff: [],
     people: [
       {
         employeeId: 'ada',

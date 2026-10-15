@@ -232,3 +232,29 @@ describe('CapacityPlanGrid in view', () => {
     ).not.toBeInTheDocument()
   })
 })
+
+describe('CapacityPlanGrid on a team day off', () => {
+  it('says the day is a team day off', async () => {
+    render(
+      <CapacityPlanGrid
+        rows={[ROW]}
+        weeks={WEEKS}
+        editing={false}
+        edits={{}}
+        onEditRow={jest.fn()}
+        teamDaysOff={['2027-02-04']}
+      />,
+    )
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: /Expand week of Feb 3/ })[0],
+    )
+
+    expect(screen.getByTestId('cell-ada|-d:2027-02-04')).toHaveTextContent(
+      'Team day off',
+    )
+    expect(screen.getByTestId('cell-ada|-d:2027-02-03')).not.toHaveTextContent(
+      'Team day off',
+    )
+  })
+})

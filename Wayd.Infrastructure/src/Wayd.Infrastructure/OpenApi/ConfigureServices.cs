@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using MicroElements.NSwag.FluentValidation;
+﻿using MicroElements.NSwag.FluentValidation;
 using MicroElements.NSwag.FluentValidation.AspNetCore;
 using MicroElements.OpenApi.FluentValidation;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NJsonSchema.Generation.TypeMappers;
 using NSwag;

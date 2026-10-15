@@ -1,3 +1,6 @@
+using Moq;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
 using NodaTime;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.Organization;
@@ -36,8 +39,22 @@ public class GetEmployeeTimeAwayQueryHandlerTests : IDisposable
         _dbContext.AddEmployeeCapacity(_capacity);
     }
 
-    private GetEmployeeTimeAwayQueryHandler CreateHandler(Guid? callerEmployeeId, bool timeAwayAdministrator = false) =>
-        new(_dbContext, TestPrincipal.LinkedTo(callerEmployeeId, timeAwayAdministrator));
+    private GetEmployeeTimeAwayQueryHandler CreateHandler(Guid? callerEmployeeId, bool timeAwayAdministrator = false)
+    {
+        var settings = new Mock<ISettings<SchedulingSettings>>();
+        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings { WorkingDayHours = 7.5m });
+        return new(_dbContext, TestPrincipal.LinkedTo(callerEmployeeId, timeAwayAdministrator), settings.Object);
+    }
+
+    [Fact]
+    public async Task Handle_GivesTheWorkingDayLengthTimeAwayIsAShareOf()
+    {
+        // Act
+        var result = await CreateHandler(_teammate.Id).Handle(new GetEmployeeTimeAwayQuery(_employee.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.WorkingDayHours.Should().Be(7.5m);
+    }
 
     [Fact]
     public async Task Handle_ForTheEmployeeThemselves_ReturnsTheirTimeAwayInDateOrderWithItsReasons()

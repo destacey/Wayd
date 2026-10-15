@@ -55,7 +55,8 @@ internal sealed record TeamCapacityReading(
     IReadOnlyList<TeamAllocationRow> Here,
     IReadOnlyList<ElsewhereAllocationRow> Elsewhere,
     AvailabilityCalculator Availability,
-    IReadOnlySet<Guid> Manageable)
+    IReadOnlySet<Guid> Manageable,
+    decimal WorkingDayHours)
 {
     /// <summary>The team's capacity over the range, person by person.</summary>
     public TeamCapacityDto ToCapacity()
@@ -144,13 +145,15 @@ internal sealed record TeamCapacityReading(
             DeliveryPersonDays = people.Sum(p => p.DeliveryPersonDays),
             AwayPersonDays = people.Sum(p => p.AwayPersonDays),
             CanManage = Manageable.Contains(TeamId),
+            WorkingDayHours = WorkingDayHours,
             Roles = byRole,
             People = people,
         };
     }
 
     /// <summary>The team's capacity over the range day by day, person by person and role by role.</summary>
-    public TeamCapacityPlanDto ToPlan()
+    /// <param name="timeAwayManageable">The people whose time away the caller may manage.</param>
+    public TeamCapacityPlanDto ToPlan(IReadOnlySet<Guid> timeAwayManageable)
     {
         var capacity = ToCapacity();
         var hereByEmployee = Here.ToLookup(a => a.EmployeeId);
@@ -170,6 +173,7 @@ internal sealed record TeamCapacityReading(
                 return new TeamCapacityPlanPersonDto
                 {
                     EmployeeId = employeeId,
+                    CanManageTimeAway = timeAwayManageable.Contains(employeeId),
                     Days = [.. TeamCapacityCalculator.DailyConditions(TeamDays, employeeId, elsewhere, Availability)
                         .Select(d => new TeamCapacityPlanPersonDayDto
                         {
@@ -293,6 +297,8 @@ internal static class TeamCapacityReader
         List<Guid> teamIds = [teamId, .. elsewhere.Select(a => a.TeamId).Distinct()];
         var manageable = await currentPrincipal.TeamsWithManageableAllocations(dispatcher, teamIds, today, cancellationToken);
 
-        return new TeamCapacityReading(teamId, firstDay, lastDay, teamDays, here, elsewhere, availability, manageable);
+        var workingDayHours = (await schedulingSettings.Get(cancellationToken)).WorkingDayHours;
+
+        return new TeamCapacityReading(teamId, firstDay, lastDay, teamDays, here, elsewhere, availability, manageable, workingDayHours);
     }
 }

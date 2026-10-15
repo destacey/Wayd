@@ -1,4 +1,6 @@
 using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 
@@ -12,11 +14,13 @@ public sealed record GetEmployeeTimeAwayQuery(Guid EmployeeId) : IQuery<Employee
 
 public sealed class GetEmployeeTimeAwayQueryHandler(
     IOrganizationDbContext organizationDbContext,
-    ICurrentPrincipal currentPrincipal)
+    ICurrentPrincipal currentPrincipal,
+    ISettings<SchedulingSettings> schedulingSettings)
     : IQueryHandler<GetEmployeeTimeAwayQuery, EmployeeTimeAwayDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
 
     public async Task<EmployeeTimeAwayDto?> Handle(GetEmployeeTimeAwayQuery request, CancellationToken cancellationToken)
     {
@@ -52,6 +56,7 @@ public sealed class GetEmployeeTimeAwayQueryHandler(
         return new EmployeeTimeAwayDto
         {
             CanManage = canManage,
+            WorkingDayHours = (await _schedulingSettings.Get(cancellationToken)).WorkingDayHours,
             HolidayCalendar = calendar is null ? null : NavigationDto.Create(calendar.Id, calendar.Key, calendar.Name),
             Entries = entries,
         };

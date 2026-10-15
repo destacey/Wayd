@@ -15,4 +15,7 @@ public sealed record SchedulingSettingsDto
     /// name, so someone who may view the settings but not list the calendars still sees which it is.
     /// </summary>
     public NavigationDto? DefaultHolidayCalendar { get; init; }
+
+    /// <summary>How many hours a working day has, which time away entered in hours is a share of.</summary>
+    public decimal WorkingDayHours { get; init; }
 }

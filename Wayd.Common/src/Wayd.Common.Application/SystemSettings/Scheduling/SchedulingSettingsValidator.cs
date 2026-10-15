@@ -6,6 +6,12 @@ public sealed class SchedulingSettingsValidator : AbstractValidator<SchedulingSe
 {
     public const int MaxCommitmentGraceDays = 14;
 
+    /// <summary>The fewest hours a working day may have.</summary>
+    public const decimal MinWorkingDayHours = 1m;
+
+    /// <summary>The most hours a working day may have.</summary>
+    public const decimal MaxWorkingDayHours = 24m;
+
     public SchedulingSettingsValidator()
     {
         RuleFor(s => s.DefaultTimeZone)
@@ -17,5 +23,8 @@ public sealed class SchedulingSettingsValidator : AbstractValidator<SchedulingSe
 
         RuleFor(s => s.DefaultWorkingDays)
             .IsWorkingWeek();
+
+        RuleFor(s => s.WorkingDayHours)
+            .InclusiveBetween(MinWorkingDayHours, MaxWorkingDayHours);
     }
 }

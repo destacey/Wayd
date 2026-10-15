@@ -33,6 +33,12 @@ public sealed record TeamCapacityPlanPersonDto
     public required Guid EmployeeId { get; set; }
 
     /// <summary>
+    /// Whether the caller may record, change and remove this person's time away: the person, anyone they report up
+    /// to, and a time away administrator.
+    /// </summary>
+    public bool CanManageTimeAway { get; set; }
+
+    /// <summary>
     /// The working days on which something besides their allocation here decides their time: a holiday, time
     /// away, or time allocated to other teams. A day left out has none of these.
     /// </summary>

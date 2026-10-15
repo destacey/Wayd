@@ -100940,6 +100940,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendar")]
         public NavigationDto? HolidayCalendar { get; set; } = default!;
 
@@ -102398,6 +102401,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("roles")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityRoleDto> Roles { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRoleDto>();
@@ -102532,6 +102538,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid EmployeeId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("canManageTimeAway")]
+        public bool CanManageTimeAway { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -106636,6 +106645,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("defaultHolidayCalendar")]
         public NavigationDto? DefaultHolidayCalendar { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -106668,6 +106680,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultHolidayCalendarId")]
         public System.Guid? DefaultHolidayCalendarId { get; set; } = default!;
+
+        /// <summary>
+        /// How many hours a working day has, from 1 to 24, which time away entered in hours is a share of. Omit to keep
+        /// <br/>the saved value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "1.0", "24.0")]
+        public decimal? WorkingDayHours { get; set; } = default!;
 
     }
 

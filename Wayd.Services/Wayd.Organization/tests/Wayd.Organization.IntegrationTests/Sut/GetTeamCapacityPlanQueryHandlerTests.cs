@@ -79,6 +79,8 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
 
         var person = plan.People.Should().ContainSingle().Subject;
         person.EmployeeId.Should().Be(adaId);
+        person.CanManageTimeAway.Should().BeTrue();
+        plan.Capacity.WorkingDayHours.Should().Be(8m);
 
         var row = person.Rows.Should().ContainSingle().Subject;
         row.Role!.Name.Should().Be("Engineer");

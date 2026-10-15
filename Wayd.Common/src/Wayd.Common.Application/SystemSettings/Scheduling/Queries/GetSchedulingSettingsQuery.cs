@@ -24,6 +24,7 @@ public sealed class GetSchedulingSettingsQueryHandler(ISettings<SchedulingSettin
             DefaultHolidayCalendar = values.DefaultHolidayCalendarId is { } calendarId
                 ? await _dispatcher.Send(new GetHolidayCalendarNavigationQuery(calendarId), cancellationToken)
                 : null,
+            WorkingDayHours = values.WorkingDayHours,
         };
     }
 }

@@ -61,6 +61,14 @@ public sealed class GetTeamCapacityPlanQueryHandler(
             request.To,
             cancellationToken);
 
-        return reading?.ToPlan();
+        if (reading is null)
+            return null;
+
+        var timeAwayManageable = await _currentPrincipal.EmployeesWithManageableTimeAway(
+            _organizationDbContext,
+            [.. reading.Here.Select(a => a.EmployeeId).Distinct()],
+            cancellationToken);
+
+        return reading.ToPlan(timeAwayManageable);
     }
 }

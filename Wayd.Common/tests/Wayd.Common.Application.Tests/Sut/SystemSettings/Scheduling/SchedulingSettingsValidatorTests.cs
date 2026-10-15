@@ -18,6 +18,21 @@ public class SchedulingSettingsValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(7.5, true)]
+    [InlineData(24, true)]
+    [InlineData(0.5, false)]
+    [InlineData(24.5, false)]
+    public void Validate_AcceptsWorkingDayHoursFromOneToTwentyFour(double hours, bool isValid)
+    {
+        // Act
+        var result = _sut.Validate(new SchedulingSettings { WorkingDayHours = (decimal)hours });
+
+        // Assert
+        result.IsValid.Should().Be(isValid);
+    }
+
     [Fact]
     public void Validate_RejectsNoWorkingDays()
     {

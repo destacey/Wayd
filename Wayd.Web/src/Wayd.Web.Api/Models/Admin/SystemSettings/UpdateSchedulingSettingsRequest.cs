@@ -21,8 +21,14 @@ public sealed record UpdateSchedulingSettingsRequest
     /// </summary>
     public Guid? DefaultHolidayCalendarId { get; set; }
 
+    /// <summary>
+    /// How many hours a working day has, from 1 to 24, which time away entered in hours is a share of. Omit to keep
+    /// the saved value.
+    /// </summary>
+    public decimal? WorkingDayHours { get; set; }
+
     public UpdateSchedulingSettingsCommand ToUpdateSchedulingSettingsCommand() =>
-        new(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays, DefaultHolidayCalendarId);
+        new(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays, DefaultHolidayCalendarId, WorkingDayHours);
 }
 
 public sealed class UpdateSchedulingSettingsRequestValidator : CustomValidator<UpdateSchedulingSettingsRequest>
@@ -40,5 +46,9 @@ public sealed class UpdateSchedulingSettingsRequestValidator : CustomValidator<U
         RuleFor(r => r.DefaultWorkingDays)
             .IsWorkingWeek()
             .When(r => r.DefaultWorkingDays is not null);
+
+        RuleFor(r => r.WorkingDayHours)
+            .InclusiveBetween(SchedulingSettingsValidator.MinWorkingDayHours, SchedulingSettingsValidator.MaxWorkingDayHours)
+            .When(r => r.WorkingDayHours is not null);
     }
 }

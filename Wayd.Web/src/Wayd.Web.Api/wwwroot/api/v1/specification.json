@@ -61787,11 +61787,16 @@
         "additionalProperties": false,
         "required": [
           "canManage",
+          "workingDayHours",
           "entries"
         ],
         "properties": {
           "canManage": {
             "type": "boolean"
+          },
+          "workingDayHours": {
+            "type": "number",
+            "format": "decimal"
           },
           "holidayCalendar": {
             "nullable": true,
@@ -63697,6 +63702,7 @@
           "allocatedPersonDays",
           "deliveryPersonDays",
           "awayPersonDays",
+          "workingDayHours",
           "roles",
           "people",
           "canManage"
@@ -63728,6 +63734,10 @@
           },
           "canManage": {
             "type": "boolean"
+          },
+          "workingDayHours": {
+            "type": "number",
+            "format": "decimal"
           },
           "roles": {
             "type": "array",
@@ -63924,7 +63934,8 @@
         "required": [
           "employeeId",
           "days",
-          "rows"
+          "rows",
+          "canManageTimeAway"
         ],
         "properties": {
           "employeeId": {
@@ -63932,6 +63943,9 @@
             "format": "guid",
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "canManageTimeAway": {
+            "type": "boolean"
           },
           "days": {
             "type": "array",
@@ -69058,7 +69072,8 @@
         "required": [
           "defaultTimeZone",
           "defaultWorkingDays",
-          "defaultCommitmentGraceDays"
+          "defaultCommitmentGraceDays",
+          "workingDayHours"
         ],
         "properties": {
           "defaultTimeZone": {
@@ -69081,6 +69096,10 @@
                 "$ref": "#/components/schemas/NavigationDto"
               }
             ]
+          },
+          "workingDayHours": {
+            "type": "number",
+            "format": "decimal"
           }
         }
       },
@@ -69119,6 +69138,14 @@
             "format": "guid",
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "workingDayHours": {
+            "type": "number",
+            "description": "How many hours a working day has, from 1 to 24, which time away entered in hours is a share of. Omit to keep\nthe saved value.",
+            "format": "decimal",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "nullable": true
           }
         }
       },

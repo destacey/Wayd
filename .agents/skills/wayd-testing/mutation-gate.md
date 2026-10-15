@@ -74,6 +74,8 @@ Never mutate to make a failing test pass. The mutation is a probe; production be
 
 **Undo only the mutation, never the file.** Apply the inverse edit to the exact text you changed. Never `git checkout -- <file>`, `git restore`, `git stash`, or any whole-file reset: the working tree may hold unrelated uncommitted work, and a whole-file revert destroys it. Assume it does.
 
+**A mutation in `Wayd.Web.Api` also mutates the generated files.** Running a test project that references the API makes a Debug build of it, and that build regenerates `specification.json` and `wayd-api.ts` from the mutated code; a later build of `Wayd.Tools.DataGeneration.Cli.Client` regenerates its client from that spec. Undoing the source edit leaves them behind, ready to be committed. After the last mutation, rebuild the API (and the data generation client) on the restored code, and check that those files differ from before the gate only where the change meant them to.
+
 ## Results table
 
 Fill one row per mutation and put the table in the report, so the claim is checkable:

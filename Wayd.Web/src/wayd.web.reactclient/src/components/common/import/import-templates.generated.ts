@@ -1142,14 +1142,14 @@ export const importTemplates = {
           {
             name: 'CompletedAt',
             type: 'text',
-            required: true,
+            required: false,
             description:
               'When the deployment reached its outcome, with its offset. Required with an outcome. For a rollback, when it succeeded.',
           },
           {
             name: 'RolledBackAt',
             type: 'text',
-            required: true,
+            required: false,
             description:
               'When a rolled-back deployment was reverted, with its offset. Required for a rollback.',
           },
@@ -1466,13 +1466,13 @@ export const importTemplates = {
           {
             name: 'PackageId',
             type: 'id',
-            required: true,
+            required: false,
             description: 'The package, by id. Required when Kind is `Package`.',
           },
           {
             name: 'VersionId',
             type: 'id',
-            required: true,
+            required: false,
             description: 'The version, by id. Required when Kind is `Version`.',
           },
         ],

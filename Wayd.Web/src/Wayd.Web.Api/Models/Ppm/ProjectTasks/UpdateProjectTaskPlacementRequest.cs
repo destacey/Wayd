@@ -37,7 +37,6 @@ public sealed class UpdateProjectTaskPlacementRequestValidator : CustomValidator
 
         RuleFor(x => x.Order)
             .GreaterThan(0)
-                .When(x => x.Order.HasValue)
                 .WithMessage("Order must be greater than 0 when specified.");
     }
 }

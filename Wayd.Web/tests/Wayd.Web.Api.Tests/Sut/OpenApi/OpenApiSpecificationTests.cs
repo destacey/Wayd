@@ -4,12 +4,16 @@ using FluentAssertions;
 namespace Wayd.Web.Api.Tests.Sut.OpenApi;
 
 /// <summary>
-/// Holds the published OpenAPI document to naming every value of a closed set.
+/// Holds the published OpenAPI document to naming every value of a closed set, and to publishing only the
+/// validation rules that always apply.
 /// </summary>
 /// <remarks>
 /// A closed set (a status, state, role or category the domain branches on) goes over the wire as its
 /// stable code, which the document lists. A bare integer gives a caller nothing to choose from — agents
 /// reading the document guess or call a lookup first — and ties every caller to the enum's numbering.
+/// Validation rules reach the document as <c>required</c>, <c>maxLength</c>, <c>minimum</c> and the like,
+/// which the import templates and MCP tool schemas repeat; a rule scoped with <c>.When()</c> is left out,
+/// because the document cannot say when it applies.
 /// Runs over the checked-in document, which a Debug build of the API regenerates.
 /// </remarks>
 public sealed class OpenApiSpecificationTests
@@ -72,6 +76,52 @@ public sealed class OpenApiSpecificationTests
         offenders.Should().BeEmpty(
             "a status, state, role or category should take the enum so the document names its values; " +
             "an integer field that is not a closed set belongs in the allow-list");
+    }
+
+    [Theory]
+    [InlineData("ImportDeploymentRequest", "completedAt")]
+    [InlineData("ImportDeploymentRequest", "rolledBackAt")]
+    [InlineData("ImportReleaseContentRequest", "packageId")]
+    [InlineData("ImportReleaseContentRequest", "versionId")]
+    [InlineData("CreateProjectTaskRequest", "progress")]
+    [InlineData("CreateProjectTaskRequest", "plannedDate")]
+    [InlineData("CreateStrategicInitiativeKpiRequest", "description")]
+    [InlineData("CreateStrategicInitiativeKpiRequest", "prefix")]
+    [InlineData("CreateStrategicInitiativeKpiRequest", "suffix")]
+    [InlineData("UpdateStrategicInitiativeKpiRequest", "description")]
+    [InlineData("UpdateStrategicInitiativeKpiRequest", "prefix")]
+    [InlineData("UpdateStrategicInitiativeKpiRequest", "suffix")]
+    public void OptionalField_IsNotPublishedAsRequired(string schemaName, string property)
+    {
+        // Arrange
+        var schema = LoadDocument().GetProperty("components").GetProperty("schemas").GetProperty(schemaName);
+
+        // Act
+        var required = schema.TryGetProperty("required", out var list)
+            ? list.EnumerateArray().Select(r => r.GetString()).ToList()
+            : [];
+
+        // Assert
+        required.Should().NotContain(property, "no rule requires it in every request, whether it has none or one scoped with .When()");
+    }
+
+    [Theory]
+    [InlineData("CreateStrategicInitiativeKpiRequest", "description", "maxLength", 512)]
+    [InlineData("CreateStrategicInitiativeKpiRequest", "prefix", "maxLength", 8)]
+    [InlineData("ImportProjectTaskRequest", "progress", "maximum", 100)]
+    [InlineData("UpdateSchedulingSettingsRequest", "workingDayHours", "maximum", 24)]
+    public void BoundOnAnOptionalField_IsPublished(string schemaName, string property, string keyword, int expected)
+    {
+        // Arrange
+        var schema = LoadDocument().GetProperty("components").GetProperty("schemas").GetProperty(schemaName);
+
+        // Act
+        var hasBound = schema.GetProperty("properties").GetProperty(property).TryGetProperty(keyword, out var bound);
+
+        // Assert
+        hasBound.Should().BeTrue(
+            "the validators already pass a null value, so a .When(x => x.Value is not null) guard only hides the bound from the document");
+        bound.GetDecimal().Should().Be(expected);
     }
 
     private static IEnumerable<(string Label, string Name, JsonElement Schema)> ParameterFields(JsonElement document)

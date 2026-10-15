@@ -88662,15 +88662,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <br/>rollback, when it succeeded.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completedAt")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public string CompletedAt { get; set; } = default!;
+        public string? CompletedAt { get; set; } = default!;
 
         /// <summary>
         /// When a rolled-back deployment was reverted, with its offset. Required for a rollback.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rolledBackAt")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public string RolledBackAt { get; set; } = default!;
+        public string? RolledBackAt { get; set; } = default!;
 
         /// <summary>
         /// Why it failed or was rolled back. Max 1024 chars.
@@ -90203,15 +90201,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The package, by id. Required when Kind is `Package`.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("packageId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid PackageId { get; set; } = default!;
+        public System.Guid? PackageId { get; set; } = default!;
 
         /// <summary>
         /// The version, by id. Required when Kind is `Version`.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("versionId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid VersionId { get; set; } = default!;
+        public System.Guid? VersionId { get; set; } = default!;
 
     }
 
@@ -94242,7 +94238,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The progress of the task (optional). Ranges from 0.0 to 100.0. Milestones can not update progress directly.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
-        public decimal Progress { get; set; } = default!;
+        public decimal? Progress { get; set; } = default!;
 
         /// <summary>
         /// The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
@@ -94270,9 +94266,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The planned date for a milestone (for milestones only).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("plannedDate")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset PlannedDate { get; set; } = default!;
+        public System.DateTimeOffset? PlannedDate { get; set; } = default!;
 
         /// <summary>
         /// The estimated effort in hours (optional).
@@ -95210,8 +95205,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The ID of an existing checkpoint to update. Null for new checkpoints.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("checkpointId")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Guid CheckpointId { get; set; } = default!;
+        public System.Guid? CheckpointId { get; set; } = default!;
 
         /// <summary>
         /// The target value for this checkpoint.

@@ -184,7 +184,7 @@ How much of a person's allocated time a team really has on a day depends on whet
 
 A stretch of **time away** has:
 - **First day** and **Last day** — The days it covers, the same day for a single day
-- **Share of each day** — From 1% to 100%: 100% for whole days, 50% for half days
+- **Away for** — **Full day**, **Half day** or a number of **Hours** each day. Hours are a share of the [working day](../settings/index.mdx#scheduling), 8 hours unless an administrator sets another length, so 2 hours away is a quarter of the day. The share is what is kept, so a stretch reads back in hours to the nearest quarter hour
 - **Reason** — Paid time off, Business travel, Training or Other
 
 Key rules:
@@ -192,6 +192,7 @@ Key rules:
 - Being away from one team only is a change to that team's [allocation](#allocations), not time away
 - Stretches may overlap, such as training in the morning and leave in the afternoon, but a day cannot add up to more than a whole day away
 - Time away cannot be recorded or changed for an inactive employee. It can still be removed
+- A person on several teams is recorded away once. Every team they are on, and every sprint of those teams, takes it into account; nobody sets their allocation to 0
 - Everyone who can see the person sees **that** they are away and for how much of the day. The **reason** is shown only to the person, the people they report up to and time away administrators, and is never written to the [activity log](../activity-log.mdx)
 
 A person's availability to a team on a day is their allocation to it, times whether the day is in the team's working week, times whether it is a holiday in the calendar they follow, times the share of the day they are not away. The team's [Capacity](#capacity) section and the [sprint burn-down's ideal line](../work-management/sprints.mdx#burn-up-and-burn-down) both read it.
@@ -288,7 +289,9 @@ Anyone else sees the section read-only, as does everyone on an inactive team.
 A sprint's [Capacity section](../work-management/sprints.mdx#sprint-capacity) shows the same allocations as a **capacity plan**: the team's people against the weeks of the sprint's dates. A plan stores nothing of its own either, and differs from this section in how it is laid out and edited:
 
 - **Weeks** are counted from the plan's first day, so a sprint's first week is its first seven days whatever weekday it starts on. Expand a week to see its working days
-- A **cell** shows the percent of the person's time the team has in that role, or the range of percents when the days differ. Hover over it for the person-days it is worth and any holidays, time away or time on other teams. A day that is a holiday for the person is shaded and a cell with time away is marked; both change on the [employee's page](#employee-detail-page), never here
+- A **cell** shows the percent of the person's time the team has in that role, or the range of percents when the days differ. Hover over it for the person-days it is worth and any holidays, time away or time on other teams. A day shows **Holiday** or how long the person is away, such as **Away 2 h**, beneath its figure; a week with any is marked
+- **% | Hours** switches the cells between percents and hours of each working day: 50% of an 8-hour day reads **4 h/day**, and the totals read in hours. Edits can be entered in either, and are kept as percents. Your choice is remembered
+- The calendar button beside a person's name records **time away** for them, with the same form as the [employee's page](#employee-detail-page). It is offered to those who may manage their time away. Time away is not an allocation, so it is never entered in the cells
 - **Edit Plan** turns the cells into inputs. A week sets the person's allocation on all seven of its days, a day on that day alone, and the days before and after them keep what they have. **Save** makes each person's changes together; anyone whose changes are refused keeps their edits, with the reason, and everyone else is saved
 - **Allocate Person** works as it does here, with the plan's dates as the range: a member's allocation has no end, so they are in the next sprint's plan too, and a non-member's ends with the sprint
 
@@ -515,12 +518,12 @@ For teams whose allocations you can change:
 Below the allocations, **Time away** shows the person's [time away and holiday calendar](#time-away-and-holiday-calendars):
 
 - **Holiday calendar** — The calendar the person follows, or **System default** when they follow none. **Change** sets it, and needs `Permissions.Employees.Update`
-- A grid of every stretch of time away, past and future, with its First day, Last day and Share of day
+- A grid of every stretch of time away, past and future, with its First day, Last day and how long each day: **Full day**, **Half day** or hours
 
 If you are the person, someone they report up to, or a time away administrator, the grid also shows each stretch's **Reason**, and:
 
 - **Record Time Away** adds a stretch
-- **Change** on a row edits its days, share of the day or reason
+- **Change** on a row edits its days, how long each day or reason
 - **Remove** on a row deletes it, so the person counts as there on those days again
 
 ## Teams List Page

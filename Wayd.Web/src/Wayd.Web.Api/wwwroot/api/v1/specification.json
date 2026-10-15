@@ -45878,9 +45878,7 @@
         "additionalProperties": false,
         "required": [
           "environmentName",
-          "startedAt",
-          "completedAt",
-          "rolledBackAt"
+          "startedAt"
         ],
         "properties": {
           "importId": {
@@ -45942,15 +45940,13 @@
           "completedAt": {
             "type": "string",
             "description": "When the deployment reached its outcome, with its offset. Required with an outcome. For a\nrollback, when it succeeded.",
-            "minLength": 1,
-            "nullable": false,
+            "nullable": true,
             "x-csv-column": "CompletedAt"
           },
           "rolledBackAt": {
             "type": "string",
             "description": "When a rolled-back deployment was reverted, with its offset. Required for a rollback.",
-            "minLength": 1,
-            "nullable": false,
+            "nullable": true,
             "x-csv-column": "RolledBackAt"
           },
           "reason": {
@@ -47645,9 +47641,7 @@
         "additionalProperties": false,
         "required": [
           "releaseImportId",
-          "kind",
-          "packageId",
-          "versionId"
+          "kind"
         ],
         "properties": {
           "releaseImportId": {
@@ -47672,7 +47666,7 @@
             "type": "string",
             "description": "The package, by id. Required when Kind is `Package`.",
             "format": "guid",
-            "nullable": false,
+            "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000",
             "x-csv-column": "PackageId"
           },
@@ -47680,7 +47674,7 @@
             "type": "string",
             "description": "The version, by id. Required when Kind is `Version`.",
             "format": "guid",
-            "nullable": false,
+            "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000",
             "x-csv-column": "VersionId"
           }
@@ -52853,9 +52847,7 @@
           "typeId",
           "statusId",
           "priorityId",
-          "parentId",
-          "progress",
-          "plannedDate"
+          "parentId"
         ],
         "properties": {
           "name": {
@@ -52902,7 +52894,7 @@
             "type": "number",
             "description": "The progress of the task (optional). Ranges from 0.0 to 100.0. Milestones can not update progress directly.",
             "format": "decimal",
-            "nullable": false
+            "nullable": true
           },
           "parentId": {
             "type": "string",
@@ -52928,7 +52920,7 @@
             "type": "string",
             "description": "The planned date for a milestone (for milestones only).",
             "format": "date",
-            "nullable": false
+            "nullable": true
           },
           "estimatedEffortHours": {
             "type": "number",
@@ -53745,7 +53737,8 @@
           "strategicInitiativeId",
           "name",
           "targetValue",
-          "targetDirection"
+          "targetDirection",
+          "prefix"
         ],
         "properties": {
           "strategicInitiativeId": {
@@ -53787,8 +53780,8 @@
             "type": "string",
             "description": "An optional prefix symbol displayed before the numeric value (e.g. \"$\").",
             "maxLength": 8,
-            "minLength": 0,
-            "nullable": true
+            "minLength": 1,
+            "nullable": false
           },
           "suffix": {
             "type": "string",
@@ -54102,16 +54095,14 @@
         "required": [
           "targetValue",
           "checkpointDate",
-          "dateLabel",
-          "checkpointId"
+          "dateLabel"
         ],
         "properties": {
           "checkpointId": {
             "type": "string",
             "description": "The ID of an existing checkpoint to update. Null for new checkpoints.",
             "format": "guid",
-            "minLength": 1,
-            "nullable": false,
+            "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
           },
           "targetValue": {

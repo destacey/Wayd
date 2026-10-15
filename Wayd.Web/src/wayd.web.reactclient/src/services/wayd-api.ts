@@ -48371,9 +48371,9 @@ deployment in flight. */
     outcome?: string | undefined;
     /** When the deployment reached its outcome, with its offset. Required with an outcome. For a
 rollback, when it succeeded. */
-    completedAt: string;
+    completedAt?: string | undefined;
     /** When a rolled-back deployment was reverted, with its offset. Required for a rollback. */
-    rolledBackAt: string;
+    rolledBackAt?: string | undefined;
     /** Why it failed or was rolled back. Max 1024 chars. */
     reason?: string | undefined;
 }
@@ -48898,9 +48898,9 @@ export interface ImportReleaseContentRequest {
     /** `Package` or `Version`. */
     kind: string;
     /** The package, by id. Required when Kind is `Package`. */
-    packageId: string;
+    packageId?: string | undefined;
     /** The version, by id. Required when Kind is `Version`. */
-    versionId: string;
+    versionId?: string | undefined;
 }
 
 /** A whole-record update of a release's descriptive fields. */
@@ -50230,7 +50230,7 @@ export interface CreateProjectTaskRequest {
     /** The assignees of the project task. */
     assigneeIds?: string[] | undefined;
     /** The progress of the task (optional). Ranges from 0.0 to 100.0. Milestones can not update progress directly. */
-    progress: number;
+    progress?: number | undefined;
     /** The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
 If it matches a task, the new task becomes a child of that task and inherits the stage. */
     parentId: string;
@@ -50239,7 +50239,7 @@ If it matches a task, the new task becomes a child of that task and inherits the
     /** The planned end date for the task (for tasks, not milestones). */
     plannedEnd?: string | undefined;
     /** The planned date for a milestone (for milestones only). */
-    plannedDate: string;
+    plannedDate?: string | undefined;
     /** The estimated effort in hours (optional). */
     estimatedEffortHours?: number | undefined;
 }
@@ -50461,7 +50461,7 @@ export interface CreateStrategicInitiativeKpiRequest {
     /** The starting (baseline) value of the KPI. */
     startingValue?: number | undefined;
     /** An optional prefix symbol displayed before the numeric value (e.g. "$"). */
-    prefix?: string | undefined;
+    prefix: string;
     /** An optional suffix symbol displayed after the numeric value (e.g. "%", "M"). */
     suffix?: string | undefined;
     /** The target direction for the KPI. */
@@ -50545,7 +50545,7 @@ export interface ManageStrategicInitiativeKpiCheckpointPlanRequest {
 
 export interface KpiCheckpointPlanItemRequest {
     /** The ID of an existing checkpoint to update. Null for new checkpoints. */
-    checkpointId: string;
+    checkpointId?: string | undefined;
     /** The target value for this checkpoint. */
     targetValue: number;
     /** An optional at-risk threshold value for this checkpoint. */

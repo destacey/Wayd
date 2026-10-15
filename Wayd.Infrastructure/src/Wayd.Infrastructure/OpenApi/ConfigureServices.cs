@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
+using MicroElements.NSwag.FluentValidation;
+using MicroElements.NSwag.FluentValidation.AspNetCore;
+using MicroElements.OpenApi.FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NJsonSchema.Generation.TypeMappers;
 using NSwag;
-using ZymLabs.NSwag.FluentValidation;
 
 namespace Wayd.Infrastructure.OpenApi;
 
@@ -78,14 +79,9 @@ internal static class ConfigureServices
                 document.SchemaSettings.SchemaProcessors.Add(fluentValidationSchemaProcessor);
             });
 
-            // Add the FluentValidationSchemaProcessor as a scoped service
-            services.AddScoped(provider =>
-            {
-                var validationRules = provider.GetService<IEnumerable<FluentValidationRule>>();
-                var loggerFactory = provider.GetService<ILoggerFactory>();
-
-                return new FluentValidationSchemaProcessor(provider, validationRules, loggerFactory);
-            });
+            // Conditional rules (.When/.Unless) stay out of the schema: the document cannot express the
+            // condition, so publishing the rule would claim it always applies.
+            services.AddFluentValidationRulesToSwagger(options => options.ConditionalRules = ConditionalRulesMode.Exclude);
         }
 
         return services;

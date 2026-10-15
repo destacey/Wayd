@@ -246,6 +246,12 @@ carrying that sprint's team days off, and gets back the delivery person-days of 
 number of teams and periods in a fixed number of reads, and null with the flag off; Work keeps the comparison
 with scope (`SprintCapacityComparison`) on its side, as a pure function.
 
+A planning interval's capacity crosses three modules. Planning owns the interval, its teams and iterations;
+`GetPlanningIntervalCapacityQuery` asks Work for every team's sprint days off in the interval
+(`GetTeamDaysOffQuery`, one read) and Organization for every team over every iteration in one
+`GetTeamsCapacityByPeriodQuery`, passing those days off per team. Neither read grows with the number of teams or
+iterations.
+
 ### Domain events and the activity log
 
 Every domain event drained by `SaveChanges` is captured in the activity log, and events follow one set of

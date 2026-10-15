@@ -212,7 +212,10 @@ const TeamCapacity = ({ team, teamType }: Props) => {
       header: 'Away',
       size: 90,
       cell: ({ row }) => {
-        const lines = timeAwayLines(row.original.person.timeAway)
+        const lines = timeAwayLines(
+          row.original.person.timeAway,
+          data?.workingDayHours ?? 8,
+        )
         const away = formatPersonDays(row.original.person.awayPersonDays)
         return lines.length > 0 ? (
           <Tooltip

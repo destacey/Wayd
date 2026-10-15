@@ -1,4 +1,5 @@
 import { addCalendarDays, CalendarDate, formatCalendarDate } from '@/src/utils'
+import { timeAwayLabel } from '../time-away/time-away-duration'
 import {
   ChangeEmployeeAllocationsRequest,
   EmployeeAllocationChangeRequest,
@@ -70,13 +71,16 @@ export function capacityRows(people: TeamCapacityPersonDto[]): CapacityRow[] {
  * A person's time away as their teammates read it, a line per stretch: the
  * days and how much of each, never why.
  */
-export function timeAwayLines(timeAway: TeamCapacityTimeAwayDto[]): string[] {
+export function timeAwayLines(
+  timeAway: TeamCapacityTimeAwayDto[],
+  workingDayHours: number,
+): string[] {
   return timeAway.map((t) => {
     const days =
       t.start === t.end
         ? formatCalendarDate(t.start)
         : `${formatCalendarDate(t.start)} to ${formatCalendarDate(t.end)}`
-    return `${days}: ${t.percentAway}% of the day`
+    return `${days}: ${timeAwayLabel(t.percentAway, workingDayHours)}`
   })
 }
 

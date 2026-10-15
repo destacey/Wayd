@@ -52466,6 +52466,7 @@ export enum TimeAwayReason {
 
 export interface EmployeeTimeAwayDto {
     canManage: boolean;
+    workingDayHours: number;
     holidayCalendar?: NavigationDto | undefined;
     entries: EmployeeTimeAwayEntryDto[];
 }
@@ -52938,6 +52939,7 @@ export interface TeamCapacityDto {
     deliveryPersonDays: number;
     awayPersonDays: number;
     canManage: boolean;
+    workingDayHours: number;
     roles: TeamCapacityRoleDto[];
     people: TeamCapacityPersonDto[];
 }
@@ -52983,6 +52985,7 @@ export interface TeamCapacityPlanDto {
 
 export interface TeamCapacityPlanPersonDto {
     employeeId: string;
+    canManageTimeAway: boolean;
     days: TeamCapacityPlanPersonDayDto[];
     rows: TeamCapacityPlanRowDto[];
 }
@@ -54369,6 +54372,7 @@ export interface SchedulingSettingsDto {
     defaultCommitmentGraceDays: number;
     defaultWorkingDays: IsoDayOfWeek[];
     defaultHolidayCalendar?: NavigationDto | undefined;
+    workingDayHours: number;
 }
 
 export interface UpdateSchedulingSettingsRequest {
@@ -54380,6 +54384,9 @@ export interface UpdateSchedulingSettingsRequest {
     defaultWorkingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar of every team operating model that has none of its own, or null for none. */
     defaultHolidayCalendarId?: string | undefined;
+    /** How many hours a working day has, from 1 to 24, which time away entered in hours is a share of. Omit to keep
+the saved value. */
+    workingDayHours?: number | undefined;
 }
 
 export interface SprintMetricsSettingsDto {

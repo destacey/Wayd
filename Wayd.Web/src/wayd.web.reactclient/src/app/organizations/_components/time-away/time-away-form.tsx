@@ -1,11 +1,12 @@
 'use client'
 
-import { DatePicker, Form, InputNumber, Modal, Select } from 'antd'
+import { DatePicker, Form, InputNumber, Modal, Segmented, Select } from 'antd'
 import type { Dayjs } from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { TimeAwayReason } from '@/src/services/wayd-api'
 import {
+  CalendarDate,
   isApiError,
   parseCalendarDate,
   toCalendarDate,
@@ -17,15 +18,22 @@ import {
   useGetTimeAwayReasonsQuery,
   useRecordEmployeeTimeAwayMutation,
 } from '@/src/store/features/organization/employee-time-away-api'
+import {
+  durationOf,
+  percentAwayFor,
+  TimeAwayDuration,
+} from './time-away-duration'
 
 const { Item: FormItem } = Form
 
-const WHOLE_DAY = 100
-
 interface Props {
   employeeId: string
+  /** How many hours a working day has, which hours entered are a share of. */
+  workingDayHours: number
   /** Absent when recording time away afresh. */
   timeAway?: EmployeeTimeAwayEntryDto
+  /** The days a new stretch starts on, such as a sprint's. */
+  initialDates?: { start: CalendarDate; end: CalendarDate }
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -33,21 +41,28 @@ interface Props {
 export interface TimeAwayFormValues {
   start: Dayjs
   end: Dayjs
-  percentAway: number
+  duration: TimeAwayDuration
+  /** The hours away each day, when the duration is in hours. */
+  hours?: number
   reason: TimeAwayReason
 }
 
-/** What the form's values ask the API to record. */
-export const timeAwayRequestFor = (values: TimeAwayFormValues) => ({
+/** What the form's values ask the API to record: each day's share as a percent. */
+export const timeAwayRequestFor = (
+  values: TimeAwayFormValues,
+  workingDayHours: number,
+) => ({
   start: toCalendarDate(values.start),
   end: toCalendarDate(values.end),
-  percentAway: values.percentAway,
+  percentAway: percentAwayFor(values.duration, values.hours, workingDayHours),
   reason: values.reason,
 })
 
 const TimeAwayForm = ({
   employeeId,
+  workingDayHours,
   timeAway,
+  initialDates,
   onFormComplete,
   onFormCancel,
 }: Props) => {
@@ -60,7 +75,7 @@ const TimeAwayForm = ({
     useModalForm<TimeAwayFormValues>({
       onSubmit: async (values) => {
         try {
-          const request = timeAwayRequestFor(values)
+          const request = timeAwayRequestFor(values, workingDayHours)
           const response = timeAway
             ? await changeTimeAway({
                 employeeId,
@@ -82,11 +97,19 @@ const TimeAwayForm = ({
       errorMessage: 'Failed to save the time away.',
     })
 
+  const duration = Form.useWatch('duration', form)
+
   const reasonOptions =
     reasons
       ?.slice()
       .sort((a, b) => a.order - b.order)
       .map((r) => ({ label: r.name, value: r.code })) ?? []
+
+  const recorded = timeAway
+    ? durationOf(timeAway.percentAway, workingDayHours)
+    : { duration: 'full' as const }
+  const start = timeAway?.start ?? initialDates?.start
+  const end = timeAway?.end ?? initialDates?.end
 
   return (
     <Modal
@@ -106,9 +129,10 @@ const TimeAwayForm = ({
         layout="vertical"
         name="time-away-form"
         initialValues={{
-          start: timeAway ? parseCalendarDate(timeAway.start) : undefined,
-          end: timeAway ? parseCalendarDate(timeAway.end) : undefined,
-          percentAway: timeAway?.percentAway ?? WHOLE_DAY,
+          start: start ? parseCalendarDate(start) : undefined,
+          end: end ? parseCalendarDate(end) : undefined,
+          duration: recorded.duration,
+          hours: recorded.hours,
           reason: timeAway?.reason,
         }}
       >
@@ -124,8 +148,8 @@ const TimeAwayForm = ({
             { required: true },
             ({ getFieldValue }) => ({
               validator: (_, value: Dayjs | null | undefined) => {
-                const start: Dayjs | undefined = getFieldValue('start')
-                return !value || !start || !value.isBefore(start, 'day')
+                const first: Dayjs | undefined = getFieldValue('start')
+                return !value || !first || !value.isBefore(first, 'day')
                   ? Promise.resolve()
                   : Promise.reject(
                       new Error('The last day cannot be before the first.'),
@@ -137,13 +161,35 @@ const TimeAwayForm = ({
           <DatePicker />
         </FormItem>
         <FormItem
-          name="percentAway"
-          label="Share of each day away"
-          extra="100% for whole days, 50% for half days. Away from every team, in proportion to what each has."
+          name="duration"
+          label="Away for"
+          extra="Each day of the stretch. Away from every team the person is on, in proportion to what each has."
           rules={[{ required: true }]}
         >
-          <InputNumber min={1} max={WHOLE_DAY} precision={0} suffix="%" />
+          <Segmented<TimeAwayDuration>
+            options={[
+              { label: 'Full day', value: 'full' },
+              { label: 'Half day', value: 'half' },
+              { label: 'Hours', value: 'hours' },
+            ]}
+          />
         </FormItem>
+        {duration === 'hours' && (
+          <FormItem
+            name="hours"
+            label="Hours away each day"
+            extra={`Of the ${workingDayHours}-hour working day.`}
+            rules={[{ required: true, message: 'Enter the hours away.' }]}
+          >
+            <InputNumber
+              min={0.25}
+              max={workingDayHours}
+              step={0.25}
+              precision={2}
+              suffix="h"
+            />
+          </FormItem>
+        )}
         <FormItem
           name="reason"
           label="Reason"

@@ -43,6 +43,7 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 const settings: SchedulingSettingsDto = {
   defaultTimeZone: 'America/Chicago',
   defaultCommitmentGraceDays: 1,
+  workingDayHours: 7.5,
   defaultWorkingDays: [
     IsoDayOfWeek.Monday,
     IsoDayOfWeek.Tuesday,
@@ -112,6 +113,7 @@ describe('SchedulingSettingsForm', () => {
         defaultTimeZone: 'America/Chicago',
         defaultCommitmentGraceDays: 3,
         defaultWorkingDays: settings.defaultWorkingDays,
+        workingDayHours: 7.5,
       }),
     )
     expect(mockSuccess).toHaveBeenCalled()

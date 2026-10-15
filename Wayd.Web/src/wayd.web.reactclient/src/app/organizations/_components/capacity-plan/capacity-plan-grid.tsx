@@ -4,14 +4,25 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Button, InputNumber, Table, Tooltip, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons'
+import {
+  CalendarOutlined,
+  MinusSquareOutlined,
+  PlusSquareOutlined,
+} from '@ant-design/icons'
 import { CalendarDate, formatCalendarDate } from '@/src/utils'
+import {
+  formatHours,
+  hoursFor,
+  percentForHours,
+  timeAwayLabel,
+} from '../time-away/time-away-duration'
 import {
   formatPersonDays,
   NO_ROLE_LABEL,
 } from '../team-capacity/team-capacity-data'
 import {
   dayEditKey,
+  hoursLabel,
   pendingPercent,
   PlanCell,
   planCell,
@@ -27,6 +38,9 @@ import styles from './capacity-plan-grid.module.css'
 
 const { Text } = Typography
 
+/** What a plan's cells show and take: a share of the person's time, or hours of each working day. */
+export type PlanUnit = 'percent' | 'hours'
+
 export interface CapacityPlanGridProps {
   rows: PlanRow[]
   weeks: PlanWeek[]
@@ -36,10 +50,32 @@ export interface CapacityPlanGridProps {
   edits: Record<string, RowEdits>
   /** Replaces a row's edits. */
   onEditRow: (rowId: string, edits: RowEdits) => void
+  /** What the cells show and take. */
+  unit?: PlanUnit
+  /** How many hours a working day has, for the hours unit and time away. */
+  workingDayHours?: number
+  /** Opens the time away form for a row's person; absent to offer none. */
+  onRecordTimeAway?: (row: PlanRow) => void
   isLoading?: boolean
 }
 
-/** What a cell's tooltip says beside its percent. */
+/**
+ * What a day cell says beneath its figure: a holiday the person takes, or
+ * how long they are away. Nothing on an ordinary day.
+ */
+export function dayNote(
+  row: PlanRow,
+  day: CalendarDate,
+  workingDayHours: number,
+): string | undefined {
+  const condition = row.conditionsByDate.get(day)
+  if (condition?.isHoliday) return 'Holiday'
+  if (condition && condition.percentAway > 0)
+    return `Away ${timeAwayLabel(condition.percentAway, workingDayHours).toLowerCase()}`
+  return undefined
+}
+
+/** What a cell's tooltip says beside its figure. */
 export function cellDetails(cell: PlanCell, dayCount: number): string[] {
   return [
     `${formatPersonDays(cell.personDays)} person-days over ${dayCount} working ${dayCount === 1 ? 'day' : 'days'}`,
@@ -53,6 +89,11 @@ export function cellDetails(cell: PlanCell, dayCount: number): string[] {
       : []),
     ...(cell.maxElsewherePercent > 0
       ? [`Up to ${cell.maxElsewherePercent}% allocated to other teams`]
+      : []),
+    ...(cell.holidays > 0 || cell.awayDays > 0
+      ? [
+          'Holidays and time away are recorded on the person and apply on every team they are on.',
+        ]
       : []),
   ]
 }
@@ -69,8 +110,15 @@ const CapacityPlanGrid = ({
   editing,
   edits,
   onEditRow,
+  unit = 'percent',
+  workingDayHours = 8,
+  onRecordTimeAway,
   isLoading,
 }: CapacityPlanGridProps) => {
+  const inHours = unit === 'hours'
+  const figure = (cell: PlanCell) =>
+    inHours ? hoursLabel(cell, workingDayHours) : percentLabel(cell)
+
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
 
   const toggle = (week: PlanWeek) =>
@@ -134,31 +182,66 @@ const CapacityPlanGrid = ({
       </>
     )
 
+    const uniform =
+      pendingCell.minPercent === pendingCell.maxPercent
+        ? pendingCell.minPercent
+        : null
+    const note = day ? dayNote(row, day, workingDayHours) : undefined
+
     if (editing) {
       return (
         <Tooltip title={details}>
           <div className={className}>
-            <InputNumber
-              size="small"
-              min={0}
-              max={100}
-              precision={0}
-              suffix="%"
-              className={styles.input}
-              aria-label={`${label} for ${row.employee.name}, ${row.role?.name ?? NO_ROLE_LABEL}`}
-              placeholder={percentLabel(pendingCell)}
-              value={
-                pendingCell.minPercent === pendingCell.maxPercent
-                  ? pendingCell.minPercent
-                  : null
-              }
-              onChange={(value) =>
-                onEditRow(
-                  row.id,
-                  withCellEdit(rowEdits ?? {}, week, day, value ?? undefined),
-                )
-              }
-            />
+            {inHours ? (
+              <InputNumber
+                size="small"
+                min={0}
+                max={workingDayHours}
+                step={0.25}
+                precision={2}
+                suffix="h"
+                className={styles.input}
+                aria-label={`${label} for ${row.employee.name}, ${row.role?.name ?? NO_ROLE_LABEL}, hours a day`}
+                placeholder={hoursLabel(pendingCell, workingDayHours)}
+                value={
+                  uniform === null
+                    ? null
+                    : Number(formatHours(hoursFor(uniform, workingDayHours)))
+                }
+                onChange={(value) =>
+                  onEditRow(
+                    row.id,
+                    withCellEdit(
+                      rowEdits ?? {},
+                      week,
+                      day,
+                      value === null
+                        ? undefined
+                        : percentForHours(value, workingDayHours),
+                    ),
+                  )
+                }
+              />
+            ) : (
+              <InputNumber
+                size="small"
+                min={0}
+                max={100}
+                precision={0}
+                suffix="%"
+                className={styles.input}
+                aria-label={`${label} for ${row.employee.name}, ${row.role?.name ?? NO_ROLE_LABEL}`}
+                placeholder={percentLabel(pendingCell)}
+                value={uniform}
+                onChange={(value) =>
+                  onEditRow(
+                    row.id,
+                    withCellEdit(rowEdits ?? {}, week, day, value ?? undefined),
+                  )
+                }
+              />
+            )}
+            {note && <div className={styles.note}>{note}</div>}
           </div>
         </Tooltip>
       )
@@ -170,8 +253,9 @@ const CapacityPlanGrid = ({
           className={className}
           data-testid={`cell-${row.id}-${day ? dayEditKey(day) : weekEditKey(week)}`}
         >
-          <Text>{percentLabel(pendingCell)}</Text>
-          {marked && <span className={styles.marker} aria-hidden />}
+          <Text>{figure(pendingCell)}</Text>
+          {note && <div className={styles.note}>{note}</div>}
+          {marked && !note && <span className={styles.marker} aria-hidden />}
         </div>
       </Tooltip>
     )
@@ -179,7 +263,7 @@ const CapacityPlanGrid = ({
 
   const weekColumns: ColumnsType<PlanRow> = weeks.map((week) => {
     const isExpanded = expanded.has(week.index)
-    const label =
+    const weekLabel =
       week.start === week.end
         ? formatCalendarDate(week.start, 'MMM D')
         : `${formatCalendarDate(week.start, 'MMM D')} – ${formatCalendarDate(week.end, 'MMM D')}`
@@ -189,14 +273,14 @@ const CapacityPlanGrid = ({
           type="text"
           size="small"
           icon={isExpanded ? <MinusSquareOutlined /> : <PlusSquareOutlined />}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} week of ${label}`}
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} week of ${weekLabel}`}
           aria-expanded={isExpanded}
           disabled={week.days.length === 0}
           onClick={() => toggle(week)}
         />
         {`Week ${week.index + 1}`}
         <Text type="secondary" className={styles.weekDates}>
-          {label}
+          {weekLabel}
         </Text>
       </span>
     )
@@ -222,7 +306,7 @@ const CapacityPlanGrid = ({
       width: 140,
       align: 'center' as const,
       render: (_: unknown, row: PlanRow) =>
-        cellView(row, week, undefined, `Week of ${label}`),
+        cellView(row, week, undefined, `Week of ${weekLabel}`),
     }
   })
 
@@ -233,9 +317,25 @@ const CapacityPlanGrid = ({
       fixed: 'left',
       width: 180,
       render: (_, row) => (
-        <Link href={`/organizations/employees/${row.employee.key}`}>
-          {row.employee.name}
-        </Link>
+        <span className={styles.person}>
+          <Link href={`/organizations/employees/${row.employee.key}`}>
+            {row.employee.name}
+          </Link>
+          {onRecordTimeAway &&
+            !editing &&
+            row.isFirstOfPerson &&
+            row.canManageTimeAway && (
+              <Tooltip title="Record time away. It applies on every team they are on.">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CalendarOutlined />}
+                  aria-label={`Record time away for ${row.employee.name}`}
+                  onClick={() => onRecordTimeAway(row)}
+                />
+              </Tooltip>
+            )}
+        </span>
       ),
     },
     {
@@ -258,11 +358,16 @@ const CapacityPlanGrid = ({
     ...weekColumns,
     {
       key: 'personDays',
-      title: 'Person-days',
+      title: inHours ? 'Hours' : 'Person-days',
       fixed: 'right',
       width: 110,
       align: 'right',
-      render: (_, row) => formatPersonDays(planCell(row, allDays).personDays),
+      render: (_, row) => {
+        const personDays = planCell(row, allDays).personDays
+        return inHours
+          ? formatHours(personDays * workingDayHours)
+          : formatPersonDays(personDays)
+      },
     },
   ]
 

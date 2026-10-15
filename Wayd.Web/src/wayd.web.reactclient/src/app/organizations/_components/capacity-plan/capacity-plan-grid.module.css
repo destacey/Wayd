@@ -42,3 +42,15 @@
   font-size: var(--ant-font-size-sm);
   font-weight: normal;
 }
+
+.note {
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-warning-text);
+  white-space: nowrap;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+}

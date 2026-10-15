@@ -145,13 +145,19 @@ describe('allocationTimelineData', () => {
       [
         { id: 't1', start: '2027-02-01', end: '2027-02-05', percentAway: 100 },
         { id: 't2', start: '2027-02-10', end: '2027-02-10', percentAway: 50 },
+        { id: 't3', start: '2027-02-11', end: '2027-02-11', percentAway: 25 },
       ],
       '2027-01-15',
       colors,
+      8,
     )
 
     const items = data.items.filter((i) => i.groupId === TIME_AWAY_GROUP_ID)
-    expect(items.map((i) => i.label)).toEqual(['Away', 'Away 50%'])
+    expect(items.map((i) => i.label)).toEqual([
+      'Away',
+      'Away half day',
+      'Away 2 h',
+    ])
     expect(items[0].start).toBe(day(2027, 2, 1))
     expect(items[0].end).toBe(day(2027, 2, 6))
     expect(items[1].end).toBe(day(2027, 2, 11))

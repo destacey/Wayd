@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Alert, Button, Flex, Statistic } from 'antd'
+import { Alert, Button, Flex, Segmented, Statistic } from 'antd'
 import useAuth from '@/src/components/contexts/auth'
+import { useLocalStorageState } from '@/src/hooks'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { CalendarDate, isApiError, type ApiError } from '@/src/utils'
 import { useChangeEmployeeAllocationsMutation } from '@/src/store/features/organization/employee-allocations-api'
@@ -16,8 +17,10 @@ import {
 } from '@/src/store/features/organization/team-members-api'
 import ChangeAllocationForm from '../allocations/change-allocation-form'
 import { formatPersonDays } from '../team-capacity/team-capacity-data'
-import CapacityPlanGrid from './capacity-plan-grid'
+import TimeAwayForm from '../time-away/time-away-form'
+import CapacityPlanGrid, { PlanUnit } from './capacity-plan-grid'
 import {
+  PlanRow,
   planRequests,
   planRows,
   planWeeks,
@@ -61,6 +64,11 @@ const TeamCapacityPlan = ({
   const [isSaving, setIsSaving] = useState(false)
   const [failures, setFailures] = useState<Failure[]>([])
   const [allocating, setAllocating] = useState(false)
+  const [recordingFor, setRecordingFor] = useState<PlanRow | null>(null)
+  const [unit, setUnit] = useLocalStorageState<PlanUnit>(
+    'capacity-plan-unit',
+    'percent',
+  )
 
   const {
     currentData: plan,
@@ -86,6 +94,8 @@ const TeamCapacityPlan = ({
     team.isActive
 
   const rows = plan ? planRows(plan) : []
+  // Until the plan arrives; the system setting defaults to the same.
+  const workingDayHours = plan?.capacity.workingDayHours ?? 8
   const weeks = planWeeks(from, to, plan?.days ?? [])
   const requests = planRequests(rows, weeks, edits, team.id)
 
@@ -169,46 +179,60 @@ const TeamCapacityPlan = ({
         />
       </Flex>
 
-      {canEdit && (
-        <Flex gap="small" className={styles.actions}>
-          {editing ? (
-            <>
-              <Button
-                type="primary"
-                size="small"
-                loading={isSaving}
-                disabled={requests.length === 0}
-                onClick={save}
-              >
-                Save
-              </Button>
-              <Button size="small" disabled={isSaving} onClick={stopEditing}>
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button size="small" onClick={() => setAllocating(true)}>
-                Allocate Person
-              </Button>
-              <Button
-                size="small"
-                disabled={rows.length === 0}
-                onClick={() => setEditing(true)}
-              >
-                Edit Plan
-              </Button>
-            </>
-          )}
-        </Flex>
-      )}
+      <Flex justify="space-between" align="center" wrap gap="small">
+        {canEdit ? (
+          <Flex gap="small" className={styles.actions}>
+            {editing ? (
+              <>
+                <Button
+                  type="primary"
+                  size="small"
+                  loading={isSaving}
+                  disabled={requests.length === 0}
+                  onClick={save}
+                >
+                  Save
+                </Button>
+                <Button size="small" disabled={isSaving} onClick={stopEditing}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="small" onClick={() => setAllocating(true)}>
+                  Allocate Person
+                </Button>
+                <Button
+                  size="small"
+                  disabled={rows.length === 0}
+                  onClick={() => setEditing(true)}
+                >
+                  Edit Plan
+                </Button>
+              </>
+            )}
+          </Flex>
+        ) : (
+          <span />
+        )}
+        <Segmented<PlanUnit>
+          size="small"
+          value={unit}
+          onChange={setUnit}
+          options={[
+            { label: '%', value: 'percent' },
+            { label: 'Hours', value: 'hours' },
+          ]}
+          aria-label="Show the plan in percent or hours"
+        />
+      </Flex>
 
       {editing && (
         <Alert
           type="info"
           showIcon
           title="A week or a day sets the person's allocation for those days only. The days before and after them keep what they have."
-          description="Holidays and time away are marked on the cells and change on the employee's page, not here."
+          description="Time away is not an allocation: record it with the calendar button beside a person's name. It applies on every team they are on."
         />
       )}
 
@@ -235,8 +259,21 @@ const TeamCapacityPlan = ({
         editing={editing}
         edits={edits}
         onEditRow={onEditRow}
+        unit={unit}
+        workingDayHours={workingDayHours}
+        onRecordTimeAway={setRecordingFor}
         isLoading={isFetching}
       />
+
+      {recordingFor && (
+        <TimeAwayForm
+          employeeId={recordingFor.employee.id}
+          workingDayHours={workingDayHours}
+          initialDates={{ start: from, end: from }}
+          onFormComplete={() => setRecordingFor(null)}
+          onFormCancel={() => setRecordingFor(null)}
+        />
+      )}
 
       {allocating && (
         <ChangeAllocationForm

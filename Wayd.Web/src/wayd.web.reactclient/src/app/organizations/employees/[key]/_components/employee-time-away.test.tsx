@@ -33,13 +33,16 @@ jest.mock('@/src/store/features/organization/employee-time-away-api', () => ({
 }))
 
 const mockTimeAwayForm = jest.fn()
-jest.mock('./time-away-form', () => ({
-  __esModule: true,
-  default: (props: unknown) => {
-    mockTimeAwayForm(props)
-    return <div data-testid="time-away-form" />
-  },
-}))
+jest.mock(
+  '@/src/app/organizations/_components/time-away/time-away-form',
+  () => ({
+    __esModule: true,
+    default: (props: unknown) => {
+      mockTimeAwayForm(props)
+      return <div data-testid="time-away-form" />
+    },
+  }),
+)
 
 const mockCalendarForm = jest.fn()
 jest.mock('./employee-holiday-calendar-form', () => ({
@@ -78,7 +81,7 @@ describe('EmployeeTimeAway', () => {
   it('shows a teammate that the person is away, with no reason and nothing to change', () => {
     renderSection({ canManage: false, entries: [entry] })
 
-    expect(screen.getByRole('cell', { name: '50%' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Half day' })).toBeInTheDocument()
     expect(screen.queryByText('Reason')).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Record Time Away' }),
@@ -91,6 +94,16 @@ describe('EmployeeTimeAway', () => {
     ).not.toBeInTheDocument()
     // The reasons are not even looked up for someone who is not shown them.
     expect(mockReasonsArgs.mock.calls[0][1]).toEqual({ skip: true })
+  })
+
+  it('reads a part of the day in hours of the working day', () => {
+    renderSection({
+      canManage: false,
+      workingDayHours: 6,
+      entries: [{ ...entry, percentAway: 25 }],
+    })
+
+    expect(screen.getByRole('cell', { name: '1.5 h' })).toBeInTheDocument()
   })
 
   it('shows the reason by name to someone who may manage the time away', () => {

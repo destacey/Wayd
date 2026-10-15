@@ -104,20 +104,23 @@ describe('capacityRows', () => {
 })
 
 describe('timeAwayLines', () => {
-  it('says when a person is away and how much of each day, a line per stretch', () => {
-    const lines = timeAwayLines([
-      { start: '2027-02-01', end: '2027-02-05', percentAway: 100 },
-      { start: '2027-02-10', end: '2027-02-10', percentAway: 50 },
-    ])
+  it('says when a person is away and for how long each day, a line per stretch', () => {
+    const lines = timeAwayLines(
+      [
+        { start: '2027-02-01', end: '2027-02-05', percentAway: 100 },
+        { start: '2027-02-10', end: '2027-02-10', percentAway: 25 },
+      ],
+      8,
+    )
 
     expect(lines).toHaveLength(2)
-    expect(lines[0]).toMatch(/ to .*: 100% of the day$/)
+    expect(lines[0]).toMatch(/ to .*: Full day$/)
     expect(lines[1]).not.toContain(' to ')
-    expect(lines[1]).toMatch(/: 50% of the day$/)
+    expect(lines[1]).toMatch(/: 2 h$/)
   })
 
   it('is empty when the person has no time away', () => {
-    expect(timeAwayLines([])).toEqual([])
+    expect(timeAwayLines([], 8)).toEqual([])
   })
 })
 

@@ -16,10 +16,14 @@ import {
 import EmployeeHolidayCalendarForm, {
   SYSTEM_DEFAULT_LABEL,
 } from './employee-holiday-calendar-form'
-import TimeAwayForm from './time-away-form'
+import TimeAwayForm from '@/src/app/organizations/_components/time-away/time-away-form'
+import { timeAwayLabel } from '@/src/app/organizations/_components/time-away/time-away-duration'
 import styles from './employee-capacity.module.css'
 
 const { Text, Title } = Typography
+
+// Until the read arrives; the system setting defaults to the same.
+const DEFAULT_WORKING_DAY_HOURS = 8
 
 interface Props {
   employeeId: string
@@ -54,6 +58,7 @@ const EmployeeTimeAway = ({
     hasPermissionClaim('Permissions.Employees.Update') &&
     hasPermissionClaim('Permissions.HolidayCalendars.View')
   const canManage = timeAway?.canManage === true
+  const workingDayHours = timeAway?.workingDayHours ?? DEFAULT_WORKING_DAY_HOURS
 
   const { data: reasons } = useGetTimeAwayReasonsQuery(undefined, {
     skip: !canManage,
@@ -93,9 +98,12 @@ const EmployeeTimeAway = ({
     {
       id: 'percentAway',
       accessorKey: 'percentAway',
-      header: 'Share of day',
+      header: 'Away for',
       size: 110,
-      cell: ({ row }) => `${row.original.percentAway}%`,
+      // Read as people say it: a whole or half day, or the hours of the
+      // working day the share comes to.
+      cell: ({ row }) =>
+        timeAwayLabel(row.original.percentAway, workingDayHours),
     },
     // The reason is only sent to those who may manage the time away, so the
     // column is left out for everyone else rather than shown empty.
@@ -182,6 +190,7 @@ const EmployeeTimeAway = ({
       {(openForm?.kind === 'record' || openForm?.kind === 'change') && (
         <TimeAwayForm
           employeeId={employeeId}
+          workingDayHours={workingDayHours}
           timeAway={openForm.kind === 'change' ? openForm.entry : undefined}
           onFormComplete={closeForm}
           onFormCancel={closeForm}

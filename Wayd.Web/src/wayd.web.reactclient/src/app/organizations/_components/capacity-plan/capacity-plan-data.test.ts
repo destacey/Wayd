@@ -1,6 +1,7 @@
 import { TeamCapacityPlanDto } from '@/src/services/wayd-api'
 import {
   dayEditKey,
+  hoursLabel,
   pendingPercent,
   planCell,
   percentLabel,
@@ -44,6 +45,7 @@ function plan(
       deliveryPersonDays: 0,
       awayPersonDays: 0,
       canManage: true,
+      workingDayHours: 8,
       roles: [],
       people: [
         {
@@ -62,6 +64,7 @@ function plan(
     people: [
       {
         employeeId: 'ada',
+        canManageTimeAway: true,
         days: [
           {
             date: '2027-02-04',
@@ -142,6 +145,8 @@ describe('planRows', () => {
       ['ada|', 'Ada Lovelace', undefined],
     ])
     expect(rows[0].percentByDate.get('2027-02-08')).toBe(50)
+    expect(rows.map((r) => r.isFirstOfPerson)).toEqual([true, false])
+    expect(rows.every((r) => r.canManageTimeAway)).toBe(true)
     expect(rows[1].conditionsByDate.get('2027-02-04')?.isHoliday).toBe(true)
   })
 })
@@ -161,6 +166,17 @@ describe('planCell', () => {
       maxElsewherePercent: 40,
     })
     expect(percentLabel(cell)).toBe('50–60%')
+  })
+
+  it('reads in hours of the working day, as one figure or a range', () => {
+    const [row] = planRows(plan())
+
+    expect(hoursLabel(planCell(row, ['2027-02-10', '2027-02-11']), 8)).toBe(
+      '4 h/day',
+    )
+    expect(
+      hoursLabel(planCell(row, planWeeks(FROM, TO, WORKING_DAYS)[0].days), 8),
+    ).toBe('4–4.8 h/day')
   })
 
   it('reads a day with nothing allocated as 0%', () => {

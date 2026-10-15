@@ -47,6 +47,15 @@ jest.mock('@/src/store/features/organization/team-members-api', () => ({
   useGetTeamOfTeamsMembersQuery: () => ({ data: undefined }),
 }))
 
+const mockTimeAwayForm = jest.fn()
+jest.mock('../time-away/time-away-form', () => ({
+  __esModule: true,
+  default: (props: unknown) => {
+    mockTimeAwayForm(props)
+    return <div data-testid="time-away-form" />
+  },
+}))
+
 const mockChangeForm = jest.fn()
 jest.mock('../allocations/change-allocation-form', () => ({
   __esModule: true,
@@ -82,6 +91,7 @@ function plan(canManage = true): TeamCapacityPlanDto {
       deliveryPersonDays: 5,
       awayPersonDays: 0,
       canManage,
+      workingDayHours: 8,
       roles: [],
       people: [
         {
@@ -100,6 +110,7 @@ function plan(canManage = true): TeamCapacityPlanDto {
     people: [
       {
         employeeId: 'ada',
+        canManageTimeAway: true,
         days: [
           {
             date: '2027-02-03',
@@ -281,6 +292,24 @@ describe('TeamCapacityPlan', () => {
     expect(
       screen.queryByRole('button', { name: 'Allocate Person' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('records time away for a person from their row, starting on the plan’s first day', async () => {
+    renderPlan()
+
+    await userEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Record time away for Ada Lovelace',
+      })[0],
+    )
+
+    expect(mockTimeAwayForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        employeeId: 'ada',
+        workingDayHours: 8,
+        initialDates: { start: FROM, end: FROM },
+      }),
+    )
   })
 
   it('shows the plan’s totals', () => {

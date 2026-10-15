@@ -10,6 +10,7 @@ import {
   TeamCapacityPlanDto,
   TeamCapacityPlanPersonDayDto,
 } from '@/src/services/wayd-api'
+import { formatHours } from '../time-away/time-away-duration'
 
 /**
  * Seven calendar days of a plan, counted from its first day, so a sprint's
@@ -66,6 +67,10 @@ export interface PlanRow {
   personDaysByDate: Map<CalendarDate, number>
   /** The person's holidays, time away and time elsewhere, by day. */
   conditionsByDate: Map<CalendarDate, TeamCapacityPlanPersonDayDto>
+  /** Whether this is the person's first row, which carries their actions. */
+  isFirstOfPerson: boolean
+  /** Whether the caller may record the person's time away. */
+  canManageTimeAway: boolean
 }
 
 /** A row per person and role, in the order people and roles arrive in. */
@@ -79,7 +84,7 @@ export function planRows(plan: TeamCapacityPlanDto): PlanRow[] {
     if (!employee) return []
 
     const conditionsByDate = new Map(person.days.map((d) => [d.date, d]))
-    return person.rows.map((row) => ({
+    return person.rows.map((row, index) => ({
       id: `${person.employeeId}|${row.role?.id ?? ''}`,
       employee,
       role: row.role,
@@ -87,6 +92,8 @@ export function planRows(plan: TeamCapacityPlanDto): PlanRow[] {
       percentByDate: new Map(row.days.map((d) => [d.date, d.percent])),
       personDaysByDate: new Map(row.days.map((d) => [d.date, d.personDays])),
       conditionsByDate,
+      isFirstOfPerson: index === 0,
+      canManageTimeAway: person.canManageTimeAway === true,
     }))
   })
 }
@@ -133,6 +140,16 @@ export const percentLabel = (cell: PlanCell): string =>
   cell.minPercent === cell.maxPercent
     ? `${cell.minPercent}%`
     : `${cell.minPercent}–${cell.maxPercent}%`
+
+/**
+ * A cell's time in hours of the working day: one figure when every day has
+ * it, else the range. "4 h/day" is half of an 8-hour day.
+ */
+export const hoursLabel = (cell: PlanCell, workingDayHours: number): string => {
+  const min = formatHours((cell.minPercent * workingDayHours) / 100)
+  const max = formatHours((cell.maxPercent * workingDayHours) / 100)
+  return min === max ? `${min} h/day` : `${min}–${max} h/day`
+}
 
 /** The key of a cell edit: a whole week, or one day. */
 export const weekEditKey = (week: PlanWeek): string => `w:${week.index}`

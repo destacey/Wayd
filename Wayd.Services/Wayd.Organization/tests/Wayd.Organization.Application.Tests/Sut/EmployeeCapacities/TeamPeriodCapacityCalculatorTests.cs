@@ -85,6 +85,24 @@ public class TeamPeriodCapacityCalculatorTests
     }
 
     [Fact]
+    public void Calculate_LeavesOutTheTeamsDaysOffButNotThoseOfTheTeamsBeneathIt()
+    {
+        // Arrange — the root is off the first Wednesday and Thursday; the child is beneath it all week
+        var allocations = Lookup(
+            new CapacityAllocation(Ada, Root, true, LongBefore, null, 100),
+            new CapacityAllocation(Grace, Child, true, LongBefore, null, 100));
+        HierarchyNode[] descendants = [new(Child, [new HierarchyPeriod(FirstWeek.Start, FirstWeek.End)], [])];
+        CapacityPeriod withDaysOff = FirstWeek with { DaysOff = [new LocalDate(2027, 2, 3), new LocalDate(2027, 2, 4)] };
+
+        // Act
+        var capacity = TeamPeriodCapacityCalculator.Calculate(
+            Root, [withDaysOff], descendants, Days(Root, Child), allocations, AvailabilityCalculator.AlwaysAvailable);
+
+        // Assert — 3 days at the root and the child's 5
+        capacity.Should().Equal(new TeamPeriodCapacity(withDaysOff, 8m, 8m, 0m));
+    }
+
+    [Fact]
     public void Calculate_CountsEachTeamOverItsOwnWorkingDays()
     {
         // Arrange — the child works Monday to Thursday only

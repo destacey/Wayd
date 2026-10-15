@@ -11,7 +11,11 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 /// inclusive, day by day: what <see cref="GetTeamCapacityQuery"/> returns, and each person's time in each role
 /// on each working day. Null when there is no <paramref name="TeamType"/> with that id.
 /// </summary>
-public sealed record GetTeamCapacityPlanQuery(Guid TeamId, TeamType TeamType, LocalDate From, LocalDate To) : IQuery<TeamCapacityPlanDto?>;
+/// <param name="DaysOff">
+/// Days the whole team is off in the range beyond its working week and holidays, such as a sprint's team days off.
+/// Nobody is counted on them.
+/// </param>
+public sealed record GetTeamCapacityPlanQuery(Guid TeamId, TeamType TeamType, LocalDate From, LocalDate To, IReadOnlyCollection<LocalDate>? DaysOff = null) : IQuery<TeamCapacityPlanDto?>;
 
 public sealed class GetTeamCapacityPlanQueryValidator : CustomValidator<GetTeamCapacityPlanQuery>
 {
@@ -59,7 +63,8 @@ public sealed class GetTeamCapacityPlanQueryHandler(
             request.TeamType,
             request.From,
             request.To,
-            cancellationToken);
+            cancellationToken,
+            request.DaysOff);
 
         if (reading is null)
             return null;

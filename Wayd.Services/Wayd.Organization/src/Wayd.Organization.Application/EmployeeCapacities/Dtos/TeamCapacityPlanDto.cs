@@ -22,6 +22,12 @@ public sealed record TeamCapacityPlanDto
     /// </summary>
     public required IReadOnlyList<LocalDate> Days { get; set; }
 
+    /// <summary>
+    /// The days of <see cref="Days"/> the whole team is off, as asked for, such as a sprint's team days off. Nobody
+    /// is counted on them, so they add nothing to <see cref="Capacity"/> or to any day's person-days.
+    /// </summary>
+    public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
+
     /// <summary>Everyone with time allocated to the team in the range, in the order of <see cref="TeamCapacityDto.People"/>.</summary>
     public required IReadOnlyList<TeamCapacityPlanPersonDto> People { get; set; }
 }

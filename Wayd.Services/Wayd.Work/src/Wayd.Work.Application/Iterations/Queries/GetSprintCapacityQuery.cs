@@ -74,8 +74,21 @@ public sealed class GetSprintCapacityQueryHandler(
             .Where(s => s.Id != sprint.Id && s.Start >= earliest && s.End <= end)
             .Where(s => sizingMethod == SizingMethod.Count || s.SizingMethod == sizingMethod)];
 
+        // Each sprint's team days off are days nobody worked, as its ideal line has them.
+        List<Guid> priorIds = [.. prior.Select(s => s.Id)];
+        var priorDaysOff = (await _workDbContext.Iterations
+            .Where(i => priorIds.Contains(i.Id))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken))
+            .ToDictionary(i => i.Id, i => i.TeamDaysOff);
+
         var capacity = await _dispatcher.Send(
-            new GetTeamsCapacityByPeriodQuery([teamId], [new CapacityPeriod(start, end), .. prior.Select(s => new CapacityPeriod(s.Start, s.End))]),
+            new GetTeamsCapacityByPeriodQuery(
+                [teamId],
+                [
+                    new CapacityPeriod(start, end, sprint.TeamDaysOff),
+                    .. prior.Select(s => new CapacityPeriod(s.Start, s.End, priorDaysOff.GetValueOrDefault(s.Id, []))),
+                ]),
             cancellationToken);
         if (capacity is null || !capacity.TryGetValue(teamId, out var byPeriod))
             return null;

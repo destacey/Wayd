@@ -65416,10 +65416,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Collections.Generic.IEnumerable<string>? daysOff = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -67522,10 +67522,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<TeamCapacityPlanDto> GetCapacityPlanAsync(System.Guid id, string? from = null, string? to = null, System.Collections.Generic.IEnumerable<string>? daysOff = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -67553,6 +67553,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (to != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (daysOff != null)
+                    {
+                            foreach (var item_ in daysOff) { urlBuilder_.Append(System.Uri.EscapeDataString("daysOff")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
                     }
                     urlBuilder_.Length--;
 
@@ -99047,6 +99051,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
+        [System.Text.Json.Serialization.JsonPropertyName("holidays")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.DateTimeOffset> Holidays { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
+
         [System.Text.Json.Serialization.JsonPropertyName("sprintType")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintType>))]
@@ -99083,6 +99096,41 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("openSprint")]
         public NavigationDto? OpenSprint { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Equates the days of the week with their numerical value according to
+    /// <br/>ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which
+    /// <br/>is 7 in the ISO numbering and 0 in System.DayOfWeek.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum IsoDayOfWeek
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"None")]
+        None = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Monday")]
+        Monday = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Tuesday")]
+        Tuesday = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Wednesday")]
+        Wednesday = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Thursday")]
+        Thursday = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Friday")]
+        Friday = 5,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Saturday")]
+        Saturday = 6,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Sunday")]
+        Sunday = 7,
 
     }
 
@@ -102525,6 +102573,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.DateTimeOffset> Days { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
+        [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+
         [System.Text.Json.Serialization.JsonPropertyName("people")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPlanPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanPersonDto>();
@@ -102813,41 +102865,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
         public bool IsCurrent { get; set; } = default!;
-
-    }
-
-    /// <summary>
-    /// Equates the days of the week with their numerical value according to
-    /// <br/>ISO-8601. This corresponds with System.DayOfWeek except for Sunday, which
-    /// <br/>is 7 in the ISO numbering and 0 in System.DayOfWeek.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum IsoDayOfWeek
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"None")]
-        None = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Monday")]
-        Monday = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Tuesday")]
-        Tuesday = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Wednesday")]
-        Wednesday = 3,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Thursday")]
-        Thursday = 4,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Friday")]
-        Friday = 5,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Saturday")]
-        Saturday = 6,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Sunday")]
-        Sunday = 7,
 
     }
 

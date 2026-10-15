@@ -32867,7 +32867,7 @@
           "Teams"
         ],
         "summary": "Get the capacity of a team over a date range day by day, to plan against.",
-        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.",
         "operationId": "Teams_GetCapacityPlan",
         "parameters": [
           {
@@ -32899,6 +32899,20 @@
               "nullable": true
             },
             "x-position": 3
+          },
+          {
+            "name": "daysOff",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "x-position": 4
           }
         ],
         "responses": {
@@ -59352,6 +59366,8 @@
           "end",
           "teamIsActive",
           "teamDaysOff",
+          "holidays",
+          "workingDays",
           "sprintType",
           "sprintTypeSource",
           "overlapsPreviousSprint",
@@ -59423,6 +59439,19 @@
               "format": "date"
             }
           },
+          "holidays": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "workingDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IsoDayOfWeek"
+            }
+          },
           "sprintType": {
             "$ref": "#/components/schemas/SprintType"
           },
@@ -59472,6 +59501,30 @@
             ]
           }
         }
+      },
+      "IsoDayOfWeek": {
+        "type": "string",
+        "description": "Equates the days of the week with their numerical value according to\nISO-8601. This corresponds with System.DayOfWeek except for Sunday, which\nis 7 in the ISO numbering and 0 in System.DayOfWeek.",
+        "x-enumNames": [
+          "None",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "enum": [
+          "None",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ]
       },
       "InstantWindowDto": {
         "type": "object",
@@ -63907,13 +63960,21 @@
         "required": [
           "capacity",
           "days",
-          "people"
+          "people",
+          "teamDaysOff"
         ],
         "properties": {
           "capacity": {
             "$ref": "#/components/schemas/TeamCapacityDto"
           },
           "days": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "teamDaysOff": {
             "type": "array",
             "items": {
               "type": "string",
@@ -64327,30 +64388,6 @@
             "type": "boolean"
           }
         }
-      },
-      "IsoDayOfWeek": {
-        "type": "string",
-        "description": "Equates the days of the week with their numerical value according to\nISO-8601. This corresponds with System.DayOfWeek except for Sunday, which\nis 7 in the ISO numbering and 0 in System.DayOfWeek.",
-        "x-enumNames": [
-          "None",
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday"
-        ],
-        "enum": [
-          "None",
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday"
-        ]
       },
       "OperatingModelDefaultsDto": {
         "type": "object",

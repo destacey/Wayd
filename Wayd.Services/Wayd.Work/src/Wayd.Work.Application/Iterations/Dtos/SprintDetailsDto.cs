@@ -78,6 +78,18 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
 
     /// <summary>
+    /// The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
+    /// the team names none: days the team is already off, so never a team day off. Empty without a team or dates.
+    /// </summary>
+    public IReadOnlyList<LocalDate> Holidays { get; set; } = [];
+
+    /// <summary>
+    /// The days of the week the team works during the sprint, from its operating model on the sprint's planned
+    /// start. Empty without a team or dates.
+    /// </summary>
+    public IReadOnlyList<IsoDayOfWeek> WorkingDays { get; set; } = [];
+
+    /// <summary>
     /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
     /// the team's sprint metrics. Worked out when read: see <see cref="SprintTypeSource"/>.
     /// </summary>
@@ -140,6 +152,8 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
             .Ignore(dest => dest.ActiveFrom)
             .Ignore(dest => dest.ActiveUntil)
             .Ignore(dest => dest.TimeZone)
+            .Ignore(dest => dest.Holidays)
+            .Ignore(dest => dest.WorkingDays)
             .Ignore(dest => dest.SprintType)
             .Ignore(dest => dest.SprintTypeSource)
             .Ignore(dest => dest.OverlapsPreviousSprint)

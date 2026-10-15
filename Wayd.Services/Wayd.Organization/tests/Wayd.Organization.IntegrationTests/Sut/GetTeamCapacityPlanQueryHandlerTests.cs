@@ -238,6 +238,43 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
     }
 
     [Fact]
+    public async Task Handle_WithTeamDaysOff_CountsNobodyOnThemAndListsThem()
+    {
+        // Arrange — Ada in full; the team is off the first Thursday and Friday
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken);
+        Guid teamId;
+
+        await using (var seedContext = _fixture.CreateContext())
+        {
+            var team = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
+            var ada = await OrganizationSeeder.SeedEmployee(seedContext, "E-1001", "ada@acme.example", cancellationToken);
+            var capacity = EmployeeCapacity.Create(ada.Id);
+            capacity.ChangeAllocations([new AllocationChange(team.Id, null, Jan1, null, 100)], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            await seedContext.EmployeeCapacities.AddAsync(capacity, cancellationToken);
+            await seedContext.SaveChangesAsync(cancellationToken);
+            teamId = team.Id;
+        }
+
+        LocalDate[] daysOff = [new(2027, 2, 4), new(2027, 2, 5)];
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var plan = await PlanHandler(context, defaultCalendarId).Handle(
+            new GetTeamCapacityPlanQuery(teamId, TeamType.Team, SprintStart, SprintEnd, daysOff), cancellationToken);
+
+        // Assert
+        plan!.TeamDaysOff.Should().Equal(daysOff);
+        plan.Days.Should().HaveCount(10);
+        plan.Capacity.WorkingDays.Should().Be(8);
+        plan.Capacity.AllocatedPersonDays.Should().Be(8m);
+        var days = plan.People.Single().Rows.Single().Days;
+        days.Should().HaveCount(10).And.OnlyContain(d => d.Percent == 100);
+        days.Where(d => daysOff.Contains(d.Date)).Should().OnlyContain(d => d.PersonDays == 0m);
+    }
+
+    [Fact]
     public async Task Handle_ForATeamThatDoesNotExist_ReturnsNull()
     {
         // Arrange

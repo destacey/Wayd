@@ -30,6 +30,7 @@ public static class TeamPeriodCapacityCalculator
         foreach (var period in periods)
         {
             HierarchyPeriod whole = new(period.Start, period.End);
+            HashSet<LocalDate> daysOff = [.. period.DaysOff ?? []];
             decimal allocated = 0, delivery = 0, away = 0;
 
             void Count(Guid countedTeamId, IEnumerable<HierarchyPeriod> counted)
@@ -40,8 +41,9 @@ public static class TeamPeriodCapacityCalculator
                 if (within.Count == 0)
                     return;
 
+                // The days off are the team asked for's own, so they never reach the teams beneath it.
                 List<TeamDay> days = teamDays.TryGetValue(countedTeamId, out var all)
-                    ? [.. all.Where(d => within.Any(p => p.Includes(d.Date)))]
+                    ? [.. all.Where(d => within.Any(p => p.Includes(d.Date)) && !(countedTeamId == teamId && daysOff.Contains(d.Date)))]
                     : [];
 
                 foreach (var allocation in allocationsByTeam[countedTeamId])

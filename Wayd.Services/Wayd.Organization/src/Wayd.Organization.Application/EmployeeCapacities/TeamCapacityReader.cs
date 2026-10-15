@@ -56,14 +56,19 @@ internal sealed record TeamCapacityReading(
     IReadOnlyList<ElsewhereAllocationRow> Elsewhere,
     AvailabilityCalculator Availability,
     IReadOnlySet<Guid> Manageable,
-    decimal WorkingDayHours)
+    decimal WorkingDayHours,
+    IReadOnlySet<LocalDate> DaysOff)
 {
+    /// <summary>The working days people are counted on: the team's, less the days the team is off.</summary>
+    private IReadOnlyList<TeamDay> CountedDays => [.. TeamDays.Where(d => !DaysOff.Contains(d.Date))];
+
     /// <summary>The team's capacity over the range, person by person.</summary>
     public TeamCapacityDto ToCapacity()
     {
+        var countedDays = CountedDays;
         var capacityByEmployee = TeamCapacityCalculator.Calculate(
             TeamId,
-            TeamDays,
+            countedDays,
             Here.Select(a => new CapacityAllocation(a.EmployeeId, TeamId, a.CountsTowardDeliveryCapacity, a.Start, a.End, a.Percent))
                 .Concat(Elsewhere.Select(a => new CapacityAllocation(a.EmployeeId, a.TeamId, true, a.Start, a.End, a.Percent))),
             Availability);
@@ -97,7 +102,7 @@ internal sealed record TeamCapacityReading(
                             Start = a.Start,
                             End = a.End,
                             Percent = a.Percent,
-                            PersonDays = TeamCapacityCalculator.PersonDays(TeamDays, person.Key, a.Start, a.End, a.Percent, Availability),
+                            PersonDays = TeamCapacityCalculator.PersonDays(countedDays, person.Key, a.Start, a.End, a.Percent, Availability),
                         })],
                     ElsewhereAllocations = [.. elsewhereByEmployee[person.Key]
                         .OrderBy(a => a.Start)
@@ -140,7 +145,7 @@ internal sealed record TeamCapacityReading(
         {
             From = From,
             To = To,
-            WorkingDays = TeamDays.Count(d => !Availability.IsTeamHoliday(d)),
+            WorkingDays = countedDays.Count(d => !Availability.IsTeamHoliday(d)),
             AllocatedPersonDays = people.Sum(p => p.AllocatedPersonDays),
             DeliveryPersonDays = people.Sum(p => p.DeliveryPersonDays),
             AwayPersonDays = people.Sum(p => p.AwayPersonDays),
@@ -163,6 +168,7 @@ internal sealed record TeamCapacityReading(
         {
             Capacity = capacity,
             Days = [.. TeamDays.Select(d => d.Date)],
+            TeamDaysOff = [.. TeamDays.Select(d => d.Date).Where(DaysOff.Contains)],
             People = [.. capacity.People.Select(person =>
             {
                 var employeeId = person.Employee.Id;
@@ -194,8 +200,14 @@ internal sealed record TeamCapacityReading(
                             {
                                 Role = RoleOf(first.RoleId, first.RoleKey, first.RoleName),
                                 CountsTowardDeliveryCapacity = first.CountsTowardDeliveryCapacity,
+                                // A team day off keeps its percent, since the allocation runs on, but is worth nothing.
                                 Days = [.. TeamCapacityCalculator.DailyAllocation(TeamDays, employeeId, allocations, Availability)
-                                    .Select(d => new TeamCapacityPlanDayDto { Date = d.Date, Percent = d.Percent, PersonDays = d.PersonDays })],
+                                    .Select(d => new TeamCapacityPlanDayDto
+                                    {
+                                        Date = d.Date,
+                                        Percent = d.Percent,
+                                        PersonDays = DaysOff.Contains(d.Date) ? 0m : d.PersonDays,
+                                    })],
                             };
                         })
                         .OrderBy(r => r.Role is null)
@@ -233,7 +245,8 @@ internal static class TeamCapacityReader
         TeamType teamType,
         LocalDate firstDay,
         LocalDate lastDay,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<LocalDate>? daysOff = null)
     {
         if (!await organizationDbContext.BaseTeams.AnyAsync(t => t.Id == teamId && t.Type == teamType, cancellationToken))
             return null;
@@ -299,6 +312,6 @@ internal static class TeamCapacityReader
 
         var workingDayHours = (await schedulingSettings.Get(cancellationToken)).WorkingDayHours;
 
-        return new TeamCapacityReading(teamId, firstDay, lastDay, teamDays, here, elsewhere, availability, manageable, workingDayHours);
+        return new TeamCapacityReading(teamId, firstDay, lastDay, teamDays, here, elsewhere, availability, manageable, workingDayHours, (daysOff ?? []).ToHashSet());
     }
 }

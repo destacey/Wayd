@@ -122,6 +122,30 @@ public sealed class GetSprintCapacityQueryHandlerTests(SqlServerDbContextFixture
     }
 
     [Fact]
+    public async Task Handle_AsksForTheSprintsTeamDaysOffToBeLeftOut()
+    {
+        // Arrange — the team is off the sprint's second Monday
+        var ct = TestContext.Current.CancellationToken;
+        var (teamId, sprintId) = await SeedCommittedSprint(3, ct);
+        var dayOff = SprintStart.PlusDays(7);
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            var sprint = await accessor.Context.Iterations.SingleAsync(i => i.Id == sprintId, ct);
+            sprint.SetTeamDaysOff([dayOff], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
+            await accessor.Context.SaveChangesAsync(ct);
+        }
+        var dispatcher = Dispatcher(teamId, sprintDelivery: 10m, priorDelivery: 10m);
+
+        // Act
+        await Handle(sprintId, DuringTheSprint, dispatcher.Object, ct);
+
+        // Assert
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamsCapacityByPeriodQuery>(q => q.Periods[0] == new CapacityPeriod(SprintStart, SprintEnd, new[] { dayOff })),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_ForACompletedSprint_ComparesWithoutWarning()
     {
         // Arrange

@@ -442,11 +442,11 @@ public class TeamsController(
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [OpenApiOperation(
         "Get the capacity of a team over a date range day by day, to plan against.",
-        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TeamCapacityPlanDto>> GetCapacityPlan(Guid id, [FromQuery] string? from, [FromQuery] string? to, CancellationToken cancellationToken)
+    public async Task<ActionResult<TeamCapacityPlanDto>> GetCapacityPlan(Guid id, [FromQuery] string? from, [FromQuery] string? to, [FromQuery] List<string>? daysOff, CancellationToken cancellationToken)
     {
         if (!IsoDateQuery.TryParse(from, out var firstDay) || !IsoDateQuery.TryParse(to, out var lastDay))
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
@@ -454,7 +454,15 @@ public class TeamsController(
         if (firstDay is null || lastDay is null)
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("Both from and to dates are required.", HttpContext));
 
-        var plan = await _dispatcher.Send(new GetTeamCapacityPlanQuery(id, TeamType.Team, firstDay.Value, lastDay.Value), cancellationToken);
+        List<LocalDate> teamDaysOff = [];
+        foreach (var day in daysOff ?? [])
+        {
+            if (!IsoDateQuery.TryParse(day, out var dayOff) || dayOff is null)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+            teamDaysOff.Add(dayOff.Value);
+        }
+
+        var plan = await _dispatcher.Send(new GetTeamCapacityPlanQuery(id, TeamType.Team, firstDay.Value, lastDay.Value, teamDaysOff), cancellationToken);
 
         return plan is not null
             ? Ok(plan)

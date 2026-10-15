@@ -94851,9 +94851,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// An optional prefix symbol displayed before the numeric value (e.g. "$").
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("prefix")]
-        [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(8, MinimumLength = 1)]
-        public string Prefix { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.StringLength(8)]
+        public string? Prefix { get; set; } = default!;
 
         /// <summary>
         /// An optional suffix symbol displayed after the numeric value (e.g. "%", "M").

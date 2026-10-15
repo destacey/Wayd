@@ -85,7 +85,13 @@ public sealed class OpenApiSpecificationTests
     [InlineData("ImportReleaseContentRequest", "versionId")]
     [InlineData("CreateProjectTaskRequest", "progress")]
     [InlineData("CreateProjectTaskRequest", "plannedDate")]
-    public void FieldRequiredOnlyUnderACondition_IsNotPublishedAsRequired(string schemaName, string property)
+    [InlineData("CreateStrategicInitiativeKpiRequest", "description")]
+    [InlineData("CreateStrategicInitiativeKpiRequest", "prefix")]
+    [InlineData("CreateStrategicInitiativeKpiRequest", "suffix")]
+    [InlineData("UpdateStrategicInitiativeKpiRequest", "description")]
+    [InlineData("UpdateStrategicInitiativeKpiRequest", "prefix")]
+    [InlineData("UpdateStrategicInitiativeKpiRequest", "suffix")]
+    public void OptionalField_IsNotPublishedAsRequired(string schemaName, string property)
     {
         // Arrange
         var schema = LoadDocument().GetProperty("components").GetProperty("schemas").GetProperty(schemaName);
@@ -96,7 +102,7 @@ public sealed class OpenApiSpecificationTests
             : [];
 
         // Assert
-        required.Should().NotContain(property, "the rule requiring it is scoped with .When(), so it does not always apply");
+        required.Should().NotContain(property, "no rule requires it in every request, whether it has none or one scoped with .When()");
     }
 
     [Theory]

@@ -53737,8 +53737,7 @@
           "strategicInitiativeId",
           "name",
           "targetValue",
-          "targetDirection",
-          "prefix"
+          "targetDirection"
         ],
         "properties": {
           "strategicInitiativeId": {
@@ -53780,8 +53779,8 @@
             "type": "string",
             "description": "An optional prefix symbol displayed before the numeric value (e.g. \"$\").",
             "maxLength": 8,
-            "minLength": 1,
-            "nullable": false
+            "minLength": 0,
+            "nullable": true
           },
           "suffix": {
             "type": "string",

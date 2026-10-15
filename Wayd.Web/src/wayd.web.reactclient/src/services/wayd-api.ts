@@ -50461,7 +50461,7 @@ export interface CreateStrategicInitiativeKpiRequest {
     /** The starting (baseline) value of the KPI. */
     startingValue?: number | undefined;
     /** An optional prefix symbol displayed before the numeric value (e.g. "$"). */
-    prefix: string;
+    prefix?: string | undefined;
     /** An optional suffix symbol displayed after the numeric value (e.g. "%", "M"). */
     suffix?: string | undefined;
     /** The target direction for the KPI. */

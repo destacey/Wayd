@@ -95,7 +95,7 @@ public sealed class GetTeamsCapacityByPeriodQueryHandlerTests(SqlServerDbContext
         }
 
         // The second week: Grace's four and a half days and Ada's lead time on Cards
-        cardsCapacity[1].Should().Be(new TeamPeriodCapacity(SecondWeek, 7m, 4.5m, 0.5m));
+        cardsCapacity[1].Should().Be(new TeamPeriodCapacity(SecondWeek, 7m, 4.5m, 0.5m, true));
 
         var paymentsCapacity = byTeam[paymentsId];
         foreach (var period in paymentsCapacity)
@@ -105,8 +105,18 @@ public sealed class GetTeamsCapacityByPeriodQueryHandlerTests(SqlServerDbContext
         }
 
         // Cards adds to Payments only in the second week
-        paymentsCapacity[0].Should().Be(new TeamPeriodCapacity(FirstWeek, 2m, 2m, 0m));
-        paymentsCapacity[1].Should().Be(new TeamPeriodCapacity(SecondWeek, 9.5m, 7m, 0.5m));
+        paymentsCapacity[0].Should().Be(new TeamPeriodCapacity(FirstWeek, 2m, 2m, 0m, true));
+        paymentsCapacity[1].Should().Be(new TeamPeriodCapacity(SecondWeek, 9.5m, 7m, 0.5m, true));
+
+        // A day off for Cards comes out of Cards and of Payments' rollup alike: 1.5 person-days on the 10th, 1 of them delivery
+        var withDayOff = await Handler(context, defaultCalendarId).Handle(
+            new GetTeamsCapacityByPeriodQuery(
+                [cardsId, paymentsId],
+                [SecondWeek],
+                new Dictionary<Guid, IReadOnlyList<LocalDate>> { [cardsId] = [new LocalDate(2027, 2, 10)] }),
+            cancellationToken);
+        withDayOff![cardsId][0].Should().Be(new TeamPeriodCapacity(SecondWeek, 5.5m, 3.5m, 0.5m, true));
+        withDayOff[paymentsId][0].Should().Be(new TeamPeriodCapacity(SecondWeek, 8m, 6m, 0.5m, true));
     }
 
     private static GetTeamsCapacityByPeriodQueryHandler Handler(WaydDbContext context, Guid? defaultCalendarId)

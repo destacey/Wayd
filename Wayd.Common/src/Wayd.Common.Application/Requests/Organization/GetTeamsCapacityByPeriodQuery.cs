@@ -12,7 +12,15 @@ namespace Wayd.Common.Application.Requests.Organization;
 /// Null when the Team Capacity Management feature is off. A team id that names no team has no entry. The same
 /// handful of reads answers however many teams and periods are asked for, so a caller asks once for all of them.
 /// </remarks>
-public sealed record GetTeamsCapacityByPeriodQuery(IReadOnlyCollection<Guid> TeamIds, IReadOnlyList<CapacityPeriod> Periods)
+/// <param name="TeamDaysOff">
+/// Days each team is off beyond its working week and holidays, by team id, such as its sprints' team days off.
+/// Unlike <see cref="CapacityPeriod.DaysOff"/> they apply wherever the team is counted, including beneath a team
+/// of teams. A team left out has none.
+/// </param>
+public sealed record GetTeamsCapacityByPeriodQuery(
+    IReadOnlyCollection<Guid> TeamIds,
+    IReadOnlyList<CapacityPeriod> Periods,
+    IReadOnlyDictionary<Guid, IReadOnlyList<LocalDate>>? TeamDaysOff = null)
     : IQuery<IReadOnlyDictionary<Guid, IReadOnlyList<TeamPeriodCapacity>>?>;
 
 /// <summary>A run of days a capacity is asked for, both inclusive.</summary>
@@ -37,4 +45,9 @@ public sealed record CapacityPeriod(LocalDate Start, LocalDate End, IReadOnlyCol
 /// <param name="AllocatedPersonDays">The time allocated in every role.</param>
 /// <param name="DeliveryPersonDays">The part of it in roles that count toward delivery capacity.</param>
 /// <param name="AwayPersonDays">The allocated time that people's time away takes, already left out of the other two.</param>
-public sealed record TeamPeriodCapacity(CapacityPeriod Period, decimal AllocatedPersonDays, decimal DeliveryPersonDays, decimal AwayPersonDays);
+/// <param name="HasAllocations">
+/// Whether anyone is allocated to the team, or to a team beneath a team of teams while it was there, on any day of
+/// the period, whatever holidays, time away and days off leave of it. False is a team with nobody to plan with,
+/// as opposed to one whose people are all away.
+/// </param>
+public sealed record TeamPeriodCapacity(CapacityPeriod Period, decimal AllocatedPersonDays, decimal DeliveryPersonDays, decimal AwayPersonDays, bool HasAllocations = false);

@@ -32,8 +32,8 @@ public class TeamPeriodCapacityCalculatorTests
 
         // Assert
         capacity.Should().Equal(
-            new TeamPeriodCapacity(SecondWeek, 5.5m, 5.5m, 0m),
-            new TeamPeriodCapacity(FirstWeek, 2.5m, 2.5m, 0m));
+            new TeamPeriodCapacity(SecondWeek, 5.5m, 5.5m, 0m, true),
+            new TeamPeriodCapacity(FirstWeek, 2.5m, 2.5m, 0m, true));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class TeamPeriodCapacityCalculatorTests
         var capacity = TeamPeriodCapacityCalculator.Calculate(Root, [FirstWeek], [], Days(Root), allocations, availability);
 
         // Assert — Grace 4 days; Ada 3 days at 40%, with 0.4 taken by time away
-        capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 5.2m, 4m, 0.4m));
+        capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 5.2m, 4m, 0.4m, true));
     }
 
     [Fact]
@@ -80,8 +80,8 @@ public class TeamPeriodCapacityCalculatorTests
         // Assert — first week: 1 at the root, 1 for the child's Thursday and Friday; second week: 1 at the root,
         // 1 for the child's Monday and Tuesday, 1 for the grandchild's Monday
         capacity.Should().Equal(
-            new TeamPeriodCapacity(FirstWeek, 2m, 2m, 0m),
-            new TeamPeriodCapacity(SecondWeek, 3m, 3m, 0m));
+            new TeamPeriodCapacity(FirstWeek, 2m, 2m, 0m, true),
+            new TeamPeriodCapacity(SecondWeek, 3m, 3m, 0m, true));
     }
 
     [Fact]
@@ -99,7 +99,76 @@ public class TeamPeriodCapacityCalculatorTests
             Root, [withDaysOff], descendants, Days(Root, Child), allocations, AvailabilityCalculator.AlwaysAvailable);
 
         // Assert — 3 days at the root and the child's 5
-        capacity.Should().Equal(new TeamPeriodCapacity(withDaysOff, 8m, 8m, 0m));
+        capacity.Should().Equal(new TeamPeriodCapacity(withDaysOff, 8m, 8m, 0m, true));
+    }
+
+    [Fact]
+    public void Calculate_LeavesOutEachTeamsOwnDaysOffWhereverItIsCounted()
+    {
+        // Arrange — the root is off the first Monday and the child the first Tuesday, by their own days off
+        var allocations = Lookup(
+            new CapacityAllocation(Ada, Root, true, LongBefore, null, 100),
+            new CapacityAllocation(Grace, Child, true, LongBefore, null, 100));
+        HierarchyNode[] descendants = [new(Child, [new HierarchyPeriod(FirstWeek.Start, FirstWeek.End)], [])];
+        Dictionary<Guid, IReadOnlyList<LocalDate>> teamDaysOff = new()
+        {
+            [Root] = [new LocalDate(2027, 2, 1)],
+            [Child] = [new LocalDate(2027, 2, 2)],
+        };
+
+        // Act
+        var capacity = TeamPeriodCapacityCalculator.Calculate(
+            Root, [FirstWeek], descendants, Days(Root, Child), allocations, AvailabilityCalculator.AlwaysAvailable, teamDaysOff);
+
+        // Assert — 4 days at the root and 4 for the child
+        capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 8m, 8m, 0m, true));
+    }
+
+    [Fact]
+    public void Calculate_SaysATeamWhosePeopleAreAllAwayStillHasAllocations()
+    {
+        // Arrange — Ada is away all of the first week
+        var allocations = Lookup(new CapacityAllocation(Ada, Root, true, LongBefore, null, 100));
+        var availability = new AvailabilityCalculator(
+            new Dictionary<Guid, Guid>(),
+            new Dictionary<Guid, IReadOnlySet<LocalDate>>(),
+            null,
+            [new TimeAwaySpan(Ada, FirstWeek.Start, FirstWeek.End, 100)]);
+
+        // Act
+        var capacity = TeamPeriodCapacityCalculator.Calculate(Root, [FirstWeek], [], Days(Root), allocations, availability);
+
+        // Assert
+        capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 0m, 0m, 5m, true));
+    }
+
+    [Fact]
+    public void Calculate_SaysATeamOfTeamsHasAllocationsWhenOnlyATeamBeneathItDoes()
+    {
+        // Arrange — the child is beneath the root for the first week only
+        var allocations = Lookup(new CapacityAllocation(Grace, Child, true, LongBefore, null, 100));
+        HierarchyNode[] descendants = [new(Child, [new HierarchyPeriod(FirstWeek.Start, FirstWeek.End)], [])];
+
+        // Act
+        var capacity = TeamPeriodCapacityCalculator.Calculate(
+            Root, [FirstWeek, SecondWeek], descendants, Days(Root, Child), allocations, AvailabilityCalculator.AlwaysAvailable);
+
+        // Assert
+        capacity.Select(c => c.HasAllocations).Should().Equal(true, false);
+    }
+
+    [Fact]
+    public void Calculate_SaysATeamHasNoAllocationsInAPeriodBeforeAnyoneJoins()
+    {
+        // Arrange — Ada joins the second Monday
+        var allocations = Lookup(new CapacityAllocation(Ada, Root, true, SecondWeek.Start, null, 100));
+
+        // Act
+        var capacity = TeamPeriodCapacityCalculator.Calculate(
+            Root, [FirstWeek, SecondWeek], [], Days(Root), allocations, AvailabilityCalculator.AlwaysAvailable);
+
+        // Assert
+        capacity.Select(c => c.HasAllocations).Should().Equal(false, true);
     }
 
     [Fact]
@@ -117,7 +186,7 @@ public class TeamPeriodCapacityCalculatorTests
         var capacity = TeamPeriodCapacityCalculator.Calculate(Root, [FirstWeek], descendants, days, allocations, AvailabilityCalculator.AlwaysAvailable);
 
         // Assert
-        capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 4m, 4m, 0m));
+        capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 4m, 4m, 0m, true));
     }
 
     [Fact]
@@ -132,8 +201,8 @@ public class TeamPeriodCapacityCalculatorTests
 
         // Assert
         capacity.Should().Equal(
-            new TeamPeriodCapacity(FirstWeek, 0m, 0m, 0m),
-            new TeamPeriodCapacity(SecondWeek, 0m, 0m, 0m));
+            new TeamPeriodCapacity(FirstWeek, 0m, 0m, 0m, false),
+            new TeamPeriodCapacity(SecondWeek, 0m, 0m, 0m, false));
     }
 
     /// <summary>Monday to Friday of both weeks, with no team calendar, for each team.</summary>

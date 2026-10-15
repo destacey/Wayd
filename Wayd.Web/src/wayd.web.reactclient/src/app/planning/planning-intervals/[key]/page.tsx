@@ -18,10 +18,15 @@ import {
   SprintBacklogGrid,
 } from '@/src/components/common/planning'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
+import PlanningIntervalCapacitySection from './_components/planning-interval-capacity-section'
+import {
+  PlanningIntervalSections,
+  planningIntervalSections,
+} from './_components/planning-interval-sections'
 import useAuth from '@/src/components/contexts/auth'
 import { IterationState } from '@/src/components/types'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
 import {
   useGetPlanningIntervalActivitiesQuery,
   useGetPlanningIntervalBacklogQuery,
@@ -47,25 +52,6 @@ import PlanningIntervalPlanReviewSection from './_components/planning-interval-p
 import PlanningIntervalRisksSection from './_components/planning-interval-risks-section'
 import TeamSprintMappingsModal from './_components/team-sprint-mappings-modal'
 
-enum PlanningIntervalSections {
-  Overview = 'overview',
-  Objectives = 'objectives',
-  PlanReview = 'plan-review',
-  Risks = 'risks',
-  Backlog = 'backlog',
-  HealthReport = 'health-report',
-  Activities = 'activities',
-}
-
-const sections: RecordSection[] = [
-  { id: PlanningIntervalSections.Overview, label: 'Overview' },
-  { id: PlanningIntervalSections.PlanReview, label: 'Plan Review' },
-  { id: PlanningIntervalSections.Objectives, label: 'Objectives' },
-  { id: PlanningIntervalSections.Risks, label: 'Risks' },
-  { id: PlanningIntervalSections.Backlog, label: 'Backlog' },
-  { id: PlanningIntervalSections.Activities, label: 'Activity' },
-]
-
 const reports: RecordSection[] = [
   { id: PlanningIntervalSections.HealthReport, label: 'Objectives Health' },
 ]
@@ -83,6 +69,10 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
     useState<boolean>(false)
 
   const { hasPermissionClaim } = useAuth()
+  const { isEnabled: capacityEnabled } = useFeatureFlag(
+    'team-capacity-management',
+  )
+  const sections = planningIntervalSections(capacityEnabled)
   const canUpdatePlanningInterval = hasPermissionClaim(
     'Permissions.PlanningIntervals.Update',
   )
@@ -239,6 +229,10 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
             persistStateKey="planning-interval-backlog"
           />
         )
+      case PlanningIntervalSections.Capacity:
+        return capacityEnabled ? (
+          <PlanningIntervalCapacitySection planningIntervalKey={piKey} />
+        ) : null
       case PlanningIntervalSections.HealthReport:
         return <ObjectivesHealthReportSection planningIntervalKey={piKey} />
       default:

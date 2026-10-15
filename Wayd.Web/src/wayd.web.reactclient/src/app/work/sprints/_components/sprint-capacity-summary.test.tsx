@@ -35,6 +35,7 @@ const capacity = (
   allocatedPersonDays: 12,
   deliveryPersonDays: 10,
   awayPersonDays: 0.5,
+  hasAllocations: true,
   sizingMethod: SizingMethod.StoryPoints,
   scopeBasis: SprintCapacityScopeBasis.Committed,
   scope: 34,
@@ -165,6 +166,7 @@ describe('SprintCapacitySummary', () => {
       allocatedPersonDays: 0,
       deliveryPersonDays: 0,
       awayPersonDays: 0,
+      hasAllocations: false,
       outcome: SprintCapacityOutcome.NoCapacity,
       expectedScope: undefined,
       isOverCapacity: false,
@@ -175,6 +177,25 @@ describe('SprintCapacitySummary', () => {
 
     // Assert
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('shows a team whose people are all away for the sprint', () => {
+    // Arrange
+    mockCapacity = capacity({
+      allocatedPersonDays: 0,
+      deliveryPersonDays: 0,
+      awayPersonDays: 10,
+      outcome: SprintCapacityOutcome.NoCapacity,
+      expectedScope: undefined,
+      isOverCapacity: false,
+    })
+
+    // Act
+    render(<SprintCapacitySummary sprintKey={201} />)
+
+    // Assert
+    expect(screen.getByText('person-days · 10 away')).toBeInTheDocument()
+    expect(screen.getByText(/after holidays and time away/)).toBeInTheDocument()
   })
 
   it('explains a team whose time is only in roles that do not count toward delivery', () => {

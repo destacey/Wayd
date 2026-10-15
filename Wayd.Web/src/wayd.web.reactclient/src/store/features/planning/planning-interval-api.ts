@@ -27,6 +27,7 @@ import {
   UpdatePlanningIntervalRequest,
   WorkItemProgressDailyRollupDto,
   WorkItemsSummaryDto,
+  PlanningIntervalCapacityDto,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { getPlanningIntervalsClient } from '@/src/services/clients'
@@ -179,6 +180,30 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
         { type: QueryTags.PlanningIntervalPredictability, id: arg }, // typically arg is the key
       ],
     }),
+    getPlanningIntervalCapacity: builder.query<
+      PlanningIntervalCapacityDto,
+      number
+    >({
+      queryFn: async (key) => {
+        try {
+          const data = await getPlanningIntervalsClient().getCapacity(
+            key.toString(),
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Read from the PI's dates, iterations and teams, and from the teams'
+      // allocations, time away and sprint days off, whose changes invalidate
+      // the PI's tag or every team capacity tag.
+      providesTags: (result, error, key) => [
+        { type: QueryTags.PlanningInterval, id: key },
+        { type: QueryTags.TeamCapacity, id: `planning-interval-${key}` },
+      ],
+    }),
+
     getPlanningIntervalMetrics: builder.query<
       PlanningIntervalMetricsResponse,
       number
@@ -855,6 +880,7 @@ export const {
   useGetPlanningIntervalCalendarQuery,
   useGetPlanningIntervalPredictabilityQuery,
   useGetPlanningIntervalMetricsQuery,
+  useGetPlanningIntervalCapacityQuery,
   useGetPlanningIntervalIterationsQuery,
   useGetPlanningIntervalIterationQuery,
   useGetPlanningIntervalIterationMetricsQuery,

@@ -240,6 +240,12 @@ time is there, then applies its own two facts on top. The feature flag is checke
 handler, which answers null when it is off — so with the flag off nothing outside Organization can read an
 allocation, and Work draws the line as it did before allocations existed.
 
+A sprint's capacity against its scope works the same way. `GetSprintCapacityQuery` sends one
+`GetTeamsCapacityByPeriodQuery` for the sprint and the prior sprints its velocity comes from, each period
+carrying that sprint's team days off, and gets back the delivery person-days of each. Organization answers any
+number of teams and periods in a fixed number of reads, and null with the flag off; Work keeps the comparison
+with scope (`SprintCapacityComparison`) on its side, as a pure function.
+
 ### Domain events and the activity log
 
 Every domain event drained by `SaveChanges` is captured in the activity log, and events follow one set of

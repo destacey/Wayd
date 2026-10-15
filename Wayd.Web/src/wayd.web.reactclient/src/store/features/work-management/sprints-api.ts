@@ -276,11 +276,14 @@ export const sprintsApi = apiSlice.injectEndpoints({
       },
       // The ideal line follows the days off, and the sprint's health is read
       // against it from the scope report as well as drawn from the burn.
+      // Team days off are capacity too: the sprint's plan and every planning
+      // interval's read them.
       invalidatesTags: (result, error, { id, key }) => [
         { type: QueryTags.Sprint, id: key },
         { type: QueryTags.SprintScope, id: key },
         { type: QueryTags.SprintBurn, id: key },
         { type: QueryTags.ActivityLog, id },
+        QueryTags.TeamCapacity,
       ],
     }),
 

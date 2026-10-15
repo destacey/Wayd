@@ -35,6 +35,21 @@ internal static class PlanningSeed
         return planningTeam;
     }
 
+    /// <summary>A team of teams and the Planning copy of it, as <see cref="Team"/> writes a team.</summary>
+    public static async Task<PlanningTeam> TeamOfTeams(WaydDbContext context, CancellationToken ct)
+    {
+        var code = "G" + Guid.NewGuid().ToString("N").ToUpperInvariant()[..8];
+        var teamOfTeams = Organization.Domain.Models.TeamOfTeams.Create($"Group {code}", new TeamCode(code), null, new LocalDate(2024, 1, 2), "UTC", EventActor.System, SqlServerDbContextFixture.FixedNow);
+        context.TeamOfTeams.Add(teamOfTeams);
+        await context.SaveChangesAsync(ct);
+
+        var planningTeam = new PlanningTeam(teamOfTeams, SqlServerDbContextFixture.FixedNow);
+        context.PlanningTeams.Add(planningTeam);
+        await context.SaveChangesAsync(ct);
+
+        return planningTeam;
+    }
+
     /// <summary>
     /// The Planning copy of a sprint, which PI sprint mappings point at. Replication delivers it asynchronously
     /// in production, so it is written here directly.

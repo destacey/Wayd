@@ -40876,6 +40876,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.
+        /// </summary>
+        /// <remarks>
+        /// Returns the planning interval's `iterations` in date order and, for each team in it, its capacity in person-days after holidays, time away and team days off: a `total` over the whole planning interval and one figure per iteration in `iterations`, each with `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity and `awayPersonDays` that time away took. Iterations are read by the planning interval's own dates, whatever a team's sprint length or cadence. A team of teams is counted as its rollup: its own allocations and those of the teams beneath it for the days they were in its hierarchy, so a team beneath it that is also in the planning interval is counted in both rows. A team's sprint days off count as nobody working, wherever that team is counted, and a team's are listed in `teamDaysOff`. `hasAllocations` is false for a team with nobody allocated in the planning interval. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PlanningIntervalCapacityDto> GetCapacityAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a specific planning interval iteration.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -42358,6 +42368,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.
+        /// </summary>
+        /// <remarks>
+        /// Returns the planning interval's `iterations` in date order and, for each team in it, its capacity in person-days after holidays, time away and team days off: a `total` over the whole planning interval and one figure per iteration in `iterations`, each with `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity and `awayPersonDays` that time away took. Iterations are read by the planning interval's own dates, whatever a team's sprint length or cadence. A team of teams is counted as its rollup: its own allocations and those of the teams beneath it for the days they were in its hierarchy, so a team beneath it that is also in the planning interval is counted in both rows. A team's sprint days off count as nobody working, wherever that team is counted, and a team's are listed in `teamDaysOff`. `hasAllocations` is false for a team with nobody allocated in the planning interval. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PlanningIntervalCapacityDto> GetCapacityAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/planning-intervals/{idOrKey}/capacity"
+                    urlBuilder_.Append("api/planning/planning-intervals/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PlanningIntervalCapacityDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 404)
@@ -95794,6 +95895,104 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PlanningIntervalCapacityDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("iterations")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningIntervalCapacityIterationDto> Iterations { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalCapacityIterationDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningIntervalTeamCapacityDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalTeamCapacityDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PlanningIntervalCapacityIterationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Category { get; set; } = new SimpleNavigationDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PlanningIntervalTeamCapacityDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public PlanningTeamNavigationDto Team { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasAllocations")]
+        public bool HasAllocations { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("total")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public PlanningIntervalCapacityFiguresDto Total { get; set; } = new PlanningIntervalCapacityFiguresDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("iterations")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningIntervalCapacityFiguresDto> Iterations { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalCapacityFiguresDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PlanningIntervalCapacityFiguresDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("awayPersonDays")]
+        public decimal AwayPersonDays { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalIterationDetailsDto
     {
 
@@ -99480,6 +99679,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("awayPersonDays")]
         public decimal AwayPersonDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasAllocations")]
+        public bool HasAllocations { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

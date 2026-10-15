@@ -23,7 +23,7 @@ const METRIC_GRID: CSSProperties = {
 /** Why a sprint's scope was not set against its capacity, for a line under the figures. */
 export const notComparedText: Partial<Record<SprintCapacityOutcome, string>> = {
   [SprintCapacityOutcome.NoCapacity]:
-    "No one is allocated to the team for the sprint's dates in a role that counts toward delivery, so its scope isn't set against capacity.",
+    "The team has no time over the sprint's dates in a role that counts toward delivery, after holidays and time away, so its scope isn't set against capacity.",
   [SprintCapacityOutcome.NoPriorSprints]:
     "The team has no completed sprints in this sizing method to learn from yet, so its scope isn't set against capacity.",
   [SprintCapacityOutcome.NoPriorCapacity]:
@@ -68,7 +68,7 @@ const SprintCapacitySummary = ({ sprintKey }: SprintCapacitySummaryProps) => {
   // Nothing while loading, and nothing for a team with nobody allocated for
   // the sprint: a team that does not plan capacity would otherwise read as
   // having none.
-  if (!capacity || capacity.allocatedPersonDays === 0) return null
+  if (!capacity || !capacity.hasAllocations) return null
 
   const measure = sizingMethodMeasure(capacity.sizingMethod)
   const committed = capacity.scopeBasis === SprintCapacityScopeBasis.Committed

@@ -26,6 +26,13 @@ public sealed record SprintCapacityDto
     /// <summary>The allocated time that people's time away takes, in person-days; already left out of the other two.</summary>
     public decimal AwayPersonDays { get; init; }
 
+    /// <summary>
+    /// Whether anyone is allocated to the team on any of the sprint's planned dates, whatever holidays, time away
+    /// and team days off leave of it. False is a team that does not plan capacity, rather than one whose people
+    /// are all away.
+    /// </summary>
+    public bool HasAllocations { get; init; }
+
     /// <summary>The estimate <see cref="Scope"/> and <see cref="ExpectedScope"/> are in: the sprint's sizing method.</summary>
     public SizingMethod SizingMethod { get; init; }
 

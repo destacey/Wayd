@@ -105,7 +105,7 @@ public sealed class GetTeamsCapacityByPeriodQueryHandler(
 
         return descendantsByTeam.ToDictionary(
             team => team.Key,
-            team => TeamPeriodCapacityCalculator.Calculate(team.Key, request.Periods, team.Value, teamDays, allocationsByTeam, availability));
+            team => TeamPeriodCapacityCalculator.Calculate(team.Key, request.Periods, team.Value, teamDays, allocationsByTeam, availability, request.TeamDaysOff));
     }
 
     private static IEnumerable<Guid> TeamIdsOf(IReadOnlyList<HierarchyNode> nodes) =>

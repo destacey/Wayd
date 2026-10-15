@@ -22874,6 +22874,67 @@ export class PlanningIntervalsClient {
     }
 
     /**
+     * Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.
+     */
+    getCapacity(idOrKey: string, cancelToken?: CancelToken): Promise<PlanningIntervalCapacityDto> {
+        let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/capacity";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacity(_response);
+        });
+    }
+
+    protected processGetCapacity(response: AxiosResponse): Promise<PlanningIntervalCapacityDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PlanningIntervalCapacityDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PlanningIntervalCapacityDto>(null as any);
+    }
+
+    /**
      * Get a specific planning interval iteration.
      */
     getIteration(idOrKey: string, iterationIdOrKey: string, cancelToken?: CancelToken): Promise<PlanningIntervalIterationDetailsDto> {
@@ -50768,6 +50829,37 @@ export interface PlanningIntervalIterationListDto {
     category: SimpleNavigationDto;
 }
 
+export interface PlanningIntervalCapacityDto {
+    start: string;
+    end: string;
+    iterations: PlanningIntervalCapacityIterationDto[];
+    teams: PlanningIntervalTeamCapacityDto[];
+}
+
+export interface PlanningIntervalCapacityIterationDto {
+    id: string;
+    key: number;
+    name: string;
+    category: SimpleNavigationDto;
+    start: string;
+    end: string;
+}
+
+export interface PlanningIntervalTeamCapacityDto {
+    team: PlanningTeamNavigationDto;
+    isActive: boolean;
+    hasAllocations: boolean;
+    total: PlanningIntervalCapacityFiguresDto;
+    iterations: PlanningIntervalCapacityFiguresDto[];
+    teamDaysOff: string[];
+}
+
+export interface PlanningIntervalCapacityFiguresDto {
+    allocatedPersonDays: number;
+    deliveryPersonDays: number;
+    awayPersonDays: number;
+}
+
 export interface PlanningIntervalIterationDetailsDto {
     id: string;
     key: number;
@@ -51982,6 +52074,7 @@ export interface SprintCapacityDto {
     allocatedPersonDays: number;
     deliveryPersonDays: number;
     awayPersonDays: number;
+    hasAllocations: boolean;
     sizingMethod: SizingMethod;
     scopeBasis: SprintCapacityScopeBasis;
     scope: number;

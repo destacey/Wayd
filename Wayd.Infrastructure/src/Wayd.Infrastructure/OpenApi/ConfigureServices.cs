@@ -32,8 +32,8 @@ internal static class ConfigureServices
     }
 
     /// <summary>
-    /// Serves the OpenAPI document at <c>/openapi/v1.json</c> and the Scalar API reference that reads it at
-    /// <c>/scalar</c>.
+    /// Serves the OpenAPI document at <c>/openapi/v1.json</c>, the Scalar API reference that reads it at
+    /// <c>/scalar</c>, and the <see cref="ApiCatalog"/> that points to both.
     /// </summary>
     internal static WebApplication MapOpenApiDocument(this WebApplication app)
     {
@@ -41,9 +41,22 @@ internal static class ConfigureServices
             return app;
 
         app.MapOpenApi();
-        app.MapScalarApiReference(options => options
+        app.MapApiCatalog();
+
+        // Nothing on the page reaches Scalar's services: the client button, MCP integration, agent ("Ask AI") and
+        // developer tools offer its hosted SDK generation, MCP server, AI assistant and dashboard, and its
+        // telemetry and default fonts call its servers and CDN. With no proxy set, "Test Request" calls the API
+        // directly. The API has its own MCP endpoint, and the document stays here.
+        app.MapScalarApiReference(WaydOpenApiDocument.ReferencePath, options => options
             .WithTitle(app.Configuration[$"{nameof(SwaggerSettings)}:{nameof(SwaggerSettings.Title)}"] ?? "Wayd API")
-            .AddPreferredSecuritySchemes(ApiKeySecurityTransformer.SchemeName));
+            .WithFavicon("/favicon.ico")
+            .AddPreferredSecuritySchemes(ApiKeySecurityTransformer.SchemeName)
+            .HideClientButton()
+            .DisableMcp()
+            .DisableAgent()
+            .DisableTelemetry()
+            .DisableDefaultFonts()
+            .HideDeveloperTools());
 
         return app;
     }

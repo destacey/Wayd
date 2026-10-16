@@ -19,6 +19,12 @@ public static class WaydOpenApiDocument
     /// <summary>The document's name, which is also the last segment of the path it is served at.</summary>
     public const string Name = "v1";
 
+    /// <summary>The path the document is served at.</summary>
+    public const string DocumentPath = "/openapi/" + Name + ".json";
+
+    /// <summary>The path the Scalar API reference is served at.</summary>
+    public const string ReferencePath = "/scalar";
+
     /// <summary>Whether the API publishes its OpenAPI document.</summary>
     public static bool IsEnabled(IConfiguration config) => config.GetValue<bool>($"{nameof(SwaggerSettings)}:{nameof(SwaggerSettings.Enable)}");
 

@@ -1,12 +1,12 @@
 # AGENTS.md — Web API
 
-The root [AGENTS.md](../../../AGENTS.md) applies here too. This file covers the two generation steps the API drives — the OpenAPI client and the Wolverine handler tree — and the hosted MCP endpoint built on the first.
+The root [AGENTS.md](../../../AGENTS.md) applies here too. This file covers the two generation steps the API drives — the OpenAPI document and client, and the Wolverine handler tree — and the hosted MCP endpoint built on the first.
 
 ## Hosted MCP Endpoint (`/mcp`)
 
 `Mcp/` serves the API as agent tools; [mcp-server.mdx](../../../docs/contributing/mcp-server.mdx#the-hosted-endpoint) has the design.
 
-- **A tool is an action marked `[McpTool(name, title)]`.** Its description is the `[OpenApiOperation]` summary and description, its input schema the operation's parameters plus `requestBody`, so editing either changes what agents read. Never rename a tool.
+- **A tool is an action marked `[McpTool(name, title)]`.** Its description is the `[EndpointSummary]` and `[EndpointDescription]`, its input schema the operation's parameters plus `requestBody`, so editing either changes what agents read. Never rename a tool.
 - **Every controller with a tool carries `[McpTools(McpToolset.X)]`**, which places its tools in a toolset clients can select (`McpToolFilter`); `McpToolCatalog` throws without it. Never rename a toolset.
 - **Annotations default from the HTTP method**; set `ReadOnly`/`Destructive`/`Idempotent` on the attribute only to depart from it, and `Destructive = false` only for a write that purely adds a record.
 - **Calls run through the API pipeline** (`ApiPipeline`), so a tool needs no authorization of its own — the endpoint's applies. An action whose body is not JSON cannot be a tool; `McpToolCatalog` throws on first use.
@@ -14,13 +14,11 @@ The root [AGENTS.md](../../../AGENTS.md) applies here too. This file covers the 
 
 ## OpenAPI Client Generation
 
-NSwag generates TypeScript client from API's OpenAPI spec on Debug build. Config in `nswag.json`. Generated client in `wayd.web.reactclient/src/services/wayd-api.ts`.
+A Debug build writes the OpenAPI document with `Microsoft.AspNetCore.OpenApi` (`GenerateOpenApiDocument` target → `wwwroot/api/v1/specification.json`), then NSwag generates the TypeScript client from that file (`nswag.json` → `wayd.web.reactclient/src/services/wayd-api.ts`). The transformers in `Wayd.Infrastructure/OpenApi/` decide the client's names, argument order and optional properties, so read the `wayd-api.ts` diff after changing one — see [api.mdx](../../../docs/contributing/api.mdx#openapi).
 
-**A second document is served beside NSwag's**, at `/openapi/v1.json`, by `Microsoft.AspNetCore.OpenApi`, which is replacing NSwag; nothing consumes it yet. Its transformers in `Wayd.Infrastructure/OpenApi/` reproduce what NSwag publishes, and `OpenApiDocumentParityTests` fails on any difference it does not explain, so a change to what NSwag publishes needs the matching transformer. See [The second document](../../../docs/contributing/api.mdx#the-second-document).
+**CSV import columns are generated too, but not by the build.** Each import action carries `[CsvImport(key)]`, each file parameter `[CsvRows(typeof(Row))]` naming the class it passes to `ReadCsv`, and enum-parsed text columns `[CsvValues(typeof(Enum))]`; `CsvImportOperationTransformer` publishes them in the spec. After changing a row class, rebuild the API and run `npm run generate:import-templates` in the client — `import-templates.generated.test.ts` fails until you do. A new import endpoint also needs its entry in `SUBMITTERS` and `IMPORTED_RECORD_TAGS` (`store/features/admin/imports-api.ts`); both are keyed by the generated `ImportKey`, so the compiler asks for them.
 
-**CSV import columns are generated too, but not by the build.** Each import action carries `[CsvImport(key)]`, each file parameter `[CsvRows(typeof(Row))]` naming the class it passes to `ReadCsv`, and enum-parsed text columns `[CsvValues(typeof(Enum))]`; `CsvImportOperationProcessor` publishes them in the spec. After changing a row class, rebuild the API and run `npm run generate:import-templates` in the client — `import-templates.generated.test.ts` fails until you do. A new import endpoint also needs its entry in `SUBMITTERS` and `IMPORTED_RECORD_TAGS` (`store/features/admin/imports-api.ts`); both are keyed by the generated `ImportKey`, so the compiler asks for them.
-
-**The NSwag target boots the real API**, so a Debug build starts the application. `WAYD_SKIP_DB_INIT=true` (set by the MSBuild target) drives `HostIntrospection.SkipsDatabaseInitialization`, which skips every piece of startup work that touches the database — EF migrations and seeding, the Hangfire server, and the Hangfire dashboard — so a Debug build does **not** require a running database. Gate any new database-touching startup work the same way: an ungated one fails the *build* (`MSB3077` + `Build FAILED`, real cause buried in NSwag's output; under Aspire just `The project could not be built.` and exit code 6) instead of erroring at runtime.
+**The document target boots the real API**, so a Debug build starts the application. `WAYD_SKIP_DB_INIT=true` (set by the MSBuild target) drives `HostIntrospection.SkipsDatabaseInitialization`, which skips every piece of startup work that touches the database — EF migrations and seeding, the Hangfire server, and the Hangfire dashboard — so a Debug build does **not** require a running database. Gate any new database-touching startup work the same way: an ungated one fails the *build* (`MSB3077` + `Build FAILED`, real cause buried in NSwag's output; under Aspire just `The project could not be built.` and exit code 6) instead of erroring at runtime.
 
 ## Wolverine Handler Codegen (generated, not committed)
 

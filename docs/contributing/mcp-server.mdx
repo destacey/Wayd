@@ -16,7 +16,7 @@ Wayd exposes its API as agent tools in two ways: the hosted endpoint at `/mcp`, 
 **A tool is a controller action marked `[McpTool]`.** The API is the only definition of each tool:
 
 - **Name and title** come from the attribute: `[McpTool("Projects_GetProject", "Get project")]`. A tool name is a contract with the skills and prompts that already call it, so never rename one.
-- **Description** is the action's `[OpenApiOperation]` summary followed by its description. Write it for an agent choosing between tools; it is also the endpoint's published documentation.
+- **Description** is the action's `[EndpointSummary]` followed by its `[EndpointDescription]`. Write it for an agent choosing between tools; it is also the endpoint's published documentation.
 - **Input schema** comes from the action's operation in the runtime OpenAPI document: one argument per path, query or header parameter, plus `requestBody` for a JSON body. Parameter and property descriptions are the `<param>` and `///` documentation that NSwag already publishes, and closed sets arrive as enum codes.
 - **Toolset** comes from `[McpTools(McpToolset.Ppm)]` on the controller, and every controller with a tool needs one; the catalogue throws on first use otherwise. Toolset names are part of client configurations, so never rename one.
 - **Annotations** default from the HTTP method, as the npm package's did: only GET is read-only, every write starts destructive, PUT and DELETE are idempotent, and every tool is `openWorldHint: false`. Set `ReadOnly`, `Destructive` or `Idempotent` on the attribute only to depart from that. A write is advertised as safe (`Destructive = false`) only when it purely adds a record.

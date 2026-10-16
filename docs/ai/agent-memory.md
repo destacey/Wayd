@@ -16,7 +16,7 @@ This file captures compact repo-specific lessons that future coding agents shoul
 ## Generated API Client
 
 - Do not hand-edit `Wayd.Web/src/wayd.web.reactclient/src/services/wayd-api.ts`.
-- NSwag regenerates `wayd-api.ts` and `Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json` during a Debug build of the API project.
+- A Debug build of the API project writes `Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json` (`Microsoft.AspNetCore.OpenApi`) and NSwag regenerates `wayd-api.ts` from it.
 - Useful command: `dotnet build "Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj"`.
 - Frontend RTK Query slices should call generated client methods from `src/services/clients.ts`; never use `authenticatedFetch()` directly.
 

@@ -428,7 +428,7 @@ Password policy is validated before the transaction opens — a bad password ret
 
 **Operators:** these are on by default and need no setup. You only need this section if Wayd must be embedded in an iframe, or your edge already sets these headers — see [when to change them](#when-you-need-to-change-these). After deploying, verify they survive your ingress with the check in [First-Run Setup → Step 4](./first-run-setup.mdx#step-4--verify-security-headers-deployed-environments).
 
-Every API response carries a fixed set of security headers, applied by middleware early in the pipeline (`UseSecurityHeaders`, before routing so it covers Swagger, ReDoc and the Hangfire dashboard as well as controllers).
+Every API response carries a fixed set of security headers, applied by middleware early in the pipeline (`UseSecurityHeaders`, before routing so it covers the Scalar API reference and the Hangfire dashboard as well as controllers).
 
 **Most of these are not configurable, deliberately.** `X-Content-Type-Options`, `X-Frame-Options` and the CSP each have exactly one correct value for this application, so they are constants in `Wayd.Infrastructure/SecurityHeaders/SecurityHeaderDefaults.cs`. A setting for them would only be a way to get them wrong.
 
@@ -473,7 +473,7 @@ Framing is blocked deliberately: Wayd exposes destructive controls behind a perm
 
 ### The CSP deliberately omits `default-src` and `script-src`
 
-The API host also serves Swagger UI, ReDoc and the Hangfire dashboard, all of which rely on inline scripts. A `script-src 'self'` breaks all three, and relaxing it with `'unsafe-inline'` would defeat the point. The four directives above are script-agnostic and safe for every response the API emits.
+The API host also serves the Scalar API reference and the Hangfire dashboard, both of which rely on inline scripts. A `script-src 'self'` breaks both, and relaxing it with `'unsafe-inline'` would defeat the point. The four directives above are script-agnostic and safe for every response the API emits.
 
 This means the CSP mitigates clickjacking and injected-form/base-tag attacks, but is **not** a script-injection defence. That job belongs to output sanitization — see `sanitize-schema.ts` on the client, which strips raw HTML out of user-supplied markdown.
 

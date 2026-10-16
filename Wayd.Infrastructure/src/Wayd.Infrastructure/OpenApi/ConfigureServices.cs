@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 namespace Wayd.Infrastructure.OpenApi;
@@ -26,13 +25,8 @@ internal static class ConfigureServices
         // condition, so publishing the rule would claim it always applies.
         services.AddFluentValidationRulesToOpenApi(options => options.ConditionalRules = ConditionalRulesMode.Exclude);
 
-        // The registry is scoped, but IOpenApiDocumentProvider generates the document from the root provider,
-        // outside any request, for the MCP server and the build. Validators hold no state, so one scope serves
-        // them for the application's lifetime.
         services.RemoveAll<IValidatorRegistry>();
-        services.AddSingleton<IValidatorRegistry>(sp => new ServiceProviderValidatorRegistry(
-            sp.CreateScope().ServiceProvider,
-            sp.GetRequiredService<IOptions<SchemaGenerationOptions>>()));
+        services.AddSingleton<IValidatorRegistry, ScopedValidatorRegistry>();
 
         return services;
     }

@@ -182,19 +182,6 @@ public sealed class OpenApiDocumentParityTests(WaydApiFactory factory)
     private static List<AcceptedDifference> Accepted(JsonObject nswag)
     {
         var nswagFacts = OpenApiFacts.Extract(nswag);
-        var schemas = nswag["components"]!["schemas"]!.AsObject();
-
-        // The polymorphic bases and the schemas that derive from them.
-        var polymorphicBases = schemas.Where(s => s.Value!["discriminator"] is not null).Select(s => s.Key).ToHashSet();
-        var polymorphic = schemas
-            .Where(s => polymorphicBases.Contains(s.Key)
-                || s.Value!["allOf"]?.AsArray().Any(a => polymorphicBases.Contains(((string?)a!["$ref"])?.Split('/')[^1] ?? "")) == true)
-            .Select(s => s.Key)
-            .ToHashSet();
-        bool InPolymorphicHierarchy(string owner) =>
-            owner.StartsWith("schema ", StringComparison.Ordinal)
-            && owner[7..] is var name
-            && (polymorphic.Contains(name) || (!schemas.ContainsKey(name) && polymorphicBases.Any(b => name.StartsWith(b, StringComparison.Ordinal))));
 
         bool IsJsonPatch(string owner) =>
             owner is "schema Operation" or "schema OperationBase"
@@ -207,8 +194,6 @@ public sealed class OpenApiDocumentParityTests(WaydApiFactory factory)
 
         return
         [
-            new("The 9 polymorphic hierarchies (connections and roadmap items). NSwag describes them with `allOf` and `x-abstract`; Microsoft.AspNetCore.OpenApi with `oneOf` and a discriminator from `[JsonPolymorphic]`, naming each derived schema `{Base}{Derived}`.",
-                d => InPolymorphicHierarchy(d.Owner)),
             new("JSON Patch bodies. NSwag describes `JsonPatchDocument<T>` as an object with an `operations` list, which is not what the endpoint reads; Microsoft.AspNetCore.OpenApi describes the RFC 6902 array as one `JsonPatchDocument` schema. The client sends patches without the generated methods because NSwag's shape was wrong.",
                 d => IsJsonPatch(d.Owner) || d.Expected.Contains("ref:JsonPatchDocumentOf", StringComparison.Ordinal)),
             new("`NotEmpty()` on a value that is not a string. NSwag published it as `minLength: 1`, which says nothing about a date, a Guid or a list; MicroElements' Microsoft.AspNetCore.OpenApi rules publish `minItems: 1` on a list and nothing on a date.",
@@ -242,9 +227,11 @@ public sealed class OpenApiDocumentParityTests(WaydApiFactory factory)
                 d => d.Kind == "additionalProperties" && d.Expected == "{\"nullable\":true}" && d.Actual == "{}"),
             new("`style: form` and `explode: true` on a list in the query string. They are OpenAPI's defaults for a query parameter, which NSwag states and Microsoft.OpenApi's writer leaves out; NSwag's TypeScript generator repeats the name for each value (`?status=A&status=B`) either way.",
                 d => d.Kind is "style" or "explode" && d.Expected is "form" or "true" && d.Actual == OpenApiFacts.Absent),
-            new("A non-nullable property declared on a derived class. NSwag's `MarkAsRequiredIfNonNullableSchemaProcessor` never saw these, because NSwag had already moved them into an `allOf` part; they are required here as on any other class, so the TypeScript client will stop typing them as optional.",
-                d => d.Kind == "required" && d.Expected == "false" && d.Actual == "true"
-                    && d.Owner is "schema HttpValidationProblemDetails" or "schema WorkItemProgressDailyRollupDto"),
+            new("A property declared on a derived class. NSwag's required and FluentValidation processors never saw these, because NSwag had already moved them into an `allOf` part; they are required and carry their validation rules here as on any other class, so the TypeScript client stops typing the non-nullable ones as optional.",
+                d => d.Owner.StartsWith("schema ", StringComparison.Ordinal)
+                    && nswagFacts.GetValueOrDefault($"{d.Owner} | bases", OpenApiFacts.Absent) != OpenApiFacts.Absent
+                    && ((d.Kind == "required" && d.Expected == "false" && d.Actual == "true")
+                        || (d.Kind is "minLength" or "maxLength" or "minimum" or "maximum" or "pattern" && d.Expected == OpenApiFacts.Absent))),
         ];
     }
 }

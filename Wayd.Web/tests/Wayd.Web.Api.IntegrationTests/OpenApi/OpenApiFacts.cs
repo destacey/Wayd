@@ -283,7 +283,7 @@ public static class OpenApiFacts
     private static string SortedList(JsonNode? node) => SortedItems(node?.AsArray());
 
     /// <summary>JSON with object keys sorted, so key order never reads as a difference.</summary>
-    public static string Canonical(JsonNode? node) => node is null ? Absent : Sort(node).ToJsonString();
+    public static string Canonical(JsonNode? node) => Sort(node)?.ToJsonString() ?? Absent;
 
     private static JsonNode? Sort(JsonNode? node) => node switch
     {

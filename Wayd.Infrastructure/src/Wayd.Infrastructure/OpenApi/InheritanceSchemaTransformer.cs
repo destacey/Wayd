@@ -24,8 +24,8 @@ namespace Wayd.Infrastructure.OpenApi;
 /// a schema after its transformers run, and inlines any it did not create itself.
 /// </para>
 /// <para>
-/// Polymorphic hierarchies (<see cref="JsonPolymorphicAttribute"/>) are left to the generator, which
-/// describes them with <c>oneOf</c> and a discriminator.
+/// Polymorphic hierarchies (<see cref="JsonPolymorphicAttribute"/>) are <see cref="PolymorphismTransformer"/>'s,
+/// since their base also carries a discriminator.
 /// </para>
 /// </remarks>
 public sealed class InheritanceSchemaTransformer : IOpenApiSchemaTransformer, IOpenApiDocumentTransformer

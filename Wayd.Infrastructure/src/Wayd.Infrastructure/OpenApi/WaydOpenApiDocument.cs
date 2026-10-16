@@ -36,6 +36,8 @@ public static class WaydOpenApiDocument
         options.AddSchemaTransformer(new ScalarSchemaTransformer());
         var inheritance = new InheritanceSchemaTransformer();
         options.AddSchemaTransformer(inheritance);
+        var polymorphism = new PolymorphismTransformer();
+        options.AddSchemaTransformer(polymorphism);
 
         var security = new ApiKeySecurityTransformer();
         options.AddOperationTransformer(documentation);
@@ -49,6 +51,7 @@ public static class WaydOpenApiDocument
 
         options.AddDocumentTransformer(security);
         options.AddDocumentTransformer(inheritance);
+        options.AddDocumentTransformer(polymorphism);
         options.AddDocumentTransformer(new DocumentShapeTransformer(settings));
     }
 }

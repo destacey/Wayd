@@ -8,8 +8,7 @@ using Microsoft.OpenApi;
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Publishes what an import endpoint's files must contain, as NSwag's <see cref="CsvImportOperationProcessor"/>
-/// does: each row class as a component schema whose properties carry <c>x-csv-column</c> (and
+/// Publishes what an import endpoint's files must contain: each row class as a component schema whose properties carry <c>x-csv-column</c> (and
 /// <c>x-csv-values</c>), and the operation's <c>x-wayd-import</c> naming the import and its files.
 /// </summary>
 /// <remarks>
@@ -18,6 +17,15 @@ namespace Wayd.Infrastructure.OpenApi;
 /// </remarks>
 public sealed class CsvImportOperationTransformer : IOpenApiOperationTransformer
 {
+    /// <summary>The operation extension naming the import and describing its files.</summary>
+    public const string ImportExtension = "x-wayd-import";
+
+    /// <summary>The row-schema property extension holding the column's header, which camel-casing cannot be reversed to.</summary>
+    public const string ColumnExtension = "x-csv-column";
+
+    /// <summary>The row-schema property extension listing the names a text column accepts.</summary>
+    public const string ValuesExtension = "x-csv-values";
+
     private readonly NullabilityInfoContext _nullability = new();
 
     /// <inheritdoc />
@@ -47,7 +55,7 @@ public sealed class CsvImportOperationTransformer : IOpenApiOperationTransformer
         }
 
         operation.Extensions ??= new Dictionary<string, IOpenApiExtension>();
-        operation.Extensions[CsvImportOperationProcessor.ImportExtension] = new JsonNodeExtension(new JsonObject
+        operation.Extensions[ImportExtension] = new JsonNodeExtension(new JsonObject
         {
             ["key"] = import.ImportKey,
             ["files"] = files,
@@ -78,10 +86,10 @@ public sealed class CsvImportOperationTransformer : IOpenApiOperationTransformer
             }
 
             column.Extensions ??= new Dictionary<string, IOpenApiExtension>();
-            column.Extensions[CsvImportOperationProcessor.ColumnExtension] = new JsonNodeExtension(JsonValue.Create(property.Name));
+            column.Extensions[ColumnExtension] = new JsonNodeExtension(JsonValue.Create(property.Name));
 
             if (property.GetCustomAttribute<CsvValuesAttribute>() is { } values)
-                column.Extensions[CsvImportOperationProcessor.ValuesExtension] = new JsonNodeExtension(new JsonArray([.. values.Values.Select(v => (JsonNode)JsonValue.Create(v))]));
+                column.Extensions[ValuesExtension] = new JsonNodeExtension(new JsonArray([.. values.Values.Select(v => (JsonNode)JsonValue.Create(v))]));
         }
 
         return id;

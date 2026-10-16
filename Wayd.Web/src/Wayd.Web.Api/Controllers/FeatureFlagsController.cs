@@ -11,7 +11,7 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [OpenApiOperation("Get all enabled feature flags for the current user.", "")]
+    [EndpointSummary("Get all enabled feature flags for the current user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ClientFeatureFlagDto>>> GetEnabledFeatureFlags(CancellationToken cancellationToken)
     {

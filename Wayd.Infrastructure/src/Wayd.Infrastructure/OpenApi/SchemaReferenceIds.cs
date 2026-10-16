@@ -4,18 +4,17 @@ using Microsoft.AspNetCore.OpenApi;
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Names the document's component schemas the way NSwag does, because the TypeScript client names its
-/// interfaces after them.
+/// Names the document's component schemas, which the TypeScript client names its interfaces after.
 /// </summary>
 /// <remarks>
-/// A generic type is named for its type arguments, joined the way NSwag joins them:
+/// A generic type is named for its type arguments:
 /// <c>NavigationDto&lt;Guid, int&gt;</c> is <c>NavigationDtoOfGuidAndInteger</c> and
 /// <c>PagedResponse&lt;ActivityLogDto&gt;</c> is <c>PagedResponseOfActivityLogDto</c>. Types
 /// <see cref="ScalarSchemaTransformer"/> describes as strings are never components.
 /// </remarks>
 public static class SchemaReferenceIds
 {
-    /// <summary>The names NSwag gives a primitive type argument: its JSON Schema type, not its CLR name.</summary>
+    /// <summary>The name of a primitive type argument: its JSON Schema type, not its CLR name.</summary>
     private static readonly Dictionary<Type, string> _primitiveNames = new()
     {
         [typeof(int)] = "Integer",

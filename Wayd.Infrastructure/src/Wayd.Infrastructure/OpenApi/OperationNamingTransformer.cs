@@ -3,13 +3,13 @@ using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using NSwag.Annotations;
+using Microsoft.AspNetCore.Http.Metadata;
 
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Gives each operation NSwag's operation id and its <see cref="OpenApiOperationAttribute"/> summary and
-/// description.
+/// Gives each operation its <c>{Controller}_{Action}</c> id, and the summary and description its
+/// <c>[EndpointSummary]</c> and <c>[EndpointDescription]</c> state.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -33,13 +33,13 @@ public sealed class OperationNamingTransformer : IOpenApiOperationTransformer
             var actionName = action.ActionName.EndsWith("Async", StringComparison.Ordinal) ? action.ActionName[..^5] : action.ActionName;
             operation.OperationId = $"{action.ControllerName}_{actionName}";
 
-            if (action.MethodInfo.GetCustomAttribute<OpenApiOperationAttribute>() is { } attribute)
-            {
-                if (!string.IsNullOrEmpty(attribute.Summary))
-                    operation.Summary = attribute.Summary;
-                if (!string.IsNullOrEmpty(attribute.Description))
-                    operation.Description = attribute.Description;
-            }
+            // The generated XML documentation transformer replaces these with the action's /// comments, which
+            // speak to maintainers; the attributes speak to API consumers and win.
+            var metadata = action.EndpointMetadata;
+            if (metadata.OfType<IEndpointSummaryMetadata>().LastOrDefault()?.Summary is { Length: > 0 } summary)
+                operation.Summary = summary;
+            if (metadata.OfType<IEndpointDescriptionMetadata>().LastOrDefault()?.Description is { Length: > 0 } description)
+                operation.Description = description;
         }
         else if (context.Description.RelativePath is { } path && context.Description.HttpMethod is { } method)
         {

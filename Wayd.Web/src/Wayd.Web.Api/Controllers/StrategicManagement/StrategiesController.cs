@@ -18,7 +18,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, IDispatc
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Strategies)]
-    [OpenApiOperation("Get a list of strategies.", "")]
+    [EndpointSummary("Get a list of strategies.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategyListDto>>> GetStrategies([FromQuery] StrategyStatus? status, CancellationToken cancellationToken)
@@ -30,7 +30,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, IDispatc
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Strategies)]
-    [OpenApiOperation("Get strategy details.", "")]
+    [EndpointSummary("Get strategy details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StrategyDetailsDto>> GetStrategy(string idOrKey, CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, IDispatc
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Strategies)]
-    [OpenApiOperation("Create a strategy.", "")]
+    [EndpointSummary("Create a strategy.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStrategyRequest request, CancellationToken cancellationToken)
     {
@@ -57,7 +57,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, IDispatc
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Strategies)]
-    [OpenApiOperation("Update a strategy.", "")]
+    [EndpointSummary("Update a strategy.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -75,7 +75,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, IDispatc
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Strategies)]
-    [OpenApiOperation("Delete a strategy.", "")]
+    [EndpointSummary("Delete a strategy.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -89,7 +89,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, IDispatc
 
     [HttpGet("statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Strategies)]
-    [OpenApiOperation("Get a list of all strategy statuses.", "")]
+    [EndpointSummary("Get a list of all strategy statuses.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategyStatusDto>>> GetStatusOptions(CancellationToken cancellationToken)

@@ -15,8 +15,7 @@ namespace Wayd.Infrastructure.OpenApi;
 /// <see cref="IFormFile"/> as a model and list its properties (<c>ContentType</c>, <c>Length</c>,
 /// <c>FileName</c>, …) as form fields. The generator then publishes a form carrying a file's metadata and
 /// never its bytes, under <c>application/x-www-form-urlencoded</c>, and a client generated from it posts no
-/// file. This is the job <see cref="FormFileOperationProcessor"/> and <see cref="FormFileDocumentProcessor"/>
-/// do for NSwag; one operation transformer can do it alone because it sees the method and the body together.
+/// file.
 /// </remarks>
 public sealed class FormFileOperationTransformer : IOpenApiOperationTransformer
 {

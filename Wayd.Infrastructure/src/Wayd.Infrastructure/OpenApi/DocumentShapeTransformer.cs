@@ -11,8 +11,8 @@ namespace Wayd.Infrastructure.OpenApi;
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item>An operation id used twice gets a number, <c>Teams_Get2</c>, as NSwag numbers it.</item>
-/// <item>A property that refers to a component and may be null is written as NSwag writes it,
+/// <item>An operation id used twice gets a number, <c>Teams_Get2</c>.</item>
+/// <item>A property that refers to a component and may be null is written
 /// <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, not as the generator's
 /// <c>oneOf: [ { "nullable": true }, { "$ref": … } ]</c>, which NSwag's TypeScript generator would read as a
 /// union with an empty type.</item>
@@ -27,8 +27,7 @@ namespace Wayd.Infrastructure.OpenApi;
 /// generator first met the type as a nullable property and described it from there. Whether a value may be
 /// null is said where it is used.</item>
 /// <item>An endpoint outside a controller carries no tag, and a tag no operation uses is dropped.</item>
-/// <item>Line breaks in descriptions are <c>\n</c>, as NSwag reads XML documentation, whatever the source
-/// files use.</item>
+/// <item>Line breaks in descriptions are <c>\n</c>, whatever the source files use.</item>
 /// </list>
 /// </remarks>
 public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenApiDocumentTransformer
@@ -118,7 +117,7 @@ public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenAp
             ReshapeComponent(part, document);
     }
 
-    /// <summary>A value's schema in NSwag's shape, walking into arrays, maps and inline objects.</summary>
+    /// <summary>A value's schema reshaped as above, walking into arrays, maps and inline objects.</summary>
     private static IOpenApiSchema Reshape(IOpenApiSchema? schema, OpenApiDocument document)
     {
         switch (schema)

@@ -7,8 +7,8 @@ using Microsoft.OpenApi;
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Describes a class that derives from another as <c>allOf</c> its base's schema and its own properties, as
-/// NSwag does, so the base is a component of its own.
+/// Describes a class that derives from another as <c>allOf</c> its base's schema and its own properties, so
+/// the base is a component of its own.
 /// </summary>
 /// <remarks>
 /// <para>

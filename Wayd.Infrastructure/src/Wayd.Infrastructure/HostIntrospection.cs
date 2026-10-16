@@ -13,10 +13,10 @@ public static class HostIntrospection
     /// True when this host exists only to be inspected:
     /// <list type="bullet">
     /// <item><see cref="EF.IsDesignTime"/> — the EF Core tooling (migrations add/remove/update).</item>
-    /// <item><c>WAYD_SKIP_DB_INIT</c> — NSwag boots the real app to read the OpenAPI document on
+    /// <item><c>WAYD_SKIP_DB_INIT</c> — the build boots the real app to read the OpenAPI document on
     /// every Debug build. <see cref="EF.IsDesignTime"/> is false there. Read from <see cref="IConfiguration"/>
     /// only: the host's <c>AddEnvironmentVariables()</c> already surfaces the environment variable the
-    /// NSwag MSBuild target sets, and going through configuration also lets integration tests opt out
+    /// document's MSBuild target sets, and going through configuration also lets integration tests opt out
     /// per-host via <c>UseSetting</c> without a process-wide env var leaking into sibling hosts.</item>
     /// </list>
     /// </summary>

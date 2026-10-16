@@ -13,7 +13,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 {
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.TeamMemberRoles)]
-    [OpenApiOperation("Get a list of team member roles.", "")]
+    [EndpointSummary("Get a list of team member roles.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<TeamMemberRoleDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
@@ -23,7 +23,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id:guid}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.TeamMemberRoles)]
-    [OpenApiOperation("Get a team member role by id.", "")]
+    [EndpointSummary("Get a team member role by id.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamMemberRoleDto>> GetById(Guid id, CancellationToken cancellationToken)
@@ -34,7 +34,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.TeamMemberRoles)]
-    [OpenApiOperation("Create a team member role.", "")]
+    [EndpointSummary("Create a team member role.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> Create([FromBody] CreateTeamMemberRoleRequest request, CancellationToken cancellationToken)
     {
@@ -47,7 +47,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.TeamMemberRoles)]
-    [OpenApiOperation("Update a team member role.", "")]
+    [EndpointSummary("Update a team member role.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateTeamMemberRoleRequest request, CancellationToken cancellationToken)
@@ -64,7 +64,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id:guid}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.TeamMemberRoles)]
-    [OpenApiOperation("Delete a team member role.", "")]
+    [EndpointSummary("Delete a team member role.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -78,7 +78,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:guid}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.TeamMemberRoles)]
-    [OpenApiOperation("Activate a team member role.", "")]
+    [EndpointSummary("Activate a team member role.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
@@ -92,7 +92,7 @@ public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:guid}/deactivate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.TeamMemberRoles)]
-    [OpenApiOperation("Deactivate a team member role.", "")]
+    [EndpointSummary("Deactivate a team member role.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Deactivate(Guid id, CancellationToken cancellationToken)

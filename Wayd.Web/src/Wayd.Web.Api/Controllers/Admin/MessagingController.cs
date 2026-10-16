@@ -22,7 +22,7 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
 
     [HttpGet("counts")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Messaging)]
-    [OpenApiOperation("Get counts of persisted message envelopes by lifecycle state.", "")]
+    [EndpointSummary("Get counts of persisted message envelopes by lifecycle state.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<MessagingCountsResponse>> GetCounts()
     {
@@ -39,7 +39,7 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
 
     [HttpGet("dead-letters")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Messaging)]
-    [OpenApiOperation("Get a page of dead-lettered messages, optionally filtered by message type, exception type, and time range.", "")]
+    [EndpointSummary("Get a page of dead-lettered messages, optionally filtered by message type, exception type, and time range.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<DeadLetterMessagesResponse>> GetDeadLetters(
         CancellationToken cancellationToken,
@@ -71,7 +71,7 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
 
     [HttpGet("dead-letters/{id:guid}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Messaging)]
-    [OpenApiOperation("Get the full detail of a dead-lettered message, including its serialized body.", "")]
+    [EndpointSummary("Get the full detail of a dead-lettered message, including its serialized body.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DeadLetterMessageDetailsResponse>> GetDeadLetterById(Guid id)
@@ -87,7 +87,7 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
 
     [HttpPost("dead-letters/replay")]
     [MustHavePermission(ApplicationAction.Run, ApplicationResource.Messaging)]
-    [OpenApiOperation("Mark dead-lettered messages as replayable. The durability agent moves them back to the incoming queue on its next pass, so replay is asynchronous.", "")]
+    [EndpointSummary("Mark dead-lettered messages as replayable. The durability agent moves them back to the incoming queue on its next pass, so replay is asynchronous.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ReplayDeadLetters([FromBody] DeadLetterMessagesRequest request, CancellationToken cancellationToken)
@@ -104,7 +104,7 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
 
     [HttpPost("dead-letters/discard")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Messaging)]
-    [OpenApiOperation("Permanently delete dead-lettered messages.", "")]
+    [EndpointSummary("Permanently delete dead-lettered messages.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DiscardDeadLetters([FromBody] DeadLetterMessagesRequest request, CancellationToken cancellationToken)

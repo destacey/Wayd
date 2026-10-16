@@ -29,7 +29,7 @@ public class RisksController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Risks)]
-    [OpenApiOperation("Get a list of risks.", "")]
+    [EndpointSummary("Get a list of risks.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskListDto>>> GetList(CancellationToken cancellationToken, bool includeClosed = false)
@@ -40,7 +40,7 @@ public class RisksController : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Risks)]
-    [OpenApiOperation("Get risk details using the Id or key.", "")]
+    [EndpointSummary("Get risk details using the Id or key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RiskDetailsDto>> GetRisk(string idOrKey, CancellationToken cancellationToken)
@@ -54,7 +54,7 @@ public class RisksController : ControllerBase
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Risks)]
-    [OpenApiOperation("Get activity history for the risk.", "")]
+    [EndpointSummary("Get activity history for the risk.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -68,7 +68,7 @@ public class RisksController : ControllerBase
 
     [HttpGet("me")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Risks)]
-    [OpenApiOperation("Get a list of open risks assigned to me.", "")]
+    [EndpointSummary("Get a list of open risks assigned to me.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskListDto>>> GetMyRisks(CancellationToken cancellationToken)
@@ -79,7 +79,7 @@ public class RisksController : ControllerBase
 
     [HttpPost()]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Risks)]
-    [OpenApiOperation("Create a risk.", "")]
+    [EndpointSummary("Create a risk.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateRiskRequest request, CancellationToken cancellationToken)
     {
@@ -92,7 +92,7 @@ public class RisksController : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Risks)]
-    [OpenApiOperation("Update a risk.", "")]
+    [EndpointSummary("Update a risk.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -110,7 +110,7 @@ public class RisksController : ControllerBase
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Risks)]
-    [OpenApiOperation("Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [EndpointSummary("Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -159,7 +159,7 @@ public class RisksController : ControllerBase
 
     [HttpGet("statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Risks)]
-    [OpenApiOperation("Get a list of all risk statuses.", "")]
+    [EndpointSummary("Get a list of all risk statuses.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskStatusDto>>> GetStatuses(CancellationToken cancellationToken)
@@ -170,7 +170,7 @@ public class RisksController : ControllerBase
 
     [HttpGet("categories")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Risks)]
-    [OpenApiOperation("Get a list of all risk categories.", "")]
+    [EndpointSummary("Get a list of all risk categories.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskCategoryDto>>> GetCategories(CancellationToken cancellationToken)
@@ -181,7 +181,7 @@ public class RisksController : ControllerBase
 
     [HttpGet("grades")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Risks)]
-    [OpenApiOperation("Get a list of all risk grades.", "")]
+    [EndpointSummary("Get a list of all risk grades.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskGradeDto>>> GetGrades(CancellationToken cancellationToken)

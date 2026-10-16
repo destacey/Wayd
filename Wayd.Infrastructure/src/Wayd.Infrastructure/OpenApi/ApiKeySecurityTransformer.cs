@@ -6,7 +6,7 @@ namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
 /// Declares the personal access token scheme and requires it on every operation that does not allow
-/// anonymous callers, as NSwag's <see cref="SwaggerGlobalAuthProcessor"/> does.
+/// anonymous callers.
 /// </summary>
 /// <remarks>
 /// Controllers are mapped with <c>RequireAuthorization()</c> rather than carrying <c>[Authorize]</c>, so

@@ -26,7 +26,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.OidcProviders)]
-    [OpenApiOperation("List all configured OIDC providers.", "")]
+    [EndpointSummary("List all configured OIDC providers.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<OidcProviderListItemDto>>> GetList(CancellationToken cancellationToken)
     {
@@ -36,7 +36,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpGet("{id:guid}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.OidcProviders)]
-    [OpenApiOperation("Get OIDC provider detail by id.", "")]
+    [EndpointSummary("Get OIDC provider detail by id.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OidcProviderDto>> GetById(Guid id, CancellationToken cancellationToken)
@@ -47,7 +47,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpGet("{id:guid}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.OidcProviders)]
-    [OpenApiOperation("Get activity history for the OIDC provider.", "")]
+    [EndpointSummary("Get activity history for the OIDC provider.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -61,7 +61,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.OidcProviders)]
-    [OpenApiOperation("Create a new OIDC provider.", "")]
+    [EndpointSummary("Create a new OIDC provider.")]
     [ProducesResponseType(typeof(OidcProviderDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Create([FromBody] CreateOidcProviderRequest request, CancellationToken cancellationToken)
@@ -90,7 +90,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpPut("{id:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.OidcProviders)]
-    [OpenApiOperation("Update an OIDC provider.", "")]
+    [EndpointSummary("Update an OIDC provider.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateOidcProviderRequest request, CancellationToken cancellationToken)
@@ -121,7 +121,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpDelete("{id:guid}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.OidcProviders)]
-    [OpenApiOperation("Delete an OIDC provider.", "")]
+    [EndpointSummary("Delete an OIDC provider.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(DeleteOidcProviderResult), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -145,7 +145,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpPost("{id:guid}/test-discovery")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.OidcProviders)]
-    [OpenApiOperation("Fetch the provider's OIDC discovery document and report success/failure.", "")]
+    [EndpointSummary("Fetch the provider's OIDC discovery document and report success/failure.")]
     [ProducesResponseType(typeof(TestOidcProviderDiscoveryResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TestOidcProviderDiscoveryResult>> TestDiscovery(Guid id, CancellationToken cancellationToken)
@@ -163,7 +163,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpGet("{id:guid}/migration-candidates")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("List Entra users on the given source tenant with no pending migration — the candidates for a bulk tenant migration.", "")]
+    [EndpointSummary("List Entra users on the given source tenant with no pending migration — the candidates for a bulk tenant migration.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<TenantMigrationCandidateDto>>> GetMigrationCandidates(
@@ -178,7 +178,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpGet("{id:guid}/pending-migrations")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("List users on the given provider with a staged-but-incomplete tenant migration.", "")]
+    [EndpointSummary("List users on the given provider with a staged-but-incomplete tenant migration.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<PendingTenantMigrationDto>>> GetPendingMigrations(
@@ -193,7 +193,7 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
 
     [HttpPost("{id:guid}/stage-tenant-migration")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Stage a tenant migration for multiple Entra users. Each rebind completes on that user's next sign-in from the target tenant.", "")]
+    [EndpointSummary("Stage a tenant migration for multiple Entra users. Each rebind completes on that user's next sign-in from the target tenant.")]
     [ProducesResponseType(typeof(BulkTenantMigrationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

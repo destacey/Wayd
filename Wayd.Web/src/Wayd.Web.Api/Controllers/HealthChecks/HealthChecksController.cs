@@ -17,7 +17,7 @@ public class HealthChecksController : ControllerBase
 
     [HttpGet("statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.HealthChecks)]
-    [OpenApiOperation("Get the list of health check statuses.", "")]
+    [EndpointSummary("Get the list of health check statuses.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<HealthStatusDto>>> GetStatuses(CancellationToken cancellationToken)
     {

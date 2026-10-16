@@ -19,7 +19,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Get a list of status workflows.", "")]
+    [EndpointSummary("Get a list of status workflows.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StatusWorkflowListDto>>> GetStatusWorkflows([FromQuery] string? ownerType, [FromQuery] StatusWorkflowState? state, CancellationToken cancellationToken)
@@ -32,7 +32,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
     // Declared before the {idOrKey} route, or the literal would be captured by it.
     [HttpGet("owner-types")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Get the owner types a status workflow can be built for, with their alias vocabularies.", "")]
+    [EndpointSummary("Get the owner types a status workflow can be built for, with their alias vocabularies.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkflowOwnerTypeDto>>> GetOwnerTypes(CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Get status workflow details.", "")]
+    [EndpointSummary("Get status workflow details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StatusWorkflowDetailsDto>> GetStatusWorkflow(string idOrKey, CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Get activity history for the status workflow.", "")]
+    [EndpointSummary("Get activity history for the status workflow.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -72,7 +72,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Create a status workflow.", "")]
+    [EndpointSummary("Create a status workflow.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> Create([FromBody] CreateStatusWorkflowRequest request, CancellationToken cancellationToken)
     {
@@ -85,7 +85,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Update a status workflow.", "")]
+    [EndpointSummary("Update a status workflow.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -100,7 +100,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPost("{id}/clone")]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Copy a status workflow into a new editable draft.", "")]
+    [EndpointSummary("Copy a status workflow into a new editable draft.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> Clone(Guid id, [FromBody] CloneStatusWorkflowRequest request, CancellationToken cancellationToken)
     {
@@ -113,7 +113,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPost("{id}/publish")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Publish a status workflow.", "")]
+    [EndpointSummary("Publish a status workflow.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -128,7 +128,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Archive a status workflow.", "")]
+    [EndpointSummary("Archive a status workflow.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -145,7 +145,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPost("{id}/statuses")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Add a status to a status workflow.", "")]
+    [EndpointSummary("Add a status to a status workflow.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddStatus(Guid id, [FromBody] AddWorkflowStatusRequest request, CancellationToken cancellationToken)
     {
@@ -158,7 +158,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPut("{id}/statuses/{statusId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Rename a status in a status workflow.", "")]
+    [EndpointSummary("Rename a status in a status workflow.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -173,7 +173,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPut("{id}/statuses/{statusId}/classification")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Change the category and well-known meaning of a status.", "")]
+    [EndpointSummary("Change the category and well-known meaning of a status.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -188,7 +188,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpDelete("{id}/statuses/{statusId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Remove a status from a status workflow.", "")]
+    [EndpointSummary("Remove a status from a status workflow.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveStatus(Guid id, Guid statusId, CancellationToken cancellationToken)
@@ -202,7 +202,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPost("{id}/statuses/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Reorder the statuses in a status workflow.", "")]
+    [EndpointSummary("Reorder the statuses in a status workflow.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

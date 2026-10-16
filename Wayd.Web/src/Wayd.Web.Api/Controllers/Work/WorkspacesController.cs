@@ -25,7 +25,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Workspaces)]
-    [OpenApiOperation("Get a list of workspaces.", "")]
+    [EndpointSummary("Get a list of workspaces.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkspaceListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
@@ -36,7 +36,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Workspaces)]
-    [OpenApiOperation("Get workspace details.", "")]
+    [EndpointSummary("Get workspace details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -67,7 +67,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/external-url-templates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Workspaces)]
-    [OpenApiOperation("Set the external view work item URL template for a workspace.", "")]
+    [EndpointSummary("Set the external view work item URL template for a workspace.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetExternalUrlTemplates(Guid id, [FromBody] SetExternalUrlTemplatesRequest dto, CancellationToken cancellationToken)
@@ -83,7 +83,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Get work items for a workspace.", "")]
+    [EndpointSummary("Get work items for a workspace.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetWorkItems(string idOrKey, CancellationToken cancellationToken)
@@ -111,7 +111,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/work-items/{workItemKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Get work item details.", "")]
+    [EndpointSummary("Get work item details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -147,7 +147,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/work-items/{workItemKey}/project-info")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Get a work item's project info.", "")]
+    [EndpointSummary("Get a work item's project info.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -183,7 +183,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/work-items/{workItemId}/update-project")]
     [MustHavePermission(ApplicationAction.ManageProjectWorkItems, ApplicationResource.Projects)]
-    [OpenApiOperation("Update the project for a work item.", "")]
+    [EndpointSummary("Update the project for a work item.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateWorkItemProject(Guid id, Guid workItemId, [FromBody] UpdateWorkItemProjectRequest request, CancellationToken cancellationToken)
@@ -200,7 +200,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/work-items/{workItemKey}/children")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Get a work item's child work items.", "")]
+    [EndpointSummary("Get a work item's child work items.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetChildWorkItems(string idOrKey, string workItemKey, CancellationToken cancellationToken)
@@ -233,7 +233,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/work-items/{workItemKey}/dependencies")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Get a work item's dependencies.", "")]
+    [EndpointSummary("Get a work item's dependencies.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -257,8 +257,9 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation(
-        "Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.",
+    [EndpointSummary(
+        "Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.")]
+    [EndpointDescription(
         "A portfolio work item (an Epic or Feature, say) is forecast from its open backlog descendants. Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining), `backlogPosition`, and on Forecast completion `percentiles` (a `date` per `confidence`), plus `chanceOfFinishingByTargetDate` (0 to 1) when `targetDate` is given. `issues` explain what could not be forecast (No Team, Not a Backlog Item, Not Enough History); `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.")]
     [McpTool("Workspaces_GetWorkItemForecast", "Forecast work item completion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -296,7 +297,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/work-items/{workItemKey}/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Get metrics for a work item.", "")]
+    [EndpointSummary("Get metrics for a work item.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemProgressDailyRollupDto>>> GetMetrics(string idOrKey, string workItemKey, CancellationToken cancellationToken)
@@ -329,7 +330,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("work-items/search")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Search for a work item using its key or title.", "")]
+    [EndpointSummary("Search for a work item using its key or title.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> SearchWorkItems(string query, CancellationToken cancellationToken, int top = 50)

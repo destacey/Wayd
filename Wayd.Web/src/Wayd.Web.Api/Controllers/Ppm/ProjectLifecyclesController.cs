@@ -18,7 +18,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Get a list of project lifecycles.", "")]
+    [EndpointSummary("Get a list of project lifecycles.")]
     [McpTool("ProjectLifecycles_GetProjectLifecycles", "List project lifecycles")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -31,7 +31,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Get project lifecycle details.", "")]
+    [EndpointSummary("Get project lifecycle details.")]
     [McpTool("ProjectLifecycles_GetProjectLifecycle", "Get project lifecycle")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -46,7 +46,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Create a project lifecycle.", "")]
+    [EndpointSummary("Create a project lifecycle.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> Create([FromBody] CreateProjectLifecycleRequest request, CancellationToken cancellationToken)
     {
@@ -59,7 +59,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Update a project lifecycle.", "")]
+    [EndpointSummary("Update a project lifecycle.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -74,7 +74,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Delete a project lifecycle.", "")]
+    [EndpointSummary("Delete a project lifecycle.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -88,7 +88,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Activate a project lifecycle.", "")]
+    [EndpointSummary("Activate a project lifecycle.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -103,7 +103,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Archive a project lifecycle.", "")]
+    [EndpointSummary("Archive a project lifecycle.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -118,7 +118,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpPost("{id}/stages")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Add a stage to a project lifecycle.", "")]
+    [EndpointSummary("Add a stage to a project lifecycle.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddStage(Guid id, [FromBody] ProjectLifecycleStageRequest request, CancellationToken cancellationToken)
     {
@@ -131,7 +131,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpPut("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Update a stage in a project lifecycle.", "")]
+    [EndpointSummary("Update a stage in a project lifecycle.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -146,7 +146,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpDelete("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Remove a stage from a project lifecycle.", "")]
+    [EndpointSummary("Remove a stage from a project lifecycle.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveStage(Guid id, Guid stageId, CancellationToken cancellationToken)
@@ -160,7 +160,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
 
     [HttpPost("{id}/stages/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Reorder stages in a project lifecycle.", "")]
+    [EndpointSummary("Reorder stages in a project lifecycle.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

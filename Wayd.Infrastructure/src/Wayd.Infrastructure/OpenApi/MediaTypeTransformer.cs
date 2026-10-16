@@ -3,7 +3,7 @@ using Microsoft.OpenApi;
 
 namespace Wayd.Infrastructure.OpenApi;
 
-/// <summary>Publishes JSON bodies as <c>application/json</c> alone, as NSwag does.</summary>
+/// <summary>Publishes JSON bodies as <c>application/json</c> alone.</summary>
 /// <remarks>
 /// The generator lists every media type the input and output formatters handle — <c>text/json</c>,
 /// <c>application/*+json</c>, <c>text/plain</c> — beside <c>application/json</c>. Clients only ever send and

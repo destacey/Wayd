@@ -18,7 +18,7 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("scheduling")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
-    [OpenApiOperation("Get the scheduling settings.", "")]
+    [EndpointSummary("Get the scheduling settings.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<SchedulingSettingsDto>> GetSchedulingSettings(CancellationToken cancellationToken)
     {
@@ -28,7 +28,7 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("scheduling")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.SystemSettings)]
-    [OpenApiOperation("Update the scheduling settings.", "")]
+    [EndpointSummary("Update the scheduling settings.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -43,7 +43,7 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("scheduling/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
-    [OpenApiOperation("Get the scheduling settings' change history.", "")]
+    [EndpointSummary("Get the scheduling settings' change history.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSchedulingSettingsActivities([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
     {
@@ -53,7 +53,7 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("sprint-metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
-    [OpenApiOperation("Get the sprint metrics settings.", "")]
+    [EndpointSummary("Get the sprint metrics settings.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<SprintMetricsSettingsDto>> GetSprintMetricsSettings(CancellationToken cancellationToken)
     {
@@ -63,7 +63,7 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("sprint-metrics")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.SystemSettings)]
-    [OpenApiOperation("Update the sprint metrics settings.", "")]
+    [EndpointSummary("Update the sprint metrics settings.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -78,7 +78,7 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("sprint-metrics/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
-    [OpenApiOperation("Get the sprint metrics settings' change history.", "")]
+    [EndpointSummary("Get the sprint metrics settings' change history.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSprintMetricsSettingsActivities([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
     {

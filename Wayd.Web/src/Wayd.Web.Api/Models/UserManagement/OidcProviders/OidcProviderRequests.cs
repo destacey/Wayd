@@ -69,7 +69,7 @@ public static class OidcProviderRequestMessages
 /// <remarks>
 /// The registration-policy invariant is expressed with model-level <c>Must</c>
 /// predicates rather than property-level <c>NotNull</c>/<c>NotEmpty</c> rules.
-/// The FluentValidation → NSwag schema bridge translates the latter into schema
+/// The FluentValidation → OpenAPI schema bridge translates the latter into schema
 /// <c>required</c> + non-nullable, which would force the generated TS client to
 /// type the nullable <c>RequireEmployeeRecord</c>/<c>DefaultRoleId</c> as required
 /// (the conditional <c>When</c> is invisible to the schema). Model-level predicates
@@ -126,7 +126,7 @@ public sealed class UpdateOidcProviderRequestValidator : CustomValidator<UpdateO
 /// Shared registration-policy rules for the create/update request validators.
 /// Both requests expose the same flat policy fields, so the discriminated-shape
 /// invariant is identical. The rules target the model (not the nullable
-/// properties directly) so the FluentValidation → NSwag schema bridge leaves
+/// properties directly) so the FluentValidation → OpenAPI schema bridge leaves
 /// <c>RequireEmployeeRecord</c>/<c>DefaultRoleId</c> nullable and optional.
 /// </summary>
 internal static class OidcProviderRequestRules

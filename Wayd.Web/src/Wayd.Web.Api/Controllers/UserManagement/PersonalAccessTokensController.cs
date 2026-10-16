@@ -19,7 +19,7 @@ public class PersonalAccessTokensController : ControllerBase
     }
 
     [HttpGet]
-    [OpenApiOperation("Get all personal access tokens for the current user.", "")]
+    [EndpointSummary("Get all personal access tokens for the current user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<PersonalAccessTokenDto>>> GetMyTokens(CancellationToken cancellationToken)
@@ -32,7 +32,7 @@ public class PersonalAccessTokensController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [OpenApiOperation("Get a personal access token by ID.", "")]
+    [EndpointSummary("Get a personal access token by ID.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -46,7 +46,8 @@ public class PersonalAccessTokensController : ControllerBase
     }
 
     [HttpPost]
-    [OpenApiOperation("Create a new personal access token.", "Returns the plaintext token - this is the ONLY time it will be visible!")]
+    [EndpointSummary("Create a new personal access token.")]
+    [EndpointDescription("Returns the plaintext token - this is the ONLY time it will be visible!")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -61,7 +62,7 @@ public class PersonalAccessTokensController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [OpenApiOperation("Update a personal access token's name and/or expiration date.", "")]
+    [EndpointSummary("Update a personal access token's name and/or expiration date.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -77,7 +78,8 @@ public class PersonalAccessTokensController : ControllerBase
     }
 
     [HttpPut("{id}/revoke")]
-    [OpenApiOperation("Revoke a personal access token.", "Revoked tokens are kept for audit purposes.")]
+    [EndpointSummary("Revoke a personal access token.")]
+    [EndpointDescription("Revoked tokens are kept for audit purposes.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -91,7 +93,8 @@ public class PersonalAccessTokensController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [OpenApiOperation("Permanently delete a personal access token.", "This removes the token from the database entirely.")]
+    [EndpointSummary("Permanently delete a personal access token.")]
+    [EndpointDescription("This removes the token from the database entirely.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

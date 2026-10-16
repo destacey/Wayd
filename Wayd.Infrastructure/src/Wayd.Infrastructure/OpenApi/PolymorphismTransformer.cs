@@ -18,9 +18,10 @@ namespace Wayd.Infrastructure.OpenApi;
 /// interfaces after the schemas, and the client code imports <c>EntraConnectionDetailsDto</c>.
 /// </para>
 /// <para>
-/// As in NSwag's description, the mapping lists only the derived types, not the base's own discriminator,
-/// and an abstract base carries <c>x-abstract</c>. Only the schema stage knows the hierarchy, so it records
-/// it on the base's schema; the document stage, where the generator has made the components, rewrites them.
+/// The mapping lists only the derived types, not the base's own discriminator, and an abstract base carries
+/// <c>x-abstract</c>, which NSwag's TypeScript generator reads. Only the schema stage knows the hierarchy, so
+/// it records it on the base's schema; the document stage, where the generator has made the components,
+/// rewrites them.
 /// </para>
 /// </remarks>
 public sealed class PolymorphismTransformer : IOpenApiSchemaTransformer, IOpenApiDocumentTransformer

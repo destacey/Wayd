@@ -27,7 +27,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Get a list of strategic initiatives.", "Optionally filter by status and/or portfolioId.")]
+    [EndpointSummary("Get a list of strategic initiatives.")]
+    [EndpointDescription("Optionally filter by status and/or portfolioId.")]
     [McpTool("StrategicInitiatives_GetStrategicInitiatives", "List strategic initiatives")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -44,7 +45,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Get strategic initiative details, including its portfolio, date range, sponsors, and owners.", "")]
+    [EndpointSummary("Get strategic initiative details, including its portfolio, date range, sponsors, and owners.")]
     [McpTool("StrategicInitiatives_GetStrategicInitiative", "Get strategic initiative")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -59,8 +60,9 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Get a strategic initiative's activity history, newest first: every change recorded on the initiative — details, roles, timeline, status, linked projects, and its KPIs with their targets, checkpoint plans and measurements.",
+    [EndpointSummary(
+        "Get a strategic initiative's activity history, newest first: every change recorded on the initiative — details, roles, timeline, status, linked projects, and its KPIs with their targets, checkpoint plans and measurements.")]
+    [EndpointDescription(
         "Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
     [McpTool("StrategicInitiatives_GetActivities", "Get strategic initiative activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -76,7 +78,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Create a strategic initiative.", "")]
+    [EndpointSummary("Create a strategic initiative.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStrategicInitiativeRequest request, CancellationToken cancellationToken)
     {
@@ -94,7 +96,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     /// </summary>
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.")]
+    [EndpointSummary("Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription("Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -189,7 +192,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Update a strategic initiative.", "")]
+    [EndpointSummary("Update a strategic initiative.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -207,8 +210,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/approve")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Approve a proposed strategic initiative.",
+    [EndpointSummary("Approve a proposed strategic initiative.")]
+    [EndpointDescription(
         "Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("StrategicInitiatives_Approve", "Approve strategic initiative")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -225,8 +228,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Activate an approved strategic initiative.",
+    [EndpointSummary("Activate an approved strategic initiative.")]
+    [EndpointDescription(
         "Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("StrategicInitiatives_Activate", "Activate strategic initiative")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -243,8 +246,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/complete")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Complete an active or on-hold strategic initiative.",
+    [EndpointSummary("Complete an active or on-hold strategic initiative.")]
+    [EndpointDescription(
         "**Completing closes the initiative**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("StrategicInitiatives_Complete", "Complete strategic initiative")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -261,8 +264,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/cancel")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Cancel a strategic initiative.",
+    [EndpointSummary("Cancel a strategic initiative.")]
+    [EndpointDescription(
         "**Cancelling closes the initiative**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("StrategicInitiatives_Cancel", "Cancel strategic initiative")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -279,7 +282,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Delete a strategic initiative.", "")]
+    [EndpointSummary("Delete a strategic initiative.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -293,7 +296,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Get a list of all strategic initiative statuses.", "Call this to resolve the integer enum values used by the status filter.")]
+    [EndpointSummary("Get a list of all strategic initiative statuses.")]
+    [EndpointDescription("Call this to resolve the integer enum values used by the status filter.")]
     [McpTool("StrategicInitiatives_GetStatuses", "List strategic initiative statuses")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -307,8 +311,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{id}/kpis")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Get the KPIs for a strategic initiative — the measures that define whether it succeeded.",
+    [EndpointSummary("Get the KPIs for a strategic initiative — the measures that define whether it succeeded.")]
+    [EndpointDescription(
         "Each KPI carries a starting (baseline) value, a target value, the latest actual value, and a computed progress percentage toward the target. targetDirection is Increase or Decrease; for a Decrease KPI a falling value is improvement, so never assume a lower number is worse.")]
     [McpTool("StrategicInitiatives_GetKpis", "List a strategic initiative's KPIs")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -324,7 +328,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{id}/kpis/{kpiId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Get a single KPI for a strategic initiative.", "")]
+    [EndpointSummary("Get a single KPI for a strategic initiative.")]
     [McpTool("StrategicInitiatives_GetKpi", "Get KPI")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -339,7 +343,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/kpis")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Create a KPI for a strategic initiative.", "")]
+    [EndpointSummary("Create a KPI for a strategic initiative.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> CreateKpi(Guid id, [FromBody] CreateStrategicInitiativeKpiRequest request, CancellationToken cancellationToken)
     {
@@ -355,7 +359,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPut("{id}/kpis/{kpiId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Update a KPI for a strategic initiative.", "")]
+    [EndpointSummary("Update a KPI for a strategic initiative.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -373,7 +377,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpDelete("{id}/kpis/{kpiId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Delete a KPI for a strategic initiative.", "")]
+    [EndpointSummary("Delete a KPI for a strategic initiative.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -388,7 +392,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/kpis/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Reorder KPIs for a strategic initiative.", "")]
+    [EndpointSummary("Reorder KPIs for a strategic initiative.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -403,8 +407,9 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{id}/kpis/{kpiId}/checkpoints")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Get the checkpoints for a KPI — the dated milestones a KPI is expected to hit, each with its own target value and optional at-risk threshold.",
+    [EndpointSummary(
+        "Get the checkpoints for a KPI — the dated milestones a KPI is expected to hit, each with its own target value and optional at-risk threshold.")]
+    [EndpointDescription(
         "Returns the checkpoint definitions only, without the measurements taken against them; use StrategicInitiatives_GetKpiCheckpointPlan for both together.")]
     [McpTool("StrategicInitiatives_GetKpiCheckpoints", "List KPI checkpoints")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -420,8 +425,9 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{id}/kpis/{kpiId}/checkpoints/plan")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Get the checkpoint plan for a KPI: every checkpoint paired with the measurement recorded against it, plus a computed health and trend per checkpoint.",
+    [EndpointSummary(
+        "Get the checkpoint plan for a KPI: every checkpoint paired with the measurement recorded against it, plus a computed health and trend per checkpoint.")]
+    [EndpointDescription(
         "This is the best single call for assessing whether a KPI is on track over time. A checkpoint with no measurement has a null measurement, health, and trend.")]
     [McpTool("StrategicInitiatives_GetKpiCheckpointPlan", "Get KPI checkpoint plan")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -437,7 +443,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/kpis/{kpiId}/checkpoints/plan")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Manage the checkpoint plan for a strategic initiative KPI.", "")]
+    [EndpointSummary("Manage the checkpoint plan for a strategic initiative KPI.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -455,7 +461,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{id}/kpis/{kpiId}/measurements")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Get every measurement recorded against a KPI, each with its actual value, the date it was taken, who took it, and an optional note.", "")]
+    [EndpointSummary("Get every measurement recorded against a KPI, each with its actual value, the date it was taken, who took it, and an optional note.")]
     [McpTool("StrategicInitiatives_GetKpiMeasurements", "List KPI measurements")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -470,8 +476,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/kpis/{kpiId}/measurements")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Record a measurement against a KPI — the actual observed value at a point in time.",
+    [EndpointSummary("Record a measurement against a KPI — the actual observed value at a point in time.")]
+    [EndpointDescription(
         "Measurements accumulate as a history rather than overwriting; the KPI's headline actual value is the measurement with the latest measurementDate. Measurement dates must be unique within a KPI, so re-submitting an existing date is rejected rather than treated as an update. strategicInitiativeId and kpiId in the body must match the path parameters. Unlike the KPI read tools, this takes UUIDs only, not keys.")]
     [McpTool("StrategicInitiatives_AddKpiMeasurement", "Record a KPI measurement", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -491,8 +497,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpDelete("{id}/kpis/{kpiId}/measurements/{measurementId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation(
-        "Remove a measurement from a KPI.",
+    [EndpointSummary("Remove a measurement from a KPI.")]
+    [EndpointDescription(
         "This deletes the recorded history entry and changes the KPI's derived actual value and progress. To record a new observation, add a measurement instead — deletion is only for correcting a wrong entry, or for freeing up a date so it can be re-recorded.")]
     [McpTool("StrategicInitiatives_RemoveKpiMeasurement", "Remove a KPI measurement")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -513,7 +519,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpGet("{idOrKey}/projects")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Get the projects linked to a strategic initiative — the delivery work carried out to achieve it.", "")]
+    [EndpointSummary("Get the projects linked to a strategic initiative — the delivery work carried out to achieve it.")]
     [McpTool("StrategicInitiatives_GetProjects", "List a strategic initiative's projects")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -529,7 +535,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/projects")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Manage projects for the strategic initiative.", "")]
+    [EndpointSummary("Manage projects for the strategic initiative.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

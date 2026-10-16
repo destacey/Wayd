@@ -27,8 +27,8 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProductTypes)]
-    [OpenApiOperation(
-        "List the product types an organization recognises, in the order an administrator arranged them.",
+    [EndpointSummary("List the product types an organization recognises, in the order an administrator arranged them.")]
+    [EndpointDescription(
         "**Call this before Products_Create or Products_Retype**, which both need a type UUID.\n\nThe flag that matters is `isReleasable`: it decides whether versions can be cut against products of this type. A product line or a platform is typically not releasable; a service, application or library is. It also gates retyping — a product with versions cannot be moved to a type that is not releasable.\n\nInactive types cannot be assigned to a product, though a product already carrying one keeps it.")]
     [McpTool("ProductTypes_GetProductTypes", "List product types")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -43,8 +43,8 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ProductTypes)]
-    [OpenApiOperation(
-        "Define a product type.",
+    [EndpointSummary("Define a product type.")]
+    [EndpointDescription(
         "**`isReleasable` is the consequential field** — it decides whether versions can be cut against products of this type, and it is what a product line or platform sets to false. Names must be unique. `order` is presentation only and implies no hierarchy.")]
     [McpTool("ProductTypes_Create", "Create a product type", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
@@ -60,8 +60,8 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTypes)]
-    [OpenApiOperation(
-        "Update a product type.",
+    [EndpointSummary("Update a product type.")]
+    [EndpointDescription(
         "**This is a whole-record overwrite, and `isReleasable` is required — so renaming a type means resending its current releasability, and sending the wrong value silently changes whether versions can be cut against every product of this type.** Read the type first.\n\nRefused on a seeded system type. Names must stay unique.")]
     [McpTool("ProductTypes_Update", "Update a product type", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -82,8 +82,8 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/active")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTypes)]
-    [OpenApiOperation(
-        "Take a product type out of use, or put it back.",
+    [EndpointSummary("Take a product type out of use, or put it back.")]
+    [EndpointDescription(
         "A deactivated type cannot be assigned to a product, but products already using it keep resolving it — which is why this is deactivation rather than deletion.\n\nUnlike editing, this **is** allowed on a seeded system type: an organization that does not ship libraries should be able to hide that type without the seeder recreating it.")]
     [McpTool("ProductTypes_SetActive", "Activate or deactivate a product type", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -104,8 +104,8 @@ public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTypes)]
-    [OpenApiOperation(
-        "Delete a product type.",
+    [EndpointSummary("Delete a product type.")]
+    [EndpointDescription(
         "Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A type is \"in use\" when any product carries it, so in practice this only removes a type created by mistake and never assigned.")]
     [McpTool("ProductTypes_Delete", "Delete a product type", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

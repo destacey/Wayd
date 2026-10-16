@@ -19,7 +19,7 @@ internal static class ConfigureServices
         // A host built only to be introspected must not touch the database. The Hangfire *server* is a
         // hosted service that resolves JobStorage on start, and SqlServerStorage installs its schema in
         // its constructor - so against a missing or unmigrated database this turns a Debug *build*
-        // (NSwag boots the real app to read the OpenAPI document) into a build failure. The client-side
+        // (the build boots the real app to read the OpenAPI document) into a build failure. The client-side
         // registrations below stay: they resolve storage lazily, and nothing enqueues a job while the
         // OpenAPI document is being read.
         if (!HostIntrospection.SkipsDatabaseInitialization(config))

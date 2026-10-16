@@ -17,7 +17,7 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Get the holiday calendars, by name.", "")]
+    [EndpointSummary("Get the holiday calendars, by name.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<HolidayCalendarListDto>>> GetList(CancellationToken cancellationToken)
     {
@@ -26,7 +26,7 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Get a holiday calendar with its holidays.", "")]
+    [EndpointSummary("Get a holiday calendar with its holidays.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<HolidayCalendarDetailsDto>> Get(string idOrKey, CancellationToken cancellationToken)
@@ -37,7 +37,7 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Get a holiday calendar's activity history, newest first: its creation, detail changes, and holidays being added, changed or removed.", "")]
+    [EndpointSummary("Get a holiday calendar's activity history, newest first: its creation, detail changes, and holidays being added, changed or removed.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -48,7 +48,7 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Create a holiday calendar with no holidays.", "")]
+    [EndpointSummary("Create a holiday calendar with no holidays.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateHolidayCalendarRequest request, CancellationToken cancellationToken)
     {
@@ -61,7 +61,7 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Rename a holiday calendar or change its description.", "")]
+    [EndpointSummary("Rename a holiday calendar or change its description.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateHolidayCalendarRequest request, CancellationToken cancellationToken)
@@ -78,7 +78,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id:guid}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Delete a holiday calendar with its holidays.", "Refused while a team operating model uses the calendar or it is the system default.")]
+    [EndpointSummary("Delete a holiday calendar with its holidays.")]
+    [EndpointDescription("Refused while a team operating model uses the calendar or it is the system default.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -92,7 +93,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id:guid}/holidays")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Add a holiday to a calendar.", "A calendar holds at most one holiday per date.")]
+    [EndpointSummary("Add a holiday to a calendar.")]
+    [EndpointDescription("A calendar holds at most one holiday per date.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> AddHoliday(Guid id, [FromBody] HolidayRequest request, CancellationToken cancellationToken)
     {
@@ -105,7 +107,7 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:guid}/holidays/{holidayId:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Move a holiday to another date or rename it.", "")]
+    [EndpointSummary("Move a holiday to another date or rename it.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ChangeHoliday(Guid id, Guid holidayId, [FromBody] HolidayRequest request, CancellationToken cancellationToken)
@@ -119,7 +121,7 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id:guid}/holidays/{holidayId:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
-    [OpenApiOperation("Remove a holiday from a calendar.", "")]
+    [EndpointSummary("Remove a holiday from a calendar.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveHoliday(Guid id, Guid holidayId, CancellationToken cancellationToken)

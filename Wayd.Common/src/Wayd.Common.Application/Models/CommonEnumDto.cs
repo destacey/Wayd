@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Wayd.Common.Application.Models;
+﻿namespace Wayd.Common.Application.Models;
 
 public record CommonEnumDto
 {
@@ -32,11 +30,6 @@ public record CommonEnumDto
 public record CommonEnumDto<TEnum> : CommonEnumDto where TEnum : struct, Enum
 {
     /// <summary>The value's stable name, as filters on this set accept it.</summary>
-    /// <remarks>
-    /// <c>[Required]</c> because NSwag does not infer it for a value-type property declared on a generic
-    /// base; without it the generated clients type the code as optional.
-    /// </remarks>
-    [Required]
     public TEnum Code { get; set; }
 
     /// <summary>Lists every value of <typeparamref name="TEnum"/> with its display metadata.</summary>

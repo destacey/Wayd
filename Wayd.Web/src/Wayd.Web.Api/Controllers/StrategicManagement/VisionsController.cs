@@ -18,7 +18,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Visions)]
-    [OpenApiOperation("Get a list of visions.", "")]
+    [EndpointSummary("Get a list of visions.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<VisionDto>>> GetVisions([FromQuery] VisionState? state, CancellationToken cancellationToken)
@@ -30,7 +30,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Visions)]
-    [OpenApiOperation("Get vision details.", "")]
+    [EndpointSummary("Get vision details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<VisionDto>> GetVision(string idOrKey, CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Visions)]
-    [OpenApiOperation("Create a vision.", "")]
+    [EndpointSummary("Create a vision.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateVisionRequest request, CancellationToken cancellationToken)
     {
@@ -57,7 +57,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Visions)]
-    [OpenApiOperation("Update a vision.", "")]
+    [EndpointSummary("Update a vision.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -75,7 +75,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Visions)]
-    [OpenApiOperation("Activate a vision.", "")]
+    [EndpointSummary("Activate a vision.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -90,7 +90,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Visions)]
-    [OpenApiOperation("Archive a vision.", "")]
+    [EndpointSummary("Archive a vision.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -105,7 +105,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Visions)]
-    [OpenApiOperation("Delete a vision.", "")]
+    [EndpointSummary("Delete a vision.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -119,7 +119,7 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
 
     [HttpGet("states")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Visions)]
-    [OpenApiOperation("Get a list of all vision states.", "")]
+    [EndpointSummary("Get a list of all vision states.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<VisionStateDto>>> GetStateOptions(CancellationToken cancellationToken)

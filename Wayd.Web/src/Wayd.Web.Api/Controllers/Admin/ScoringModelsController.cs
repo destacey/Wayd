@@ -19,7 +19,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Get a list of scoring models.", "")]
+    [EndpointSummary("Get a list of scoring models.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ScoringModelListDto>>> GetScoringModels([FromQuery] ScoringModelState? state, CancellationToken cancellationToken)
@@ -31,7 +31,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Get scoring model details.", "")]
+    [EndpointSummary("Get scoring model details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ScoringModelDetailsDto>> GetScoringModel(string idOrKey, CancellationToken cancellationToken)
@@ -45,7 +45,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Get activity history for the scoring model.", "")]
+    [EndpointSummary("Get activity history for the scoring model.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -59,7 +59,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Create a scoring model.", "")]
+    [EndpointSummary("Create a scoring model.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> Create([FromBody] CreateScoringModelRequest request, CancellationToken cancellationToken)
     {
@@ -72,7 +72,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Update a scoring model.", "")]
+    [EndpointSummary("Update a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -87,7 +87,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Delete a scoring model.", "")]
+    [EndpointSummary("Delete a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -101,7 +101,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Activate a scoring model.", "")]
+    [EndpointSummary("Activate a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -116,7 +116,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Archive a scoring model.", "")]
+    [EndpointSummary("Archive a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -131,7 +131,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/evaluate")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Evaluate (test) a scoring model against supplied criterion values.", "")]
+    [EndpointSummary("Evaluate (test) a scoring model against supplied criterion values.")]
     [ProducesResponseType(typeof(ScoringModelEvaluationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -148,7 +148,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/criteria")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Add a criterion to a scoring model.", "")]
+    [EndpointSummary("Add a criterion to a scoring model.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddCriterion(Guid id, [FromBody] ScoringModelCriterionRequest request, CancellationToken cancellationToken)
     {
@@ -161,7 +161,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPut("{id}/criteria/{criterionId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Update a criterion in a scoring model.", "")]
+    [EndpointSummary("Update a criterion in a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -176,7 +176,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpDelete("{id}/criteria/{criterionId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Remove a criterion from a scoring model.", "")]
+    [EndpointSummary("Remove a criterion from a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveCriterion(Guid id, Guid criterionId, CancellationToken cancellationToken)
@@ -190,7 +190,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/criteria/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Reorder criteria in a scoring model.", "")]
+    [EndpointSummary("Reorder criteria in a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -209,7 +209,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/scales")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Add a rating scale to a scoring model.", "")]
+    [EndpointSummary("Add a rating scale to a scoring model.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddScale(Guid id, [FromBody] ScoringScaleRequest request, CancellationToken cancellationToken)
     {
@@ -222,7 +222,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPut("{id}/scales/{scaleId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Rename a rating scale in a scoring model.", "")]
+    [EndpointSummary("Rename a rating scale in a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -237,7 +237,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpDelete("{id}/scales/{scaleId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Remove a rating scale from a scoring model.", "")]
+    [EndpointSummary("Remove a rating scale from a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveScale(Guid id, Guid scaleId, CancellationToken cancellationToken)
@@ -251,7 +251,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/scales/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Reorder rating scales in a scoring model.", "")]
+    [EndpointSummary("Reorder rating scales in a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -270,7 +270,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/scales/{scaleId}/levels")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Add a rating level to a scale.", "")]
+    [EndpointSummary("Add a rating level to a scale.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddScaleLevel(Guid id, Guid scaleId, [FromBody] ScoringScaleLevelRequest request, CancellationToken cancellationToken)
     {
@@ -283,7 +283,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPut("{id}/scales/{scaleId}/levels/{levelId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Update a rating level on a scale.", "")]
+    [EndpointSummary("Update a rating level on a scale.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -298,7 +298,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpDelete("{id}/scales/{scaleId}/levels/{levelId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Remove a rating level from a scale.", "")]
+    [EndpointSummary("Remove a rating level from a scale.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveScaleLevel(Guid id, Guid scaleId, Guid levelId, CancellationToken cancellationToken)
@@ -312,7 +312,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/scales/{scaleId}/levels/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Reorder rating levels on a scale.", "")]
+    [EndpointSummary("Reorder rating levels on a scale.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -331,7 +331,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/outputs")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Add an output formula to a scoring model.", "")]
+    [EndpointSummary("Add an output formula to a scoring model.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddOutput(Guid id, [FromBody] ScoringModelOutputRequest request, CancellationToken cancellationToken)
     {
@@ -344,7 +344,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPut("{id}/outputs/{outputId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Update an output formula in a scoring model.", "")]
+    [EndpointSummary("Update an output formula in a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -359,7 +359,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpDelete("{id}/outputs/{outputId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Remove an output formula from a scoring model.", "")]
+    [EndpointSummary("Remove an output formula from a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveOutput(Guid id, Guid outputId, CancellationToken cancellationToken)
@@ -373,7 +373,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/outputs/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ScoringModels)]
-    [OpenApiOperation("Reorder output formulas in a scoring model.", "")]
+    [EndpointSummary("Reorder output formulas in a scoring model.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

@@ -8,7 +8,7 @@ namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
 /// Adds the header an action declares with <see cref="SwaggerHeaderAttribute"/> to its parameters, replacing
-/// any of the same name, as NSwag's <see cref="SwaggerHeaderAttributeProcessor"/> does.
+/// any of the same name.
 /// </summary>
 public sealed class SwaggerHeaderOperationTransformer : IOpenApiOperationTransformer
 {

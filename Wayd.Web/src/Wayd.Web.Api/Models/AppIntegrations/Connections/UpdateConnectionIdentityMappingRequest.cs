@@ -19,7 +19,7 @@ public sealed record UpdateConnectionIdentityMappingRequest
     /// <summary>The employee to attribute this identity to. Required when the action is Map.</summary>
     /// <remarks>
     /// Left out of this validator on purpose. A <c>NotNull</c> rule here — even behind a
-    /// <c>When</c> — makes NSwag emit the property as required, so the generated clients demand an
+    /// <c>When</c> — makes the OpenAPI document mark the property as required, so the generated clients demand an
     /// employee for Ignore and Clear too. The command validator enforces it where the rule belongs.
     /// </remarks>
     public Guid? EmployeeId { get; set; }

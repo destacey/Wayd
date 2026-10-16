@@ -10,7 +10,7 @@ using Microsoft.OpenApi;
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Marks each parameter and request body with NSwag's <c>x-position</c> and <c>x-name</c>, each parameter that
+/// Marks each parameter and request body with <c>x-position</c> and <c>x-name</c>, each parameter that
 /// may be omitted as <c>nullable</c>, and gives date and instant parameters their formats.
 /// </summary>
 /// <remarks>
@@ -60,7 +60,7 @@ public sealed class ParameterTransformer : IOpenApiOperationTransformer
                 parameter.Schema = OpenApiSchemas.Nullable(parameter.Schema);
 
             // The generator drops the default of a parameter whose type is a component, since OpenAPI 3.0
-            // ignores anything beside a $ref; NSwag keeps it in a wrapper.
+            // ignores anything beside a $ref; a wrapper keeps it.
             if (parameter.Schema is OpenApiSchemaReference reference && description.DefaultValue is { } defaultValue)
                 parameter.Schema = new OpenApiSchema { Default = JsonValue.Create(defaultValue.ToString()), OneOf = [reference] };
         }

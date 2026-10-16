@@ -14,7 +14,7 @@ public class SearchController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [OpenApiOperation("Global search across all modules.", "")]
+    [EndpointSummary("Global search across all modules.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GlobalSearchResultDto>> Search(

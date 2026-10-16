@@ -2,12 +2,13 @@ using Microsoft.OpenApi;
 
 namespace Wayd.Infrastructure.OpenApi;
 
-/// <summary>Builds the schema shapes NSwag writes, for the transformers that reproduce them.</summary>
+/// <summary>Schema shapes the transformers share.</summary>
 internal static class OpenApiSchemas
 {
     /// <summary>
     /// The schema, allowing null. A reference cannot carry <c>nullable</c> in OpenAPI 3.0, so it is wrapped
-    /// as NSwag wraps it: <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>.
+    /// as <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, which NSwag's TypeScript generator reads as
+    /// the referenced type or null.
     /// </summary>
     public static IOpenApiSchema Nullable(IOpenApiSchema? schema)
     {

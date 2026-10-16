@@ -4,18 +4,16 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using Namotion.Reflection;
 
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Describes an object's properties as NSwag does: which are required, which may be null, which are
-/// deprecated, and whether the object takes properties it does not list.
+/// Describes an object's properties for the generated clients: which are required, which may be null, which
+/// are deprecated, and whether the object takes properties it does not list.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A property is required when it cannot be null, as <see cref="MarkAsRequiredIfNonNullableSchemaProcessor"/>
-/// decides, or when it is declared required. The generator on its own requires the members declared
+/// A property is required when it cannot be null or is declared required. The generator on its own requires the members declared
 /// <c>required</c> or <c>[Required]</c>, and every parameter of the constructor a record deserializes
 /// through, nullable or not. The TypeScript client types a property that is not required as optional
 /// (<c>name?: string</c>), so the generator's reading would make every non-nullable property of a class
@@ -24,12 +22,11 @@ namespace Wayd.Infrastructure.OpenApi;
 /// <para>
 /// A property may be null exactly when its declaration says so. The generator cannot read the annotation of
 /// a property typed by a generic parameter (<c>NavigationDto&lt;Guid, string&gt;.Key</c>) and calls it nullable.
-/// NSwag decides <c>required</c> and <c>nullable</c> with two different readers, which disagree only for such
-/// a property, and this keeps both.
+/// Such a property is required when its type argument cannot be null, and never nullable.
 /// </para>
 /// <para>
 /// A <c>[Required]</c> string must also not be empty, published as <c>minLength: 1</c>; an
-/// <see cref="ObsoleteAttribute"/> property is <c>deprecated</c> with NSwag's <c>x-deprecatedMessage</c>, which
+/// <see cref="ObsoleteAttribute"/> property is <c>deprecated</c> with an <c>x-deprecatedMessage</c>, which
 /// the TypeScript client turns into <c>@deprecated</c>; and a type that keeps unknown properties in a
 /// <c>[JsonExtensionData]</c> member accepts any others. <see cref="DocumentShapeTransformer"/> closes every
 /// other object.
@@ -90,20 +87,43 @@ public sealed class ObjectSchemaTransformer : IOpenApiSchemaTransformer
     }
 
     /// <summary>
-    /// Whether the property is published as <c>nullable</c>, read as NSwag's schema generator reads it: through
-    /// the type arguments a generic property is closed over (<c>NavigationDto&lt;Guid, string&gt;.Key</c> is not
-    /// nullable), and taking an unannotated reference as not nullable.
+    /// Whether the property is published as <c>nullable</c>: a property typed by its class's type parameter
+    /// (<c>NavigationDto&lt;Guid, string&gt;.Key</c>) is not, and an unannotated reference is not.
     /// </summary>
-    private static bool MayBeNull(JsonPropertyInfo property) => property.AttributeProvider switch
+    private bool MayBeNull(JsonPropertyInfo property)
     {
-        PropertyInfo info => info.ToContextualProperty().Nullability == Nullability.Nullable,
-        FieldInfo info => info.ToContextualField().Nullability == Nullability.Nullable,
-        _ => Nullable.GetUnderlyingType(property.PropertyType) is not null || !property.PropertyType.IsValueType,
-    };
+        if (property.PropertyType.IsValueType)
+            return Nullable.GetUnderlyingType(property.PropertyType) is not null;
+
+        if (property.AttributeProvider is not MemberInfo member)
+            return true;
+
+        // A property typed by the declaring class's type parameter has no annotation of its own to read.
+        if (member.DeclaringType is { IsGenericType: true } declaring
+            && declaring.GetGenericTypeDefinition().GetMember(member.Name, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault() switch
+            {
+                PropertyInfo definition => definition.PropertyType.IsGenericParameter,
+                FieldInfo definition => definition.FieldType.IsGenericParameter,
+                _ => false,
+            })
+        {
+            return false;
+        }
+
+        // NullabilityInfoContext caches per member and is not thread-safe; documents are generated concurrently.
+        lock (_nullability)
+        {
+            return member switch
+            {
+                PropertyInfo info => _nullability.Create(info).ReadState == NullabilityState.Nullable,
+                FieldInfo info => _nullability.Create(info).ReadState == NullabilityState.Nullable,
+                _ => true,
+            };
+        }
+    }
 
     /// <summary>
-    /// Whether the property is left out of <c>required</c>, decided as
-    /// <see cref="MarkAsRequiredIfNonNullableSchemaProcessor"/> decides it.
+    /// Whether the property is left out of <c>required</c>: whether the value written to it may be null.
     /// </summary>
     private bool IsNullable(JsonPropertyInfo property)
     {

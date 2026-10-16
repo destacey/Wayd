@@ -20,7 +20,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
 
     [HttpPost("{id}/sync-organization")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Sync Azure DevOps organization processes and projects.", "")]
+    [EndpointSummary("Sync Azure DevOps organization processes and projects.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SyncOrganizationConfiguration(
@@ -34,7 +34,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
 
     [HttpPost("{id}/init-work-process")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Initialize Azure DevOps work process integration.", "")]
+    [EndpointSummary("Initialize Azure DevOps work process integration.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> InitWorkProcessIntegration(
@@ -52,7 +52,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
 
     [HttpPost("{id}/init-workspace")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Initialize Azure DevOps workspace integration.", "")]
+    [EndpointSummary("Initialize Azure DevOps workspace integration.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> InitWorkspaceIntegration(
@@ -73,7 +73,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
 
     [HttpGet("{id}/teams")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
-    [OpenApiOperation("Get Azure DevOps connection teams.", "")]
+    [EndpointSummary("Get Azure DevOps connection teams.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<AzureDevOpsWorkspaceTeamDto>>> GetConnectionTeams(
@@ -85,7 +85,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
 
     [HttpPost("{id}/teams")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Update Azure DevOps team mappings.", "")]
+    [EndpointSummary("Update Azure DevOps team mappings.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MapConnectionTeams(
@@ -104,7 +104,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
 
     [HttpPost("test")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Test Azure DevOps connection configuration.", "")]
+    [EndpointSummary("Test Azure DevOps connection configuration.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> TestConfig(

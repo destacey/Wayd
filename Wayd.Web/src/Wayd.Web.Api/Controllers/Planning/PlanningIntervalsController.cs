@@ -50,7 +50,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get a list of planning intervals.", "")]
+    [EndpointSummary("Get a list of planning intervals.")]
     [McpTool("PlanningIntervals_GetList", "List planning intervals")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -62,7 +62,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get planning interval details.", "")]
+    [EndpointSummary("Get planning interval details.")]
     [McpTool("PlanningIntervals_GetPlanningInterval", "Get planning interval")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -77,8 +77,9 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation(
-        "Get a planning interval's activity history, newest first: every change recorded on the interval itself — details, dates, teams, iterations, sprint mappings, and objectives being locked or unlocked.",
+    [EndpointSummary(
+        "Get a planning interval's activity history, newest first: every change recorded on the interval itself — details, dates, teams, iterations, sprint mappings, and objectives being locked or unlocked.")]
+    [EndpointDescription(
         "Each objective keeps its own history (`PlanningIntervals_GetObjectiveActivities`). Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
     [McpTool("PlanningIntervals_GetActivities", "Get planning interval activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -94,7 +95,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/calendar")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get the PI calendar.", "")]
+    [EndpointSummary("Get the PI calendar.")]
     [McpTool("PlanningIntervals_GetCalendar", "Get PI calendar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -110,7 +111,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/predictability")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get the PI predictability for all teams.", "")]
+    [EndpointSummary("Get the PI predictability for all teams.")]
     [McpTool("PlanningIntervals_GetPredictability", "Get PI predictability")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -126,7 +127,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Create a planning interval.", "")]
+    [EndpointSummary("Create a planning interval.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult> Create([FromBody] CreatePlanningIntervalRequest request, CancellationToken cancellationToken)
     {
@@ -139,8 +140,9 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation(
-        "Submit a csv file of planning intervals to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+    [EndpointSummary(
+        "Submit a csv file of planning intervals to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription(
         "One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
@@ -190,7 +192,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Update a planning interval.", "")]
+    [EndpointSummary("Update a planning interval.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -208,7 +210,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/teams")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get a list of teams participating in a planning interval.", "")]
+    [EndpointSummary("Get a list of teams participating in a planning interval.")]
     [McpTool("PlanningIntervals_GetTeams", "List PI teams")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -231,7 +233,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/teams/{teamId}/predictability")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get the PI predictability for a specific team.", "")]
+    [EndpointSummary("Get the PI predictability for a specific team.")]
     [McpTool("PlanningIntervals_GetTeamPredictability", "Get a team's PI predictability")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -244,7 +246,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Manage planning interval dates and iterations.", "")]
+    [EndpointSummary("Manage planning interval dates and iterations.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ManageDates(Guid id, [FromBody] ManagePlanningIntervalDatesRequest request, CancellationToken cancellationToken)
@@ -261,7 +263,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/teams")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Manage planning interval teams.", "")]
+    [EndpointSummary("Manage planning interval teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ManageTeams(Guid id, [FromBody] ManagePlanningIntervalTeamsRequest request, CancellationToken cancellationToken)
@@ -280,7 +282,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/iterations")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get a list of iterations for a planning interval.", "")]
+    [EndpointSummary("Get a list of iterations for a planning interval.")]
     [McpTool("PlanningIntervals_GetIterations", "List PI iterations")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -297,8 +299,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpGet("{idOrKey}/capacity")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation(
-        "Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.",
+    [EndpointSummary(
+        "Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.")]
+    [EndpointDescription(
         "Returns the planning interval's `iterations` in date order and, for each team in it, its capacity in person-days after holidays, time away and team days off: a `total` over the whole planning interval and one figure per iteration in `iterations`, each with `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity and `awayPersonDays` that time away took. Iterations are read by the planning interval's own dates, whatever a team's sprint length or cadence. A team of teams is counted as its rollup: its own allocations and those of the teams beneath it for the days they were in its hierarchy, so a team beneath it that is also in the planning interval is counted in both rows. A team's sprint days off count as nobody working, wherever that team is counted, and a team's are listed in `teamDaysOff`. `hasAllocations` is false for a team with nobody allocated in the planning interval. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -313,7 +316,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/iterations/{iterationIdOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get a specific planning interval iteration.", "")]
+    [EndpointSummary("Get a specific planning interval iteration.")]
     [McpTool("PlanningIntervals_GetIteration", "Get PI iteration")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -329,7 +332,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("iteration-categories")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get a list of iteration categories.", "")]
+    [EndpointSummary("Get a list of iteration categories.")]
     [McpTool("PlanningIntervals_GetIterationCategories", "List iteration categories")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -341,7 +344,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/iterations/sprints")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get iteration sprint mappings for a Planning Interval.", "Optionally filter by iterationId.")]
+    [EndpointSummary("Get iteration sprint mappings for a Planning Interval.")]
+    [EndpointDescription("Optionally filter by iterationId.")]
     [McpTool("PlanningIntervals_GetIterationSprints", "List PI iteration sprint mappings")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -357,7 +361,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/teams/{teamId}/sprints")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Map team sprints to Planning Interval iterations.", "This is a sync/replace operation that sets the complete desired state for the team's sprint mappings.")]
+    [EndpointSummary("Map team sprints to Planning Interval iterations.")]
+    [EndpointDescription("This is a sync/replace operation that sets the complete desired state for the team's sprint mappings.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -378,7 +383,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get PI-level metrics aggregated across all mapped sprints in every iteration.", "")]
+    [EndpointSummary("Get PI-level metrics aggregated across all mapped sprints in every iteration.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -498,8 +503,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/iterations/{iterationIdOrKey}/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation(
-        "Get metrics for a PI iteration aggregated across all mapped sprints.",
+    [EndpointSummary("Get metrics for a PI iteration aggregated across all mapped sprints.")]
+    [EndpointDescription(
         "Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.")]
     [McpTool("PlanningIntervals_GetIterationMetrics", "Get PI iteration metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -590,7 +595,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/iterations/{iterationIdOrKey}/backlog")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get combined backlog for a PI iteration from all mapped sprints.", "")]
+    [EndpointSummary("Get combined backlog for a PI iteration from all mapped sprints.")]
     [McpTool("PlanningIntervals_GetIterationBacklog", "Get PI iteration backlog")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -628,7 +633,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/backlog")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get the combined backlog for a PI from every sprint mapped to any of its iterations.", "")]
+    [EndpointSummary("Get the combined backlog for a PI from every sprint mapped to any of its iterations.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -661,7 +666,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/objectives")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get a list of planning interval objectives.", "Optionally filter by teamId.")]
+    [EndpointSummary("Get a list of planning interval objectives.")]
+    [EndpointDescription("Optionally filter by teamId.")]
     [McpTool("PlanningIntervals_GetObjectives", "List PI objectives")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -674,7 +680,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get a planning interval objective.", "")]
+    [EndpointSummary("Get a planning interval objective.")]
     [McpTool("PlanningIntervals_GetObjective", "Get PI objective")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -690,8 +696,9 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation(
-        "Get a planning interval objective's activity history, newest first: every change recorded on the objective — details, status, progress, order, stretch, timeline and health checks.",
+    [EndpointSummary(
+        "Get a planning interval objective's activity history, newest first: every change recorded on the objective — details, status, progress, order, stretch, timeline and health checks.")]
+    [EndpointDescription(
         "The objective must belong to the planning interval named alongside it, or the call returns 404. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
     [McpTool("PlanningIntervals_GetObjectiveActivities", "Get planning interval objective activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -707,7 +714,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/objectives")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Create a planning interval objective.", "")]
+    [EndpointSummary("Create a planning interval objective.")]
     [ProducesResponseType(typeof(ObjectIdAndKey), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -726,7 +733,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPut("{id}/objectives/{objectiveId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Update a planning interval objective.", "")]
+    [EndpointSummary("Update a planning interval objective.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -747,7 +754,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPut("{id}/objectives/order")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Update the order of planning interval objectives.", "")]
+    [EndpointSummary("Update the order of planning interval objectives.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -766,7 +773,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/objectives/health-report")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get a health report for planning interval objectives.", "Optionally filter by teamId.")]
+    [EndpointSummary("Get a health report for planning interval objectives.")]
+    [EndpointDescription("Optionally filter by teamId.")]
     [McpTool("PlanningIntervals_GetObjectivesHealthReport", "Get PI objectives health report")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -783,7 +791,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get work items linked to a planning interval objective.", "")]
+    [EndpointSummary("Get work items linked to a planning interval objective.")]
     [McpTool("PlanningIntervals_GetObjectiveWorkItems", "List a PI objective's work items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -808,8 +816,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation(
-        "Forecast when a planning interval objective's linked work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.",
+    [EndpointSummary(
+        "Forecast when a planning interval objective's linked work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.")]
+    [EndpointDescription(
         "Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining); on Forecast, completion `percentiles` (a `date` per `confidence`) and `chanceOfFinishingByTargetDate` (0 to 1) against `targetDate` when given, else the objective's target date, else the planning interval's end. `excludedWorkItems` could not be forecast (see `issues`), which makes the dates a lower bound; `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.")]
     [McpTool("PlanningIntervals_GetObjectiveForecast", "Forecast PI objective completion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -847,7 +856,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/work-items/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get daily metrics for work items linked to a planning interval objective.", "")]
+    [EndpointSummary("Get daily metrics for work items linked to a planning interval objective.")]
     [McpTool("PlanningIntervals_GetObjectiveWorkItemMetrics", "Get PI objective work item metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -875,7 +884,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/objectives/{objectiveId}/work-items")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Manage objective work items.", "")]
+    [EndpointSummary("Manage objective work items.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -900,7 +909,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("objectives/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Submit a csv file of planning interval objectives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.")]
+    [EndpointSummary("Submit a csv file of planning interval objectives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription("Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -951,7 +961,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpDelete("{id}/objectives/{objectiveId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Delete a planning interval objective.", "")]
+    [EndpointSummary("Delete a planning interval objective.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> DeleteObjective(Guid id, Guid objectiveId, CancellationToken cancellationToken)
@@ -965,7 +975,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("objective-statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get a list of all PI objective statuses.", "")]
+    [EndpointSummary("Get a list of all PI objective statuses.")]
     [McpTool("PlanningIntervals_GetObjectiveStatuses", "List PI objective statuses")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -981,7 +991,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{id}/objectives/{objectiveId}/health-checks")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get the full health check history for a planning interval objective, ordered newest first.", "")]
+    [EndpointSummary("Get the full health check history for a planning interval objective, ordered newest first.")]
     [McpTool("PlanningIntervals_GetObjectiveHealthChecks", "List PI objective health checks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -993,7 +1003,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{id}/objectives/{objectiveId}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Get a single planning interval objective health check by ID.", "")]
+    [EndpointSummary("Get a single planning interval objective health check by ID.")]
     [McpTool("PlanningIntervals_GetObjectiveHealthCheck", "Get PI objective health check")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -1008,8 +1018,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/objectives/{objectiveId}/health-checks")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation(
-        "Log a new health check on a planning interval objective.",
+    [EndpointSummary("Log a new health check on a planning interval objective.")]
+    [EndpointDescription(
         "Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Note: the API requires planningIntervalObjectiveId in the body in addition to the objectiveId path parameter — they must match.")]
     [McpTool("PlanningIntervals_CreateObjectiveHealthCheck", "Log a PI objective health check", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
@@ -1027,7 +1037,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPut("{id}/objectives/{objectiveId}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Update a planning interval objective health check.", "")]
+    [EndpointSummary("Update a planning interval objective health check.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -1047,7 +1057,7 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpDelete("{id}/objectives/{objectiveId}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Delete a planning interval objective health check.", "")]
+    [EndpointSummary("Delete a planning interval objective health check.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -1066,7 +1076,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/risks")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [OpenApiOperation("Get planning interval risks. The default value for includeClosed is false.", "Optionally filter by teamId.")]
+    [EndpointSummary("Get planning interval risks. The default value for includeClosed is false.")]
+    [EndpointDescription("Optionally filter by teamId.")]
     [McpTool("PlanningIntervals_GetRisks", "List PI risks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

@@ -20,7 +20,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpGet("job-types")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Get a list of all job types.", "")]
+    [EndpointSummary("Get a list of all job types.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<BackgroundJobTypeDto>>> GetJobTypes(CancellationToken cancellationToken)
@@ -32,7 +32,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpGet("running")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Get a list of running jobs.", "")]
+    [EndpointSummary("Get a list of running jobs.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public ActionResult<IReadOnlyList<BackgroundJobDto>> GetRunningJobs()
@@ -43,7 +43,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpPost("run")]
     [MustHavePermission(ApplicationAction.Run, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Run a background job.", "")]
+    [EndpointSummary("Run a background job.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Run(int jobTypeId, [FromServices] IJobManager jobManager, CancellationToken cancellationToken)
@@ -98,7 +98,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Run, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Create a recurring background job.", "")]
+    [EndpointSummary("Create a recurring background job.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] CreateRecurringJobRequest request, [FromServices] IJobManager jobManager, CancellationToken cancellationToken)
@@ -139,7 +139,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpGet("jobs")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Get a page of jobs in the given lifecycle state.", "")]
+    [EndpointSummary("Get a page of jobs in the given lifecycle state.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ActionResult<JobsResponse> GetJobs(
         [FromQuery] JobStateFilter state = JobStateFilter.Processing,
@@ -152,7 +152,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpGet("jobs/{jobId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Get the full detail of a job, including its arguments, state history, and failure stack trace.", "")]
+    [EndpointSummary("Get the full detail of a job, including its arguments, state history, and failure stack trace.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public ActionResult<JobDetailResponse> GetJobDetail(string jobId)
@@ -168,28 +168,28 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpGet("statistics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Get job counts by lifecycle state.", "")]
+    [EndpointSummary("Get job counts by lifecycle state.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ActionResult<JobStatisticsResponse> GetStatistics() =>
         Ok(JobStatisticsResponse.From(_jobService.GetStatistics()));
 
     [HttpGet("servers")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Get the job servers currently polling for work.", "")]
+    [EndpointSummary("Get the job servers currently polling for work.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ActionResult<IReadOnlyList<JobServerResponse>> GetServers() =>
         Ok(_jobService.GetServers().Select(JobServerResponse.From));
 
     [HttpGet("recurring")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Get all registered recurring jobs.", "")]
+    [EndpointSummary("Get all registered recurring jobs.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ActionResult<IReadOnlyList<RecurringJobResponse>> GetRecurringJobs() =>
         Ok(_jobService.GetRecurringJobs().Select(RecurringJobResponse.From));
 
     [HttpDelete("recurring/{recurringJobId}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Remove a recurring job registration.", "")]
+    [EndpointSummary("Remove a recurring job registration.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public IActionResult RemoveRecurringJob(string recurringJobId) =>
@@ -197,7 +197,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpPost("jobs/{jobId}/requeue")]
     [MustHavePermission(ApplicationAction.Run, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Requeue a job for another attempt.", "")]
+    [EndpointSummary("Requeue a job for another attempt.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public IActionResult RequeueJob(string jobId) =>
@@ -205,7 +205,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
 
     [HttpDelete("jobs/{jobId}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.BackgroundJobs)]
-    [OpenApiOperation("Delete a job, moving it to the deleted state.", "")]
+    [EndpointSummary("Delete a job, moving it to the deleted state.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public IActionResult DeleteJob(string jobId) =>

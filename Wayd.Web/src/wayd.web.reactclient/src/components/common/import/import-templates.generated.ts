@@ -100,7 +100,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'Further work addresses for this person, semicolon-separated. Email stays the primary; these are additional addresses the person is known by in other systems — typically ones left behind by a domain or tenant move. Home and personal addresses do not belong here.',
+              'Further work addresses for this person, semicolon-separated. `Email` stays the primary; these are additional addresses the person is known by in other systems — typically ones left behind by a domain or tenant move. Home and personal addresses do not belong here.',
           },
         ],
       },
@@ -973,7 +973,7 @@ export const importTemplates = {
             type: 'text',
             required: true,
             description:
-              'The ImportId of the initiative row this KPI belongs to. Where that row left the column blank its position stands in, so 1 reaches the first initiative — but a file carrying KPIs should supply ImportId, since inserting a row silently re-parents every KPI below it.',
+              'The `ImportId` of the initiative row this KPI belongs to. Where that row left the column blank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs should supply `ImportId`, since inserting a row silently re-parents every KPI below it.',
           },
           {
             name: 'Name',
@@ -1054,7 +1054,7 @@ export const importTemplates = {
             type: 'text',
             required: true,
             description:
-              'Development, Testing, Staging, Production or Other, case-insensitively.',
+              '`Development`, `Testing`, `Staging`, `Production` or `Other`, case-insensitively.',
             values: [
               'Development',
               'Testing',
@@ -1074,7 +1074,7 @@ export const importTemplates = {
             type: 'boolean',
             required: false,
             description:
-              "Whether the environment is still deployed into. Blank means active; false creates it and then retires it, for the environments a historical backfill's deployments still point at.",
+              "Whether the environment is still deployed into. Blank means active; `false` creates it and then retires it, for the environments a historical backfill's deployments still point at.",
           },
         ],
       },
@@ -1122,7 +1122,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'The build that actually shipped — 4.8.2.008 where the version number is 4.8.2.',
+              'The build that actually shipped — `4.8.2.008` where the version number is `4.8.2`.',
             maxLength: 128,
           },
           {
@@ -1136,7 +1136,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'Succeeded, Failed or RolledBack, case-insensitively. Blank leaves the deployment in flight.',
+              '`Succeeded`, `Failed` or `RolledBack`, case-insensitively. Blank leaves the deployment in flight.',
             values: ['Succeeded', 'Failed', 'RolledBack'],
           },
           {
@@ -1195,7 +1195,7 @@ export const importTemplates = {
             type: 'text',
             required: true,
             description:
-              'Hard if the product stops working without it, Soft if it degrades but keeps working. Required: there is no default, because a guessed strength misstates impact.',
+              '`Hard` if the product stops working without it, `Soft` if it degrades but keeps working. Required: there is no default, because a guessed strength misstates impact.',
             values: ['Hard', 'Soft'],
           },
           {
@@ -1203,7 +1203,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'How the product reaches the one it relies on: Synchronous, Asynchronous, or both separated by a semicolon or comma. Blank records none, which is not the same as recording that there are none.',
+              'How the product reaches the one it relies on: `Synchronous`, `Asynchronous`, or both separated by a semicolon or comma. Blank records none, which is not the same as recording that there are none.',
             values: ['Synchronous', 'Asynchronous'],
           },
           {
@@ -1218,7 +1218,7 @@ export const importTemplates = {
             type: 'date',
             required: false,
             description:
-              'The day it began. Blank means today, so an EndsOn before today is refused.',
+              'The day it began. Blank means today, so an `EndsOn` before today is refused.',
           },
           {
             name: 'EndsOn',
@@ -1268,7 +1268,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'The ImportId of another row in this file, or empty for a root product.',
+              'The `ImportId` of another row in this file, or empty for a root product.',
           },
           {
             name: 'ExternalId',
@@ -1289,7 +1289,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The product's tags, as semicolon-separated Category|Tag pairs — Platform|ios;Platform|android;Compliance|pci-scope.",
+              "The product's tags, as semicolon-separated `Category|Tag` pairs — `Platform|ios;Platform|android;Compliance|pci-scope`.",
           },
         ],
       },
@@ -1467,13 +1467,15 @@ export const importTemplates = {
             name: 'PackageId',
             type: 'id',
             required: false,
-            description: 'The package, by id. Required when Kind is `Package`.',
+            description:
+              'The package, by id. Required when `Kind` is `Package`.',
           },
           {
             name: 'VersionId',
             type: 'id',
             required: false,
-            description: 'The version, by id. Required when Kind is `Version`.',
+            description:
+              'The version, by id. Required when `Kind` is `Version`.',
           },
         ],
       },
@@ -1737,7 +1739,7 @@ export const importTemplates = {
             type: 'date',
             required: false,
             description:
-              'When the team was retired. Required when IsActive is false; must be after ActiveDate.',
+              'When the team was retired. Required when `IsActive` is false; must be after `ActiveDate`.',
           },
         ],
       },

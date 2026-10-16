@@ -15,7 +15,7 @@ public class WorkflowAssignmentsController(ILogger<WorkflowAssignmentsController
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Get which status workflow governs each scope.", "")]
+    [EndpointSummary("Get which status workflow governs each scope.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkflowAssignmentDto>>> GetWorkflowAssignments([FromQuery] string? ownerType, CancellationToken cancellationToken)
@@ -27,7 +27,7 @@ public class WorkflowAssignmentsController(ILogger<WorkflowAssignmentsController
 
     [HttpGet("{id}/remap-preview")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Preview how each status would land in the target workflow, before anything is committed.", "")]
+    [EndpointSummary("Preview how each status would land in the target workflow, before anything is committed.")]
     [ProducesResponseType(typeof(StatusRemapPreviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<StatusRemapPreviewDto>> PreviewRemap(Guid id, [FromQuery] Guid targetWorkflowId, CancellationToken cancellationToken)
@@ -41,7 +41,7 @@ public class WorkflowAssignmentsController(ILogger<WorkflowAssignmentsController
 
     [HttpPost("{id}/reassign")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [OpenApiOperation("Move a scope onto another status workflow and migrate its records.", "")]
+    [EndpointSummary("Move a scope onto another status workflow and migrate its records.")]
     [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

@@ -2,7 +2,7 @@ using Wayd.Common.Application.BackgroundJobs;
 
 namespace Wayd.Web.Api.Models.Admin.BackgroundJobs;
 
-/// <summary>A page of jobs in one lifecycle state. <see cref="PageNumber"/> is 0-based.</summary>
+/// <summary>A page of jobs in one lifecycle state. <c>PageNumber</c> is 0-based.</summary>
 public class JobsResponse
 {
     public long TotalCount { get; set; }

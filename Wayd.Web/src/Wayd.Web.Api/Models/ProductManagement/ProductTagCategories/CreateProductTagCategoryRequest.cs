@@ -19,7 +19,7 @@ public sealed record CreateProductTagCategoryRequest
 
     /// <summary>
     /// Whether a product can carry several tags from this axis. True suits Platform, where a
-    /// cross-platform app genuinely targets both iOS and Android. <strong>Fixed once set</strong>:
+    /// cross-platform app genuinely targets both iOS and Android. Fixed once set:
     /// narrowing it later would leave products holding more tags than the axis permits.
     /// </summary>
     public bool AllowsMany { get; set; }

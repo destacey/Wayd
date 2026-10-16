@@ -7,7 +7,7 @@ namespace Wayd.Web.Api.Models.Ppm.Programs;
 /// <summary>
 /// A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes
 /// by a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers.
-/// <see cref="Status"/> is the status the program should end up in (case-insensitive), reached by replaying
+/// <c>Status</c> is the status the program should end up in (case-insensitive), reached by replaying
 /// the real lifecycle transitions.
 /// </summary>
 public sealed class ImportProgramRequest

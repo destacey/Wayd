@@ -41,7 +41,7 @@ public sealed class ImportEmployeeRequest
     public string? EmployeeType { get; set; }
 
     /// <summary>
-    /// Further <em>work</em> addresses for this person, semicolon-separated. <see cref="Email"/> stays the
+    /// Further work addresses for this person, semicolon-separated. <c>Email</c> stays the
     /// primary; these are additional addresses the person is known by in other systems — typically ones
     /// left behind by a domain or tenant move. Home and personal addresses do not belong here.
     /// </summary>

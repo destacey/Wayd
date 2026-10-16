@@ -54809,7 +54809,7 @@
           },
           "isActive": {
             "type": "boolean",
-            "description": "Indicates whether the organization is active or not.  "
+            "description": "Indicates whether the organization is active or not."
           },
           "teamOfTeams": {
             "nullable": true,
@@ -55430,7 +55430,7 @@
           },
           "teamCode": {
             "type": "string",
-            "description": "The team's short code (e.g. \"CORE\"). Used to route to the\n            team-specific tab on the plan-review page."
+            "description": "The team's short code (e.g. \"CORE\"). Used to route to the team-specific tab on the plan-review page."
           },
           "predictability": {
             "type": "number",
@@ -67260,7 +67260,7 @@
               },
               "orgExclusions": {
                 "type": "array",
-                "description": "Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the\nsupplied collection becomes the new full set (omitted or empty => no exclusions).",
+                "description": "Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the\nsupplied collection becomes the new full set (omitted or empty means no exclusions).",
                 "nullable": true,
                 "items": {
                   "$ref": "#/components/schemas/WorkdayOrgExclusionRequest"

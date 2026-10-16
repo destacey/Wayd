@@ -4,20 +4,14 @@ namespace Wayd.Web.Api.Models.ProductManagement.Deployments;
 
 /// <summary>
 /// A single CSV row for the deployment import.
-/// <para>
-/// Exactly one of <see cref="VersionId"/> and <see cref="PackageId"/> is set, both by id. The
+/// Exactly one of <c>VersionId</c> and <c>PackageId</c> is set, both by id. The
 /// environment is named, because names are unique. A build number is never resolved to a version: the
-/// row says which version it deployed and carries the build as its <see cref="ArtifactId"/>.
-/// </para>
-/// <para>
-/// There is no status column. A row with no <see cref="Outcome"/> is still in flight; one with an
+/// row says which version it deployed and carries the build as its <c>ArtifactId</c>.
+/// There is no status column. A row with no <c>Outcome</c> is still in flight; one with an
 /// outcome is walked through the same transitions a person would record, with the real timestamps
 /// supplied here. A rollback is recorded as a success first, so it needs both the time it completed
 /// and the time it was reverted.
-/// </para>
-/// <para>
-/// Timestamps are instants, and each must carry its offset (see <see cref="OffsetTimestamp"/>).
-/// </para>
+/// Timestamps are instants, and each must carry its offset (see <c>OffsetTimestamp</c>).
 /// </summary>
 public sealed class ImportDeploymentRequest
 {

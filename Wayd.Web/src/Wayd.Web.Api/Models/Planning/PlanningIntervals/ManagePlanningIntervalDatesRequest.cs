@@ -7,11 +7,9 @@ public sealed record ManagePlanningIntervalDatesRequest
     public Guid Id { get; set; }
 
     /// <summary>Gets or sets the start.</summary>
-    /// <value>The start.</value>
     public LocalDate Start { get; set; }
 
     /// <summary>Gets or sets the end.</summary>
-    /// <value>The end.</value>
     public LocalDate End { get; set; }
 
     /// <summary>

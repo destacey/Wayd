@@ -32,8 +32,7 @@ public sealed record PlanningIntervalTeamMetrics
 {
     public required NavigationDto Team { get; init; }
 
-    /// <summary>The team's short code (e.g. "CORE"). Used to route to the
-    /// team-specific tab on the plan-review page.</summary>
+    /// <summary>The team's short code (e.g. "CORE"). Used to route to the team-specific tab on the plan-review page.</summary>
     public required string TeamCode { get; init; }
 
     public double? Predictability { get; init; }

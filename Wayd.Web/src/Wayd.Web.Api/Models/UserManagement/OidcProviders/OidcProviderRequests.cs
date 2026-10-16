@@ -102,7 +102,7 @@ public sealed class CreateOidcProviderRequestValidator : CustomValidator<CreateO
 /// <summary>
 /// Structural validation for the update request. Mirrors the create rules minus
 /// the immutable Name/ProviderType fields; the command validator owns the
-/// service-backed checks. See <see cref="CreateOidcProviderRequestValidator"/>
+/// service-backed checks. See <c>CreateOidcProviderRequestValidator</c>
 /// for why the registration-policy rules are model-level predicates.
 /// </summary>
 public sealed class UpdateOidcProviderRequestValidator : CustomValidator<UpdateOidcProviderRequest>

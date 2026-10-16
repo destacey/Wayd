@@ -50780,7 +50780,7 @@ export interface PlanningIntervalTeamResponse {
     code: string;
     /** Gets the team type. */
     type: string;
-    /** Indicates whether the organization is active or not.   */
+    /** Indicates whether the organization is active or not. */
     isActive: boolean;
     teamOfTeams?: TeamNavigationDto | undefined;
 }
@@ -50936,8 +50936,7 @@ export interface CycleTimeSummary {
 /** Per-team rollup for a Planning Interval. Cycle time is averaged across all of the team's sprints mapped to any iteration in the PI; predictability matches the value returned by the predictability endpoint. */
 export interface PlanningIntervalTeamMetrics {
     team: NavigationDto;
-    /** The team's short code (e.g. "CORE"). Used to route to the
-            team-specific tab on the plan-review page. */
+    /** The team's short code (e.g. "CORE"). Used to route to the team-specific tab on the plan-review page. */
     teamCode: string;
     predictability?: number | undefined;
     /** Count of non-stretch (committed) objectives for this team in the PI. */
@@ -53899,7 +53898,7 @@ Mixed-case input is preserved. Default true. */
 discovered catalog on the connection (populated by the init probe), or null to skip. */
     departmentOrganizationTypeId?: string | undefined;
     /** Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the
-supplied collection becomes the new full set (omitted or empty => no exclusions). */
+supplied collection becomes the new full set (omitted or empty means no exclusions). */
     orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
 }
 

@@ -5,7 +5,6 @@ public sealed record UpdateWorkStatusRequest
     public int Id { get; set; }
 
     /// <summary>The description of the work status.</summary>
-    /// <value>The description.</value>
     public string? Description { get; set; }
 
     public UpdateWorkStatusCommand ToUpdateWorkStatusCommand()

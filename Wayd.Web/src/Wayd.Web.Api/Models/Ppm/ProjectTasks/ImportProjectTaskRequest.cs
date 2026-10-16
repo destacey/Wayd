@@ -10,7 +10,7 @@ namespace Wayd.Web.Api.Models.Ppm.ProjectTasks;
 /// <summary>
 /// A single CSV row for the project task import. The project is referenced by key and the stage by name
 /// (stages come from the project's assigned lifecycle). A task nests under another row in this file by its
-/// <see cref="ParentImportId"/>, or under a task the project already has by <see cref="ParentTaskId"/>;
+/// <c>ParentImportId</c>, or under a task the project already has by <c>ParentTaskId</c>;
 /// with neither it is a root task of its stage. Rows may be listed in any order — parents are applied
 /// before children.
 /// </summary>

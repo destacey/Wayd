@@ -6,10 +6,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.ReleasePackages;
 
 /// <summary>
 /// A single CSV row for the release package import — one package, without its manifest.
-/// <para>
-/// A package is identified by <see cref="Version"/> alone: it has no product, because it spans them.
-/// Manifest lines arrive in a second file and point back here by this row's <see cref="ImportId"/>.
-/// </para>
+/// A package is identified by <c>Version</c> alone: it has no product, because it spans them.
+/// Manifest lines arrive in a second file and point back here by this row's <c>ImportId</c>.
 /// </summary>
 public sealed class ImportReleasePackageRequest
 {
@@ -67,7 +65,7 @@ public sealed class ImportReleasePackageRequestValidator : CustomValidator<Impor
 /// A single CSV row for the manifest file: one component of one package.
 /// </summary>
 /// <remarks>
-/// <see cref="VersionNumber"/> is text rather than a reference. Where a version record exists for that
+/// <c>VersionNumber</c> is text rather than a reference. Where a version record exists for that
 /// product it is linked; where none does the string stands on its own, which is how a carried-forward
 /// component — already running, never cut here — is recorded.
 /// </remarks>

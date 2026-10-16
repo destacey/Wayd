@@ -5,11 +5,9 @@ namespace Wayd.Web.Api.Models.ProductManagement.DeploymentEnvironments;
 
 /// <summary>
 /// A single CSV row for the deployment environment import.
-/// <para>
-/// An environment is identified by <see cref="Name"/>, which is unique across the organization. The
+/// An environment is identified by <c>Name</c>, which is unique across the organization. The
 /// deployments import names its environment by this, so a file of environments is what a historical
 /// backfill loads first.
-/// </para>
 /// </summary>
 public sealed class ImportDeploymentEnvironmentRequest
 {

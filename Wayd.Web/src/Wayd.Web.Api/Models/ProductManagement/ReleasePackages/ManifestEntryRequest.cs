@@ -18,7 +18,7 @@ public sealed record ManifestEntryRequest
     /// component version that was never cut as a version of its own.
     /// </summary>
     /// <remarks>
-    /// Named for the version it points at, matching <see cref="ManifestEntry.VersionId"/> and the
+    /// Named for the version it points at, matching <c>VersionId</c> and the
     /// column behind it. It was <c>ReleaseId</c> before Release and Version were split apart, which
     /// silently broke the link: JSON binds by name, so a client sending <c>versionId</c> left this
     /// null and the manifest recorded no version record at all.

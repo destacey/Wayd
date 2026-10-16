@@ -8,7 +8,7 @@ public sealed record CutVersionRequest
     /// <summary>
     /// The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the
     /// clock, because cutting is often recorded after the fact. Required unless the deprecated
-    /// <see cref="CutDate"/> is sent instead.
+    /// <c>CutDate</c> is sent instead.
     /// </summary>
     public Instant? CutAt { get; set; }
 

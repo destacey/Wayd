@@ -15,7 +15,7 @@ public sealed record PlanReleaseRequest
 
     /// <summary>
     /// The release as your organization announces it — 2026.07, Spring Release, R4.
-    /// <strong>Free text, never parsed</strong>: nothing sorts or compares it.
+    /// Free text, never parsed: nothing sorts or compares it.
     /// </summary>
     public string Version { get; set; } = default!;
 
@@ -190,7 +190,7 @@ public sealed class WithdrawReleaseRequestValidator : CustomValidator<WithdrawRe
 public sealed record RevertReleaseRequest
 {
     /// <summary>
-    /// Why the release was reverted. <strong>Required</strong>, unlike a withdrawal's reason: this
+    /// Why the release was reverted. Required, unlike a withdrawal's reason: this
     /// contradicts what the append-only history already asserts, so the record has to say why.
     /// </summary>
     public string Reason { get; set; } = default!;

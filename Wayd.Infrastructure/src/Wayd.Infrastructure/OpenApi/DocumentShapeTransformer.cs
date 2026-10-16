@@ -7,11 +7,12 @@ namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
 /// The last pass over the finished document, for what only the whole document shows: its title and license,
-/// repeated operation ids, the way references are wrapped, and the tags in use.
+/// operation ids that repeat, the way references are wrapped, and the tags in use.
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item>An operation id used twice gets a number, <c>Teams_Get2</c>.</item>
+/// <item>An operation id used twice fails generation. Numbering the repeat would name a client method by
+/// the order the endpoints happen to be found in, and renumber it when they move.</item>
 /// <item>A property that refers to a component and may be null is written
 /// <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, not as the generator's
 /// <c>oneOf: [ { "nullable": true }, { "$ref": … } ]</c>, which NSwag's TypeScript generator would read as a
@@ -27,7 +28,8 @@ namespace Wayd.Infrastructure.OpenApi;
 /// generator first met the type as a nullable property and described it from there. Whether a value may be
 /// null is said where it is used.</item>
 /// <item>An endpoint outside a controller carries no tag, and a tag no operation uses is dropped.</item>
-/// <item>Line breaks in descriptions are <c>\n</c>, whatever the source files use.</item>
+/// <item>Each line of a description starts at its first word, and line breaks are <c>\n</c> whatever the
+/// source files use. The XML documentation support indents the first line of every <c>&lt;para&gt;</c>.</item>
 /// </list>
 /// </remarks>
 public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenApiDocumentTransformer
@@ -42,7 +44,7 @@ public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenAp
         document.Info.License = new OpenApiLicense
         {
             Name = _settings.LicenseName,
-            Url = _settings.LicenseUrl is null ? null : new Uri(_settings.LicenseUrl),
+            Url = Uri.TryCreate(_settings.LicenseUrl, UriKind.Absolute, out var licenseUrl) ? licenseUrl : null,
         };
 
         // The generator tags an endpoint outside a controller with the application's name, which would give it
@@ -54,12 +56,10 @@ public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenAp
             foreach (var tag in operation.Tags?.Where(t => t.Name == applicationName).ToList() ?? [])
                 operation.Tags!.Remove(tag);
 
-            if (operation.OperationId is { } id)
+            if (operation.OperationId is { } id && !operationIds.Add(id))
             {
-                var number = 1;
-                while (!operationIds.Add(number == 1 ? id : $"{id}{number}"))
-                    number++;
-                operation.OperationId = number == 1 ? id : $"{id}{number}";
+                throw new InvalidOperationException(
+                    $"Two operations have the id '{id}', which names a TypeScript client method. Rename one of the actions.");
             }
 
             operation.Summary = Normalize(operation.Summary);
@@ -173,5 +173,8 @@ public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenAp
             schema.AdditionalPropertiesAllowed = false;
     }
 
-    private static string? Normalize(string? text) => text?.Replace("\r\n", "\n", StringComparison.Ordinal);
+    private static string? Normalize(string? text) =>
+        text is null
+            ? null
+            : string.Join('\n', text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').Select(line => line.TrimStart())).Trim();
 }

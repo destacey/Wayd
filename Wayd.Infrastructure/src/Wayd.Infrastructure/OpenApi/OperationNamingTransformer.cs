@@ -16,7 +16,7 @@ namespace Wayd.Infrastructure.OpenApi;
 /// The id is <c>{Controller}_{Action}</c>, less an <c>Async</c> suffix; an endpoint outside a controller is
 /// named for its method and path (<c>GET /startup</c> is <c>GetStartup</c>). The TypeScript client is
 /// generated with <c>MultipleClientsFromOperationId</c>, which names every client class and method from the
-/// id, so a different id renames client code. <see cref="DocumentShapeTransformer"/> numbers any repeats.
+/// id, so a different id renames client code. <see cref="DocumentShapeTransformer"/> refuses a repeat.
 /// </para>
 /// <para>
 /// The summary and description are what an agent reads about each MCP tool. They replace what the

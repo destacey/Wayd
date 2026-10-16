@@ -112,7 +112,7 @@ try
     var app = builder.Build();
 
     // Skip startup-only database work when something is merely building the host to introspect it
-    // (EF tooling, or NSwag reading the OpenAPI document during a Debug build) rather than actually
+    // (EF tooling, or the Debug build reading the OpenAPI document) rather than actually
     // serving requests. Shared with the Hangfire registration so the two cannot drift apart - see
     // HostIntrospection for what each condition covers.
     var skipDbInit = Wayd.Infrastructure.HostIntrospection.SkipsDatabaseInitialization(builder.Configuration);

@@ -34,7 +34,7 @@ public sealed class ImportTeamRequest
     /// <summary>Whether the team is currently active. Defaults to true when the column is absent.</summary>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>When the team was retired. Required when <c>IsActive</c> is false; must be after <c>ActiveDate</c>.</summary>
+    /// <summary>When the team was retired. Required when <c>IsActive</c> is <c>false</c>; must be after <c>ActiveDate</c>.</summary>
     public DateOnly? InactiveDate { get; set; }
 
     public ImportTeamDto ToImportTeamDto()

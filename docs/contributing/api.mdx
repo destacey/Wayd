@@ -69,8 +69,8 @@ or retypes generated code:
 - **Component names** are the types' own: a generic type is named for its arguments
   (`NavigationDtoOfGuidAndInteger`), a derived class is `allOf` its base, and a `[JsonPolymorphic]` hierarchy
   is a base with a `discriminator` and its derived types under their own names.
-- **A property is required when it cannot be null**, so the client types it as present; nullability comes
-  from the declaration.
+- **A property is required when it cannot be null**, or when it is declared `required` or `[Required]`
+  even if it can, so the client types it as present; nullability comes from the declaration.
 - **`x-position` and `x-name`** set the order of a client method's arguments and the name of its body
   argument, and the client calls them positionally.
 - **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`.

@@ -94,12 +94,4 @@ public class WorkTypeLevelsController : ControllerBase
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
-
-    //[HttpDelete("{id}")]
-    //[MustHavePermission(ApplicationAction.Delete, ApplicationResource.WorkTypeLevels)]
-    //[EndpointSummary("Delete a work type level.")]
-    //public async Task<ActionResult> Delete(int id)
-    //{
-    //    throw new NotImplementedException();
-    //}
 }

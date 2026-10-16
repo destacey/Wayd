@@ -272,14 +272,6 @@ public class TeamsController(
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    //[HttpDelete("{id}")]
-    //[MustHavePermission(ApplicationAction.Delete, ApplicationResource.Teams)]
-    //[EndpointSummary("Delete an team.")]
-    //public async Task<string> Delete(string id)
-    //{
-    //    throw new NotImplementedException();
-    //}
-
     #region Team Memberships
 
     [HttpGet("{id}/team-memberships")]

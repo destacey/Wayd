@@ -75,12 +75,4 @@ public class WorkStatusesController : ControllerBase
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
-
-    //[HttpDelete("{id}")]
-    //[MustHavePermission(ApplicationAction.Delete, ApplicationResource.WorkStatuses)]
-    //[EndpointSummary("Delete a work status.")]
-    //public async Task<ActionResult> Delete(int id)
-    //{
-    //    throw new NotImplementedException();
-    //}
 }

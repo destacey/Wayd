@@ -32,7 +32,7 @@ public sealed class OpenApiDocumentTests(WaydApiFactory factory)
         // Assert
         Assert.True(
             JsonNode.DeepEquals(committed, served),
-            "specification.json is out of date: rebuild Wayd.Web.Api in Debug and commit the regenerated specification.json and wayd-api.ts.");
+            $"specification.json is out of date at {FirstDifference(committed, served, "$")}: rebuild Wayd.Web.Api in Debug and commit the regenerated specification.json and wayd-api.ts.");
     }
 
     [Fact]
@@ -47,7 +47,33 @@ public sealed class OpenApiDocumentTests(WaydApiFactory factory)
         var json = JsonNode.Parse(await document.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_0, TestContext.Current.CancellationToken))!.AsObject();
 
         // Assert
-        Assert.True(JsonNode.DeepEquals(served, json), "The document provider and the endpoint describe the API differently.");
+        Assert.True(JsonNode.DeepEquals(served, json), $"The document provider and the endpoint describe the API differently at {FirstDifference(served, json, "$")}.");
+    }
+
+    /// <summary>The JSON path of the first place two documents differ, or null when they do not.</summary>
+    private static string? FirstDifference(JsonNode? expected, JsonNode? actual, string path)
+    {
+        switch (expected, actual)
+        {
+            case (JsonObject left, JsonObject right):
+                foreach (var key in left.Select(p => p.Key).Union(right.Select(p => p.Key)))
+                {
+                    if (FirstDifference(left[key], right[key], $"{path}['{key}']") is { } found)
+                        return found;
+                }
+
+                return null;
+            case (JsonArray left, JsonArray right):
+                for (var i = 0; i < Math.Max(left.Count, right.Count); i++)
+                {
+                    if (FirstDifference(i < left.Count ? left[i] : null, i < right.Count ? right[i] : null, $"{path}[{i}]") is { } found)
+                        return found;
+                }
+
+                return null;
+            default:
+                return JsonNode.DeepEquals(expected, actual) ? null : path;
+        }
     }
 
     /// <summary>The served document, less the server the request reached, which only a served copy names.</summary>

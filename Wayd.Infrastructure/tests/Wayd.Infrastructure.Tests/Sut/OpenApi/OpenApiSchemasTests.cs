@@ -7,7 +7,7 @@ namespace Wayd.Infrastructure.Tests.Sut.OpenApi;
 public sealed class OpenApiSchemasTests
 {
     [Fact]
-    public void Nullable_WrapsAReferenceTheWayNSwagDoes()
+    public void Nullable_WrapsAReferenceInANullableOneOf()
     {
         // Arrange
         var document = new OpenApiDocument();

@@ -11,10 +11,13 @@ public sealed class SchemaReferenceIdsTests
     [InlineData(typeof(Box<Sample>), "BoxOfSample")]
     [InlineData(typeof(Box<Pair<Guid, long>>), "BoxOfPairOfGuidAndLong")]
     [InlineData(typeof(Sample), "Sample")]
-    public void For_NamesATypeAsNSwagDoes(Type type, string expected)
+    public void For_NamesAGenericTypeForItsArguments(Type type, string expected)
     {
+        // Arrange
+        var subject = type;
+
         // Act
-        var id = SchemaReferenceIds.For(type);
+        var id = SchemaReferenceIds.For(subject);
 
         // Assert
         id.Should().Be(expected);

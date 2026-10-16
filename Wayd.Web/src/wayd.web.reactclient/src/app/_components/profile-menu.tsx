@@ -55,7 +55,7 @@ const ProfileMenu = () => {
             icon: <FileTextOutlined />,
             onClick: () =>
               window.open(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL}/swagger`,
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/scalar`,
                 '_blank',
                 'noopener,noreferrer',
               ),

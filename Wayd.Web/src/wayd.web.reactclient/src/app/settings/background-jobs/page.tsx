@@ -67,7 +67,7 @@ const BackgroundJobsListPage = () => {
     const items: ItemType[] = []
 
     // Guarded on the base URL as well as the permission: without it the link would
-    // resolve to "undefined/jobs" (same treatment as the Swagger link in profile-menu).
+    // resolve to "undefined/jobs" (same treatment as the API Specification link in profile-menu).
     if (canViewHangfire && apiBaseUrl) {
       items.push({
         label: (

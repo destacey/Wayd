@@ -74,6 +74,20 @@ any resource starts.
 
 :::
 
+### The second document
+
+Spec generation is moving from NSwag to `Microsoft.AspNetCore.OpenApi`. Until it has, the API serves both:
+NSwag's at `/swagger/v1/swagger.json`, which `specification.json`, every generated client, the import
+templates and the MCP server are built from, and the new one at `/openapi/v1.json`, which nothing consumes
+yet.
+
+The transformers in `Wayd.Infrastructure/OpenApi/` (registered by `WaydOpenApiDocument`) make the new
+document say what NSwag's says: operation ids, schema names, inheritance, required and nullable
+properties, XML descriptions, the CSV import extensions. `OpenApiDocumentParityTests` compares the two
+documents fact by fact and fails on any difference it does not list with a reason, and writes
+`openapi-parity-report.md` to its output directory. A change to what NSwag publishes — a new processor, an
+attribute it reads — needs the matching transformer, or that test fails.
+
 ### CSV import endpoints
 
 An import endpoint binds only an uploaded file, so the shape of the CSV it reads never reaches the
@@ -87,7 +101,8 @@ built from what they publish — its column lists, accepted values and templates
 - `[CsvValues(typeof(SomeEnum))]` on a text column that parses into an enum publishes its accepted
   names.
 
-`CsvImportOperationProcessor` registers each row class as a schema and stamps the operation with an
+`CsvImportOperationProcessor` (and `CsvImportOperationTransformer` for the
+[second document](#the-second-document)) registers each row class as a schema and stamps the operation with an
 `x-wayd-import` extension; each property carries `x-csv-column`, its exact header. A property's XML
 summary becomes the column's description in the dialog, so write one wherever the name and type don't
 say what the cell must hold.

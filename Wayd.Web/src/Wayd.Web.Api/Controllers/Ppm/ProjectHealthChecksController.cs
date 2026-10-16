@@ -17,7 +17,7 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpGet("{id}/health-checks")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get the full health check history for a project, ordered newest first.", "")]
+    [EndpointSummary("Get the full health check history for a project, ordered newest first.")]
     [McpTool("Projects_GetProjectHealthChecks", "List project health checks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -29,7 +29,7 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpGet("{id}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a single project health check by ID.", "")]
+    [EndpointSummary("Get a single project health check by ID.")]
     [McpTool("Projects_GetProjectHealthCheck", "Get project health check")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -44,8 +44,8 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpPost("{id}/health-checks")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Log a new health check on a project.",
+    [EndpointSummary("Log a new health check on a project.")]
+    [EndpointDescription(
         "Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Caller must be the project, parent portfolio, or parent program owner or manager.")]
     [McpTool("Projects_CreateProjectHealthCheck", "Log a project health check", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -62,8 +62,8 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpPut("{id}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Correct an existing health check's status, expiration, or note.",
+    [EndpointSummary("Correct an existing health check's status, expiration, or note.")]
+    [EndpointDescription(
         "This rewrites what was reported for that point in time — to report a *new* assessment, use Projects_CreateProjectHealthCheck instead, which preserves the history. Every field is overwritten from the request body, so read the check first and echo back anything that should stay the same. Caller must be the project, parent portfolio, or parent program owner or manager.")]
     [McpTool("Projects_UpdateProjectHealthCheck", "Update project health check")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -80,8 +80,9 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
     [HttpDelete("{id}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Delete a health check from a project, permanently removing it from the project's health history.",
+    [EndpointSummary(
+        "Delete a health check from a project, permanently removing it from the project's health history.")]
+    [EndpointDescription(
         "Deleting the active check leaves the project with no current health status. Prefer logging a new check over deleting an old one — deletion rewrites the record of what was reported when.")]
     [McpTool("Projects_DeleteProjectHealthCheck", "Delete project health check")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

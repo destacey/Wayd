@@ -38,7 +38,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get a list of roadmaps.", "")]
+    [EndpointSummary("Get a list of roadmaps.")]
     [McpTool("Roadmaps_GetRoadmaps", "List roadmaps")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -50,7 +50,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get roadmap details.", "")]
+    [EndpointSummary("Get roadmap details.")]
     [McpTool("Roadmaps_GetRoadmap", "Get roadmap")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -65,7 +65,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Create a roadmap.", "")]
+    [EndpointSummary("Create a roadmap.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateRoadmapRequest request, CancellationToken cancellationToken)
     {
@@ -78,7 +78,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPost("copy")]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Copy an existing roadmap.", "")]
+    [EndpointSummary("Copy an existing roadmap.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Copy([FromBody] CopyRoadmapRequest request, CancellationToken cancellationToken)
     {
@@ -91,7 +91,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Update a roadmap.", "")]
+    [EndpointSummary("Update a roadmap.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -109,7 +109,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPut("{id}/colors")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Update the configured colors for a roadmap.", "")]
+    [EndpointSummary("Update the configured colors for a roadmap.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -127,7 +127,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Delete a roadmap.", "")]
+    [EndpointSummary("Delete a roadmap.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -141,7 +141,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Archive a roadmap.", "")]
+    [EndpointSummary("Archive a roadmap.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Archive(Guid id, CancellationToken cancellationToken)
@@ -155,7 +155,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Activate a roadmap.", "")]
+    [EndpointSummary("Activate a roadmap.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
@@ -171,7 +171,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("{idOrKey}/items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get all items (activities, timeboxes, milestones) for a roadmap.", "")]
+    [EndpointSummary("Get all items (activities, timeboxes, milestones) for a roadmap.")]
     [McpTool("Roadmaps_GetItems", "List roadmap items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -183,7 +183,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("{idOrKey}/items/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get roadmap activities.", "")]
+    [EndpointSummary("Get roadmap activities.")]
     [McpTool("Roadmaps_GetActivities", "List roadmap activities")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -195,7 +195,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("{roadmapIdOrKey}/items/{itemId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get roadmap item details.", "")]
+    [EndpointSummary("Get roadmap item details.")]
     [McpTool("Roadmaps_GetItem", "Get roadmap item")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -207,7 +207,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPost("{roadmapId}/items")]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Create a roadmap item of type: Activity, Timebox, Milestone.", "")]
+    [EndpointSummary("Create a roadmap item of type: Activity, Timebox, Milestone.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> CreateItem(Guid roadmapId, [FromBody] CreateRoadmapItemRequest request, CancellationToken cancellationToken)
     {
@@ -231,7 +231,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPut("{roadmapId}/items/{itemId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Update a roadmap item of type: Activity, Timebox, Milestone.", "")]
+    [EndpointSummary("Update a roadmap item of type: Activity, Timebox, Milestone.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -259,7 +259,8 @@ public class RoadmapsController : ControllerBase
 
     [HttpPatch("{roadmapId}/items/{itemId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Partially update a roadmap item using JSON Patch (RFC 6902).", "Applies a JSON Patch document to update specific fields of an Activity, Timebox, or Milestone.")]
+    [EndpointSummary("Partially update a roadmap item using JSON Patch (RFC 6902).")]
+    [EndpointDescription("Applies a JSON Patch document to update specific fields of an Activity, Timebox, or Milestone.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -333,7 +334,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPut("{roadmapId}/items/{itemId}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Update the date(s) on a roadmap item of type: Activity, Timebox, Milestone.", "")]
+    [EndpointSummary("Update the date(s) on a roadmap item of type: Activity, Timebox, Milestone.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -361,7 +362,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpPut("{roadmapId}/items/{itemId}/placement")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Update a roadmap activity's placement.", "")]
+    [EndpointSummary("Update a roadmap activity's placement.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateActivityPlacement(Guid roadmapId, Guid itemId, [FromBody] UpdateRoadmapActivityPlacementRequest request, CancellationToken cancellationToken)
@@ -380,7 +381,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpDelete("{roadmapId}/items/{itemId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Delete a roadmap item.", "")]
+    [EndpointSummary("Delete a roadmap item.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> DeleteItem(Guid roadmapId, Guid itemId, CancellationToken cancellationToken)
@@ -396,7 +397,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("visibility-options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get a list of all roadmap visibility options.", "")]
+    [EndpointSummary("Get a list of all roadmap visibility options.")]
     [McpTool("Roadmaps_GetVisibilityOptions", "List roadmap visibility options")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -408,7 +409,7 @@ public class RoadmapsController : ControllerBase
 
     [HttpGet("states")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
-    [OpenApiOperation("Get a list of all roadmap states.", "")]
+    [EndpointSummary("Get a list of all roadmap states.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RoadmapStateDto>>> GetStateOptions(CancellationToken cancellationToken)

@@ -2,7 +2,7 @@
  * Unit tests for the in-house JSON Schema -> Zod 4 emitter.
  *
  * This replaced the archived `json-schema-to-zod` package. The emitter covers
- * only the subset NSwag actually produces, so the guard tests matter as much as
+ * only the subset the API's OpenAPI document actually uses, so the guard tests matter as much as
  * the happy path: an unsupported keyword must fail the build rather than be
  * silently dropped, since a dropped constraint weakens argument validation.
  */

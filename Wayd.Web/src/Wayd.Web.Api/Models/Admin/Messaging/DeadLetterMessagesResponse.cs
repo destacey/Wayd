@@ -1,7 +1,7 @@
 namespace Wayd.Web.Api.Models.Admin.Messaging;
 
 /// <summary>
-/// A page of dead-lettered messages. <see cref="PageNumber"/> is 0-based, mirroring Wolverine's
+/// A page of dead-lettered messages. <c>PageNumber</c> is 0-based, mirroring Wolverine's
 /// DeadLetterEnvelopeQuery paging.
 /// </summary>
 public class DeadLetterMessagesResponse

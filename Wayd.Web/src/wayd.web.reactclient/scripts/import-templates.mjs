@@ -61,7 +61,7 @@ const buildColumns = (spec, schemaName) => {
     const name = raw[COLUMN_EXTENSION] ?? property[COLUMN_EXTENSION]
     if (!name) {
       throw new Error(
-        `${schemaName}.${jsonName} has no ${COLUMN_EXTENSION}; the API's CsvImportOperationProcessor did not run over it.`,
+        `${schemaName}.${jsonName} has no ${COLUMN_EXTENSION}; the API's CsvImportOperationTransformer did not run over it.`,
       )
     }
 

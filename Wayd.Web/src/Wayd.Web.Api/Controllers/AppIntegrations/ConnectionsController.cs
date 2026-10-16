@@ -35,7 +35,7 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
-    [OpenApiOperation("Get list of all connections.", "")]
+    [EndpointSummary("Get list of all connections.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ConnectionListDto>>> GetConnections(
         CancellationToken cancellationToken,
@@ -47,7 +47,7 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("connectors")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connectors)]
-    [OpenApiOperation("Get list of all connector types.", "")]
+    [EndpointSummary("Get list of all connector types.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ConnectorListDto>>> GetConnectors(CancellationToken cancellationToken)
     {
@@ -57,7 +57,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
-    [OpenApiOperation("Get connection details by ID.", "Returns polymorphic response based on connector type.")]
+    [EndpointSummary("Get connection details by ID.")]
+    [EndpointDescription("Returns polymorphic response based on connector type.")]
     [ProducesResponseType(typeof(ConnectionDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ConnectionDetailsDto>> GetConnection(Guid id, CancellationToken cancellationToken)
@@ -73,7 +74,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id}/identities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
-    [OpenApiOperation("Get the external identities this connection has seen.", "Users the connection's syncs referenced on work items, and the employee each resolves to. Unmapped identities are listed first.")]
+    [EndpointSummary("Get the external identities this connection has seen.")]
+    [EndpointDescription("Users the connection's syncs referenced on work items, and the employee each resolves to. Unmapped identities are listed first.")]
     [ProducesResponseType(typeof(IEnumerable<ExternalIdentityMappingDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ExternalIdentityMappingDto>>> GetConnectionIdentities(
@@ -87,7 +89,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/identities")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Map, ignore, or clear one external identity.", "Applies a single admin decision. A mapped or ignored identity is never revised by a later sync.")]
+    [EndpointSummary("Map, ignore, or clear one external identity.")]
+    [EndpointDescription("Applies a single admin decision. A mapped or ignored identity is never revised by a later sync.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateConnectionIdentity(
@@ -117,7 +120,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Connections)]
-    [OpenApiOperation("Create a new connection.", "Accepts polymorphic request based on connector type.")]
+    [EndpointSummary("Create a new connection.")]
+    [EndpointDescription("Accepts polymorphic request based on connector type.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> CreateConnection(
         [FromBody] CreateConnectionRequest request,
@@ -143,7 +147,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Update a connection.", "Accepts polymorphic request based on connector type.")]
+    [EndpointSummary("Update a connection.")]
+    [EndpointDescription("Accepts polymorphic request based on connector type.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateConnection(
@@ -172,7 +177,7 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
-    [OpenApiOperation("Get activity history for the connection.", "")]
+    [EndpointSummary("Get activity history for the connection.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -186,7 +191,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Activate a connection.",
+    [EndpointSummary("Activate a connection.")]
+    [EndpointDescription(
         "Marks the connection as active. Inactive connections are excluded from sync runs and other automated processes.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -205,7 +211,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/deactivate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Deactivate a connection.",
+    [EndpointSummary("Deactivate a connection.")]
+    [EndpointDescription(
         "Marks the connection as inactive. Inactive connections are excluded from all sync runs and cannot be manually synced.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -224,7 +231,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/run")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Trigger a sync for a connection.",
+    [EndpointSummary("Trigger a sync for a connection.")]
+    [EndpointDescription(
         "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector capability; a multi-capability connector runs every sync it supports. The syncType query parameter is honored by both work-sync and people-sync connectors; the default is Differential. For PeopleSync, Differential silently degrades to Full when no prior successful run exists (or when the source doesn't support incremental). The connection must be active.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -270,10 +278,11 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/init")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Validate (re-initialize) a connection.",
-        "Runs a small probe against the upstream system to confirm the configuration is usable. " +
-        "Updates IsValidConfiguration and any structured per-connector validation details. " +
-        "Supported when the connector registers an init probe (currently Workday).")]
+    [EndpointSummary("Validate (re-initialize) a connection.")]
+    [EndpointDescription(
+        "Runs a small probe against the upstream system to confirm the configuration is usable. "
+        + "Updates IsValidConfiguration and any structured per-connector validation details. "
+        + "Supported when the connector registers an init probe (currently Workday).")]
     [ProducesResponseType(typeof(ConnectionInitResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -299,10 +308,11 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id}/workday/orgs")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("List Workday organizations of a given type.",
-        "Lazy-loads the orgs of one Organization_Type_ID from the connection's Workday tenant for the admin's " +
-        "exclusion picker. Backed by Workday's Get_Organizations with a server-side type filter. Returns up to " +
-        "500 orgs. Requires the connection to be a Workday connection.")]
+    [EndpointSummary("List Workday organizations of a given type.")]
+    [EndpointDescription(
+        "Lazy-loads the orgs of one Organization_Type_ID from the connection's Workday tenant for the admin's "
+        + "exclusion picker. Backed by Workday's Get_Organizations with a server-side type filter. Returns up to "
+        + "500 orgs. Requires the connection to be a Workday connection.")]
     [ProducesResponseType(typeof(IReadOnlyList<DiscoveredOrg>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -327,7 +337,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id}/sync-runs")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
-    [OpenApiOperation("Get sync run history for a connection.",
+    [EndpointSummary("Get sync run history for a connection.")]
+    [EndpointDescription(
         "Returns sync runs for the specified connection, ordered by start time descending. Filtered by 'since' (UTC, defaults to the last 24 hours when omitted).")]
     [ProducesResponseType(typeof(IEnumerable<SyncRunListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<SyncRunListDto>>> GetSyncRuns(
@@ -349,7 +360,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("sync-runs/{syncRunId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
-    [OpenApiOperation("Get sync run details.", "Returns full details including per-workspace breakdown for a single sync run.")]
+    [EndpointSummary("Get sync run details.")]
+    [EndpointDescription("Returns full details including per-workspace breakdown for a single sync run.")]
     [ProducesResponseType(typeof(SyncRunDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SyncRunDetailsDto>> GetSyncRun(Guid syncRunId, CancellationToken cancellationToken)
@@ -361,7 +373,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Connections)]
-    [OpenApiOperation("Delete a connection.", "Works for all connector types.")]
+    [EndpointSummary("Delete a connection.")]
+    [EndpointDescription("Works for all connector types.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

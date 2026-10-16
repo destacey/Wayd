@@ -5,7 +5,7 @@ namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 
 /// <summary>
 /// A single CSV row for the planning interval import. The teams that ran the interval ride on the same
-/// row as <see cref="TeamIds"/>, a semicolon-separated list of ids — the repo's multi-value column
+/// row as <c>TeamIds</c>, a semicolon-separated list of ids — the repo's multi-value column
 /// convention — so one row is one planning interval and there is no second file.
 /// </summary>
 public sealed class ImportPlanningIntervalRequest

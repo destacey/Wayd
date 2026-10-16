@@ -11,7 +11,7 @@ public sealed record PlanVersionRequest
 
     /// <summary>
     /// The version as your organization writes it — 4.8.2, 2026.08, v3-beta, a build number, a git tag.
-    /// <strong>Free text, never parsed</strong>: nothing sorts or compares it, so any convention works.
+    /// Free text, never parsed: nothing sorts or compares it, so any convention works.
     /// </summary>
     public string Version { get; set; } = default!;
 

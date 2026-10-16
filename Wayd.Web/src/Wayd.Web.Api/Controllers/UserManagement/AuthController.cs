@@ -26,7 +26,7 @@ public class AuthController(
 
     [AllowAnonymous]
     [HttpPost("login")]
-    [OpenApiOperation("Authenticate with username and password.", "")]
+    [EndpointSummary("Authenticate with username and password.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<TokenResponse>> Login(LoginCommand command, CancellationToken cancellationToken)
@@ -37,7 +37,7 @@ public class AuthController(
 
     [AllowAnonymous]
     [HttpPost("refresh-token")]
-    [OpenApiOperation("Refresh an expired JWT token.", "")]
+    [EndpointSummary("Refresh an expired JWT token.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<TokenResponse>> RefreshToken(RefreshTokenCommand command, CancellationToken cancellationToken)
@@ -48,7 +48,7 @@ public class AuthController(
 
     [Authorize]
     [HttpPost("logout")]
-    [OpenApiOperation("End the calling device's session server-side.", "")]
+    [EndpointSummary("End the calling device's session server-side.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Logout(LogoutRequest? request, CancellationToken cancellationToken)
@@ -62,7 +62,7 @@ public class AuthController(
 
     [Authorize]
     [HttpPost("logout-all")]
-    [OpenApiOperation("End every session for the calling user, on all devices.", "")]
+    [EndpointSummary("End every session for the calling user, on all devices.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
@@ -73,7 +73,7 @@ public class AuthController(
 
     [Authorize]
     [HttpPost("sessions")]
-    [OpenApiOperation("List the calling user's active sessions.", "")]
+    [EndpointSummary("List the calling user's active sessions.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IReadOnlyList<UserSessionResponse>>> GetSessions(
@@ -89,7 +89,7 @@ public class AuthController(
 
     [Authorize]
     [HttpDelete("sessions/{sessionId:guid}")]
-    [OpenApiOperation("Revoke one of the calling user's sessions.", "")]
+    [EndpointSummary("Revoke one of the calling user's sessions.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -104,7 +104,7 @@ public class AuthController(
 
     [AllowAnonymous]
     [HttpPost("exchange")]
-    [OpenApiOperation("Exchange an external identity-provider token (e.g., Microsoft Entra ID) for a Wayd JWT.", "")]
+    [EndpointSummary("Exchange an external identity-provider token (e.g., Microsoft Entra ID) for a Wayd JWT.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<TokenResponse>> Exchange(ExchangeTokenCommand command, CancellationToken cancellationToken)
@@ -115,7 +115,7 @@ public class AuthController(
 
     [AllowAnonymous]
     [HttpGet("providers")]
-    [OpenApiOperation("List the authentication providers enabled on this deployment.", "")]
+    [EndpointSummary("List the authentication providers enabled on this deployment.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<AuthProvidersResponse>> GetProviders(CancellationToken cancellationToken)
     {
@@ -129,7 +129,7 @@ public class AuthController(
 
     [AllowAnonymous]
     [HttpPost("setup")]
-    [OpenApiOperation("Create the first admin user using the one-time bootstrap token.", "")]
+    [EndpointSummary("Create the first admin user using the one-time bootstrap token.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]

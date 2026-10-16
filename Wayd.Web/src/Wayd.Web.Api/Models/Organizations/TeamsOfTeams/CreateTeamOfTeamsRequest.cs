@@ -7,15 +7,12 @@ namespace Wayd.Web.Api.Models.Organizations.TeamsOfTeams;
 public sealed record CreateTeamOfTeamsRequest
 {
     /// <summary>Gets the team name.</summary>
-    /// <value>The team name.</value>
     public string Name { get; set; } = default!;
 
     /// <summary>Gets the code.</summary>
-    /// <value>The code.</value>
     public string Code { get; set; } = default!;
 
     /// <summary>Gets the team description.</summary>
-    /// <value>The team description.</value>
     public string? Description { get; set; }
 
     /// <summary>

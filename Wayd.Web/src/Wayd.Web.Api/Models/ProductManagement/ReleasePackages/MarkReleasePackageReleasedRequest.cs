@@ -7,7 +7,7 @@ public sealed record MarkReleasePackageReleasedRequest
 {
     /// <summary>
     /// The moment it shipped. Supplied rather than taken from the clock, because shipping is often
-    /// recorded after the fact. Required unless the deprecated <see cref="ReleasedDate"/> is sent instead.
+    /// recorded after the fact. Required unless the deprecated <c>ReleasedDate</c> is sent instead.
     /// </summary>
     public Instant? ReleasedAt { get; set; }
 

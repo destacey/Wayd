@@ -34,7 +34,7 @@
         "System": "Information",
         "System.Net.Http.HttpClient": "Warning",
         "Wolverine": "Information",
-        "ZymLabs.NSwag.FluentValidation": "Warning"
+        "MicroElements": "Warning"
       }
     },
     "Properties": {

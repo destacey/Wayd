@@ -131,7 +131,7 @@ dotnet run
 - **Aspire Dashboard**: <http://localhost:15888> (telemetry, logs, traces, metrics)
 - **Client (Next.js)**: <http://localhost:3000>
 - **API**: Check Aspire dashboard for dynamically assigned port
-- **API Swagger**: `{API URL}/swagger`
+- **API reference**: `{API URL}/scalar`
 
 The database will be automatically created and migrations applied on first run.
 
@@ -145,7 +145,7 @@ docker compose up
 
 - Client: <http://localhost:5002>
 - API: <https://localhost:5001>
-- API Swagger: <https://localhost:5001/swagger>
+- API reference: <https://localhost:5001/scalar>
 - Seq (logs): <http://localhost:8081>
 
 **Note:** Environment variable changes in Docker require full teardown: `docker compose down && docker compose up`
@@ -287,7 +287,7 @@ See our [Contributing Guide](CONTRIBUTING.md) for detailed instructions on how t
 
 - **Full Documentation**: <https://wayd.dev>
 - **Architecture Guide**: [AGENTS.md](AGENTS.md)
-- **API Documentation**: Available at `/swagger` when API is running
+- **API Documentation**: Available at `/scalar` when API is running
 
 ## Deployment
 

@@ -3,10 +3,10 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.OpenApi;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using NSwag.AspNetCore;
-using NSwag.Generation;
 
 namespace Wayd.Web.Api.Mcp;
 
@@ -16,14 +16,13 @@ namespace Wayd.Web.Api.Mcp;
 /// </summary>
 /// <remarks>
 /// Built on first use rather than at startup, because generating the document needs the whole application,
-/// and a host that only boots to be introspected (the Debug build's NSwag step) must not pay for it.
+/// and a host that only boots to be introspected (the Debug build's document step) must not pay for it.
 /// </remarks>
 public sealed partial class McpToolCatalog(
     IApiDescriptionGroupCollectionProvider apiDescriptions,
-    IOpenApiDocumentGenerator documentGenerator,
-    IEnumerable<OpenApiDocumentRegistration> documentRegistrations)
+    [FromKeyedServices(WaydOpenApiDocument.Name)] IOpenApiDocumentProvider? documentProvider = null)
 {
-    private readonly Lazy<Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>>> _tools = new(() => Build(apiDescriptions, documentGenerator, documentRegistrations));
+    private readonly Lazy<Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>>> _tools = new(() => Build(apiDescriptions, documentProvider));
 
     /// <summary>Every tool, in a stable order.</summary>
     public Task<IReadOnlyList<McpServerTool>> GetTools() => GetTools(McpToolFilter.All);
@@ -37,12 +36,12 @@ public sealed partial class McpToolCatalog(
 
     private static async Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>> Build(
         IApiDescriptionGroupCollectionProvider apiDescriptions,
-        IOpenApiDocumentGenerator documentGenerator,
-        IEnumerable<OpenApiDocumentRegistration> documentRegistrations)
+        IOpenApiDocumentProvider? documentProvider)
     {
-        var documentName = documentRegistrations.FirstOrDefault()?.DocumentName
+        var provider = documentProvider
             ?? throw new InvalidOperationException("The MCP server describes its tools from the OpenAPI document, which is not registered. Enable SwaggerSettings.");
-        var document = JsonNode.Parse((await documentGenerator.GenerateAsync(documentName)).ToJson())!.AsObject();
+        var openApiDocument = await provider.GetOpenApiDocumentAsync();
+        var document = JsonNode.Parse(await openApiDocument.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_0))!.AsObject();
 
         var operations = new Dictionary<(string Method, string Path), JsonObject>();
         foreach (var (path, pathItem) in document["paths"]!.AsObject())

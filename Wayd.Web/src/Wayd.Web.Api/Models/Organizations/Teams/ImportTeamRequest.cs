@@ -7,7 +7,7 @@ using Wayd.Organization.Application.Teams.Dtos;
 namespace Wayd.Web.Api.Models.Organizations.Teams;
 
 /// <summary>
-/// A single CSV row for the unified team import. <see cref="Type"/> discriminates between a Team and a
+/// A single CSV row for the unified team import. <c>Type</c> discriminates between a Team and a
 /// Team of Teams (case-insensitive: "Team" / "TeamOfTeams"). Both share the same create shape.
 /// </summary>
 public sealed class ImportTeamRequest
@@ -34,7 +34,7 @@ public sealed class ImportTeamRequest
     /// <summary>Whether the team is currently active. Defaults to true when the column is absent.</summary>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>When the team was retired. Required when <see cref="IsActive"/> is false; must be after <see cref="ActiveDate"/>.</summary>
+    /// <summary>When the team was retired. Required when <c>IsActive</c> is <c>false</c>; must be after <c>ActiveDate</c>.</summary>
     public DateOnly? InactiveDate { get; set; }
 
     public ImportTeamDto ToImportTeamDto()

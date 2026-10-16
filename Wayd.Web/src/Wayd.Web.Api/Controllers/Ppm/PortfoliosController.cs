@@ -40,7 +40,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Get a list of project portfolios.", "")]
+    [EndpointSummary("Get a list of project portfolios.")]
     [McpTool("Portfolios_GetPortfolios", "List portfolios")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -53,7 +53,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Get project portfolio details.", "")]
+    [EndpointSummary("Get project portfolio details.")]
     [McpTool("Portfolios_GetPortfolio", "Get portfolio")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -68,8 +68,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation(
-        "Get a portfolio's activity history, newest first: every change recorded on the portfolio itself — details, roles, scoring model, status.",
+    [EndpointSummary(
+        "Get a portfolio's activity history, newest first: every change recorded on the portfolio itself — details, roles, scoring model, status.")]
+    [EndpointDescription(
         "Its programs and projects keep their own histories. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
     [McpTool("Portfolios_GetActivities", "Get portfolio activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -85,8 +86,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation(
-        "Create a portfolio.",
+    [EndpointSummary("Create a portfolio.")]
+    [EndpointDescription(
         "It starts in Proposed status — use Portfolios_Activate to make it active, which also stamps its start date. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Portfolios_Create", "Create portfolio", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
@@ -101,7 +102,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [EndpointSummary("Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -150,7 +151,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     /// </summary>
     [HttpPost("finalize/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "Completes or cancels programs and closes or archives portfolios, after their contents have been imported.")]
+    [EndpointSummary("Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription("Completes or cancels programs and closes or archives portfolios, after their contents have been imported.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -194,8 +196,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation(
-        "Update a portfolio's name, description, and role assignments.",
+    [EndpointSummary("Update a portfolio's name, description, and role assignments.")]
+    [EndpointDescription(
         "This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Portfolios_Update", "Update portfolio", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -215,8 +217,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation(
-        "Activate a proposed portfolio.",
+    [EndpointSummary("Activate a proposed portfolio.")]
+    [EndpointDescription(
         "**This also sets the portfolio's start date to today, and the date cannot be backdated or changed by this call** — do not use it to fix up a portfolio that actually started earlier. Only proposed portfolios can be activated. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Portfolios_Activate", "Activate portfolio")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -233,8 +235,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPost("{id}/close")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation(
-        "Close an active or on-hold portfolio.",
+    [EndpointSummary("Close an active or on-hold portfolio.")]
+    [EndpointDescription(
         "**This also sets the portfolio's end date to today, and the date cannot be backdated by this call.** Only active or on-hold portfolios can be closed. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Portfolios_Close", "Close portfolio")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -251,8 +253,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation(
-        "Archive a closed portfolio, removing it from active use.",
+    [EndpointSummary("Archive a closed portfolio, removing it from active use.")]
+    [EndpointDescription(
         "Only closed portfolios can be archived — close it first. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Portfolios_Archive", "Archive portfolio")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -269,7 +271,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Delete a portfolio.", "")]
+    [EndpointSummary("Delete a portfolio.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -283,7 +285,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPut("{id}/scoring-model")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Assign a scoring model to a portfolio, enabling project scoring.", "")]
+    [EndpointSummary("Assign a scoring model to a portfolio, enabling project scoring.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -298,7 +300,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpDelete("{id}/scoring-model")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Clear a portfolio's scoring model, disabling new project scoring.", "")]
+    [EndpointSummary("Clear a portfolio's scoring model, disabling new project scoring.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ClearScoringModel(Guid id, CancellationToken cancellationToken)
@@ -312,7 +314,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPut("{id}/project-ranks")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Reposition an ordered batch of projects within the portfolio's ranking.", "")]
+    [EndpointSummary("Reposition an ordered batch of projects within the portfolio's ranking.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -327,7 +329,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPut("{id}/project-ranks/rebalance")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Rebalance the portfolio's project ranks to clean, gap-free whole numbers.", "")]
+    [EndpointSummary("Rebalance the portfolio's project ranks to clean, gap-free whole numbers.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RebalanceProjectRanks(Guid id, CancellationToken cancellationToken)
@@ -341,8 +343,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("{id}/ranking-scoreboard")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get the per-project score breakdown behind a portfolio's ranking board: the portfolio's current scoring model definition, plus each project's criterion ratings and output values.",
+    [EndpointSummary(
+        "Get the per-project score breakdown behind a portfolio's ranking board: the portfolio's current scoring model definition, plus each project's criterion ratings and output values.")]
+    [EndpointDescription(
         "A project's ratings and outputs are empty when it is unscored or its latest score came from a different or older model. Returns the score breakdown only — it does not include project names or rank positions, so pair it with Portfolios_GetPortfolioProjects and join on project ID.")]
     [McpTool("Portfolios_GetRankingScoreboard", "Get portfolio ranking scoreboard")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -358,7 +361,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("{idOrKey}/programs")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Programs)]
-    [OpenApiOperation("Get a list of programs for a portfolio.", "Optionally filter by status.")]
+    [EndpointSummary("Get a list of programs for a portfolio.")]
+    [EndpointDescription("Optionally filter by status.")]
     [McpTool("Portfolios_GetPortfolioPrograms", "List a portfolio's programs")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -374,7 +378,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("{idOrKey}/projects")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a list of projects for a portfolio.", "Optionally filter by status.")]
+    [EndpointSummary("Get a list of projects for a portfolio.")]
+    [EndpointDescription("Optionally filter by status.")]
     [McpTool("Portfolios_GetPortfolioProjects", "List a portfolio's projects")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -390,7 +395,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("{idOrKey}/strategic-initiatives")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Get a list of strategic initiatives for a portfolio.", "Optionally filter by status.")]
+    [EndpointSummary("Get a list of strategic initiatives for a portfolio.")]
+    [EndpointDescription("Optionally filter by status.")]
     [McpTool("Portfolios_GetPortfolioStrategicInitiatives", "List a portfolio's strategic initiatives")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -403,7 +409,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Get a list of all project portfolio statuses.", "")]
+    [EndpointSummary("Get a list of all project portfolio statuses.")]
     [McpTool("Portfolios_GetPortfolioStatuses", "List portfolio statuses")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -415,7 +421,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpGet("options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Get a lightweight list of project portfolio options (id and name) for use in lookups.", "")]
+    [EndpointSummary("Get a lightweight list of project portfolio options (id and name) for use in lookups.")]
     [McpTool("Portfolios_GetPortfolioOptions", "List portfolio options")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

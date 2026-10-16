@@ -7,11 +7,9 @@ namespace Wayd.Web.Api.Dtos.Planning;
 public sealed record PlanningIntervalObjectiveHealthCheckDto
 {
     /// <summary>Gets or sets the identifier.</summary>
-    /// <value>The identifier.</value>
     public Guid Id { get; set; }
 
     /// <summary>Gets the key.</summary>
-    /// <value>The key.</value>
     public int Key { get; set; }
 
     /// <summary>
@@ -20,11 +18,9 @@ public sealed record PlanningIntervalObjectiveHealthCheckDto
     public required string Name { get; set; }
 
     /// <summary>Gets or sets the status.</summary>
-    /// <value>The status.</value>
     public required SimpleNavigationDto Status { get; set; }
 
     /// <summary>Gets or sets the type.</summary>
-    /// <value>The PI objective type.</value>
     public required SimpleNavigationDto Type { get; set; }
 
     public required NavigationDto PlanningInterval { get; set; }
@@ -34,7 +30,6 @@ public sealed record PlanningIntervalObjectiveHealthCheckDto
     public double Progress { get; set; }
 
     /// <summary>Gets a value indicating whether this instance is stretch.</summary>
-    /// <value><c>true</c> if this instance is stretch; otherwise, <c>false</c>.</value>
     public bool IsStretch { get; set; }
 
     /// <summary>

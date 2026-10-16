@@ -166,7 +166,7 @@ docker compose up       # Run entire stack
 docker compose down     # Tear down
 ```
 
-- API: <https://localhost:5001> (Swagger: <https://localhost:5001/swagger>)
+- API: <https://localhost:5001> (API reference: <https://localhost:5001/scalar>)
 - Client: <http://localhost:5002>
 
 ## Architecture
@@ -221,7 +221,8 @@ Every comment must be valuable, never narrative. Full rules and examples:
   — it is how readers discover what a member is for. Write the summary for someone who sees the name and
   signature but not the body; never `Gets or sets the X`.
 - `///` on `Wayd.Web.Api` request/response models is published: it becomes the OpenAPI `description` and
-  the generated TypeScript client's JSDoc. Endpoint summaries come from `[OpenApiOperation]`.
+  the generated TypeScript client's JSDoc. Endpoint summaries come from `[EndpointSummary]` and
+  `[EndpointDescription]`.
 
 ### .NET Backend
 
@@ -294,7 +295,7 @@ be renamed** (a rename silently reverts the stored value). Read through `ISettin
 
 ### OpenAPI Client Generation
 
-NSwag regenerates the TypeScript client (`wayd.web.reactclient/src/services/wayd-api.ts`) on a Debug build of the API, and that build **boots the API** — gate any new database-touching startup work behind `HostIntrospection.SkipsDatabaseInitialization`, or the build fails. After changing a CSV import row class, run `npm run generate:import-templates` in the client. Details: [Wayd.Web/src/Wayd.Web.Api/AGENTS.md](Wayd.Web/src/Wayd.Web.Api/AGENTS.md#openapi-client-generation).
+A Debug build of the API writes the OpenAPI document (`wwwroot/api/v1/specification.json`) with `Microsoft.AspNetCore.OpenApi`, then NSwag regenerates the TypeScript client (`wayd.web.reactclient/src/services/wayd-api.ts`) from it. That build **boots the API** — gate any new database-touching startup work behind `HostIntrospection.SkipsDatabaseInitialization`, or the build fails. After changing a CSV import row class, run `npm run generate:import-templates` in the client. Details: [Wayd.Web/src/Wayd.Web.Api/AGENTS.md](Wayd.Web/src/Wayd.Web.Api/AGENTS.md#openapi-client-generation).
 
 ### Wolverine Handler Codegen (generated, not committed)
 

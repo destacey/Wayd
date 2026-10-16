@@ -5,11 +5,9 @@ namespace Wayd.Web.Api.Models.ProductManagement.Releases;
 
 /// <summary>
 /// A single CSV row for the release import — one release, without its contents.
-/// <para>
-/// A release is identified by <see cref="Version"/> alone. <see cref="ProductId"/> is optional by
+/// A release is identified by <c>Version</c> alone. <c>ProductId</c> is optional by
 /// design: a release spanning product lines has no single owner, so requiring one would force a
 /// misleading choice.
-/// </para>
 /// </summary>
 public sealed class ImportReleaseRequest
 {
@@ -86,10 +84,10 @@ public sealed class ImportReleaseContentRequest
     [CsvValues(typeof(ReleaseContentKind))]
     public string Kind { get; set; } = nameof(ReleaseContentKind.Package);
 
-    /// <summary>The package, by id. Required when <see cref="Kind"/> is `Package`.</summary>
+    /// <summary>The package, by id. Required when <c>Kind</c> is `Package`.</summary>
     public Guid? PackageId { get; set; }
 
-    /// <summary>The version, by id. Required when <see cref="Kind"/> is `Version`.</summary>
+    /// <summary>The version, by id. Required when <c>Kind</c> is `Version`.</summary>
     public Guid? VersionId { get; set; }
 
     public ImportReleaseContentDto ToImportReleaseContentDto() =>

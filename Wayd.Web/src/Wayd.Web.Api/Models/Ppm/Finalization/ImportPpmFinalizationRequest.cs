@@ -5,8 +5,8 @@ namespace Wayd.Web.Api.Models.Ppm.Finalization;
 
 /// <summary>
 /// A single CSV row for the finalization import, closing one program or portfolio after its contents have
-/// been imported. <see cref="Type"/> discriminates between the two (case-insensitive: "Program" /
-/// "Portfolio") and says how to read <see cref="Id"/>.
+/// been imported. <c>Type</c> discriminates between the two (case-insensitive: "Program" /
+/// "Portfolio") and says how to read <c>Id</c>.
 /// </summary>
 public sealed class ImportPpmFinalizationRequest
 {

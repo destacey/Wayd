@@ -48,29 +48,56 @@ Controllers are protected by default. Use `[AllowAnonymous]` only for public end
 
 Feature-gated endpoints use `[FeatureGate(FeatureFlags.Names.MyFlag)]`.
 
-## OpenAPI / Swagger
+## OpenAPI
 
-NSwag generates the OpenAPI specification and TypeScript client automatically during Debug builds. Configuration is in `nswag.json`.
+`Microsoft.AspNetCore.OpenApi` describes the API. A Debug build writes the document to
+`Wayd.Web.Api/wwwroot/api/v1/specification.json` (the `GenerateOpenApiDocument` target), then NSwag
+generates the TypeScript client, `wayd-api.ts`, from that file (`nswag.json`). The data-generation tool's C#
+client, the client's import templates and the `@wayd/mcp` import formats are generated from the same file,
+and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
+`/openapi/v1.json`, with the Scalar API reference at `/scalar`, while `SwaggerSettings:Enable` is on. A tool
+that knows neither path finds both through the RFC 9727 API catalog at `/.well-known/api-catalog`, and
+`/openapi.json` redirects to the document.
+
+An action's `[EndpointSummary]` and `[EndpointDescription]` are its published summary and description, and
+the description of its MCP tool, so write them for an API consumer.
+
+`WaydOpenApiDocument` registers the transformers in `Wayd.Infrastructure/OpenApi/`, which shape the
+document for the TypeScript client. The client code depends on what they decide, so a change to one renames
+or retypes generated code:
+
+- **Operation ids** are `{Controller}_{Action}`, and the client is generated with
+  `MultipleClientsFromOperationId`, which names every client class and method from them.
+- **Component names** are the types' own: a generic type is named for its arguments
+  (`NavigationDtoOfGuidAndInteger`), a derived class is `allOf` its base, and a `[JsonPolymorphic]` hierarchy
+  is a base with a `discriminator` and its derived types under their own names.
+- **A property is required when it cannot be null**, or when it is declared `required` or `[Required]`
+  even if it can, so the client types it as present; nullability comes from the declaration.
+- **`x-position` and `x-name`** set the order of a client method's arguments and the name of its body
+  argument, and the client calls them positionally.
+- **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`.
+
+After a change to a transformer or an API model, read the `wayd-api.ts` diff a rebuild produces, and commit
+it with `specification.json`: `OpenApiDocumentTests` fails while the committed document differs from the one
+the API serves.
 
 `NSwagTemplates/Interface.liquid` overrides the TypeScript interface template so that a `LocalDate`
 (`format: date`) is generated as `string` while an `Instant` (`format: date-time`) stays `Date` — see
 [Dates and instants](./frontend.mdx#dates-and-instants). Keep it in step with the stock template when NSwag is
 upgraded; it is a copy of it with that one change.
 
-Access Swagger UI at `/swagger` when the API is running.
+:::note The document target boots the real API
 
-:::note The NSwag target boots the real API
-
-To read the OpenAPI document, the NSwag target starts the actual application. It sets
+To read the OpenAPI document, the build starts the actual application. It sets
 `WAYD_SKIP_DB_INIT=true`, which `HostIntrospection.SkipsDatabaseInitialization` uses to skip every
 piece of startup work that touches the database — EF migrations and seeding, the Hangfire server, and
 the Hangfire dashboard. **A Debug build therefore does not require a running database.**
 
 Anything added to startup that connects to the database must be gated the same way. Without the gate
-the failure is badly misleading: the connection error is swallowed and reported as a build error
-against `Wayd.Web.Api.csproj` (`MSB3077` … `Build FAILED`), with the real cause buried in NSwag's
-output. Under Aspire it surfaces only as `The project could not be built.` and exit code 6, before
-any resource starts.
+the failure is badly misleading: the connection error is reported as a build error against
+`Wayd.Web.Api.csproj` (`Build FAILED`), with the real cause buried in the tool's output.
+Under Aspire it surfaces only as `The project could not be built.` and exit code 6, before any resource
+starts.
 
 :::
 
@@ -87,7 +114,7 @@ built from what they publish — its column lists, accepted values and templates
 - `[CsvValues(typeof(SomeEnum))]` on a text column that parses into an enum publishes its accepted
   names.
 
-`CsvImportOperationProcessor` registers each row class as a schema and stamps the operation with an
+`CsvImportOperationTransformer` registers each row class as a schema and stamps the operation with an
 `x-wayd-import` extension; each property carries `x-csv-column`, its exact header. A property's XML
 summary becomes the column's description in the dialog, so write one wherever the name and type don't
 say what the cell must hold.

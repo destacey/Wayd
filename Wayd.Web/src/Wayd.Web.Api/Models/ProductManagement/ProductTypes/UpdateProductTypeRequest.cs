@@ -6,7 +6,7 @@ namespace Wayd.Web.Api.Models.ProductManagement.ProductTypes;
 /// A whole-record update of a product type.
 /// </summary>
 /// <remarks>
-/// Turning <see cref="IsReleasable"/> off refuses <em>new</em> releases only; those already cut stand as
+/// Turning <c>IsReleasable</c> off refuses new releases only; those already cut stand as
 /// historical records.
 /// </remarks>
 public sealed record UpdateProductTypeRequest

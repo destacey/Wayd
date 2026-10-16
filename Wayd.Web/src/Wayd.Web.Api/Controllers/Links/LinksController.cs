@@ -22,7 +22,7 @@ public class LinksController : ControllerBase
 
     [HttpGet("{objectId}/list")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Links)]
-    [OpenApiOperation("Get a list of links for a specific objectId.", "")]
+    [EndpointSummary("Get a list of links for a specific objectId.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<LinkDto>>> GetList(Guid objectId, CancellationToken cancellationToken)
@@ -33,7 +33,7 @@ public class LinksController : ControllerBase
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Links)]
-    [OpenApiOperation("Get a link by id.", "")]
+    [EndpointSummary("Get a link by id.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LinkDto>> GetById(Guid id, CancellationToken cancellationToken)
@@ -46,7 +46,7 @@ public class LinksController : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Links)]
-    [OpenApiOperation("Create a link.", "")]
+    [EndpointSummary("Create a link.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> Create([FromBody] CreateLinkRequest request, CancellationToken cancellationToken)
     {
@@ -59,7 +59,7 @@ public class LinksController : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Links)]
-    [OpenApiOperation("Update a link.", "")]
+    [EndpointSummary("Update a link.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -77,7 +77,7 @@ public class LinksController : ControllerBase
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Links)]
-    [OpenApiOperation("Delete a link.", "")]
+    [EndpointSummary("Delete a link.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)

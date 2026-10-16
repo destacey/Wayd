@@ -5,16 +5,12 @@ using Wayd.ProductManagement.Application.Products.Dtos;
 namespace Wayd.Web.Api.Models.ProductManagement.Products;
 
 /// <summary>
-/// A single CSV row for the product dependency import: <see cref="ProductId"/> relies on
-/// <see cref="DependsOnProductId"/>, both by id.
-/// <para>
+/// A single CSV row for the product dependency import: <c>ProductId</c> relies on
+/// <c>DependsOnProductId</c>, both by id.
 /// Record the most specific product known — the service, not the platform it belongs to. A product cannot
 /// depend on itself or on anything above or below it in the tree, which is composition.
-/// </para>
-/// <para>
-/// A dependency that stopped carries <see cref="EndsOn"/>. One whose strength changed is two rows on the
+/// A dependency that stopped carries <c>EndsOn</c>. One whose strength changed is two rows on the
 /// same pair: the first ending the day before the second starts.
-/// </para>
 /// </summary>
 public sealed class ImportProductDependencyRequest
 {
@@ -48,7 +44,7 @@ public sealed class ImportProductDependencyRequest
     /// <summary>What the product relies on it for. Max 1024 chars.</summary>
     public string? Description { get; set; }
 
-    /// <summary>The day it began. Blank means today, so an <see cref="EndsOn"/> before today is refused.</summary>
+    /// <summary>The day it began. Blank means today, so an <c>EndsOn</c> before today is refused.</summary>
     public DateOnly? StartsOn { get; set; }
 
     /// <summary>The last day it held. Blank means it still holds.</summary>

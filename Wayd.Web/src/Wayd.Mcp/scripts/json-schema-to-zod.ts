@@ -5,7 +5,7 @@
  * April 2026 and which still emits Zod 3 syntax (its `zodVersion` option never
  * reaches the string-format parser, so the output needed rewriting afterwards).
  *
- * This covers exactly the JSON Schema subset that NSwag produces for the Wayd
+ * This covers exactly the JSON Schema subset the API's OpenAPI document uses for the Wayd
  * API — verified against all tool definitions: `type`, `properties`, `required`,
  * `items`, `enum`, `format`, `maxLength`, `minLength`, `pattern`, `minimum`,
  * `maximum`, `description`,

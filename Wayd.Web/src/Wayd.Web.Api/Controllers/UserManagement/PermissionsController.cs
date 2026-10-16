@@ -14,7 +14,7 @@ public class PermissionsController : ControllerBase
         "Permissions.View",
         "Permissions.Roles.View",
         "Permissions.Users.View")]
-    [OpenApiOperation("Get a list of all permissions.", "")]
+    [EndpointSummary("Get a list of all permissions.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public ActionResult<IEnumerable<ApplicationPermission>> GetList()

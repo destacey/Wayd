@@ -21,4 +21,3 @@ global using Wayd.Web.Api.Mcp;
 global using Wayd.Web.Api.Services;
 global using Wayd.Work.Application.WorkStatuses.Commands;
 global using NodaTime;
-global using NSwag.Annotations;

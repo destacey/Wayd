@@ -8,6 +8,8 @@
         <DockerfileContext>..\..\..</DockerfileContext>
         <DockerComposeProjectPath>..\..\..\docker-compose.dcproj</DockerComposeProjectPath>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <!-- The package's own build step cannot set the environment the host needs; GenerateOpenApiDocument runs its tool instead. -->
+        <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
@@ -15,6 +17,11 @@
         <PackageReference Include="FluentValidation.AspNetCore" />
         <PackageReference Include="Hangfire.Console.Extensions.Serilog" />
         <PackageReference Include="Microsoft.AspNetCore.JsonPatch.SystemTextJson" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" GeneratePathProperty="true">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -22,7 +29,6 @@
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
         <PackageReference Include="ModelContextProtocol.AspNetCore" />
         <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
-        <PackageReference Include="NSwag.AspNetCore" />
         <PackageReference Include="NSwag.MSBuild">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -78,13 +84,25 @@
     <PropertyGroup>
         <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     </PropertyGroup>
-    <Target Name="NSwag" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Debug' ">
-        <!-- WAYD_SKIP_DB_INIT keeps the host from applying migrations / seeding when NSwag boots the
-             real app to read the OpenAPI document. EF.IsDesignTime is false here, so the boot-time
-             InitializeDatabases() guard alone is not enough. -->
+    <!-- Writes the OpenAPI document to wwwroot/api/v1/specification.json by building the real host and asking
+         Microsoft.AspNetCore.OpenApi for it. WAYD_SKIP_DB_INIT keeps every piece of database-touching startup
+         work from running (see HostIntrospection); Development keeps the production-only guards off. -->
+    <Target Name="GenerateOpenApiDocument" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Debug' ">
         <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
             EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development;WAYD_SKIP_DB_INIT=true"
-            Command="$(NSwagExe_Net100) run nswag.json /variables:Configuration=$(Configuration)">
+            Command="dotnet &quot;$(PkgMicrosoft_Extensions_ApiDescription_Server)/tools/dotnet-getdocument.dll&quot; --assembly &quot;$(TargetPath)&quot; --framework &quot;$(TargetFrameworkMoniker)&quot; --project &quot;$(MSBuildProjectName)&quot; --assets-file &quot;$(ProjectAssetsFile)&quot; --file-list &quot;$(ProjectDir)$(IntermediateOutputPath)OpenApiFiles.txt&quot; --output &quot;$(ProjectDir)wwwroot/api/v1&quot; --file-name specification --openapi-version OpenApi3_0">
+            <Output TaskParameter="ExitCode" PropertyName="OpenApiExitCode" />
+            <Output TaskParameter="ConsoleOutput" PropertyName="OpenApiOutput" />
+        </Exec>
+
+        <Message Text="$(OpenApiOutput)" Condition="'$(OpenApiExitCode)' == '0'" Importance="low" />
+        <Error Text="$(OpenApiOutput)" Condition="'$(OpenApiExitCode)' != '0'" />
+    </Target>
+
+    <!-- Generates the TypeScript client from the document GenerateOpenApiDocument writes. -->
+    <Target Name="NSwag" AfterTargets="GenerateOpenApiDocument" Condition=" '$(Configuration)' == 'Debug' ">
+        <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
+            Command="$(NSwagExe_Net100) run nswag.json">
             <Output TaskParameter="ExitCode" PropertyName="NSwagExitCode" />
             <Output TaskParameter="ConsoleOutput" PropertyName="NSwagOutput" />
         </Exec>

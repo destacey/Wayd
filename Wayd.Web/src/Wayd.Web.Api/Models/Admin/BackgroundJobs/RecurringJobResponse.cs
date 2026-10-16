@@ -9,7 +9,7 @@ public class RecurringJobResponse
     public string? Cron { get; set; }
     public string? Queue { get; set; }
 
-    /// <summary>Null when the stored invocation data no longer resolves to a loadable method; <see cref="Error"/> carries the reason.</summary>
+    /// <summary>Null when the stored invocation data no longer resolves to a loadable method; <c>Error</c> carries the reason.</summary>
     public string? Type { get; set; }
 
     public string? Action { get; set; }

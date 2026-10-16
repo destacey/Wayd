@@ -5,19 +5,15 @@ namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 public sealed record CreatePlanningIntervalRequest
 {
     /// <summary>Gets the team name.</summary>
-    /// <value>The team name.</value>
     public string Name { get; set; } = default!;
 
     /// <summary>Gets the team description.</summary>
-    /// <value>The team description.</value>
     public string? Description { get; set; }
 
     /// <summary>Gets or sets the start.</summary>
-    /// <value>The start.</value>
     public LocalDate Start { get; set; }
 
     /// <summary>Gets or sets the end.</summary>
-    /// <value>The end.</value>
     public LocalDate End { get; set; }
 
     /// <summary>

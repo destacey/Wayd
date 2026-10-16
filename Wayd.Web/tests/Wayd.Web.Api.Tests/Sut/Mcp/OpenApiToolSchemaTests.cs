@@ -18,7 +18,7 @@ public sealed class OpenApiToolSchemaTests
         var operation = Operation("""
             {
               "parameters": [
-                { "name": "id", "in": "path", "schema": { "type": "string", "format": "guid" } },
+                { "name": "id", "in": "path", "schema": { "type": "string", "format": "uuid" } },
                 { "name": "includeDone", "in": "query", "schema": { "type": "boolean" }, "description": "Keep finished items." }
               ]
             }

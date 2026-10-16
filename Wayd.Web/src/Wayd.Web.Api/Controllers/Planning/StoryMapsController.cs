@@ -20,7 +20,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Get a list of story maps (id, key, name, description, status, owner).", "")]
+    [EndpointSummary("Get a list of story maps (id, key, name, description, status, owner).")]
     [McpTool("StoryMaps_GetStoryMaps", "List story maps")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -32,9 +32,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
-    [OpenApiOperation(
-        "Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.",
-        "")]
+    [EndpointSummary(
+        "Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.")]
     [McpTool("StoryMaps_GetStoryMap", "Get story map")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -48,7 +47,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Create a story map.", "Returns the new map's ID and key.")]
+    [EndpointSummary("Create a story map.")]
+    [EndpointDescription("Returns the new map's ID and key.")]
     [McpTool("StoryMaps_CreateStoryMap", "Create a story map", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStoryMapRequest request, CancellationToken cancellationToken)
@@ -61,7 +61,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Update a story map's name and description.", "")]
+    [EndpointSummary("Update a story map's name and description.")]
     [McpTool("StoryMaps_UpdateStoryMap", "Update a story map")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -75,7 +75,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/owner")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Change the owner of a story map.", "")]
+    [EndpointSummary("Change the owner of a story map.")]
     [McpTool("StoryMaps_ChangeStoryMapOwner", "Change story map owner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -89,7 +89,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Archive a story map.", "")]
+    [EndpointSummary("Archive a story map.")]
     [McpTool("StoryMaps_ArchiveStoryMap", "Archive a story map")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -103,7 +103,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Delete a story map and everything on it.", "This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.")]
+    [EndpointSummary("Delete a story map and everything on it.")]
+    [EndpointDescription("This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.")]
     [McpTool("StoryMaps_DeleteStoryMap", "Delete a story map")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -121,7 +122,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{storyMapId}/goals")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Add a goal to a story map.", "The goal is created with one step already in it.")]
+    [EndpointSummary("Add a goal to a story map.")]
+    [EndpointDescription("The goal is created with one step already in it.")]
     [McpTool("StoryMaps_AddGoal", "Add a story map goal", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -133,7 +135,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/goals/{goalId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Rename a goal.", "")]
+    [EndpointSummary("Rename a goal.")]
     [McpTool("StoryMaps_RenameGoal", "Rename a story map goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -145,7 +147,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/goals/{goalId}/order")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Reorder a goal within the map.", "")]
+    [EndpointSummary("Reorder a goal within the map.")]
     [McpTool("StoryMaps_ReorderGoal", "Reorder a story map goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -157,7 +159,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{storyMapId}/goals/{goalId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Delete a goal, along with its steps and their tasks.", "")]
+    [EndpointSummary("Delete a goal, along with its steps and their tasks.")]
     [McpTool("StoryMaps_DeleteGoal", "Delete a story map goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -173,7 +175,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{storyMapId}/steps")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Add a step to a goal.", "")]
+    [EndpointSummary("Add a step to a goal.")]
     [McpTool("StoryMaps_AddStep", "Add a story map step", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -185,7 +187,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/steps/{stepId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Rename a step.", "")]
+    [EndpointSummary("Rename a step.")]
     [McpTool("StoryMaps_RenameStep", "Rename a story map step")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -197,7 +199,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/steps/{stepId}/order")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Reorder a step within its goal.", "")]
+    [EndpointSummary("Reorder a step within its goal.")]
     [McpTool("StoryMaps_ReorderStep", "Reorder a story map step")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -209,7 +211,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/steps/{stepId}/move")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Move a step into a different goal.", "")]
+    [EndpointSummary("Move a step into a different goal.")]
     [McpTool("StoryMaps_MoveStep", "Move a step to another goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -221,7 +223,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{storyMapId}/steps/{stepId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Delete a step and its tasks.", "")]
+    [EndpointSummary("Delete a step and its tasks.")]
     [McpTool("StoryMaps_DeleteStep", "Delete a story map step")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -237,7 +239,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{storyMapId}/tasks")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Add a task (story card) to a step.", "Without a swimLaneId, it lands in the default swim lane.")]
+    [EndpointSummary("Add a task (story card) to a step.")]
+    [EndpointDescription("Without a swimLaneId, it lands in the default swim lane.")]
     [McpTool("StoryMaps_AddTask", "Add a story map task", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -249,7 +252,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Update a task's title and description.", "")]
+    [EndpointSummary("Update a task's title and description.")]
     [McpTool("StoryMaps_UpdateTask", "Update a story map task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -261,7 +264,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}/title")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Rename a task.", "Updates only the title, leaving the description untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
+    [EndpointSummary("Rename a task.")]
+    [EndpointDescription("Updates only the title, leaving the description untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RenameTask(Guid storyMapId, Guid taskId, [FromBody] RenameTaskRequest request, CancellationToken cancellationToken)
@@ -272,7 +276,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}/description")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Set a task's description.", "Updates only the description, leaving the title untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
+    [EndpointSummary("Set a task's description.")]
+    [EndpointDescription("Updates only the description, leaving the title untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetTaskDescription(Guid storyMapId, Guid taskId, [FromBody] SetTaskDescriptionRequest request, CancellationToken cancellationToken)
@@ -283,7 +288,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}/move")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Move a task to a step and swim lane.", "")]
+    [EndpointSummary("Move a task to a step and swim lane.")]
     [McpTool("StoryMaps_MoveTask", "Move a story map task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -295,7 +300,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{storyMapId}/tasks/{taskId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Delete a task.", "")]
+    [EndpointSummary("Delete a task.")]
     [McpTool("StoryMaps_DeleteTask", "Delete a story map task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -307,7 +312,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}/personas")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Set the personas tagged on a task.", "Replaces the full set — pass every persona ID that should remain tagged.")]
+    [EndpointSummary("Set the personas tagged on a task.")]
+    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged.")]
     [McpTool("StoryMaps_SetTaskPersonas", "Set a task's personas")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -323,7 +329,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{storyMapId}/tasks/{taskId}/checklist")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Add a checklist item to a task.", "Returns the updated task.")]
+    [EndpointSummary("Add a checklist item to a task.")]
+    [EndpointDescription("Returns the updated task.")]
     [McpTool("StoryMaps_AddChecklistItem", "Add a checklist item", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -335,7 +342,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}/checklist/{itemId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Rename a checklist item.", "")]
+    [EndpointSummary("Rename a checklist item.")]
     [McpTool("StoryMaps_RenameChecklistItem", "Rename a checklist item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -347,7 +354,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}/checklist/{itemId}/checked")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Check or uncheck a checklist item.", "")]
+    [EndpointSummary("Check or uncheck a checklist item.")]
     [McpTool("StoryMaps_SetChecklistItemChecked", "Check or uncheck a checklist item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -359,7 +366,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{storyMapId}/tasks/{taskId}/checklist/{itemId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Remove a checklist item from a task.", "")]
+    [EndpointSummary("Remove a checklist item from a task.")]
     [McpTool("StoryMaps_RemoveChecklistItem", "Remove a checklist item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -371,7 +378,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{storyMapId}/tasks/{taskId}/checklist/{itemId}/promote")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Promote a checklist item into its own task in the same step.", "Returns the new task.")]
+    [EndpointSummary("Promote a checklist item into its own task in the same step.")]
+    [EndpointDescription("Returns the new task.")]
     [McpTool("StoryMaps_PromoteChecklistItem", "Promote a checklist item to a task")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -387,7 +395,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/tasks/{taskId}/work-item-link")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Link a task to an existing work item. A work item can be linked to at most one task per map.", "")]
+    [EndpointSummary("Link a task to an existing work item. A work item can be linked to at most one task per map.")]
     [McpTool("StoryMaps_LinkWorkItem", "Link a story map task to a work item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -399,7 +407,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{storyMapId}/tasks/{taskId}/work-item-link")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Unlink a task from its work item.", "")]
+    [EndpointSummary("Unlink a task from its work item.")]
     [McpTool("StoryMaps_UnlinkWorkItem", "Unlink a story map task from its work item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -415,7 +423,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{storyMapId}/swim-lanes")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Add a swim lane, appended below the existing ones.", "")]
+    [EndpointSummary("Add a swim lane, appended below the existing ones.")]
     [McpTool("StoryMaps_AddSwimLane", "Add a swim lane", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -427,7 +435,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/swim-lanes/{swimLaneId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Rename a swim lane. The default swim lane cannot be renamed.", "")]
+    [EndpointSummary("Rename a swim lane. The default swim lane cannot be renamed.")]
     [McpTool("StoryMaps_RenameSwimLane", "Rename a swim lane")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -439,7 +447,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/swim-lanes/{swimLaneId}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Set a swim lane's descriptive start and end dates.", "Pass null to clear a date.")]
+    [EndpointSummary("Set a swim lane's descriptive start and end dates.")]
+    [EndpointDescription("Pass null to clear a date.")]
     [McpTool("StoryMaps_SetSwimLaneDates", "Set swim lane dates")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -451,7 +460,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/swim-lanes/{swimLaneId}/order")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Reorder a swim lane. The default swim lane cannot be reordered.", "")]
+    [EndpointSummary("Reorder a swim lane. The default swim lane cannot be reordered.")]
     [McpTool("StoryMaps_ReorderSwimLane", "Reorder a swim lane")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -463,7 +472,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{storyMapId}/swim-lanes/{swimLaneId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Remove a swim lane.", "Its tasks return to the default swim lane; the response is the number of tasks moved.")]
+    [EndpointSummary("Remove a swim lane.")]
+    [EndpointDescription("Its tasks return to the default swim lane; the response is the number of tasks moved.")]
     [McpTool("StoryMaps_RemoveSwimLane", "Remove a swim lane")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -479,7 +489,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{storyMapId}/personas")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Define a persona on the map.", "")]
+    [EndpointSummary("Define a persona on the map.")]
     [McpTool("StoryMaps_AddPersona", "Add a persona", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -491,7 +501,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/personas/{personaId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Update a persona's name, description, and color.", "")]
+    [EndpointSummary("Update a persona's name, description, and color.")]
     [McpTool("StoryMaps_UpdatePersona", "Update a persona")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -503,7 +513,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{storyMapId}/personas/{personaId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Delete a persona and strip its tag from every goal, step, and task.", "The response is the number of nodes untagged.")]
+    [EndpointSummary("Delete a persona and strip its tag from every goal, step, and task.")]
+    [EndpointDescription("The response is the number of nodes untagged.")]
     [McpTool("StoryMaps_DeletePersona", "Delete a persona")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -515,7 +526,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/personas/{personaId}/order")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Reorder a persona within the map's persona list.", "")]
+    [EndpointSummary("Reorder a persona within the map's persona list.")]
     [McpTool("StoryMaps_ReorderPersona", "Reorder a persona")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -527,7 +538,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/goals/{goalId}/personas")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Set the personas tagged on a goal.", "Replaces the full set — pass every persona ID that should remain tagged.")]
+    [EndpointSummary("Set the personas tagged on a goal.")]
+    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged.")]
     [McpTool("StoryMaps_SetGoalPersonas", "Set a goal's personas")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -539,7 +551,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{storyMapId}/steps/{stepId}/personas")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [OpenApiOperation("Set the personas tagged on a step.", "Replaces the full set — pass every persona ID that should remain tagged.")]
+    [EndpointSummary("Set the personas tagged on a step.")]
+    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged.")]
     [McpTool("StoryMaps_SetStepPersonas", "Set a step's personas")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

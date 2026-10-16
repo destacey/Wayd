@@ -5,21 +5,15 @@ namespace Wayd.Web.Api.Models.ProductManagement.Versions;
 
 /// <summary>
 /// A single CSV row for the version import.
-/// <para>
 /// The product is referenced by id, and a version is identified by that product together with its
-/// <see cref="Number"/> — version strings are free text and only meaningful within one product, so two
+/// <c>Number</c> — version strings are free text and only meaningful within one product, so two
 /// products may each hold a <c>1.0.0</c>.
-/// </para>
-/// <para>
 /// There is no status column: the moments decide where the version ends up. A row with neither is
-/// planned, a <see cref="CutAt"/> makes it ready, and a <see cref="ReleasedAt"/> makes it
+/// planned, a <c>CutAt</c> makes it ready, and a <c>ReleasedAt</c> makes it
 /// released. A released moment without a cut moment is legitimate — a version recorded after the fact
 /// often has no record of when scope froze.
-/// </para>
-/// <para>
-/// Both moments are instants and must carry their offset (see <see cref="OffsetTimestamp"/>): copy the
+/// Both moments are instants and must carry their offset (see <c>OffsetTimestamp</c>): copy the
 /// CI/CD timestamps as-is.
-/// </para>
 /// </summary>
 public sealed class ImportVersionRequest
 {

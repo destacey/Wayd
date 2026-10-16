@@ -60,11 +60,15 @@ public double Rank { get; private set; }
 - Use `<param>`, `<returns>`, and `<remarks>` when they add something; skip them when the summary covers it.
 - The same no-narrative rule applies: no history, no "this was added to…".
 
-**API models publish their documentation.** `Wayd.Web.Api` generates its XML documentation file, and NSwag
-reads it: the `///` summary on a request or response model and on each of its properties becomes the
-`description` in the OpenAPI spec and the JSDoc on the generated TypeScript client. Write those for an API
-consumer. An endpoint's published summary comes from its `[OpenApiOperation]` attribute instead, so the
-`///` on a controller action can speak to maintainers.
+**API models publish their documentation.** `Wayd.Web.Api` generates its XML documentation file, and the
+OpenAPI document reads it: the `///` summary on a request or response model and on each of its properties
+becomes the `description` in the OpenAPI spec and the JSDoc on the generated TypeScript client. Write those
+for an API consumer, in plain lines the document can carry as written: name another member with `<c>Name</c>`,
+not `<see cref>`, which is published as its C# signature (`string? ImportProductRequest.ImportId`); and leave
+out `<value>`, `<para>` and HTML tags: `<value>` is appended to the summary, a `<c>` inside a `<para>` loses
+its code marks, and HTML is published as raw markup. An endpoint's published summary and description come from
+its `[EndpointSummary]` and `[EndpointDescription]` attributes instead, so the `///` on a controller action
+can speak to maintainers.
 
 ### Test markers
 

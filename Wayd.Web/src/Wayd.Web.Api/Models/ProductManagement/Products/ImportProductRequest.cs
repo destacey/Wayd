@@ -4,13 +4,11 @@ namespace Wayd.Web.Api.Models.ProductManagement.Products;
 
 /// <summary>
 /// A single CSV row for the product import.
-/// <para>
-/// <see cref="ParentImportId"/> must name another row in the same file by its <see cref="ImportId"/>,
+/// <c>ParentImportId</c> must name another row in the same file by its <c>ImportId</c>,
 /// or be empty for a root. A product already in the catalog cannot be named as a parent — this import
 /// stands a catalog up rather than grafting single products onto one, which is what the screens are
 /// for. Names cannot serve as the link: a tree legitimately holds the same name in two places, so
 /// keying on names would make such a file unimportable.
-/// </para>
 /// </summary>
 public sealed class ImportProductRequest
 {
@@ -28,7 +26,7 @@ public sealed class ImportProductRequest
     /// <summary>The product type by name, which must already exist and be active.</summary>
     public string ProductTypeName { get; set; } = default!;
 
-    /// <summary>The <see cref="ImportId"/> of another row in this file, or empty for a root product.</summary>
+    /// <summary>The <c>ImportId</c> of another row in this file, or empty for a root product.</summary>
     public string? ParentImportId { get; set; }
 
     /// <summary>The product's identifier in the system that owns it.</summary>

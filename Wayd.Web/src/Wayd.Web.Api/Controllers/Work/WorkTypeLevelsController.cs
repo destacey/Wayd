@@ -23,7 +23,7 @@ public class WorkTypeLevelsController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkTypeLevels)]
-    [OpenApiOperation("Get a list of all work type levels.", "")]
+    [EndpointSummary("Get a list of all work type levels.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkTypeLevelDto>>> GetList(CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ public class WorkTypeLevelsController : ControllerBase
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkTypeLevels)]
-    [OpenApiOperation("Get work type level details using the id.", "")]
+    [EndpointSummary("Get work type level details using the id.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -50,7 +50,7 @@ public class WorkTypeLevelsController : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.WorkTypeLevels)]
-    [OpenApiOperation("Create a work type level.", "")]
+    [EndpointSummary("Create a work type level.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult> Create(CreateWorkTypeLevelRequest request, CancellationToken cancellationToken)
     {
@@ -63,7 +63,7 @@ public class WorkTypeLevelsController : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.WorkTypeLevels)]
-    [OpenApiOperation("Update a work type level.", "")]
+    [EndpointSummary("Update a work type level.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -82,7 +82,7 @@ public class WorkTypeLevelsController : ControllerBase
 
     [HttpPut("/order")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.WorkTypeLevels)]
-    [OpenApiOperation("Update the order of portfolio tier work type levels.", "")]
+    [EndpointSummary("Update the order of portfolio tier work type levels.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -94,12 +94,4 @@ public class WorkTypeLevelsController : ControllerBase
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
-
-    //[HttpDelete("{id}")]
-    //[MustHavePermission(ApplicationAction.Delete, ApplicationResource.WorkTypeLevels)]
-    //[OpenApiOperation("Delete a work type level.", "")]
-    //public async Task<ActionResult> Delete(int id)
-    //{
-    //    throw new NotImplementedException();
-    //}
 }

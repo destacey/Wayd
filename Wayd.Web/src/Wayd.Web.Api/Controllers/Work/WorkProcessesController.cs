@@ -18,7 +18,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkProcesses)]
-    [OpenApiOperation("Get a list of work processes.", "")]
+    [EndpointSummary("Get a list of work processes.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkProcessListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
@@ -29,7 +29,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkProcesses)]
-    [OpenApiOperation("Get work process details.", "")]
+    [EndpointSummary("Get work process details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -60,7 +60,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkProcesses)]
-    [OpenApiOperation("Get activity history for the work process.", "")]
+    [EndpointSummary("Get activity history for the work process.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -82,7 +82,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.WorkProcesses)]
-    [OpenApiOperation("Activate a work process.", "")]
+    [EndpointSummary("Activate a work process.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
@@ -96,7 +96,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
 
     [HttpPost("{id}/deactivate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.WorkProcesses)]
-    [OpenApiOperation("Deactivate a work process.", "")]
+    [EndpointSummary("Deactivate a work process.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
@@ -111,7 +111,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
     // get work process schemes
     [HttpGet("{id}/schemes")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkProcesses)]
-    [OpenApiOperation("Get work process schemes.", "")]
+    [EndpointSummary("Get work process schemes.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

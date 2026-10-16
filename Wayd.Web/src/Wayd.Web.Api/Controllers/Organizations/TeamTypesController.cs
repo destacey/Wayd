@@ -17,7 +17,7 @@ public class TeamTypesController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkTypeTiers)]
-    [OpenApiOperation("Get a list of all team types.", "")]
+    [EndpointSummary("Get a list of all team types.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<TeamTypeDto>>> GetList(CancellationToken cancellationToken)

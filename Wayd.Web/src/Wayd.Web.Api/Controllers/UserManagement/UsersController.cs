@@ -17,7 +17,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Users)]
-    [OpenApiOperation("Create a new user.", "")]
+    [EndpointSummary("Create a new user.")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -32,7 +32,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("Get a list of all users.", "")]
+    [EndpointSummary("Get a list of all users.")]
     [McpTool("Users_GetUsers", "List users")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -43,7 +43,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpGet("entra-tenants")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("Get the tenants a Microsoft Entra ID user can be set to sign in from.", "")]
+    [EndpointSummary("Get the tenants a Microsoft Entra ID user can be set to sign in from.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IReadOnlyList<string>> GetEntraTenantIds(CancellationToken cancellationToken)
     {
@@ -52,7 +52,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("Get a user's details.", "")]
+    [EndpointSummary("Get a user's details.")]
     [McpTool("Users_GetUser", "Get user")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -68,7 +68,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpGet("{id}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("Get activity history for the user, including their personal access tokens.", "")]
+    [EndpointSummary("Get activity history for the user, including their personal access tokens.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -82,7 +82,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Update a user's details.", "")]
+    [EndpointSummary("Update a user's details.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -98,7 +98,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpGet("{id}/roles")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.UserRoles)]
-    [OpenApiOperation("Get a user's roles.", "")]
+    [EndpointSummary("Get a user's roles.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -109,7 +109,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPost("{id}/roles")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.UserRoles)]
-    [OpenApiOperation("Update a user's assigned roles.", "")]
+    [EndpointSummary("Update a user's assigned roles.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -127,7 +127,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPost("manage-role")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.UserRoles)]
-    [OpenApiOperation("Add or remove users from a role.", "")]
+    [EndpointSummary("Add or remove users from a role.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -142,7 +142,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPut("{id}/reset-password")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Reset a local user's password.", "")]
+    [EndpointSummary("Reset a local user's password.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -156,7 +156,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPut("{id}/unlock")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Unlock a locked user account.", "")]
+    [EndpointSummary("Unlock a locked user account.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -170,7 +170,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPut("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Activate a user account.", "")]
+    [EndpointSummary("Activate a user account.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -184,7 +184,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPut("{id}/deactivate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Deactivate a user account.", "")]
+    [EndpointSummary("Deactivate a user account.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -202,7 +202,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpDelete("{id}/stage-migration")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Cancel a pending tenant migration for a user.", "")]
+    [EndpointSummary("Cancel a pending tenant migration for a user.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -216,7 +216,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPut("{id}/sign-in-tenant")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Stage the tenant a Microsoft Entra ID user with no active identity links from on their next sign-in.", "")]
+    [EndpointSummary("Stage the tenant a Microsoft Entra ID user with no active identity links from on their next sign-in.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -233,7 +233,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPost("{id}/convert-to-local")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Convert an OIDC user to a local account with a password. The change is immediate and irreversible without admin intervention.", "")]
+    [EndpointSummary("Convert an OIDC user to a local account with a password. The change is immediate and irreversible without admin intervention.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -251,7 +251,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpPut("{id}/stage-provider-migration")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Stage a cross-provider identity migration for a user. The rebind completes on the user's next sign-in via the target provider.", "")]
+    [EndpointSummary("Stage a cross-provider identity migration for a user. The rebind completes on the user's next sign-in via the target provider.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -269,7 +269,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpDelete("{id}/stage-provider-migration")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Cancel a pending cross-provider migration for a user.", "")]
+    [EndpointSummary("Cancel a pending cross-provider migration for a user.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -283,7 +283,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
 
     [HttpGet("{id}/identity-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
-    [OpenApiOperation("Get a user's identity history (active and inactive linked identities).", "")]
+    [EndpointSummary("Get a user's identity history (active and inactive linked identities).")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

@@ -14,7 +14,7 @@ internal static class OffsetTimestamp
 {
     /// <summary>
     /// An ISO-8601 timestamp with its offset. Null for a blank cell, and for a value that does not parse —
-    /// which the row's validator refuses through <see cref="IsValid"/>.
+    /// which the row's validator refuses through <c>IsValid</c>.
     /// </summary>
     public static Instant? Parse(string? value)
     {

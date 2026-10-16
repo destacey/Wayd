@@ -17,7 +17,7 @@ public class WorkTypeTiersController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkTypeTiers)]
-    [OpenApiOperation("Get a list of all work type tiers.", "")]
+    [EndpointSummary("Get a list of all work type tiers.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkTypeTierDto>>> GetList(CancellationToken cancellationToken)

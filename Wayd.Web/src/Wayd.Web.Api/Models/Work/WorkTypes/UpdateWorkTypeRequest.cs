@@ -7,7 +7,6 @@ public sealed record UpdateWorkTypeRequest
     public int Id { get; set; }
 
     /// <summary>The description of the work type.</summary>
-    /// <value>The description.</value>
     public string? Description { get; set; }
 
     /// <summary>

@@ -6,7 +6,7 @@ namespace Wayd.Infrastructure.OpenApi;
 /// </summary>
 /// <remarks>
 /// The rows each file carries are declared on the file parameter with <see cref="CsvRowsAttribute"/>.
-/// <see cref="CsvImportOperationProcessor"/> publishes both as the operation's <c>x-wayd-import</c>
+/// <see cref="CsvImportOperationTransformer"/> publishes both as the operation's <c>x-wayd-import</c>
 /// extension.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]

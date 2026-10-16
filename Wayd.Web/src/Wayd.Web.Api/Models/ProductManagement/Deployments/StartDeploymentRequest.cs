@@ -6,7 +6,7 @@ namespace Wayd.Web.Api.Models.ProductManagement.Deployments;
 /// Records that a version or package started reaching an environment.
 /// </summary>
 /// <remarks>
-/// Exactly one of <see cref="VersionId"/> and <see cref="PackageId"/> is supplied. Where a package
+/// Exactly one of <c>VersionId</c> and <c>PackageId</c> is supplied. Where a package
 /// exists it is the unit that shipped, so one pipeline run counts once.
 /// </remarks>
 public sealed record StartDeploymentRequest
@@ -15,10 +15,8 @@ public sealed record StartDeploymentRequest
     /// The version deployed, when this deployment carries a single artifact.
     /// </summary>
     /// <remarks>
-    /// Named for the version it points at, matching <see cref="StartDeploymentCommand"/>'s
-    /// <c>VersionId</c>. It was <c>ReleaseId</c> before Release and Version were split apart, which
-    /// silently broke the binding: JSON binds by name, so a client sending <c>versionId</c> left this
-    /// null and the request was refused as naming neither a version nor a package.
+    /// Named as <c>StartDeploymentCommand</c>'s <c>VersionId</c> is: JSON binds by name, so a property named
+    /// anything else is left null and the request is refused as naming neither a version nor a package.
     /// </remarks>
     public Guid? VersionId { get; set; }
 

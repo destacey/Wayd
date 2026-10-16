@@ -2,6 +2,7 @@
 
 import { Flex, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import { ImportDescription } from './import-description'
 import type { ImportColumn, ImportColumnType } from './import-template'
 
 const { Text } = Typography
@@ -41,7 +42,7 @@ const tableColumns: ColumnsType<ImportColumn> = [
         <Text code>{column.name}</Text>
         {column.description && (
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {column.description}
+            <ImportDescription text={column.description} />
           </Text>
         )}
       </Flex>

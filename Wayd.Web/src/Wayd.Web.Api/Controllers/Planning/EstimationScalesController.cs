@@ -18,7 +18,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.EstimationScales)]
-    [OpenApiOperation("Get a list of estimation scales.", "")]
+    [EndpointSummary("Get a list of estimation scales.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EstimationScaleDto>>> GetScales(CancellationToken cancellationToken, [FromQuery] bool includeInactive = false)
@@ -29,7 +29,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id:int}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.EstimationScales)]
-    [OpenApiOperation("Get estimation scale details.", "")]
+    [EndpointSummary("Get estimation scale details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EstimationScaleDto>> GetScale(int id, CancellationToken cancellationToken)
@@ -42,7 +42,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.EstimationScales)]
-    [OpenApiOperation("Create a custom estimation scale.", "")]
+    [EndpointSummary("Create a custom estimation scale.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult<int>> Create([FromBody] CreateEstimationScaleRequest request, CancellationToken cancellationToken)
     {
@@ -54,7 +54,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:int}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.EstimationScales)]
-    [OpenApiOperation("Update a custom estimation scale.", "")]
+    [EndpointSummary("Update a custom estimation scale.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -71,7 +71,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:int}/active-status")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.EstimationScales)]
-    [OpenApiOperation("Set the active status of an estimation scale.", "")]
+    [EndpointSummary("Set the active status of an estimation scale.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetActiveStatus(int id, [FromBody] SetEstimationScaleActiveStatusRequest request, CancellationToken cancellationToken)
@@ -87,7 +87,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id:int}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.EstimationScales)]
-    [OpenApiOperation("Delete a custom estimation scale.", "")]
+    [EndpointSummary("Delete a custom estimation scale.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)

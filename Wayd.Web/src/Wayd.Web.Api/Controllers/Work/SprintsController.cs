@@ -24,7 +24,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get a list of sprints.", "")]
+    [EndpointSummary("Get a list of sprints.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<SprintListDto>>> GetSprints([FromQuery] Guid? teamId, CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet("types")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get a list of all sprint types.", "")]
+    [EndpointSummary("Get a list of all sprint types.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<SprintTypeDto>>> GetSprintTypes(CancellationToken cancellationToken)
     {
@@ -46,7 +46,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get sprint details.", "")]
+    [EndpointSummary("Get sprint details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintDetailsDto>> GetSprint(string idOrKey, CancellationToken cancellationToken)
@@ -60,7 +60,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get activity history for the sprint.", "")]
+    [EndpointSummary("Get activity history for the sprint.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -75,7 +75,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
     // get backlog
     [HttpGet("{idOrKey}/backlog")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get sprint backlog items.", "")]
+    [EndpointSummary("Get sprint backlog items.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<SprintBacklogItemDto>>> GetSprintBacklog(string idOrKey, CancellationToken cancellationToken)
@@ -89,7 +89,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet("{idOrKey}/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get sprint work item metrics.", "")]
+    [EndpointSummary("Get sprint work item metrics.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintWorkItemMetricsDto>> GetSprintMetrics(string idOrKey, CancellationToken cancellationToken)
@@ -103,7 +103,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet("{idOrKey}/scope")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get sprint scope.", "What the sprint committed to and what became of it, worked out from work item history between its effective start and end: each requirement-tier item that was in the sprint, whether it was committed or added, and whether it was completed, completed as Removed, carried over or descoped. Not found when the sprint has no planned dates.")]
+    [EndpointSummary("Get sprint scope.")]
+    [EndpointDescription("What the sprint committed to and what became of it, worked out from work item history between its effective start and end: each requirement-tier item that was in the sprint, whether it was committed or added, and whether it was completed, completed as Removed, carried over or descoped. Not found when the sprint has no planned dates.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintScopeDto>> GetSprintScope(string idOrKey, CancellationToken cancellationToken)
@@ -117,7 +118,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet("{idOrKey}/burn")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get sprint burn-up and burn-down.", "The sprint's requirement-tier scope and completed work at its commitment point, at the end of each of its days in the team's zone, and at its effective end — or now, for a sprint that has not ended — as counts and estimates, worked out from work item history. Agrees with the sprint scope report at the commitment point and the end. Not found when the sprint has no planned dates.")]
+    [EndpointSummary("Get sprint burn-up and burn-down.")]
+    [EndpointDescription("The sprint's requirement-tier scope and completed work at its commitment point, at the end of each of its days in the team's zone, and at its effective end — or now, for a sprint that has not ended — as counts and estimates, worked out from work item history. Agrees with the sprint scope report at the commitment point and the end. Not found when the sprint has no planned dates.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintBurnDto>> GetSprintBurn(string idOrKey, CancellationToken cancellationToken)
@@ -132,8 +134,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
     [HttpGet("{idOrKey}/capacity")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation(
-        "Get a sprint's capacity beside its scope.",
+    [EndpointSummary("Get a sprint's capacity beside its scope.")]
+    [EndpointDescription(
         "The team's capacity over the sprint's planned dates (`start` to `end`) in person-days after holidays and time away: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `awayPersonDays` that time away took. Beside it, the sprint's `scope` in `sizingMethod` (by count under Count): the work in the sprint now before its commitment point (`scopeBasis` Planned), and the committed work after it (Committed). `expectedScope` is what the capacity is expected to deliver: the team's velocity per person-day of delivery capacity over the completed sprints its sprint metrics count now that ended no later than this sprint (`priorSprints`), in the same unit, times this sprint's. A sprint some way back therefore draws on fewer prior sprints than the team had at the time, or none. `isOverCapacity` is true when the scope is above it on a sprint that has not ended. `outcome` says whether the comparison was made, or why not: NoCapacity, NoPriorSprints, NoPriorCapacity. Not found when the sprint has no team or no planned dates. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -148,7 +150,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPost("{id}/start")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Start a sprint.", "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.")]
+    [EndpointSummary("Start a sprint.")]
+    [EndpointDescription("Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Start(Guid id, [FromBody] StartSprintRequest request, CancellationToken cancellationToken)
@@ -162,7 +165,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPost("{id}/complete")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Complete a sprint.", "Records that the team completed the sprint, now or at an earlier completedAt inside its completion window. Requires membership of the sprint's team or its team of teams.")]
+    [EndpointSummary("Complete a sprint.")]
+    [EndpointDescription("Records that the team completed the sprint, now or at an earlier completedAt inside its completion window. Requires membership of the sprint's team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Complete(Guid id, [FromBody] CompleteSprintRequest request, CancellationToken cancellationToken)
@@ -176,7 +180,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPost("{id}/reopen")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Reopen a sprint.", "Clears a completed sprint's completion while the team has not started a later sprint. Requires membership of the sprint's team or its team of teams.")]
+    [EndpointSummary("Reopen a sprint.")]
+    [EndpointDescription("Clears a completed sprint's completion while the team has not started a later sprint. Requires membership of the sprint's team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Reopen(Guid id, CancellationToken cancellationToken)
@@ -190,7 +195,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPut("{id}/team-days-off")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Set a sprint's team days off.", "Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.")]
+    [EndpointSummary("Set a sprint's team days off.")]
+    [EndpointDescription("Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetTeamDaysOff(Guid id, [FromBody] SetSprintTeamDaysOffRequest request, CancellationToken cancellationToken)
@@ -204,7 +210,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPut("{id}/type")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Set or clear a sprint's type.", "Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of the team's sprint metrics. Requires membership of the sprint's team or its team of teams.")]
+    [EndpointSummary("Set or clear a sprint's type.")]
+    [EndpointDescription("Sets the type the team gives the sprint, held whatever its planning interval mapping says; a null type clears it, so the sprint follows the mapped iteration's category again. A non-standard sprint keeps its own metrics but is left out of the team's sprint metrics. Requires membership of the sprint's team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetSprintType(Guid id, [FromBody] SetSprintTypeRequest request, CancellationToken cancellationToken)
@@ -218,7 +225,8 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPut("actual-dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Correct sprints' actual dates.", "Replaces the actual start and completion of one or more of a team's sprints; an omitted value reverts to the sprint's default. Sprints corrected together are checked against each other's corrected dates, and the team's actual sprint periods may not overlap. Requires membership of the sprints' team or its team of teams.")]
+    [EndpointSummary("Correct sprints' actual dates.")]
+    [EndpointDescription("Replaces the actual start and completion of one or more of a team's sprints; an omitted value reverts to the sprint's default. Sprints corrected together are checked against each other's corrected dates, and the team's actual sprint periods may not overlap. Requires membership of the sprints' team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectActualDates([FromBody] CorrectSprintActualDatesRequest request, CancellationToken cancellationToken)
@@ -234,7 +242,7 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpGet("{key:int}/planning-intervals")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
-    [OpenApiOperation("Get planning intervals that this sprint is mapped to.", "")]
+    [EndpointSummary("Get planning intervals that this sprint is mapped to.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<NavigationDto>>> GetPlanningIntervals(int key, CancellationToken cancellationToken)
     {

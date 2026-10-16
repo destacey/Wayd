@@ -5,7 +5,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 namespace Wayd.Web.Api.Models.Ppm.Portfolios;
 
 /// <summary>
-/// A single CSV row for the portfolio import. <see cref="Status"/> is the status the portfolio should end
+/// A single CSV row for the portfolio import. <c>Status</c> is the status the portfolio should end
 /// up in (case-insensitive), reached by replaying the real lifecycle transitions — which is why the
 /// transition dates are on the row: a portfolio only ever gets its date range from those transitions,
 /// never from creation.

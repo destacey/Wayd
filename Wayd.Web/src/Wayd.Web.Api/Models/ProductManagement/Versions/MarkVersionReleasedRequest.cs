@@ -7,7 +7,7 @@ public sealed record MarkVersionReleasedRequest
 {
     /// <summary>
     /// The moment it shipped. This is what orders a version history, so it is supplied rather than
-    /// taken from the clock. Required unless the deprecated <see cref="ReleasedDate"/> is sent instead.
+    /// taken from the clock. Required unless the deprecated <c>ReleasedDate</c> is sent instead.
     /// </summary>
     public Instant? ReleasedAt { get; set; }
 

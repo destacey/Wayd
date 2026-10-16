@@ -24,7 +24,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Get a list of strategic themes.", "")]
+    [EndpointSummary("Get a list of strategic themes.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategicThemeListDto>>> GetStrategicThemes([FromQuery] StrategicThemeState[]? state, CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Get strategic themes details.", "")]
+    [EndpointSummary("Get strategic themes details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StrategicThemeDetailsDto>> GetStrategicTheme(string idOrKey, CancellationToken cancellationToken)
@@ -50,7 +50,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Get activity history for the strategic theme.", "")]
+    [EndpointSummary("Get activity history for the strategic theme.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -64,7 +64,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Create a strategic theme.", "")]
+    [EndpointSummary("Create a strategic theme.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStrategicThemeRequest request, CancellationToken cancellationToken)
     {
@@ -77,7 +77,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [EndpointSummary("Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -122,7 +122,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Update a strategic theme.", "")]
+    [EndpointSummary("Update a strategic theme.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -140,7 +140,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Activate a strategic theme.", "")]
+    [EndpointSummary("Activate a strategic theme.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -155,7 +155,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Archive a strategic theme.", "")]
+    [EndpointSummary("Archive a strategic theme.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -170,7 +170,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Delete a strategic theme.", "")]
+    [EndpointSummary("Delete a strategic theme.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -184,7 +184,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpGet("options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Get a list of strategic theme options.", "")]
+    [EndpointSummary("Get a list of strategic theme options.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategicThemeOptionDto>>> GetStrategicThemeOptions([FromQuery] bool? includeArchived, CancellationToken cancellationToken)
@@ -196,7 +196,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpGet("states")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Get a list of all strategic theme states.", "")]
+    [EndpointSummary("Get a list of all strategic theme states.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategicThemeStateDto>>> GetStateOptions(CancellationToken cancellationToken)

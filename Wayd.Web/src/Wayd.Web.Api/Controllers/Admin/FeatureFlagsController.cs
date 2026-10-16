@@ -15,7 +15,7 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.FeatureFlags)]
-    [OpenApiOperation("Get a list of all feature flags.", "")]
+    [EndpointSummary("Get a list of all feature flags.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<FeatureFlagListDto>>> FeatureFlags(CancellationToken cancellationToken, [FromQuery] bool includeArchived = false)
@@ -26,7 +26,7 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id:int}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.FeatureFlags)]
-    [OpenApiOperation("Get feature flag details.", "")]
+    [EndpointSummary("Get feature flag details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<FeatureFlagDto>> FeatureFlag(int id, CancellationToken cancellationToken)
@@ -39,7 +39,7 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:int}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.FeatureFlags)]
-    [OpenApiOperation("Update a feature flag.", "")]
+    [EndpointSummary("Update a feature flag.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -56,7 +56,7 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:int}/toggle")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.FeatureFlags)]
-    [OpenApiOperation("Toggle a feature flag on or off.", "")]
+    [EndpointSummary("Toggle a feature flag on or off.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Toggle(int id, [FromBody] ToggleFeatureFlagRequest request, CancellationToken cancellationToken)
@@ -72,7 +72,7 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id:int}/archive")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.FeatureFlags)]
-    [OpenApiOperation("Archive a feature flag.", "")]
+    [EndpointSummary("Archive a feature flag.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Archive(int id, CancellationToken cancellationToken)

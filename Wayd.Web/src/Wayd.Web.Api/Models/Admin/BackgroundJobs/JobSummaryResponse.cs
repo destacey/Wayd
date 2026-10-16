@@ -11,7 +11,7 @@ public class JobSummaryResponse
     public string Namespace { get; set; } = default!;
     public string Action { get; set; } = default!;
 
-    /// <summary>The timestamp that matters for the requested state; <see cref="TimestampLabel"/> names it.</summary>
+    /// <summary>The timestamp that matters for the requested state; <c>TimestampLabel</c> names it.</summary>
     public Instant? Timestamp { get; set; }
 
     public string? TimestampLabel { get; set; }

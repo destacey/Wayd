@@ -32,6 +32,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { byGroup } from './import-atomicity'
 import ImportColumnsTable from './import-columns-table'
+import { ImportDescription } from './import-description'
 import type { ImportFileTemplate, ImportTemplate } from './import-template'
 import { ImportKey, importTemplates } from './import-templates.generated'
 
@@ -341,7 +342,9 @@ const CsvImportForm = ({
       {definition && template && (
         <>
           {template.description && (
-            <Paragraph type="secondary">{template.description}</Paragraph>
+            <Paragraph type="secondary">
+              <ImportDescription text={template.description} />
+            </Paragraph>
           )}
 
           {definition.atomicity === ImportAtomicity.Atomic ? (

@@ -63,7 +63,7 @@ public sealed record SprintMetricsSummary
 
     /// <summary>
     /// When the sprint became Active: when the team started it, or else the start of its first planned day in
-    /// <see cref="TimeZone"/>. Null for a sprint whose team is not mapped.
+    /// <c>TimeZone</c>. Null for a sprint whose team is not mapped.
     /// </summary>
     public Instant? ActiveFrom { get; init; }
 
@@ -93,7 +93,7 @@ public sealed record SprintMetricsSummary
     public int NotStartedWorkItems { get; init; }
     public double NotStartedEstimate { get; init; }
 
-    /// <summary>Items with no value in <see cref="SizingMethod"/>. An estimate of 0 is an estimate.</summary>
+    /// <summary>Items with no value in <c>SizingMethod</c>. An estimate of 0 is an estimate.</summary>
     public int UnestimatedWorkItems { get; init; }
 
     /// <summary>Cycle-time rollup for this sprint.</summary>

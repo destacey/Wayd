@@ -8,7 +8,7 @@ namespace Wayd.Web.Api.Models.Ppm.StrategicInitiatives;
 /// <summary>
 /// A single CSV row for the strategic initiative import. The owning portfolio is referenced by id and the
 /// delivering projects by a semicolon-separated list of their keys; role columns hold semicolon-separated
-/// employee numbers. <see cref="Status"/> is the status the initiative should end up in (case-insensitive),
+/// employee numbers. <c>Status</c> is the status the initiative should end up in (case-insensitive),
 /// reached by replaying the real lifecycle transitions.
 /// </summary>
 public sealed class ImportStrategicInitiativeRequest

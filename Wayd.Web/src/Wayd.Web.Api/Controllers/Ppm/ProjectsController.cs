@@ -37,8 +37,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get a list of projects.",
+    [EndpointSummary("Get a list of projects.")]
+    [EndpointDescription(
         "A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.")]
     [McpTool("Projects_GetProjects", "List projects")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -59,9 +59,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("my-summary")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get a summary of the current user's project involvement, as counts per role (total, sponsor, owner, manager, member, assignee).",
-        "Scoped to the caller — no user parameter.")]
+    [EndpointSummary(
+        "Get a summary of the current user's project involvement, as counts per role (total, sponsor, owner, manager, member, assignee).")]
+    [EndpointDescription("Scoped to the caller — no user parameter.")]
     [McpTool("Projects_GetMyProjectsSummary", "Get my project involvement summary")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<MyProjectsSummaryDto>> GetMyProjectsSummary([FromQuery] ProjectStatus[]? status, CancellationToken cancellationToken)
@@ -75,9 +75,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("my-task-metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get aggregated open-task counts across the current user's projects: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).",
-        "Scoped to the caller — no user parameter.")]
+    [EndpointSummary(
+        "Get aggregated open-task counts across the current user's projects: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).")]
+    [EndpointDescription("Scoped to the caller — no user parameter.")]
     [McpTool("Projects_GetMyProjectsTaskMetrics", "Get my project task metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<ProjectsTaskMetricsDto>> GetMyProjectsTaskMetrics([FromQuery] ProjectStatus[]? status, [FromQuery] ProjectMemberRole[]? role, CancellationToken cancellationToken)
@@ -87,8 +87,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("task-metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).",
+    [EndpointSummary(
+        "Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).")]
+    [EndpointDescription(
         "Pass employeeId for another person; omit it for the caller. On a project where the employee holds a leadership role (Sponsor, Owner or Manager) every task counts, otherwise only the tasks assigned to them.")]
     [McpTool("Projects_GetTaskMetrics", "Get an employee's project task metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -99,7 +100,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get project details.", "")]
+    [EndpointSummary("Get project details.")]
     [McpTool("Projects_GetProject", "Get project")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -114,8 +115,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{id}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get the project's status change history.",
+    [EndpointSummary("Get the project's status change history.")]
+    [EndpointDescription(
         "Each entry records the status moved out of (null for the project's initial state), the status moved into, who made the change, when, and an optional reason. Entries are flagged as recorded live or reconstructed from the audit trail.")]
     [McpTool("Projects_GetStatusHistory", "Get project status history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -128,8 +129,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get a project's activity history, newest first: every change recorded on the project itself — details, key, program, lifecycle, timeline, roles, strategic themes, status, health checks and scores.",
+    [EndpointSummary(
+        "Get a project's activity history, newest first: every change recorded on the project itself — details, key, program, lifecycle, timeline, roles, strategic themes, status, health checks and scores.")]
+    [EndpointDescription(
         "Tasks and stages are not included. Prefer this over `Projects_GetStatusHistory` when asking what changed beyond status. Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
     [McpTool("Projects_GetActivities", "Get project activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -145,8 +147,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Create a project in a portfolio, optionally inside a program.",
+    [EndpointSummary("Create a project in a portfolio, optionally inside a program.")]
+    [EndpointDescription(
         "It starts in Proposed status. Approving it later requires an assigned lifecycle, and activating it requires a start and end date. Resolve expenditureCategoryId with ExpenditureCategories_GetOptions. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_Create", "Create project", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
@@ -161,7 +163,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Projects)]
-    [OpenApiOperation("Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [EndpointSummary("Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -208,7 +210,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     /// </summary>
     [HttpPost("tasks/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Projects)]
-    [OpenApiOperation("Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "Each row names the project it belongs to, so one file can cover many projects.")]
+    [EndpointSummary("Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription("Each row names the project it belongs to, so one file can cover many projects.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -256,7 +259,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     /// </summary>
     [HttpPost("stages/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Projects)]
-    [OpenApiOperation("Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "Each row names the project and stage it sets, so one file can cover many projects.")]
+    [EndpointSummary("Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription("Each row names the project and stage it sets, so one file can cover many projects.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -299,8 +303,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.",
+    [EndpointSummary(
+        "Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.")]
+    [EndpointDescription(
         "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_Update", "Update project", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -321,8 +326,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPut("{id}/program")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Move a project into a different program, or out of its program entirely by passing a null programId.",
+    [EndpointSummary(
+        "Move a project into a different program, or out of its program entirely by passing a null programId.")]
+    [EndpointDescription(
         "The target program must belong to the project's portfolio. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_ChangeProgram", "Change project program", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -339,8 +345,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPut("{id}/key")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Change a project's key.",
+    [EndpointSummary("Change a project's key.")]
+    [EndpointDescription(
         "**The key is the project's human-facing identifier** — it appears in task keys and in links people have saved, so changing it invalidates existing references. Only do this when the user has explicitly asked for a rekey. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_ChangeKey", "Change project key", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -357,8 +363,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/approve")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Approve a proposed project.",
+    [EndpointSummary("Approve a proposed project.")]
+    [EndpointDescription(
         "A lifecycle must be assigned to the project first, and only proposed projects can be approved. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Projects_Approve", "Approve project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -375,8 +381,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Activate a proposed or approved project.",
+    [EndpointSummary("Activate a proposed or approved project.")]
+    [EndpointDescription(
         "The project must already have a start and end date. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Projects_Activate", "Activate project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -393,8 +399,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/complete")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Complete an active project.",
+    [EndpointSummary("Complete an active project.")]
+    [EndpointDescription(
         "The project must have a start and end date, and only active projects can be completed. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Projects_Complete", "Complete project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -411,8 +417,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/cancel")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Cancel a project that is not already completed or canceled.",
+    [EndpointSummary("Cancel a project that is not already completed or canceled.")]
+    [EndpointDescription(
         "Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Projects_Cancel", "Cancel project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -429,8 +435,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/revert-status")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Move a project **backwards** to an earlier status — for example reopening a completed or canceled project, or returning an active one to approved.",
+    [EndpointSummary(
+        "Move a project **backwards** to an earlier status — for example reopening a completed or canceled project, or returning an active one to approved.")]
+    [EndpointDescription(
         "**Read `backwardStatusTargets` on Projects_GetProject and offer only what it contains** rather than assuming: a status carries the same entry requirements whichever direction it is reached from, so reverting to approved needs a lifecycle assigned and reverting to active needs a start and end date. A project cancelled straight from proposed may therefore only allow proposed. **A reason is required** and is kept in the project's status history. The call is rejected if the project's program or portfolio is closed — reopen the parent first. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Projects_RevertStatus", "Revert project status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -447,7 +454,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Projects)]
-    [OpenApiOperation("Delete a project.", "")]
+    [EndpointSummary("Delete a project.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -461,7 +468,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a list of all project statuses.", "")]
+    [EndpointSummary("Get a list of all project statuses.")]
     [McpTool("Projects_GetStatuses", "List project statuses")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -473,7 +480,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{idOrKey}/team")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get the team members for a project.", "")]
+    [EndpointSummary("Get the team members for a project.")]
     [McpTool("Projects_GetProjectTeam", "Get project team")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -488,7 +495,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{id}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get work items for a project.", "")]
+    [EndpointSummary("Get work items for a project.")]
     [McpTool("Projects_GetWorkItems", "List a project's work items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -505,8 +512,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [HttpGet("{idOrKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Forecast when a project's work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.",
+    [EndpointSummary(
+        "Forecast when a project's work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.")]
+    [EndpointDescription(
         "Returns an `outcome` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining); on Forecast, completion `percentiles` (a `date` per `confidence`) and `chanceOfFinishingByTargetDate` (0 to 1) against `targetDate` when given, else the project's planned end. `excludedWorkItems` could not be forecast (see `issues`), which makes the dates a lower bound; `dependencies` gives each predecessor's `shareOfTrialsSettingFinish`. Requires the delivery-forecasting feature flag; returns 404 when it is off.")]
     [McpTool("Projects_GetForecast", "Forecast project completion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -539,7 +547,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/lifecycle")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Assign a lifecycle to a project.", "")]
+    [EndpointSummary("Assign a lifecycle to a project.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> AssignLifecycle(Guid id, [FromBody] AssignProjectLifecycleRequest request, CancellationToken cancellationToken)
@@ -553,7 +561,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/lifecycle/change")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Change a project's lifecycle, remapping tasks between stages.", "")]
+    [EndpointSummary("Change a project's lifecycle, remapping tasks between stages.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -571,7 +579,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{id}/stages")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get stages for a project.", "")]
+    [EndpointSummary("Get stages for a project.")]
     [McpTool("Projects_GetProjectStages", "List project stages")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -584,7 +592,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{idOrKey}/plan-tree")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a unified plan tree with stages as top-level nodes and tasks nested within.", "Returns both stage nodes and task nodes with WBS codes.")]
+    [EndpointSummary("Get a unified plan tree with stages as top-level nodes and tasks nested within.")]
+    [EndpointDescription("Returns both stage nodes and task nodes with WBS codes.")]
     [McpTool("Projects_GetProjectPlanTree", "Get project plan tree")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -597,7 +606,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{idOrKey}/plan-summary")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get summary metrics for a project's plan, computed from leaf tasks.", "Includes overdue, due this week, upcoming, and total task counts.")]
+    [EndpointSummary("Get summary metrics for a project's plan, computed from leaf tasks.")]
+    [EndpointDescription("Includes overdue, due this week, upcoming, and total task counts.")]
     [McpTool("Projects_GetProjectPlanSummary", "Get project plan summary")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -610,8 +620,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("plan-summaries")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation(
-        "Get plan summary metrics for multiple projects in one request, keyed by project ID.",
+    [EndpointSummary("Get plan summary metrics for multiple projects in one request, keyed by project ID.")]
+    [EndpointDescription(
         "Prefer this over calling Projects_GetProjectPlanSummary once per project when surveying several projects. Counts the tasks the caller can see (every task where they lead the project, otherwise their own), or another employee's with employeeId, or every task on the projects with allTasks.")]
     [McpTool("Projects_GetProjectsPlanSummaries", "Get plan summaries for several projects")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -624,7 +634,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get project stage details.", "")]
+    [EndpointSummary("Get project stage details.")]
     [McpTool("Projects_GetProjectStage", "Get project stage")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -639,7 +649,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPut("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Update a project stage.", "")]
+    [EndpointSummary("Update a project stage.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateProjectStage(Guid id, Guid stageId, [FromBody] UpdateProjectStageRequest request, CancellationToken cancellationToken)
@@ -654,7 +664,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [HttpPatch("{id}/stages/{stageId}")]
     [Consumes("application/json", "application/json-patch+json")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Partially update a project stage using JSON Patch (RFC 6902).", "")]
+    [EndpointSummary("Partially update a project stage using JSON Patch (RFC 6902).")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

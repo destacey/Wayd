@@ -15,7 +15,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roles)]
-    [OpenApiOperation("Get a list of all roles.", "")]
+    [EndpointSummary("Get a list of all roles.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RoleListDto>>> GetList(CancellationToken cancellationToken)
@@ -27,7 +27,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roles)]
-    [OpenApiOperation("Get role details.", "")]
+    [EndpointSummary("Get role details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -42,7 +42,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpGet("{id}/permissions")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.RoleClaims)]
-    [OpenApiOperation("Get role details with its permissions.", "")]
+    [EndpointSummary("Get role details with its permissions.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -57,7 +57,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpPut("{id}/permissions")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.RoleClaims)]
-    [OpenApiOperation("Update a role's permissions.", "")]
+    [EndpointSummary("Update a role's permissions.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdatePermissions(string id, UpdateRolePermissionsRequest request, CancellationToken cancellationToken)
@@ -74,7 +74,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roles)]
-    [OpenApiOperation("Create or update a role.", "")]
+    [EndpointSummary("Create or update a role.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201String))]
     public async Task<ActionResult<string>> CreateOrUpdate(CreateOrUpdateRoleRequest request)
     {
@@ -85,7 +85,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpGet("{id}/users")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roles)]
-    [OpenApiOperation("Get list of all users with this role.", "")]
+    [EndpointSummary("Get list of all users with this role.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<List<UserDetailsDto>> GetUsers(string id, CancellationToken cancellationToken)
@@ -95,7 +95,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpGet("{id}/users-count")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roles)]
-    [OpenApiOperation("Get a count of all users with this role.", "")]
+    [EndpointSummary("Get a count of all users with this role.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<int> GetUsersCount(string id, CancellationToken cancellationToken)
@@ -105,7 +105,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Roles)]
-    [OpenApiOperation("Delete a role.", "")]
+    [EndpointSummary("Delete a role.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]

@@ -3,8 +3,8 @@ using Wayd.Common.Application.BackgroundJobs;
 namespace Wayd.Web.Api.Models.Admin.BackgroundJobs;
 
 /// <summary>
-/// Job counts, split by what the number measures. <see cref="Current"/> values agree with the
-/// matching job list; <see cref="AllTime"/> values are running totals that outlive the job records.
+/// Job counts, split by what the number measures. <c>Current</c> values agree with the
+/// matching job list; <c>AllTime</c> values are running totals that outlive the job records.
 /// </summary>
 public class JobStatisticsResponse
 {

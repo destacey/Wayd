@@ -18,8 +18,8 @@ internal static class SecurityHeaderDefaults
     internal const string XFrameOptions = "DENY";
 
     /// <summary>
-    /// Omits <c>default-src</c>/<c>script-src</c>: this host also serves Swagger UI, ReDoc and the
-    /// Hangfire dashboard, which all rely on inline scripts. Every directive here is script-agnostic
+    /// Omits <c>default-src</c>/<c>script-src</c>: this host also serves the Scalar API reference and the
+    /// Hangfire dashboard, which both rely on inline scripts. Every directive here is script-agnostic
     /// and safe for every response the API emits.
     /// </summary>
     internal const string ContentSecurityPolicy =

@@ -3,11 +3,9 @@
 public sealed record CreateWorkStatusRequest
 {
     /// <summary>The name of the work status.  The name cannot be changed.</summary>
-    /// <value>The name.</value>
     public string Name { get; set; } = default!;
 
     /// <summary>The description of the work status.</summary>
-    /// <value>The description.</value>
     public string? Description { get; set; }
 
     public CreateWorkStatusCommand ToCreateWorkStatusCommand()

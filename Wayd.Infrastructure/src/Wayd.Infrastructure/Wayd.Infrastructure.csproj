@@ -44,9 +44,6 @@
         <PackageReference Include="Microsoft.Identity.Web.MicrosoftGraph" />
         <PackageReference Include="NodaTime" />
         <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
-        <PackageReference Include="NSwag.AspNetCore" />
-        <PackageReference Include="NSwag.CodeGeneration.CSharp" />
-        <PackageReference Include="NSwag.CodeGeneration.TypeScript" />
         <PackageReference Include="OneOf.Serialization.SystemTextJson" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
@@ -92,7 +89,9 @@
              Production host is guarded to require Static (see WolverineConfiguration.ResolveTypeLoadMode), so
              the Roslyn compiler ships in the assembly but is dead weight on the prod cold-start path. -->
         <PackageReference Include="WolverineFx.RuntimeCompilation" />
-        <PackageReference Include="MicroElements.NSwag.FluentValidation" />
+        <PackageReference Include="MicroElements.AspNetCore.OpenApi.FluentValidation" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Scalar.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>

@@ -53,7 +53,7 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
 
     /// <summary>
     /// Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the
-    /// supplied collection becomes the new full set (omitted or empty => no exclusions).
+    /// supplied collection becomes the new full set (omitted or empty means no exclusions).
     /// </summary>
     public List<WorkdayOrgExclusionRequest>? OrgExclusions { get; set; }
 

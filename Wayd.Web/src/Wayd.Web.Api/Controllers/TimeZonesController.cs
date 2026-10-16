@@ -13,7 +13,7 @@ public class TimeZonesController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [OpenApiOperation("Get the IANA time zones that can be chosen.", "")]
+    [EndpointSummary("Get the IANA time zones that can be chosen.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<TimeZoneDto>>> GetTimeZones(CancellationToken cancellationToken)
     {

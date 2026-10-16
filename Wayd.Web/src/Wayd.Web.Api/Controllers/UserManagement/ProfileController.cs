@@ -15,7 +15,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     private readonly ICurrentUser _currentUser = currentUser;
 
     [HttpGet]
-    [OpenApiOperation("Get profile details of currently logged in user.", "")]
+    [EndpointSummary("Get profile details of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserDetailsDto>> Get(CancellationToken cancellationToken)
@@ -26,7 +26,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpPut]
-    [OpenApiOperation("Update profile details of currently logged in user.", "")]
+    [EndpointSummary("Update profile details of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -40,7 +40,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpPut("change-password")]
-    [OpenApiOperation("Change password for the currently logged in local user.", "")]
+    [EndpointSummary("Change password for the currently logged in local user.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ChangePassword(ChangePasswordRequest request)
@@ -55,7 +55,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpGet("permissions")]
-    [OpenApiOperation("Get permissions of currently logged in user.", "")]
+    [EndpointSummary("Get permissions of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserPermissionsResponse>> GetPermissions(CancellationToken cancellationToken)
@@ -70,7 +70,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpGet("preferences")]
-    [OpenApiOperation("Get preferences of currently logged in user.", "")]
+    [EndpointSummary("Get preferences of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserPreferencesDto>> GetPreferences(CancellationToken cancellationToken)
@@ -82,7 +82,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpPut("preferences")]
-    [OpenApiOperation("Update preferences of currently logged in user.", "")]
+    [EndpointSummary("Update preferences of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdatePreferences(UserPreferencesDto preferences, CancellationToken cancellationToken)
@@ -97,7 +97,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpGet("theme")]
-    [OpenApiOperation("Get theme configuration of currently logged in user.", "")]
+    [EndpointSummary("Get theme configuration of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserThemeConfigDto?>> GetThemeConfig(CancellationToken cancellationToken)
@@ -109,7 +109,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpPut("theme")]
-    [OpenApiOperation("Update theme configuration of currently logged in user.", "")]
+    [EndpointSummary("Update theme configuration of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateThemeConfig(UserThemeConfigDto? themeConfig, CancellationToken cancellationToken)
@@ -124,7 +124,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpGet("logs")]
-    [OpenApiOperation("Get audit logs of currently logged in user.", "")]
+    [EndpointSummary("Get audit logs of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public Task<List<AuditDto>> GetLogs(CancellationToken cancellationToken)

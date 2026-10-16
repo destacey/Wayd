@@ -10,8 +10,7 @@ namespace Wayd.Web.Api.Mcp;
 /// <remarks>
 /// References are inlined, since not every client resolves <c>$ref</c>; a type that contains itself is cut
 /// to a plain object where it recurs. OpenAPI 3.0's <c>nullable</c> and boolean exclusive bounds have no
-/// meaning in 2020-12 and are rewritten; NSwag's <c>guid</c> format becomes the standard <c>uuid</c>, and
-/// vendor extensions and examples are dropped.
+/// meaning in 2020-12 and are rewritten, and vendor extensions and examples are dropped.
 /// </remarks>
 public sealed class OpenApiToolSchema
 {
@@ -104,7 +103,6 @@ public sealed class OpenApiToolSchema
                         KeyValuePair.Create(p.Key, (JsonNode?)Convert(p.Value as JsonObject ?? [], resolving)))),
                     "items" => Convert(value as JsonObject ?? [], resolving),
                     "additionalProperties" when value is JsonObject schema => Convert(schema, resolving),
-                    "format" when (string?)value == "guid" => "uuid",
                     _ => value.DeepClone(),
                 };
             }
@@ -128,7 +126,7 @@ public sealed class OpenApiToolSchema
     }
 
     /// <summary>
-    /// Resolves a reference, and NSwag's single-entry <c>oneOf</c>/<c>allOf</c> wrapper around one, into one
+    /// Resolves a reference, and the single-entry <c>oneOf</c>/<c>allOf</c> wrapper around one, into one
     /// schema; keywords written beside the reference win over the referenced type's.
     /// </summary>
     private JsonObject Flatten(JsonObject source, HashSet<string> resolving, out string? referenced)

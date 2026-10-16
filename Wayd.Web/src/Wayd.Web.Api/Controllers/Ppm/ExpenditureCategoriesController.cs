@@ -17,7 +17,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Get a list of expenditure categories.", "")]
+    [EndpointSummary("Get a list of expenditure categories.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ExpenditureCategoryListDto>>> GetExpenditureCategories(CancellationToken cancellationToken)
@@ -29,7 +29,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Get expenditure category details.", "")]
+    [EndpointSummary("Get expenditure category details.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ExpenditureCategoryDetailsDto>> GetExpenditureCategory(int id, CancellationToken cancellationToken)
@@ -43,7 +43,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Create an expenditure category.", "")]
+    [EndpointSummary("Create an expenditure category.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult<int>> Create([FromBody] CreateExpenditureCategoryRequest request, CancellationToken cancellationToken)
     {
@@ -56,7 +56,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Update an expenditure category.", "")]
+    [EndpointSummary("Update an expenditure category.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -74,7 +74,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Activate an expenditure category.", "")]
+    [EndpointSummary("Activate an expenditure category.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -89,7 +89,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpPost("{id}/archive")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Archive an expenditure category.", "")]
+    [EndpointSummary("Archive an expenditure category.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -104,7 +104,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation("Delete an expenditure category.", "")]
+    [EndpointSummary("Delete an expenditure category.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
@@ -118,9 +118,8 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
 
     [HttpGet("options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ExpenditureCategories)]
-    [OpenApiOperation(
-        "Get a lightweight list of expenditure category options for lookups.",
-        "Use this to resolve the expenditureCategoryId required when creating or updating a project.")]
+    [EndpointSummary("Get a lightweight list of expenditure category options for lookups.")]
+    [EndpointDescription("Use this to resolve the expenditureCategoryId required when creating or updating a project.")]
     [McpTool("ExpenditureCategories_GetOptions", "List expenditure category options")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

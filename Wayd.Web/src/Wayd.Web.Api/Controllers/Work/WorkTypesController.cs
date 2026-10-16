@@ -21,7 +21,7 @@ public class WorkTypesController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkTypes)]
-    [OpenApiOperation("Get a list of all work types.", "")]
+    [EndpointSummary("Get a list of all work types.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkTypeDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
@@ -32,7 +32,7 @@ public class WorkTypesController : ControllerBase
 
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkTypes)]
-    [OpenApiOperation("Get work type details using the id.", "")]
+    [EndpointSummary("Get work type details using the id.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -47,7 +47,7 @@ public class WorkTypesController : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.WorkTypes)]
-    [OpenApiOperation("Create a work type.", "")]
+    [EndpointSummary("Create a work type.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult> Create(CreateWorkTypeRequest request, CancellationToken cancellationToken)
     {
@@ -60,7 +60,7 @@ public class WorkTypesController : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.WorkTypes)]
-    [OpenApiOperation("Update a work type.", "")]
+    [EndpointSummary("Update a work type.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -75,12 +75,4 @@ public class WorkTypesController : ControllerBase
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
-
-    //[HttpDelete("{id}")]
-    //[MustHavePermission(ApplicationAction.Delete, ApplicationResource.WorkTypes)]
-    //[OpenApiOperation("Delete a work type.", "")]
-    //public async Task<ActionResult> Delete(int id)
-    //{
-    //    throw new NotImplementedException();
-    //}
 }

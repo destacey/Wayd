@@ -12,7 +12,7 @@ public class AzureOpenAIConnectionsController(IDispatcher dispatcher) : Controll
 
     [HttpPost("test")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Test Azure OpenAI connection configuration.", "")]
+    [EndpointSummary("Test Azure OpenAI connection configuration.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> TestConfig(TestAzureOpenAIConnectionRequest request)

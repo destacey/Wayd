@@ -7,10 +7,10 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 namespace Wayd.Web.Api.Models.Ppm.Projects;
 
 /// <summary>
-/// A single CSV row for the project import. <see cref="Key"/> is the project's natural key, which project
+/// A single CSV row for the project import. <c>Key</c> is the project's natural key, which project
 /// tasks and strategic initiatives reference. The portfolio, program, expenditure category and lifecycle
 /// are referenced by id; strategic themes and the role columns hold semicolon-separated lists.
-/// <see cref="Status"/> is the status the project should end up in (case-insensitive), reached by replaying
+/// <c>Status</c> is the status the project should end up in (case-insensitive), reached by replaying
 /// the real lifecycle transitions.
 /// </summary>
 public sealed class ImportProjectRequest

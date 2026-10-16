@@ -36,7 +36,7 @@ public class EmployeesController(
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
-    [OpenApiOperation("Get a list of all employees.", "")]
+    [EndpointSummary("Get a list of all employees.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EmployeeListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
@@ -47,7 +47,7 @@ public class EmployeesController(
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
-    [OpenApiOperation("Get employee details using the Id or key.", "")]
+    [EndpointSummary("Get employee details using the Id or key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -62,7 +62,7 @@ public class EmployeesController(
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Employees)]
-    [OpenApiOperation("Create an employee.", "")]
+    [EndpointSummary("Create an employee.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(CreateEmployeeRequest request, CancellationToken cancellationToken)
     {
@@ -75,7 +75,7 @@ public class EmployeesController(
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Employees)]
-    [OpenApiOperation("Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [EndpointSummary("Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -120,7 +120,7 @@ public class EmployeesController(
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Employees)]
-    [OpenApiOperation("Update an employee.", "")]
+    [EndpointSummary("Update an employee.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(Guid id, UpdateEmployeeRequest request, CancellationToken cancellationToken)
@@ -137,7 +137,7 @@ public class EmployeesController(
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Employees)]
-    [OpenApiOperation("Delete an employee.", "")]
+    [EndpointSummary("Delete an employee.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(string id)
@@ -151,7 +151,7 @@ public class EmployeesController(
 
     [HttpGet("{id}/direct-reports")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
-    [OpenApiOperation("Get a list of direct reports for an employee.", "")]
+    [EndpointSummary("Get a list of direct reports for an employee.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EmployeeListDto>>> GetDirectReports(Guid id, CancellationToken cancellationToken)
@@ -163,7 +163,7 @@ public class EmployeesController(
 
     [HttpPost("{id}/remove-invalid")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Employees)]
-    [OpenApiOperation("Remove invalid employee record from employee list.", "")]
+    [EndpointSummary("Remove invalid employee record from employee list.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveInvalid(Guid id, CancellationToken cancellationToken)
@@ -177,7 +177,7 @@ public class EmployeesController(
 
     [HttpGet("{id}/team-memberships")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
-    [OpenApiOperation("Get team memberships for an employee.", "")]
+    [EndpointSummary("Get team memberships for an employee.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetTeamMemberships(Guid id, CancellationToken cancellationToken)
     {
@@ -187,8 +187,8 @@ public class EmployeesController(
     [HttpGet("{id:guid}/allocations")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
-    [OpenApiOperation(
-        "Get how an employee's time is allocated to teams over time.",
+    [EndpointSummary("Get how an employee's time is allocated to teams over time.")]
+    [EndpointDescription(
         "Returns every allocation across all teams in date order: the team, the role the time is spent in when one was chosen, the date range (`end` is null when it has no end) and the `percent` of the employee's time. An employee's allocations never add up to more than 100% on any day. `canManage` says whether the caller may change that team's allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -204,8 +204,8 @@ public class EmployeesController(
     [HttpPut("{id:guid}/allocations")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [OpenApiOperation(
-        "Set the share of an employee's time one or more teams have over date ranges.",
+    [EndpointSummary("Set the share of an employee's time one or more teams have over date ranges.")]
+    [EndpointDescription(
         "Each change replaces what its team and role have over its date range and leaves other days as they were, so a change inside a longer allocation splits it; a `percent` of 0 ends the allocation for the range. The changes apply together or not at all, and fail if any day would then exceed 100% across all teams. The caller must be a member of every team named, or of its team of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -222,8 +222,8 @@ public class EmployeesController(
     [HttpPost("{id:guid}/allocations/move")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [OpenApiOperation(
-        "Move a share of an employee's time from one team and role to another over a date range.",
+    [EndpointSummary("Move a share of an employee's time from one team and role to another over a date range.")]
+    [EndpointDescription(
         "Lowers the source and raises the target by `percent` on every day of the range as one change, so a fully allocated employee can be moved between teams. Fails if the source has less than `percent` on any day of the range. The caller must be a member of both teams, or of their teams of teams, unless they hold the Administer Teams permission. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -240,8 +240,8 @@ public class EmployeesController(
     [HttpGet("time-away-reasons")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
-    [OpenApiOperation(
-        "Get the reasons time away can be recorded for.",
+    [EndpointSummary("Get the reasons time away can be recorded for.")]
+    [EndpointDescription(
         "Each reason's `code` is what a stretch of time away carries and what the time away requests accept.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TimeAwayReasonDto>>> GetTimeAwayReasons(CancellationToken cancellationToken)
@@ -253,8 +253,8 @@ public class EmployeesController(
     [HttpGet("{id:guid}/time-away")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
-    [OpenApiOperation(
-        "Get when an employee is away and the holiday calendar they take.",
+    [EndpointSummary("Get when an employee is away and the holiday calendar they take.")]
+    [EndpointDescription(
         "Returns each stretch of time away in date order with the share of each day it takes (`percentAway`), and the holiday calendar the employee follows when it is not the system default. Time away lowers the employee's availability to every team they are allocated to and never counts toward their 100% allocation. `canManage` says whether the caller may record this employee's time away: the employee, anyone they report up to, and holders of the Administer Employee Time Away permission. Each stretch's `reason` is null unless `canManage` is true. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -270,8 +270,8 @@ public class EmployeesController(
     [HttpPost("{id:guid}/time-away")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [Authorize]
-    [OpenApiOperation(
-        "Record an employee as away for a stretch of days.",
+    [EndpointSummary("Record an employee as away for a stretch of days.")]
+    [EndpointDescription(
         "Records the employee as away from every team they are allocated to for `percentAway` of each day from `start` to `end`. Stretches may overlap, but a day cannot add up to more than a whole day away. Needs no permission: allowed for the employee, anyone they report up to, and holders of the Administer Employee Time Away permission, and the caller must be linked to an employee. Returns the id of the time away. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -288,8 +288,8 @@ public class EmployeesController(
     [HttpPut("{id:guid}/time-away/{timeAwayId:guid}")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [Authorize]
-    [OpenApiOperation(
-        "Change a stretch of an employee's time away.",
+    [EndpointSummary("Change a stretch of an employee's time away.")]
+    [EndpointDescription(
         "Changes its days, the share of each day it takes, or its reason. Allowed for the same people as recording it. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -306,8 +306,8 @@ public class EmployeesController(
     [HttpDelete("{id:guid}/time-away/{timeAwayId:guid}")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [Authorize]
-    [OpenApiOperation(
-        "Remove a stretch of an employee's time away.",
+    [EndpointSummary("Remove a stretch of an employee's time away.")]
+    [EndpointDescription(
         "The employee counts as available on those days again. Allowed for the same people as recording it, whether or not the employee is still active. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -324,8 +324,8 @@ public class EmployeesController(
     [HttpPut("{id:guid}/holiday-calendar")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Employees)]
-    [OpenApiOperation(
-        "Set the holiday calendar an employee follows.",
+    [EndpointSummary("Set the holiday calendar an employee follows.")]
+    [EndpointDescription(
         "Calendars are shared: assign the one for where the employee works, such as their country's. They take its holidays instead of the system default's, on every team they are allocated to; with none (`holidayCalendarId` null) they follow the system default. A team's own calendar never decides a person's holidays. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -341,7 +341,7 @@ public class EmployeesController(
 
     [HttpGet("{id}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Get the work items assigned to an employee.", "")]
+    [EndpointSummary("Get the work items assigned to an employee.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetEmployeeWorkItems(

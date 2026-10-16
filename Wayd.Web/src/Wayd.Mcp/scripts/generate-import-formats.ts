@@ -65,7 +65,7 @@ function buildColumns(schemaName: string): ImportColumn[] {
         const property = resolve(raw);
         const name = raw['x-csv-column'] ?? property['x-csv-column'];
         if (!name) {
-            throw new Error(`${schemaName}.${jsonName} has no x-csv-column; the API's CsvImportOperationProcessor did not run over it.`);
+            throw new Error(`${schemaName}.${jsonName} has no x-csv-column; the API's CsvImportOperationTransformer did not run over it.`);
         }
 
         const column: ImportColumn = { name, type: columnType(raw), required: required.has(jsonName) };

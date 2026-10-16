@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentValidation.AspNetCore;
 using JasperFx;
@@ -44,14 +45,20 @@ try
 
     builder.AddServiceDefaults();
 
+    static void ConfigureJson(JsonSerializerOptions options)
+    {
+        options.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+        options.Converters.Add(new JsonStringEnumConverter());
+        options.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.AllowTrailingCommas = true;
+    }
+
     builder.Services.AddControllers()
-        .AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-            options.JsonSerializerOptions.AllowTrailingCommas = true;
-        });
+        .AddJsonOptions(options => ConfigureJson(options.JsonSerializerOptions));
+
+    // Microsoft.AspNetCore.OpenApi describes every endpoint, controllers included, from these options rather
+    // than MVC's, so without them its document would publish enums as integers.
+    builder.Services.ConfigureHttpJsonOptions(options => ConfigureJson(options.SerializerOptions));
 
     builder.Services.Configure<ApiBehaviorOptions>(options =>
     {
@@ -88,6 +95,12 @@ try
     builder.Services.AddScoped<ImportSubmissionResponder>();
     builder.Services.AddWaydMcp();
 
+    // Called here rather than in AddInfrastructure: the package's source generator describes the API from the
+    // XML documentation of the assembly that calls AddOpenApi and of its project references, and only this
+    // assembly holds the controllers and their request models.
+    if (WaydOpenApiDocument.IsEnabled(builder.Configuration))
+        builder.Services.AddOpenApi(WaydOpenApiDocument.Name, options => WaydOpenApiDocument.Configure(options, builder.Configuration));
+
     // Wolverine is the command/query/event mediator (replacing MediatR), configured in Infrastructure
     // alongside the other host plumbing. IDispatcher — the only dispatch seam call sites use — is
     // registered by AddCommonApplication. typeof(Program).Assembly is Wayd.Web.Api — the assembly that
@@ -99,7 +112,7 @@ try
     var app = builder.Build();
 
     // Skip startup-only database work when something is merely building the host to introspect it
-    // (EF tooling, or NSwag reading the OpenAPI document during a Debug build) rather than actually
+    // (EF tooling, or the Debug build reading the OpenAPI document) rather than actually
     // serving requests. Shared with the Hangfire registration so the two cannot drift apart - see
     // HostIntrospection for what each condition covers.
     var skipDbInit = Wayd.Infrastructure.HostIntrospection.SkipsDatabaseInitialization(builder.Configuration);

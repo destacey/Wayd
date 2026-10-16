@@ -20,7 +20,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Get a list of poker sessions.", "")]
+    [EndpointSummary("Get a list of poker sessions.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<PokerSessionListDto>>> GetList(CancellationToken cancellationToken, [FromQuery] PokerSessionStatus? status = null)
@@ -31,7 +31,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Get poker session details using the Id or key.", "")]
+    [EndpointSummary("Get poker session details using the Id or key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PokerSessionDetailsDto>> GetSession(string idOrKey, CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Create a poker session.", "")]
+    [EndpointSummary("Create a poker session.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreatePokerSessionRequest request, CancellationToken cancellationToken)
     {
@@ -56,7 +56,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Update a poker session.", "")]
+    [EndpointSummary("Update a poker session.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdatePokerSessionRequest request, CancellationToken cancellationToken)
@@ -69,7 +69,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Delete a poker session.", "")]
+    [EndpointSummary("Delete a poker session.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -82,7 +82,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/complete")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Complete a poker session.", "")]
+    [EndpointSummary("Complete a poker session.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
@@ -95,7 +95,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/rounds")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Add a round to a poker session.", "")]
+    [EndpointSummary("Add a round to a poker session.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PokerRoundDto>> AddRound(Guid id, [FromBody] AddPokerRoundRequest request, CancellationToken cancellationToken)
@@ -108,7 +108,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id}/rounds/{roundId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Remove a round from a poker session.", "")]
+    [EndpointSummary("Remove a round from a poker session.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveRound(Guid id, Guid roundId, CancellationToken cancellationToken)
@@ -121,7 +121,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/rounds/{roundId}/reveal")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Reveal votes for a round.", "")]
+    [EndpointSummary("Reveal votes for a round.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RevealRound(Guid id, Guid roundId, CancellationToken cancellationToken)
@@ -134,7 +134,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/rounds/{roundId}/reset")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Reset a round to allow re-voting.", "")]
+    [EndpointSummary("Reset a round to allow re-voting.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ResetRound(Guid id, Guid roundId, CancellationToken cancellationToken)
@@ -147,7 +147,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/rounds/{roundId}/consensus")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Set the consensus estimate for a round.", "")]
+    [EndpointSummary("Set the consensus estimate for a round.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetConsensus(Guid id, Guid roundId, [FromBody] SetConsensusRequest request, CancellationToken cancellationToken)
@@ -160,7 +160,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{id}/rounds/{roundId}/label")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Update the label for a round.", "")]
+    [EndpointSummary("Update the label for a round.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateRoundLabel(Guid id, Guid roundId, [FromBody] UpdatePokerRoundLabelRequest request, CancellationToken cancellationToken)
@@ -173,7 +173,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/rounds/{roundId}/vote")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Submit a vote for a round.", "")]
+    [EndpointSummary("Submit a vote for a round.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SubmitVote(Guid id, Guid roundId, [FromBody] SubmitVoteRequest request, CancellationToken cancellationToken)
@@ -186,7 +186,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpDelete("{id}/rounds/{roundId}/vote")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
-    [OpenApiOperation("Withdraw a vote from a round.", "")]
+    [EndpointSummary("Withdraw a vote from a round.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> WithdrawVote(Guid id, Guid roundId, CancellationToken cancellationToken)

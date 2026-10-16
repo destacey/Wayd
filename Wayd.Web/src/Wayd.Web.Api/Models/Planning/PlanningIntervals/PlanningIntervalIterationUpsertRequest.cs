@@ -18,11 +18,9 @@ public sealed record PlanningIntervalIterationUpsertRequest
     public int CategoryId { get; set; }
 
     /// <summary>Gets or sets the start.</summary>
-    /// <value>The start.</value>
     public LocalDate Start { get; set; }
 
     /// <summary>Gets or sets the end.</summary>
-    /// <value>The end.</value>
     public LocalDate End { get; set; }
 
     public PlanningIntervalIterationUpsertDto ToPlanningIntervalIterationUpsertDto()

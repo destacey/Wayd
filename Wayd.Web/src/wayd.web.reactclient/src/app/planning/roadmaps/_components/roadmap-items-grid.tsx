@@ -11,6 +11,7 @@ import {
 import { PlusOutlined } from '@ant-design/icons'
 import { Button, Form } from 'antd'
 import dayjs from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 import {
   type DraftItem,
   WaydGrid,
@@ -238,19 +239,16 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
       try {
         // A milestone is a single instant, so its request carries `date` rather
         // than a start/end pair (both drag bounds hold the same value).
-        const dates =
+        const item = { $type: node.$type, roadmapId, itemId: change.id }
+        const response = await updateRoadmapItemDates(
           node.type === 'Milestone'
-            ? { date: dayjs(change.start).format('YYYY-MM-DD') as unknown as Date }
+            ? { ...item, date: toCalendarDate(dayjs(change.start)) }
             : {
-                start: dayjs(change.start).format('YYYY-MM-DD') as unknown as Date,
-                end: dayjs(change.end).format('YYYY-MM-DD') as unknown as Date,
-              }
-        const response = await updateRoadmapItemDates({
-          $type: node.$type,
-          roadmapId,
-          itemId: change.id,
-          ...dates,
-        })
+                ...item,
+                start: toCalendarDate(dayjs(change.start)),
+                end: toCalendarDate(dayjs(change.end)),
+              },
+        )
         if ('error' in response && response.error) throw response.error
       } catch (error) {
         const apiError: ApiError = isApiError(error) ? error : {}

@@ -10,7 +10,7 @@ namespace Wayd.Web.Api.Mcp;
 /// <remarks>
 /// Each import endpoint carries an <c>x-wayd-import</c> extension naming its key and the row schema of each
 /// file; each row property carries <c>x-csv-column</c>, the header as the file spells it, and
-/// <c>x-csv-values</c> where the cell names one of a fixed set (see <c>CsvImportOperationProcessor</c>).
+/// <c>x-csv-values</c> where the cell names one of a fixed set (see <c>CsvImportOperationTransformer</c>).
 /// </remarks>
 public sealed partial class ImportFormats
 {
@@ -62,7 +62,7 @@ public sealed partial class ImportFormats
             var raw = entry.Value as JsonObject ?? [];
             var property = Resolve(schemas, raw);
             var name = (string?)(raw["x-csv-column"] ?? property["x-csv-column"])
-                ?? throw new InvalidOperationException($"{schemaName}.{entry.Key} has no x-csv-column; CsvImportOperationProcessor did not run over it.");
+                ?? throw new InvalidOperationException($"{schemaName}.{entry.Key} has no x-csv-column; CsvImportOperationTransformer did not run over it.");
 
             var values = (raw["x-csv-values"] as JsonArray)?.Select(v => (string)v!).ToList();
             var maxLength = raw["maxLength"]?.GetValue<int>();

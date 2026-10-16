@@ -19,8 +19,8 @@ namespace Wayd.Infrastructure.OpenApi;
 /// id, so a different id renames client code. <see cref="DocumentShapeTransformer"/> numbers any repeats.
 /// </para>
 /// <para>
-/// The summary and description are what an agent reads about each MCP tool. They replace what
-/// <see cref="XmlDocumentationTransformer"/> read from the action's XML documentation, so this runs after it.
+/// The summary and description are what an agent reads about each MCP tool. They replace what the
+/// generated XML documentation transformer read from the action's comments.
 /// </para>
 /// </remarks>
 public sealed class OperationNamingTransformer : IOpenApiOperationTransformer

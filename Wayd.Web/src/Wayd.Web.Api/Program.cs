@@ -95,6 +95,12 @@ try
     builder.Services.AddScoped<ImportSubmissionResponder>();
     builder.Services.AddWaydMcp();
 
+    // Called here rather than in AddInfrastructure: the package's source generator describes the API from the
+    // XML documentation of the assembly that calls AddOpenApi and of its project references, and only this
+    // assembly holds the controllers and their request models.
+    if (WaydOpenApiDocument.IsEnabled(builder.Configuration))
+        builder.Services.AddOpenApi(WaydOpenApiDocument.Name, options => WaydOpenApiDocument.Configure(options, builder.Configuration));
+
     // Wolverine is the command/query/event mediator (replacing MediatR), configured in Infrastructure
     // alongside the other host plumbing. IDispatcher — the only dispatch seam call sites use — is
     // registered by AddCommonApplication. typeof(Program).Assembly is Wayd.Web.Api — the assembly that

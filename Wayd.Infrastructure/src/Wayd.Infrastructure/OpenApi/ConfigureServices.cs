@@ -94,8 +94,6 @@ internal static class ConfigureServices
             services.AddSingleton<IValidatorRegistry>(sp => new ServiceProviderValidatorRegistry(
                 sp.CreateScope().ServiceProvider,
                 sp.GetRequiredService<IOptions<SchemaGenerationOptions>>()));
-
-            services.AddOpenApi(WaydOpenApiDocument.Name, options => WaydOpenApiDocument.Configure(options, settings));
         }
 
         return services;

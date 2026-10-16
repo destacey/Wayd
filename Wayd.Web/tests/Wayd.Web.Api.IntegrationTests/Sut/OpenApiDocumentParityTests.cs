@@ -227,6 +227,10 @@ public sealed class OpenApiDocumentParityTests(WaydApiFactory factory)
                 d => d.Kind == "additionalProperties" && d.Expected == "{\"nullable\":true}" && d.Actual == "{}"),
             new("`style: form` and `explode: true` on a list in the query string. They are OpenAPI's defaults for a query parameter, which NSwag states and Microsoft.OpenApi's writer leaves out; NSwag's TypeScript generator repeats the name for each value (`?status=A&status=B`) either way.",
                 d => d.Kind is "style" or "explode" && d.Expected is "form" or "true" && d.Actual == OpenApiFacts.Absent),
+            new("`<c>` in XML documentation. The built-in XML documentation support writes it as Markdown code (`` `ImportId` ``); NSwag wrote the bare text.",
+                d => d.Kind == "description" && d.Actual.Contains('`') && d.Expected.Replace("`", "", StringComparison.Ordinal) == d.Actual.Replace("`", "", StringComparison.Ordinal)),
+            new("NodaTime's `IsoDayOfWeek`. NSwag read its description from the package's XML documentation; the built-in support reads only the API's own projects'.",
+                d => d.Location == "schema IsoDayOfWeek | description" && d.Actual == OpenApiFacts.Absent),
             new("A property declared on a derived class. NSwag's required and FluentValidation processors never saw these, because NSwag had already moved them into an `allOf` part; they are required and carry their validation rules here as on any other class, so the TypeScript client stops typing the non-nullable ones as optional.",
                 d => d.Owner.StartsWith("schema ", StringComparison.Ordinal)
                     && nswagFacts.GetValueOrDefault($"{d.Owner} | bases", OpenApiFacts.Absent) != OpenApiFacts.Absent

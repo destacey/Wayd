@@ -63,7 +63,9 @@ public double Rank { get; private set; }
 **API models publish their documentation.** `Wayd.Web.Api` generates its XML documentation file, and NSwag
 reads it: the `///` summary on a request or response model and on each of its properties becomes the
 `description` in the OpenAPI spec and the JSDoc on the generated TypeScript client. Write those for an API
-consumer. An endpoint's published summary comes from its `[OpenApiOperation]` attribute instead, so the
+consumer, in plain lines the document can carry as written: name another member with `<c>Name</c>`, not
+`<see cref>`, which is published as its C# signature (`string? ImportProductRequest.ImportId`); and leave out
+`<para>`, `<value>` and HTML tags, which are published as indentation, appended text and raw markup. An endpoint's published summary comes from its `[OpenApiOperation]` attribute instead, so the
 `///` on a controller action can speak to maintainers.
 
 ### Test markers

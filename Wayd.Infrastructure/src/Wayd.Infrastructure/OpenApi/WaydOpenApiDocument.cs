@@ -55,6 +55,7 @@ public static class WaydOpenApiDocument
         options.AddDocumentTransformer(security);
         options.AddDocumentTransformer(inheritance);
         options.AddDocumentTransformer(polymorphism);
+        options.AddDocumentTransformer(new JsonPatchTransformer());
         options.AddDocumentTransformer(new DocumentShapeTransformer(settings));
     }
 }

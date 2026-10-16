@@ -1,5 +1,16 @@
 # @wayd/mcp
 
+## 0.18.1
+
+### Patch Changes
+
+- d2e8d16: Fields that are only required in some requests are no longer marked required everywhere:
+
+  - Import formats: deployment imports' `CompletedAt` and `RolledBackAt`, and release imports' `PackageId` and `VersionId`, are listed as optional. Each is still required in the rows the bulk import guide says need it, and the import still refuses a row that lacks it.
+  - Tool inputs: creating a project task no longer demands `progress` and `plannedDate` (a task takes progress, a milestone a planned date), and a KPI checkpoint plan item no longer demands `checkpointId`, which is left out for a new checkpoint.
+
+- 9f772a3: Import formats mark column names and literal values in column descriptions as code (`ImportId`, `false`), as the API's OpenAPI document now writes them.
+
 ## 0.18.0
 
 ### Minor Changes

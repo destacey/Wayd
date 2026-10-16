@@ -49355,7 +49355,7 @@
           },
           "inactiveDate": {
             "type": "string",
-            "description": "When the team was retired. Required when `IsActive` is false; must be after `ActiveDate`.",
+            "description": "When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "InactiveDate"
@@ -49784,224 +49784,58 @@
       "JsonPatchDocumentOfUpdateProjectStageRequest": {
         "type": "array",
         "items": {
-          "type": "object",
-          "oneOf": [
-            {
-              "required": [
-                "op",
-                "path",
-                "value"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "add",
-                    "replace",
-                    "test"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "value": { }
-              },
-              "additionalProperties": false
-            },
-            {
-              "required": [
-                "op",
-                "path",
-                "from"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "move",
-                    "copy"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "from": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "required": [
-                "op",
-                "path"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "remove"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
+          "$ref": "#/components/schemas/JsonPatchOperation"
         }
       },
       "JsonPatchDocumentOfUpdateProjectTaskRequest": {
         "type": "array",
         "items": {
-          "type": "object",
-          "oneOf": [
-            {
-              "required": [
-                "op",
-                "path",
-                "value"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "add",
-                    "replace",
-                    "test"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "value": { }
-              },
-              "additionalProperties": false
-            },
-            {
-              "required": [
-                "op",
-                "path",
-                "from"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "move",
-                    "copy"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "from": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "required": [
-                "op",
-                "path"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "remove"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
+          "$ref": "#/components/schemas/JsonPatchOperation"
         }
       },
       "JsonPatchDocumentOfUpdateRoadmapItemRequest": {
         "type": "array",
         "items": {
-          "type": "object",
-          "oneOf": [
-            {
-              "required": [
-                "op",
-                "path",
-                "value"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "add",
-                    "replace",
-                    "test"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "value": { }
-              },
-              "additionalProperties": false
-            },
-            {
-              "required": [
-                "op",
-                "path",
-                "from"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "move",
-                    "copy"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "from": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "required": [
-                "op",
-                "path"
-              ],
-              "type": "object",
-              "properties": {
-                "op": {
-                  "enum": [
-                    "remove"
-                  ],
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
+          "$ref": "#/components/schemas/JsonPatchOperation"
         }
+      },
+      "JsonPatchOperation": {
+        "required": [
+          "op",
+          "path"
+        ],
+        "type": "object",
+        "properties": {
+          "op": {
+            "$ref": "#/components/schemas/JsonPatchOperationType"
+          },
+          "path": {
+            "type": "string",
+            "description": "The JSON Pointer to the property the operation changes."
+          },
+          "from": {
+            "type": "string",
+            "description": "The JSON Pointer a move or copy reads from.",
+            "nullable": true
+          },
+          "value": {
+            "description": "The value an add, replace or test uses."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One RFC 6902 operation. `from` is for move and copy; `value` for add, replace and test."
+      },
+      "JsonPatchOperationType": {
+        "enum": [
+          "add",
+          "remove",
+          "replace",
+          "move",
+          "copy",
+          "test"
+        ],
+        "type": "string",
+        "description": "An RFC 6902 operation."
       },
       "KpiCheckpointPlanItemRequest": {
         "required": [

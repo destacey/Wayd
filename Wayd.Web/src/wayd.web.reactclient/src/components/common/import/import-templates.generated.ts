@@ -1739,7 +1739,7 @@ export const importTemplates = {
             type: 'date',
             required: false,
             description:
-              'When the team was retired. Required when `IsActive` is false; must be after `ActiveDate`.',
+              'When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`.',
           },
         ],
       },

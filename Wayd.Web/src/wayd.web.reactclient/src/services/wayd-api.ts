@@ -18947,7 +18947,7 @@ export class ProjectsClient {
      * Partially update a project stage using JSON Patch (RFC 6902).
      * @return No Content
      */
-    patchProjectStage(id: string, stageId: string, patchDocument: PatchDocument[], cancelToken?: CancelToken): Promise<void> {
+    patchProjectStage(id: string, stageId: string, patchDocument: JsonPatchOperation[], cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/stages/{stageId}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -19587,7 +19587,7 @@ export class ProjectTasksClient {
      * Partially update a project task using JSON Patch (RFC 6902).
      * @return No Content
      */
-    patchProjectTask(projectIdOrKey: string, id: string, patchDocument: PatchDocument2[], cancelToken?: CancelToken): Promise<void> {
+    patchProjectTask(projectIdOrKey: string, id: string, patchDocument: JsonPatchOperation[], cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{projectIdOrKey}/tasks/{id}";
         if (projectIdOrKey === undefined || projectIdOrKey === null)
             throw new globalThis.Error("The parameter 'projectIdOrKey' must be defined.");
@@ -27746,7 +27746,7 @@ export class RoadmapsClient {
      * Partially update a roadmap item using JSON Patch (RFC 6902).
      * @return No Content
      */
-    patchRoadmapItem(roadmapId: string, itemId: string, patchDocument: PatchDocument3[], cancelToken?: CancelToken): Promise<void> {
+    patchRoadmapItem(roadmapId: string, itemId: string, patchDocument: JsonPatchOperation[], cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/roadmaps/{roadmapId}/items/{itemId}";
         if (roadmapId === undefined || roadmapId === null)
             throw new globalThis.Error("The parameter 'roadmapId' must be defined.");
@@ -50573,7 +50573,7 @@ hand-authored file still works. */
     activeDate: string;
     /** Whether the team is currently active. Defaults to true when the column is absent. */
     isActive: boolean;
-    /** When the team was retired. Required when `IsActive` is false; must be after `ActiveDate`. */
+    /** When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`. */
     inactiveDate?: string | undefined;
 }
 
@@ -50713,6 +50713,27 @@ export interface JobSummaryResponse {
     timestampLabel?: string | undefined;
     exceptionType?: string | undefined;
     exceptionMessage?: string | undefined;
+}
+
+/** One RFC 6902 operation. `from` is for move and copy; `value` for add, replace and test. */
+export interface JsonPatchOperation {
+    op: JsonPatchOperationType;
+    /** The JSON Pointer to the property the operation changes. */
+    path: string;
+    /** The JSON Pointer a move or copy reads from. */
+    from?: string | undefined;
+    /** The value an add, replace or test uses. */
+    value?: any;
+}
+
+/** An RFC 6902 operation. */
+export enum JsonPatchOperationType {
+    Add = "add",
+    Remove = "remove",
+    Replace = "replace",
+    Move = "move",
+    Copy = "copy",
+    Test = "test",
 }
 
 export interface KpiCheckpointPlanItemRequest {
@@ -55221,42 +55242,6 @@ export interface WorkTypeTierDto {
     name: string;
     description?: string | undefined;
     order: number;
-}
-
-export interface PatchDocument {
-    op: PatchDocumentOp;
-    path: string;
-    value: any;
-}
-
-export interface PatchDocument2 {
-    op: PatchDocument2Op;
-    path: string;
-    value: any;
-}
-
-export interface PatchDocument3 {
-    op: PatchDocument3Op;
-    path: string;
-    value: any;
-}
-
-export enum PatchDocumentOp {
-    Add = "add",
-    Replace = "replace",
-    Test = "test",
-}
-
-export enum PatchDocument2Op {
-    Add = "add",
-    Replace = "replace",
-    Test = "test",
-}
-
-export enum PatchDocument3Op {
-    Add = "add",
-    Replace = "replace",
-    Test = "test",
 }
 
 export interface FileParameter {

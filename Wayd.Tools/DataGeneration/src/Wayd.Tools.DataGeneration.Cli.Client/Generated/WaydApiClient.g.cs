@@ -32052,7 +32052,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, System.Collections.Generic.IEnumerable<Anonymous> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -35269,7 +35269,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, System.Collections.Generic.IEnumerable<Anonymous> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -36151,7 +36151,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task PatchProjectTaskAsync(string projectIdOrKey, System.Guid id, System.Collections.Generic.IEnumerable<Anonymous2> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task PatchProjectTaskAsync(string projectIdOrKey, System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -36687,7 +36687,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task PatchProjectTaskAsync(string projectIdOrKey, System.Guid id, System.Collections.Generic.IEnumerable<Anonymous2> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task PatchProjectTaskAsync(string projectIdOrKey, System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (projectIdOrKey == null)
                 throw new System.ArgumentNullException("projectIdOrKey");
@@ -49134,7 +49134,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task PatchRoadmapItemAsync(System.Guid roadmapId, System.Guid itemId, System.Collections.Generic.IEnumerable<Anonymous3> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task PatchRoadmapItemAsync(System.Guid roadmapId, System.Guid itemId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -50515,7 +50515,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task PatchRoadmapItemAsync(System.Guid roadmapId, System.Guid itemId, System.Collections.Generic.IEnumerable<Anonymous3> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task PatchRoadmapItemAsync(System.Guid roadmapId, System.Guid itemId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (roadmapId == null)
                 throw new System.ArgumentNullException("roadmapId");
@@ -94333,7 +94333,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool IsActive { get; set; } = default!;
 
         /// <summary>
-        /// When the team was retired. Required when `IsActive` is false; must be after `ActiveDate`.
+        /// When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inactiveDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -94756,20 +94756,80 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class JsonPatchDocumentOfUpdateProjectStageRequest : System.Collections.ObjectModel.Collection<Anonymous>
+    public partial class JsonPatchDocumentOfUpdateProjectStageRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
     {
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class JsonPatchDocumentOfUpdateProjectTaskRequest : System.Collections.ObjectModel.Collection<Anonymous2>
+    public partial class JsonPatchDocumentOfUpdateProjectTaskRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
     {
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class JsonPatchDocumentOfUpdateRoadmapItemRequest : System.Collections.ObjectModel.Collection<Anonymous3>
+    public partial class JsonPatchDocumentOfUpdateRoadmapItemRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
     {
+
+    }
+
+    /// <summary>
+    /// One RFC 6902 operation. `from` is for move and copy; `value` for add, replace and test.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchOperation
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("op")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<JsonPatchOperationType>))]
+        public JsonPatchOperationType Op { get; set; } = default!;
+
+        /// <summary>
+        /// The JSON Pointer to the property the operation changes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("path")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Path { get; set; } = default!;
+
+        /// <summary>
+        /// The JSON Pointer a move or copy reads from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        public string? From { get; set; } = default!;
+
+        /// <summary>
+        /// The value an add, replace or test uses.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public object Value { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An RFC 6902 operation.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum JsonPatchOperationType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"add")]
+        Add = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"remove")]
+        Remove = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"replace")]
+        Replace = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"move")]
+        Move = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"copy")]
+        Copy = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"test")]
+        Test = 5,
 
     }
 
@@ -108480,108 +108540,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class Anonymous
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("op")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Op>))]
-        public Op Op { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("path")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Path { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("value")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public object Value { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class Anonymous2
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("op")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Op2>))]
-        public Op2 Op { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("path")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Path { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("value")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public object Value { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class Anonymous3
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("op")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Op3>))]
-        public Op3 Op { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("path")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Path { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("value")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public object Value { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum Op
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"add")]
-        Add = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"replace")]
-        Replace = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"test")]
-        Test = 2,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum Op2
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"add")]
-        Add = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"replace")]
-        Replace = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"test")]
-        Test = 2,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum Op3
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"add")]
-        Add = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"replace")]
-        Replace = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"test")]
-        Test = 2,
 
     }
 

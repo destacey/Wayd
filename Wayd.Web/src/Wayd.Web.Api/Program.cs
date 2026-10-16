@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentValidation.AspNetCore;
 using JasperFx;
@@ -44,14 +45,20 @@ try
 
     builder.AddServiceDefaults();
 
+    static void ConfigureJson(JsonSerializerOptions options)
+    {
+        options.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+        options.Converters.Add(new JsonStringEnumConverter());
+        options.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.AllowTrailingCommas = true;
+    }
+
     builder.Services.AddControllers()
-        .AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-            options.JsonSerializerOptions.AllowTrailingCommas = true;
-        });
+        .AddJsonOptions(options => ConfigureJson(options.JsonSerializerOptions));
+
+    // Microsoft.AspNetCore.OpenApi describes every endpoint, controllers included, from these options rather
+    // than MVC's, so without them its document would publish enums as integers.
+    builder.Services.ConfigureHttpJsonOptions(options => ConfigureJson(options.SerializerOptions));
 
     builder.Services.Configure<ApiBehaviorOptions>(options =>
     {

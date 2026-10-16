@@ -1,9 +1,12 @@
-﻿using MicroElements.NSwag.FluentValidation;
+﻿using MicroElements.AspNetCore.OpenApi.FluentValidation;
+using MicroElements.NSwag.FluentValidation;
 using MicroElements.NSwag.FluentValidation.AspNetCore;
 using MicroElements.OpenApi.FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NJsonSchema.Generation.TypeMappers;
 using NSwag;
 
@@ -82,9 +85,29 @@ internal static class ConfigureServices
             // Conditional rules (.When/.Unless) stay out of the schema: the document cannot express the
             // condition, so publishing the rule would claim it always applies.
             services.AddFluentValidationRulesToSwagger(options => options.ConditionalRules = ConditionalRulesMode.Exclude);
+            services.AddFluentValidationRulesToOpenApi(options => options.ConditionalRules = ConditionalRulesMode.Exclude);
+
+            // The registry is scoped, but IOpenApiDocumentProvider generates the document from the root
+            // provider, outside any request. Validators hold no state, so one scope serves them for the
+            // application's lifetime, as the scope NSwag's processor is taken from above does.
+            services.RemoveAll<IValidatorRegistry>();
+            services.AddSingleton<IValidatorRegistry>(sp => new ServiceProviderValidatorRegistry(
+                sp.CreateScope().ServiceProvider,
+                sp.GetRequiredService<IOptions<SchemaGenerationOptions>>()));
+
+            services.AddOpenApi(WaydOpenApiDocument.Name, options => WaydOpenApiDocument.Configure(options, settings));
         }
 
         return services;
+    }
+
+    /// <summary>Serves <see cref="WaydOpenApiDocument"/> at <c>/openapi/v1.json</c> while NSwag's documents are served.</summary>
+    internal static WebApplication MapOpenApiDocument(this WebApplication app)
+    {
+        if (app.Configuration.GetValue<bool>("SwaggerSettings:Enable"))
+            app.MapOpenApi();
+
+        return app;
     }
 
     internal static IApplicationBuilder UseOpenApiDocumentation(this IApplicationBuilder app, IConfiguration config)

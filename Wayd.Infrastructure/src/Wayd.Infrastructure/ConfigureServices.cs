@@ -240,6 +240,8 @@ public static class ConfigureServices
 
         app.MapGet(ServiceEndpoints.StartupEndpointPath, () => Results.Ok());
 
+        app.MapOpenApiDocument();
+
         return app;
     }
 }

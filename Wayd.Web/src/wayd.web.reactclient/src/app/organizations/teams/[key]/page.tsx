@@ -81,6 +81,11 @@ const WorkDistributionReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const CapacityReport = dynamic(
+  () => import('@/src/app/organizations/_components/capacity-report'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 const TeamSprintMetricsReport = dynamic(
   () =>
     import('@/src/components/common/work/sprint-metrics').then((mod) => ({
@@ -118,6 +123,7 @@ enum TeamTabs {
   CycleTimeReport = 'cycle-time-report',
   BacklogHealth = 'backlog-health',
   WorkDistribution = 'work-distribution',
+  CapacityReport = 'capacity-report',
   ThroughputForecast = 'throughput-forecast',
   SprintMetrics = 'sprint-metrics',
   Velocity = 'velocity',
@@ -386,6 +392,24 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamCadenceMetricsReport teamId={team!.id!} />
       case TeamTabs.WorkDistribution:
         return <WorkDistributionReport teamType="team" teamCode={team!.code} />
+      case TeamTabs.CapacityReport:
+        return capacityEnabled ? (
+          <CapacityReport
+            teamId={team!.id}
+            teamType="Team"
+            timeZone={team!.operatingModel?.timeZone}
+            cadence={
+              team!.operatingModel?.cadenceWeeks &&
+              team!.operatingModel.cadenceAnchor
+                ? {
+                    weeks: team!.operatingModel.cadenceWeeks,
+                    anchor: team!.operatingModel.cadenceAnchor,
+                  }
+                : undefined
+            }
+            hasSprints={hasEverBeenScrum === true}
+          />
+        ) : null
       case TeamTabs.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       default:
@@ -463,6 +487,15 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       label: 'Work Distribution',
       hideHeading: true,
     },
+    ...(capacityEnabled
+      ? [
+          {
+            id: TeamTabs.CapacityReport,
+            label: 'Capacity Report',
+            hideHeading: true,
+          },
+        ]
+      : []),
     ...(forecastingEnabled
       ? [{ id: TeamTabs.ThroughputForecast, label: 'Throughput Forecast' }]
       : []),

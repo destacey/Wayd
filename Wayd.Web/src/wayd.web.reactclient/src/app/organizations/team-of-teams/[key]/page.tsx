@@ -55,6 +55,11 @@ const WorkDistributionReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const CapacityReport = dynamic(
+  () => import('@/src/app/organizations/_components/capacity-report'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum TeamOfTeamsTabs {
   Overview = 'overview',
   RiskManagement = 'risk-management',
@@ -64,6 +69,7 @@ enum TeamOfTeamsTabs {
   Activities = 'activities',
   OperatingModelHistory = 'operating-model-history',
   WorkDistribution = 'work-distribution',
+  CapacityReport = 'capacity-report',
 }
 
 const TeamOfTeamsDetailsPage = (props: {
@@ -273,6 +279,10 @@ const TeamOfTeamsDetailsPage = (props: {
             teamCode={team!.code}
           />
         )
+      case TeamOfTeamsTabs.CapacityReport:
+        return capacityEnabled ? (
+          <CapacityReport teamId={team!.id} teamType="TeamOfTeams" />
+        ) : null
       default:
         return null
     }
@@ -300,6 +310,15 @@ const TeamOfTeamsDetailsPage = (props: {
       // The report renders its own title alongside its controls.
       hideHeading: true,
     },
+    ...(capacityEnabled
+      ? [
+          {
+            id: TeamOfTeamsTabs.CapacityReport,
+            label: 'Capacity Report',
+            hideHeading: true,
+          },
+        ]
+      : []),
     {
       id: TeamOfTeamsTabs.OperatingModelHistory,
       label: 'Operating Model History',

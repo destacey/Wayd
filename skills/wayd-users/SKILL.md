@@ -22,6 +22,8 @@ A user is a sign-in account; an employee is the person record that holds roles a
 
 A user `id` in any of these does not identify the person.
 
+The exception is a story map's owner: `StoryMaps_ChangeStoryMapOwner` takes the user `id`.
+
 ## Resolving a name to an employee id
 
 1. Call `Users_GetUsers` once and filter the result for every person you need. Do not call `Users_GetUser` per person.

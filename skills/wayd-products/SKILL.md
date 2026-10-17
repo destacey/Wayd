@@ -57,7 +57,7 @@ is what makes a refusal say which rule refused.
 
 | Tool | Refuses when |
 | --- | --- |
-| `Products_Retype` | The product has versions and the new type is not releasable |
+| `Products_Retype` | The product has versions and the new type is not releasable, or the new type is inactive |
 | `Products_Reparent` | The new parent is the product itself or one of its descendants, or the move would put two products with an open dependency above and below one another (end the dependency first) |
 | `Products_ChangeStatus` | The status id does not come from `Products_GetStatusOptions` |
 | `Products_Delete` | See **Deleting a product** |
@@ -69,7 +69,7 @@ is what makes a refusal say which rule refused.
 Before `Products_Tag`, check the axis's `allowsMany` in `ProductTagCategories_GetProductTagCategories`.
 Where it is false, the call **succeeds and removes the tag the product already carried on that axis** —
 it never refuses. If the existing value matters, read it with `Products_GetProduct` and tell the user
-what will be replaced.
+what will be replaced. An inactive tag, or a tag on an inactive axis, is refused.
 
 ---
 
@@ -85,27 +85,35 @@ It refuses while any of these exist, each with its own reason:
 | Child products | `Products_GetProducts` with `parentId` | `Products_Reparent`, or deleting each child first |
 | Versions | `Versions_GetVersions` with `productId` | `Versions_Delete` |
 | Lines in a package manifest | `ReleasePackages_GetReleasePackages` with `containingProductId` | `ReleasePackages_SetManifest` without the line, or `ReleasePackages_Delete` |
-| A dependency on either end, **ended ones included** | `Products_GetDependencies` with `includeEnded: true` | `Products_RemoveDependency` |
+| A dependency on either end, **ended ones included** | `Products_GetDependencies` with `includeEnded: true` — once the product has no children | `Products_RemoveDependency` |
 
 The manifest is checked separately from versions because a carried-forward line can name the product
-with no version record at all.
+with no version record at all. Check dependencies last: `Products_GetDependencies` rolls up the whole
+subtree, so while children remain it lists their links rather than the product's own and misses links
+between two products inside it. The delete checks only the product's own.
 
 `Products_Delete` never deletes anything else for you. Purge a product's history only when the user
 asks for it, bottom up:
 
-1. Run the four checks above. List everything that will go — including the deployments that
+1. Children: each child is reparented or purged first, by these same steps. Agree which with the user.
+   Until then the dependency check below describes the children, not this product.
+2. Run the four checks above. List everything that will go — including the deployments that
    `Versions_Delete` and `ReleasePackages_Delete` take with them — and confirm the whole list with the
    user.
-2. Releases: for each release listing one of its versions (`Releases_GetReleases` with
-   `containingVersionId`) or one of the packages from step 3, remove the entry with
-   `Releases_SetContents` while the release is unannounced. An announced or withdrawn release's
-   contents are frozen, so it can only be removed with `Releases_Delete`.
-3. Packages: drop the product's line with `ReleasePackages_SetManifest` while the package is neither
+3. Releases: for each release listing one of its versions or one of the packages from step 4, remove
+   the entry with `Releases_SetContents` while the release is unannounced. An announced or withdrawn
+   release's contents are frozen, so it can only be removed with `Releases_Delete`.
+   `Releases_GetReleases` with `containingVersionId` finds a release carrying the version directly or
+   inside a package. There is no package filter, so a package whose line names no version record is
+   found only by reading each release's `packages`.
+4. Packages: drop the product's line with `ReleasePackages_SetManifest` while the package is neither
    released nor withdrawn and has other lines. Otherwise use `ReleasePackages_Delete`, which is refused while a
-   release still lists the package — go back to step 2 for that release.
-4. Versions: `Versions_Delete` for each.
-5. Dependencies: `Products_RemoveDependency` for each, ended ones included.
-6. Re-run the four checks. Repeat from step 2 until all four come back empty, then call
+   release still lists the package — go back to step 3 for that release.
+5. Versions: `Versions_Delete` for each.
+6. Dependencies: `Products_RemoveDependency` for each, ended ones included. Its `id` is the product
+   that *has* the dependency — `product.id` on the row — so a `usedBy` row is removed through the
+   other product's id.
+7. Re-run the four checks. Repeat from step 3 until all four come back empty, then call
    `Products_Delete`.
 
 ---
@@ -154,6 +162,9 @@ Record each with `Products_AddDependency`.
 
 After `Products_ChangeDependencyTerms`, use the id it returns for any further call: when the terms
 changed, the id you passed now belongs to the ended dependency.
+
+Every tool that changes a dependency takes, as `id`, the product that *has* it — `product.id` on the
+row, which on a `usedBy` row or a rolled-up row is not the product you asked about.
 
 For many at once, the `product-management.product-dependencies` import (see **wayd-imports**) applies
 **product by product** — every row for one `ProductId` saves together or not at all, and the other

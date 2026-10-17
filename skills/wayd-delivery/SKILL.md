@@ -61,7 +61,7 @@ or when the user explicitly wants that history gone — and say what goes with i
 | Release | `Releases_Withdraw` | `Releases_Delete` | Never — any state | Its contents list and status history; the versions and packages it named are kept |
 | Release package | `ReleasePackages_Withdraw` | `ReleasePackages_Delete` | Any release lists it | Its manifest, status history and every deployment of it; the versions it names are kept |
 | Deployment | Its outcome — `Deployments_Fail` or `Deployments_RollBack` for one that went wrong | `Deployments_Delete` | Never — any state | Its status history; the measures stop counting it |
-| Environment | Retired — `DeploymentEnvironments_SetActive` with `isActive: false` | `DeploymentEnvironments_Delete` | Never | Every deployment into it — state its `deploymentCount` first |
+| Environment | Retired — `DeploymentEnvironments_SetActive` with `isActive: false` | `DeploymentEnvironments_Delete` | It has deployments and the caller cannot delete deployments | Every deployment into it — state its `deploymentCount` first |
 
 An announced or withdrawn release's contents are frozen, so a package it lists can only be freed by
 deleting that release. Never delete a deployment that really failed or was rolled back: it would hide
@@ -162,8 +162,7 @@ released — the released moment is what closes the manifest, so it is set by
 
 **Moving a target is a fourth.** `Versions_MoveTargetDate` and `Releases_MoveTargetDate` record that
 the plan changed; omitting the date records that the record is no longer targeted. Both are refused
-`Versions_MoveTargetDate` is refused on a released or withdrawn version, and
-`Releases_MoveTargetDate` on a release in a terminal status.
+once the record is released or withdrawn.
 
 **What happened is an instant; what is planned is a date.**
 
@@ -262,7 +261,9 @@ target date shows where it moved from. Check `hasNextPage` before concluding som
 
 ### Answering "what is cut but not yet shipped?"
 
-`Versions_GetVersions` — unshipped versions come first. This is a version question, not a release one.
+`Versions_GetVersions` with `statusCategory: Active` — a cut version that production has not received.
+Without the filter, planned versions that were never cut and withdrawn ones come back too. This is a
+version question, not a release one.
 
 ---
 

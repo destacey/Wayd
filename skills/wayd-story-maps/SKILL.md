@@ -31,14 +31,14 @@ Two cross-cutting concepts:
 Tasks may also have:
 
 - A **checklist** (`checklist` items with `isChecked` state, plus `checklistCompletedCount` / `checklistTotalCount` rollups)
-- A **linked work item** (`linkedWorkItemId`, the integer work item ID) — at most one task per map may link a given work item
+- A **linked work item** (`linkedWorkItemId`, an unverified integer) — at most one task per map may link a given number
 
 ### Common patterns
 
 - **`idOrKey`** — `StoryMaps_GetStoryMap` accepts either the UUID `id` or the integer `key`. All mutation tools require UUIDs — call `StoryMaps_GetStoryMap` first to resolve them.
 - **Mutation shape** — map-level tools (`StoryMaps_UpdateStoryMap`, `StoryMaps_ChangeStoryMapOwner`, `StoryMaps_ArchiveStoryMap`, `StoryMaps_DeleteStoryMap`) take the map as `id`. Every other mutation takes `storyMapId`, the target's id in the path (`goalId`, `stepId`, `taskId`, `swimLaneId`, `personaId`, `itemId`), and its fields inside `requestBody` — e.g. `StoryMaps_AddTask` is `{ storyMapId, requestBody: { stepId, title, swimLaneId? } }`.
 - **One call gets everything** — `StoryMaps_GetStoryMap` returns the entire map (goals → steps → tasks, swim lanes, personas). Never loop over sub-entities; there are no per-goal/per-step read endpoints.
-- **Archived maps** — the list excludes archived maps unless `includeArchived: true`
+- **Archived maps** — the list excludes archived maps unless `includeArchived: true`. An archived map can be read or deleted but refuses every other change
 - **Feature flag** — story maps are gated by the `StoryMaps` feature flag; if the instance has it disabled the endpoints return 404
 - **Ordering** — `newOrder` values are zero-based positions among siblings
 - **Persona sets replace** — `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` replace the full tag set; include every persona ID that should remain
@@ -63,20 +63,20 @@ All analysis works off the single `StoryMaps_GetStoryMap` response:
 ### Building a map
 
 1. Create the map: `StoryMaps_CreateStoryMap` (`name`, optional `description`) — returns the new `id` and `key`
-2. Add goals: `StoryMaps_AddGoal` — **each new goal already contains one step**; rename it with `StoryMaps_RenameStep` instead of adding a duplicate
-3. Add further steps: `StoryMaps_AddStep` (body: `goalId`, `name`)
+2. Add goals: `StoryMaps_AddGoal` — a new goal is empty
+3. Add each goal's steps: `StoryMaps_AddStep` (body: `goalId`, `name`)
 4. Add tasks: `StoryMaps_AddTask` (body: `stepId`, `title`, optional `swimLaneId` — omit for the default lane)
 5. Optionally add swim lanes (`StoryMaps_AddSwimLane`) and personas (`StoryMaps_AddPersona` — requires a hex `color`)
 
 ### Managing a map
 
-- **Rename/describe** — `StoryMaps_UpdateStoryMap`, `StoryMaps_RenameGoal`, `StoryMaps_RenameStep`, `StoryMaps_UpdateTask`
-- **Reorder** — `StoryMaps_ReorderGoal`, `StoryMaps_ReorderStep`, `StoryMaps_ReorderSwimLane`, `StoryMaps_ReorderPersona` (zero-based `newOrder`)
+- **Rename/describe** — `StoryMaps_UpdateStoryMap`, `StoryMaps_RenameGoal`, `StoryMaps_RenameStep`, `StoryMaps_UpdateTask`. `StoryMaps_UpdateTask` replaces both the title and the description, so resend the one that should stay
+- **Reorder** — `StoryMaps_ReorderGoal`, `StoryMaps_ReorderStep`, `StoryMaps_ReorderSwimLane`, `StoryMaps_ReorderPersona` (zero-based `newOrder`; the default swim lane always holds position 0, so other lanes start at 1)
 - **Move** — `StoryMaps_MoveStep` (to another goal), `StoryMaps_MoveTask` (to a step + swim lane)
 - **Swim lanes** — `StoryMaps_RenameSwimLane`, `StoryMaps_SetSwimLaneDates` (pass `null` to clear a date); the default lane can't be renamed, reordered, or removed
 - **Personas** — `StoryMaps_UpdatePersona` replaces name, description, and `color` together, so resend the ones that should stay
-- **Checklists** — `StoryMaps_AddChecklistItem`, `StoryMaps_RenameChecklistItem`, `StoryMaps_SetChecklistItemChecked`, `StoryMaps_RemoveChecklistItem`; `StoryMaps_PromoteChecklistItem` turns an item into a task in the same step
-- **Work items** — `StoryMaps_LinkWorkItem` (integer `workItemId`), `StoryMaps_UnlinkWorkItem`
+- **Checklists** — `StoryMaps_AddChecklistItem`, `StoryMaps_RenameChecklistItem`, `StoryMaps_SetChecklistItemChecked`, `StoryMaps_RemoveChecklistItem`; `StoryMaps_PromoteChecklistItem` turns an item into a task in the same step, in the default swim lane
+- **Work items** — `StoryMaps_LinkWorkItem` (integer `workItemId`), `StoryMaps_UnlinkWorkItem`. Wayd stores the number without checking it against any work item, and no tool turns a work item key into it, so link only a number the user gives you and say it is unverified
 - **Ownership** — `StoryMaps_ChangeStoryMapOwner` (resolve the user ID with `Users_GetUsers`)
 
 ### Destructive operations

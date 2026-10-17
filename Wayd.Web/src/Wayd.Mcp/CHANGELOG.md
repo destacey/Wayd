@@ -1,5 +1,16 @@
 # @wayd/mcp
 
+## 0.19.0
+
+### Minor Changes
+
+- 584d437: Arguments that pick from a fixed set now take names, as the API does, instead of integer codes: `status` on the portfolio, program, project, strategic initiative and task list tools (`Active`, `Completed`, …), `role` on the project tools (`Sponsor`, `Owner`, `Manager`, `Member`, `Assignee`), `state` on `ProjectLifecycles_GetProjectLifecycles`, `statusCategory` on the product, version, release and release package lists (`Proposed`, `Active`, `Done`, `Removed`), the environment `category` on the deployment environment tools and `environmentCategory` on `Deployments_GetDeployments` (`Development`, `Testing`, `Staging`, `Production`, `Other`), and `strength` on `Products_AddDependency` and `Products_ChangeDependencyTerms` (`Hard`, `Soft`). A call that still sends an integer is refused by validation. `StrategicInitiatives_GetKpis` now describes `targetDirection` as `Increase` or `Decrease`, as it is returned.
+- fcb97b5: Adds `Teams_GetCadenceMetrics`: a Kanban team's velocity over its reporting cadence, with what it completed in each recent period and the average and spread across ended, whole periods. It calls the API's new `{id}/cadence-metrics` route, so this version needs an API that has it.
+
+### Patch Changes
+
+- cd839ff: The server instructions now ask agents to confirm every change, creates and tags included, rather than only destructive calls, and to do only what the user approved. They also say that every list on a write replaces its whole set, not only role lists; that role, assignee and `employeeId` parameters take employee ids rather than user ids; and that a moment is sent with its offset, never converted to a local date. `StoryMaps_AddGoal` no longer claims a new goal starts with a step: it starts empty.
+
 ## 0.18.1
 
 ### Patch Changes

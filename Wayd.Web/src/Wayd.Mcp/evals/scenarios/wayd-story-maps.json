@@ -1,0 +1,2108 @@
+[
+  {
+    "id": "story-maps-delete-goal",
+    "skill": "wayd-story-maps",
+    "prompt": "We're descoping returns from the Checkout Redesign story map. Take the Returns goal off it.",
+    "replies": [
+      "Yes, go ahead."
+    ],
+    "traps": [
+      "confirm-destructive",
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "StoryMaps_GetStoryMaps",
+        "result": [
+          {
+            "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+            "key": 42,
+            "name": "Checkout Redesign",
+            "description": "Rework of the web checkout journey for 2026 holiday season.",
+            "status": "Active",
+            "owner": {
+              "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+              "userName": "jordan.lee@acme.example",
+              "name": "Jordan Lee"
+            }
+          },
+          {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "key": 43,
+            "name": "Loyalty Program",
+            "description": "Points and rewards for repeat customers.",
+            "status": "Active",
+            "owner": {
+              "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+              "userName": "jordan.lee@acme.example",
+              "name": "Jordan Lee"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "StoryMaps_GetStoryMap",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(3c5448a2-1d86-4db6-9d9e-2b0173f3f473|42)$"
+          }
+        },
+        "result": {
+          "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "key": 42,
+          "name": "Checkout Redesign",
+          "description": "Rework of the web checkout journey for 2026 holiday season.",
+          "status": "Active",
+          "owner": {
+            "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+            "userName": "jordan.lee@acme.example",
+            "name": "Jordan Lee"
+          },
+          "goals": [
+            {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "name": "Browse",
+              "order": 0,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8"
+              ],
+              "steps": [
+                {
+                  "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "Search products",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Keyword search",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5012,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                          "name": "Design reviewed",
+                          "isChecked": true,
+                          "order": 1
+                        },
+                        {
+                          "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                          "name": "Analytics events defined",
+                          "isChecked": false,
+                          "order": 2
+                        }
+                      ],
+                      "checklistCompletedCount": 2,
+                      "checklistTotalCount": 3
+                    },
+                    {
+                      "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Filter by size",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "View product",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Product gallery",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5013,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Size guide",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+              "name": "Checkout",
+              "order": 1,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+              ],
+              "steps": [
+                {
+                  "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Cart",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                      "stepId": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Edit cart quantities",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5020,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Pay",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Guest checkout",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5021,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                          "name": "Design reviewed",
+                          "isChecked": false,
+                          "order": 1
+                        }
+                      ],
+                      "checklistCompletedCount": 1,
+                      "checklistTotalCount": 2
+                    },
+                    {
+                      "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Saved cards",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Apple Pay",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "swimLanes": [
+            {
+              "id": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+              "name": "Backlog",
+              "order": 0,
+              "isDefault": true,
+              "startDate": null,
+              "endDate": null
+            },
+            {
+              "id": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+              "name": "Release 1",
+              "order": 1,
+              "isDefault": false,
+              "startDate": "2026-11-02",
+              "endDate": "2026-12-11"
+            },
+            {
+              "id": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+              "name": "Release 2",
+              "order": 2,
+              "isDefault": false,
+              "startDate": "2027-01-11",
+              "endDate": "2027-02-19"
+            }
+          ],
+          "personas": [
+            {
+              "id": "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "name": "First-time Buyer",
+              "description": "Has never ordered from us before.",
+              "color": "#1677ff",
+              "order": 0
+            },
+            {
+              "id": "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+              "name": "Returning Shopper",
+              "description": "Has an account and order history.",
+              "color": "#52c41a",
+              "order": 1
+            },
+            {
+              "id": "315d6689-3abf-4c87-b68c-463695f1bdec",
+              "name": "Store Associate",
+              "description": "Helps customers in a physical store.",
+              "color": "#fa8c16",
+              "order": 2
+            }
+          ]
+        },
+        "after": "StoryMaps_DeleteGoal"
+      },
+      {
+        "tool": "StoryMaps_GetStoryMap",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(3c5448a2-1d86-4db6-9d9e-2b0173f3f473|42)$"
+          }
+        },
+        "result": {
+          "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "key": 42,
+          "name": "Checkout Redesign",
+          "description": "Rework of the web checkout journey for 2026 holiday season.",
+          "status": "Active",
+          "owner": {
+            "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+            "userName": "jordan.lee@acme.example",
+            "name": "Jordan Lee"
+          },
+          "goals": [
+            {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "name": "Browse",
+              "order": 0,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8"
+              ],
+              "steps": [
+                {
+                  "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "Search products",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Keyword search",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5012,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                          "name": "Design reviewed",
+                          "isChecked": true,
+                          "order": 1
+                        },
+                        {
+                          "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                          "name": "Analytics events defined",
+                          "isChecked": false,
+                          "order": 2
+                        }
+                      ],
+                      "checklistCompletedCount": 2,
+                      "checklistTotalCount": 3
+                    },
+                    {
+                      "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Filter by size",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "View product",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Product gallery",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5013,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Size guide",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+              "name": "Checkout",
+              "order": 1,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+              ],
+              "steps": [
+                {
+                  "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Cart",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                      "stepId": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Edit cart quantities",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5020,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Pay",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Guest checkout",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5021,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                          "name": "Design reviewed",
+                          "isChecked": false,
+                          "order": 1
+                        }
+                      ],
+                      "checklistCompletedCount": 1,
+                      "checklistTotalCount": 2
+                    },
+                    {
+                      "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Saved cards",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Apple Pay",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+              "name": "Returns",
+              "order": 2,
+              "personaIds": [
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                "315d6689-3abf-4c87-b68c-463695f1bdec"
+              ],
+              "steps": [
+                {
+                  "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Start a return",
+                  "order": 0,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                    "315d6689-3abf-4c87-b68c-463695f1bdec"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Return reason picker",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5030,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Print return label",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "In-store return lookup",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": 5031,
+                      "personaIds": [
+                        "315d6689-3abf-4c87-b68c-463695f1bdec"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Track refund",
+                  "order": 1,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund status page",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "3a15c75f-44ff-40a4-934f-f6078deca52b",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund email",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": 5032,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "swimLanes": [
+            {
+              "id": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+              "name": "Backlog",
+              "order": 0,
+              "isDefault": true,
+              "startDate": null,
+              "endDate": null
+            },
+            {
+              "id": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+              "name": "Release 1",
+              "order": 1,
+              "isDefault": false,
+              "startDate": "2026-11-02",
+              "endDate": "2026-12-11"
+            },
+            {
+              "id": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+              "name": "Release 2",
+              "order": 2,
+              "isDefault": false,
+              "startDate": "2027-01-11",
+              "endDate": "2027-02-19"
+            }
+          ],
+          "personas": [
+            {
+              "id": "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "name": "First-time Buyer",
+              "description": "Has never ordered from us before.",
+              "color": "#1677ff",
+              "order": 0
+            },
+            {
+              "id": "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+              "name": "Returning Shopper",
+              "description": "Has an account and order history.",
+              "color": "#52c41a",
+              "order": 1
+            },
+            {
+              "id": "315d6689-3abf-4c87-b68c-463695f1bdec",
+              "name": "Store Associate",
+              "description": "Helps customers in a physical store.",
+              "color": "#fa8c16",
+              "order": 2
+            }
+          ]
+        }
+      },
+      {
+        "tool": "StoryMaps_DeleteGoal",
+        "when": {
+          "storyMapId": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a"
+        },
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "confirmedBefore",
+        "tool": "StoryMaps_DeleteGoal",
+        "because": "wayd-story-maps destructive operations: get the user's explicit confirmation before deleting; the server instructions require it for deletes."
+      },
+      {
+        "type": "called",
+        "tool": "StoryMaps_DeleteGoal",
+        "with": {
+          "storyMapId": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a"
+        },
+        "because": "The goal is deleted with the map and goal UUIDs read from StoryMaps_GetStoryMap."
+      },
+      {
+        "type": "order",
+        "first": "StoryMaps_GetStoryMap",
+        "then": "StoryMaps_DeleteGoal",
+        "because": "The skill reads the map first, to resolve the ids and count what will go."
+      },
+      {
+        "type": "notCalled",
+        "tool": "StoryMaps_DeleteStoryMap",
+        "because": "Only the goal is to go, not the map."
+      },
+      {
+        "type": "notCalled",
+        "tool": "StoryMaps_ArchiveStoryMap",
+        "because": "Only the goal is to go, not the map."
+      }
+    ],
+    "expected": "Following the wayd-story-maps 'Destructive operations' steps, the agent reads the map (StoryMaps_GetStoryMap with key 42 or its UUID), tells the user that deleting goal 'Returns' removes its 2 steps and 5 tasks, 3 of them linked to work items, and waits for confirmation. After 'Yes, go ahead.' it calls StoryMaps_DeleteGoal with the map and goal UUIDs, then re-reads the map to check. (The stub's map does not change after the delete, so a re-read still shows the goal; the run is graded only on the delete call.)"
+  },
+  {
+    "id": "story-maps-persona-coverage",
+    "skill": "wayd-story-maps",
+    "prompt": "Which cards on story map 42 aren't tagged with any persona yet?",
+    "fixtures": [
+      {
+        "tool": "StoryMaps_GetStoryMaps",
+        "result": [
+          {
+            "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+            "key": 42,
+            "name": "Checkout Redesign",
+            "description": "Rework of the web checkout journey for 2026 holiday season.",
+            "status": "Active",
+            "owner": {
+              "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+              "userName": "jordan.lee@acme.example",
+              "name": "Jordan Lee"
+            }
+          },
+          {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "key": 43,
+            "name": "Loyalty Program",
+            "description": "Points and rewards for repeat customers.",
+            "status": "Active",
+            "owner": {
+              "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+              "userName": "jordan.lee@acme.example",
+              "name": "Jordan Lee"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "StoryMaps_GetStoryMap",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(3c5448a2-1d86-4db6-9d9e-2b0173f3f473|42)$"
+          }
+        },
+        "result": {
+          "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "key": 42,
+          "name": "Checkout Redesign",
+          "description": "Rework of the web checkout journey for 2026 holiday season.",
+          "status": "Active",
+          "owner": {
+            "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+            "userName": "jordan.lee@acme.example",
+            "name": "Jordan Lee"
+          },
+          "goals": [
+            {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "name": "Browse",
+              "order": 0,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8"
+              ],
+              "steps": [
+                {
+                  "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "Search products",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Keyword search",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5012,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                          "name": "Design reviewed",
+                          "isChecked": true,
+                          "order": 1
+                        },
+                        {
+                          "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                          "name": "Analytics events defined",
+                          "isChecked": false,
+                          "order": 2
+                        }
+                      ],
+                      "checklistCompletedCount": 2,
+                      "checklistTotalCount": 3
+                    },
+                    {
+                      "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Filter by size",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "View product",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Product gallery",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5013,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Size guide",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+              "name": "Checkout",
+              "order": 1,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+              ],
+              "steps": [
+                {
+                  "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Cart",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                      "stepId": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Edit cart quantities",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5020,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Pay",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Guest checkout",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5021,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                          "name": "Design reviewed",
+                          "isChecked": false,
+                          "order": 1
+                        }
+                      ],
+                      "checklistCompletedCount": 1,
+                      "checklistTotalCount": 2
+                    },
+                    {
+                      "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Saved cards",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Apple Pay",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+              "name": "Returns",
+              "order": 2,
+              "personaIds": [
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                "315d6689-3abf-4c87-b68c-463695f1bdec"
+              ],
+              "steps": [
+                {
+                  "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Start a return",
+                  "order": 0,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                    "315d6689-3abf-4c87-b68c-463695f1bdec"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Return reason picker",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5030,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Print return label",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "In-store return lookup",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": 5031,
+                      "personaIds": [
+                        "315d6689-3abf-4c87-b68c-463695f1bdec"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Track refund",
+                  "order": 1,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund status page",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "3a15c75f-44ff-40a4-934f-f6078deca52b",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund email",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": 5032,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "swimLanes": [
+            {
+              "id": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+              "name": "Backlog",
+              "order": 0,
+              "isDefault": true,
+              "startDate": null,
+              "endDate": null
+            },
+            {
+              "id": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+              "name": "Release 1",
+              "order": 1,
+              "isDefault": false,
+              "startDate": "2026-11-02",
+              "endDate": "2026-12-11"
+            },
+            {
+              "id": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+              "name": "Release 2",
+              "order": 2,
+              "isDefault": false,
+              "startDate": "2027-01-11",
+              "endDate": "2027-02-19"
+            }
+          ],
+          "personas": [
+            {
+              "id": "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "name": "First-time Buyer",
+              "description": "Has never ordered from us before.",
+              "color": "#1677ff",
+              "order": 0
+            },
+            {
+              "id": "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+              "name": "Returning Shopper",
+              "description": "Has an account and order history.",
+              "color": "#52c41a",
+              "order": 1
+            },
+            {
+              "id": "315d6689-3abf-4c87-b68c-463695f1bdec",
+              "name": "Store Associate",
+              "description": "Helps customers in a physical store.",
+              "color": "#fa8c16",
+              "order": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "StoryMaps_GetStoryMap",
+        "with": {
+          "idOrKey": {
+            "$regex": "^(3c5448a2-1d86-4db6-9d9e-2b0173f3f473|42)$"
+          }
+        },
+        "because": "One StoryMaps_GetStoryMap call returns every task with its personaIds."
+      },
+      {
+        "type": "notCalled",
+        "tool": "StoryMaps_SetTaskPersonas",
+        "because": "The user asked a question; nothing should be tagged."
+      },
+      {
+        "type": "says",
+        "pattern": "filter by size",
+        "because": "Untagged task."
+      },
+      {
+        "type": "says",
+        "pattern": "size guide",
+        "because": "Untagged task."
+      },
+      {
+        "type": "says",
+        "pattern": "apple pay",
+        "because": "Untagged task."
+      },
+      {
+        "type": "says",
+        "pattern": "refund email",
+        "because": "Untagged task."
+      }
+    ],
+    "expected": "Per wayd-story-maps 'Analyzing a map', the agent reads the whole map once with StoryMaps_GetStoryMap (idOrKey 42) and lists the tasks whose personaIds is empty — 'Filter by size', 'Size guide', 'Apple Pay' and 'Refund email' — ideally with their goal, step and swim lane. It changes nothing."
+  },
+  {
+    "id": "story-maps-add-task-persona",
+    "skill": "wayd-story-maps",
+    "prompt": "On the Checkout Redesign map, tag the Guest checkout card with the Returning Shopper persona as well.",
+    "replies": [
+      "Yes, go ahead."
+    ],
+    "traps": [
+      "whole-record-overwrite",
+      "key-vs-uuid",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "StoryMaps_GetStoryMaps",
+        "result": [
+          {
+            "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+            "key": 42,
+            "name": "Checkout Redesign",
+            "description": "Rework of the web checkout journey for 2026 holiday season.",
+            "status": "Active",
+            "owner": {
+              "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+              "userName": "jordan.lee@acme.example",
+              "name": "Jordan Lee"
+            }
+          },
+          {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "key": 43,
+            "name": "Loyalty Program",
+            "description": "Points and rewards for repeat customers.",
+            "status": "Active",
+            "owner": {
+              "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+              "userName": "jordan.lee@acme.example",
+              "name": "Jordan Lee"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "StoryMaps_GetStoryMap",
+        "after": "StoryMaps_SetTaskPersonas",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(3c5448a2-1d86-4db6-9d9e-2b0173f3f473|42)$"
+          }
+        },
+        "result": {
+          "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "key": 42,
+          "name": "Checkout Redesign",
+          "description": "Rework of the web checkout journey for 2026 holiday season.",
+          "status": "Active",
+          "owner": {
+            "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+            "userName": "jordan.lee@acme.example",
+            "name": "Jordan Lee"
+          },
+          "goals": [
+            {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "name": "Browse",
+              "order": 0,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8"
+              ],
+              "steps": [
+                {
+                  "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "Search products",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Keyword search",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5012,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                          "name": "Design reviewed",
+                          "isChecked": true,
+                          "order": 1
+                        },
+                        {
+                          "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                          "name": "Analytics events defined",
+                          "isChecked": false,
+                          "order": 2
+                        }
+                      ],
+                      "checklistCompletedCount": 2,
+                      "checklistTotalCount": 3
+                    },
+                    {
+                      "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Filter by size",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "View product",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Product gallery",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5013,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Size guide",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+              "name": "Checkout",
+              "order": 1,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+              ],
+              "steps": [
+                {
+                  "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Cart",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                      "stepId": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Edit cart quantities",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5020,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Pay",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Guest checkout",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5021,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                          "name": "Design reviewed",
+                          "isChecked": false,
+                          "order": 1
+                        }
+                      ],
+                      "checklistCompletedCount": 1,
+                      "checklistTotalCount": 2
+                    },
+                    {
+                      "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Saved cards",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Apple Pay",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+              "name": "Returns",
+              "order": 2,
+              "personaIds": [
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                "315d6689-3abf-4c87-b68c-463695f1bdec"
+              ],
+              "steps": [
+                {
+                  "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Start a return",
+                  "order": 0,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                    "315d6689-3abf-4c87-b68c-463695f1bdec"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Return reason picker",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5030,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Print return label",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "In-store return lookup",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": 5031,
+                      "personaIds": [
+                        "315d6689-3abf-4c87-b68c-463695f1bdec"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Track refund",
+                  "order": 1,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund status page",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "3a15c75f-44ff-40a4-934f-f6078deca52b",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund email",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": 5032,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "swimLanes": [
+            {
+              "id": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+              "name": "Backlog",
+              "order": 0,
+              "isDefault": true,
+              "startDate": null,
+              "endDate": null
+            },
+            {
+              "id": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+              "name": "Release 1",
+              "order": 1,
+              "isDefault": false,
+              "startDate": "2026-11-02",
+              "endDate": "2026-12-11"
+            },
+            {
+              "id": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+              "name": "Release 2",
+              "order": 2,
+              "isDefault": false,
+              "startDate": "2027-01-11",
+              "endDate": "2027-02-19"
+            }
+          ],
+          "personas": [
+            {
+              "id": "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "name": "First-time Buyer",
+              "description": "Has never ordered from us before.",
+              "color": "#1677ff",
+              "order": 0
+            },
+            {
+              "id": "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+              "name": "Returning Shopper",
+              "description": "Has an account and order history.",
+              "color": "#52c41a",
+              "order": 1
+            },
+            {
+              "id": "315d6689-3abf-4c87-b68c-463695f1bdec",
+              "name": "Store Associate",
+              "description": "Helps customers in a physical store.",
+              "color": "#fa8c16",
+              "order": 2
+            }
+          ]
+        }
+      },
+      {
+        "tool": "StoryMaps_GetStoryMap",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(3c5448a2-1d86-4db6-9d9e-2b0173f3f473|42)$"
+          }
+        },
+        "result": {
+          "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "key": 42,
+          "name": "Checkout Redesign",
+          "description": "Rework of the web checkout journey for 2026 holiday season.",
+          "status": "Active",
+          "owner": {
+            "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+            "userName": "jordan.lee@acme.example",
+            "name": "Jordan Lee"
+          },
+          "goals": [
+            {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "name": "Browse",
+              "order": 0,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8"
+              ],
+              "steps": [
+                {
+                  "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "Search products",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Keyword search",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5012,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                          "name": "Design reviewed",
+                          "isChecked": true,
+                          "order": 1
+                        },
+                        {
+                          "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                          "name": "Analytics events defined",
+                          "isChecked": false,
+                          "order": 2
+                        }
+                      ],
+                      "checklistCompletedCount": 2,
+                      "checklistTotalCount": 3
+                    },
+                    {
+                      "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+                      "stepId": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Filter by size",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+                  "goalId": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+                  "name": "View product",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Product gallery",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5013,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+                      "stepId": "c4811964-a9ae-447c-ade1-cc1435198235",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Size guide",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+              "name": "Checkout",
+              "order": 1,
+              "personaIds": [
+                "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+              ],
+              "steps": [
+                {
+                  "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Cart",
+                  "order": 0,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                      "stepId": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Edit cart quantities",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5020,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "goalId": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+                  "name": "Pay",
+                  "order": 1,
+                  "personaIds": [
+                    "4cd05772-19b4-41ed-b810-7608022d0ff8",
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+                      "title": "Guest checkout",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5021,
+                      "personaIds": [
+                        "4cd05772-19b4-41ed-b810-7608022d0ff8"
+                      ],
+                      "checklist": [
+                        {
+                          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                          "name": "Acceptance criteria agreed",
+                          "isChecked": true,
+                          "order": 0
+                        },
+                        {
+                          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                          "name": "Design reviewed",
+                          "isChecked": false,
+                          "order": 1
+                        }
+                      ],
+                      "checklistCompletedCount": 1,
+                      "checklistTotalCount": 2
+                    },
+                    {
+                      "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Saved cards",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                      "stepId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Apple Pay",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": null,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+              "name": "Returns",
+              "order": 2,
+              "personaIds": [
+                "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                "315d6689-3abf-4c87-b68c-463695f1bdec"
+              ],
+              "steps": [
+                {
+                  "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Start a return",
+                  "order": 0,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+                    "315d6689-3abf-4c87-b68c-463695f1bdec"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Return reason picker",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": 5030,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+                      "title": "Print return label",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                      "stepId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "In-store return lookup",
+                      "description": null,
+                      "order": 2,
+                      "linkedWorkItemId": 5031,
+                      "personaIds": [
+                        "315d6689-3abf-4c87-b68c-463695f1bdec"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                },
+                {
+                  "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                  "goalId": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                  "name": "Track refund",
+                  "order": 1,
+                  "personaIds": [
+                    "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                  ],
+                  "tasks": [
+                    {
+                      "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund status page",
+                      "description": null,
+                      "order": 0,
+                      "linkedWorkItemId": null,
+                      "personaIds": [
+                        "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+                      ],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    },
+                    {
+                      "id": "3a15c75f-44ff-40a4-934f-f6078deca52b",
+                      "stepId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                      "swimLaneId": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+                      "title": "Refund email",
+                      "description": null,
+                      "order": 1,
+                      "linkedWorkItemId": 5032,
+                      "personaIds": [],
+                      "checklist": [],
+                      "checklistCompletedCount": 0,
+                      "checklistTotalCount": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "swimLanes": [
+            {
+              "id": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+              "name": "Backlog",
+              "order": 0,
+              "isDefault": true,
+              "startDate": null,
+              "endDate": null
+            },
+            {
+              "id": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+              "name": "Release 1",
+              "order": 1,
+              "isDefault": false,
+              "startDate": "2026-11-02",
+              "endDate": "2026-12-11"
+            },
+            {
+              "id": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+              "name": "Release 2",
+              "order": 2,
+              "isDefault": false,
+              "startDate": "2027-01-11",
+              "endDate": "2027-02-19"
+            }
+          ],
+          "personas": [
+            {
+              "id": "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "name": "First-time Buyer",
+              "description": "Has never ordered from us before.",
+              "color": "#1677ff",
+              "order": 0
+            },
+            {
+              "id": "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+              "name": "Returning Shopper",
+              "description": "Has an account and order history.",
+              "color": "#52c41a",
+              "order": 1
+            },
+            {
+              "id": "315d6689-3abf-4c87-b68c-463695f1bdec",
+              "name": "Store Associate",
+              "description": "Helps customers in a physical store.",
+              "color": "#fa8c16",
+              "order": 2
+            }
+          ]
+        }
+      },
+      {
+        "tool": "StoryMaps_SetTaskPersonas",
+        "when": {
+          "storyMapId": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "taskId": "74912209-beea-42ba-84ad-2cbe4c055e2e"
+        },
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "StoryMaps_SetTaskPersonas",
+        "with": {
+          "storyMapId": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+          "taskId": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+          "requestBody": {
+            "personaIds": [
+              "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d"
+            ]
+          }
+        },
+        "because": "StoryMaps_SetTaskPersonas replaces the full set, so the existing First-time Buyer tag must be sent along with Returning Shopper ('as well')."
+      },
+      {
+        "type": "everyCall",
+        "tool": "StoryMaps_SetTaskPersonas",
+        "with": {
+          "requestBody": {
+            "personaIds": [
+              "4cd05772-19b4-41ed-b810-7608022d0ff8"
+            ]
+          }
+        },
+        "because": "No call may drop the First-time Buyer tag, even briefly."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "StoryMaps_SetTaskPersonas",
+        "because": "Setting personas replaces the task's whole tag set, so the change is confirmed with the user before it is sent."
+      }
+    ],
+    "expected": "The agent reads the map with StoryMaps_GetStoryMap, finds task 'Guest checkout' (currently tagged First-time Buyer) and the Returning Shopper persona's id, and calls StoryMaps_SetTaskPersonas with both persona ids, since the wayd-story-maps 'Persona sets replace' rule and the tool description say the call replaces the whole set. The scripted reply covers an agent that asks first; asking is not required."
+  }
+]

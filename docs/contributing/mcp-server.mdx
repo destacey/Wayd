@@ -71,3 +71,7 @@ bash .github/scripts/mcp-changeset-check.sh origin/main
 1. A pull request merges to `main` with its changeset.
 2. The MCP workflow opens or updates the release PR, which bumps the version and writes `CHANGELOG.md`.
 3. Merging the release PR publishes the package to npm and tags it `wayd-mcp-v<version>`.
+
+## Skill evaluation
+
+The skills in `skills/` are tested by scenarios in `Wayd.Web/src/Wayd.Mcp/evals/`: a user request, canned API responses, and the tool calls a correct run makes. Each runs through Claude Code against a stub of the MCP server, with and without the skills, on each model, and is graded on its tool calls. Run it before and after changing a skill, and add a scenario when a skill gains guidance worth testing. `npm test` checks that every scenario is well-formed; the evaluation itself is run by hand, because it uses a Claude Code plan. See the [evaluation README](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/Wayd.Mcp/evals/README.md).

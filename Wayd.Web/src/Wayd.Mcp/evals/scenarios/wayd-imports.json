@@ -1,0 +1,3382 @@
+[
+  {
+    "id": "imports-versions-preflight-then-apply",
+    "skill": "wayd-imports",
+    "prompt": "We're finally moving our release history into Wayd. Here are this year's Northwind Billing API versions from the old tracker export, can you load them?\n\nversion,cut,shipped\n3.0.0,2026-01-12T15:00:00Z,2026-01-14T01:30:00Z\n3.0.1,2026-01-26T14:10:00Z,2026-01-27T00:45:00Z\n3.0.2,,2026-02-05T23:40:00Z\n3.1.0,2026-02-16T16:00:00Z,2026-02-18T02:05:00Z\n3.1.1,2026-03-02T13:20:00Z,2026-03-03T01:10:00Z\n3.1.2,,2026-03-11T22:55:00Z\n3.1.3,2026-03-23T15:45:00Z,2026-03-24T00:30:00Z\n3.2.0,2026-04-13T15:30:00Z,2026-04-15T01:15:00Z\n3.2.1,2026-04-27T13:00:00Z,2026-04-28T00:20:00Z\n3.2.2,2026-05-11T14:05:00Z,2026-05-12T01:00:00Z\n3.2.3,,2026-05-20T23:10:00Z\n3.2.4,2026-06-01T15:15:00Z,2026-06-02T00:50:00Z\n3.2.5,2026-06-15T14:40:00Z,2026-06-16T01:25:00Z\n3.2.6,2026-06-29T13:35:00Z,2026-06-30T00:15:00Z",
+    "replies": [
+      "Yes, go ahead."
+    ],
+    "traps": [
+      "confirm-destructive",
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "Imports_GetDefinitions",
+        "result": [
+          {
+            "key": "product-management.products",
+            "displayName": "Products",
+            "atomicity": "PerGroup",
+            "groupNoun": "product tree",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.versions",
+            "displayName": "Versions",
+            "atomicity": "PerGroup",
+            "groupNoun": "product",
+            "maxRows": 10000,
+            "preflightMaxRows": 10000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.release-packages",
+            "displayName": "Release Packages",
+            "atomicity": "PerGroup",
+            "groupNoun": "package",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.releases",
+            "displayName": "Releases",
+            "atomicity": "PerGroup",
+            "groupNoun": "release",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.deployments",
+            "displayName": "Deployments",
+            "atomicity": "PerRow",
+            "groupNoun": null,
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.deployment-environments",
+            "displayName": "Deployment Environments",
+            "atomicity": "PerGroup",
+            "groupNoun": "environment",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "after": "Imports_Apply",
+        "when": {
+          "productId": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": [
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000014",
+            "key": 237,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.6",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-06-29T13:35:00Z",
+            "releasedAt": "2026-06-30T00:15:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000013",
+            "key": 236,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.5",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-06-15T14:40:00Z",
+            "releasedAt": "2026-06-16T01:25:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000012",
+            "key": 235,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.4",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-06-01T15:15:00Z",
+            "releasedAt": "2026-06-02T00:50:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000011",
+            "key": 234,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.3",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": null,
+            "releasedAt": "2026-05-20T23:10:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000010",
+            "key": 233,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-05-11T14:05:00Z",
+            "releasedAt": "2026-05-12T01:00:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000009",
+            "key": 232,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-04-27T13:00:00Z",
+            "releasedAt": "2026-04-28T00:20:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000008",
+            "key": 231,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-04-13T15:30:00Z",
+            "releasedAt": "2026-04-15T01:15:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000007",
+            "key": 230,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.3",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-03-23T15:45:00Z",
+            "releasedAt": "2026-03-24T00:30:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000006",
+            "key": 229,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": null,
+            "releasedAt": "2026-03-11T22:55:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000005",
+            "key": 228,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-03-02T13:20:00Z",
+            "releasedAt": "2026-03-03T01:10:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000004",
+            "key": 227,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-02-16T16:00:00Z",
+            "releasedAt": "2026-02-18T02:05:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000003",
+            "key": 226,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.0.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": null,
+            "releasedAt": "2026-02-05T23:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000002",
+            "key": 225,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.0.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-01-26T14:10:00Z",
+            "releasedAt": "2026-01-27T00:45:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000001",
+            "key": 224,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.0.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-01-12T15:00:00Z",
+            "releasedAt": "2026-01-14T01:30:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "after": "Imports_Apply",
+        "when": {
+          "productId": {
+            "$absent": true
+          }
+        },
+        "result": [
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000014",
+            "key": 237,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.6",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-06-29T13:35:00Z",
+            "releasedAt": "2026-06-30T00:15:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000013",
+            "key": 236,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.5",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-06-15T14:40:00Z",
+            "releasedAt": "2026-06-16T01:25:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000012",
+            "key": 235,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.4",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-06-01T15:15:00Z",
+            "releasedAt": "2026-06-02T00:50:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000011",
+            "key": 234,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.3",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": null,
+            "releasedAt": "2026-05-20T23:10:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000010",
+            "key": 233,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-05-11T14:05:00Z",
+            "releasedAt": "2026-05-12T01:00:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000009",
+            "key": 232,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-04-27T13:00:00Z",
+            "releasedAt": "2026-04-28T00:20:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000008",
+            "key": 231,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-04-13T15:30:00Z",
+            "releasedAt": "2026-04-15T01:15:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000007",
+            "key": 230,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.3",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-03-23T15:45:00Z",
+            "releasedAt": "2026-03-24T00:30:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000006",
+            "key": 229,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": null,
+            "releasedAt": "2026-03-11T22:55:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000005",
+            "key": 228,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-03-02T13:20:00Z",
+            "releasedAt": "2026-03-03T01:10:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000004",
+            "key": 227,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.1.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-02-16T16:00:00Z",
+            "releasedAt": "2026-02-18T02:05:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000003",
+            "key": 226,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.0.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": null,
+            "releasedAt": "2026-02-05T23:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000002",
+            "key": 225,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.0.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-01-26T14:10:00Z",
+            "releasedAt": "2026-01-27T00:45:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "5f7b9d1e-3a4c-4e6f-a8b0-000000000001",
+            "key": 224,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.0.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-01-12T15:00:00Z",
+            "releasedAt": "2026-01-14T01:30:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "result": []
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "importType": "product-management.versions",
+          "file": {
+            "$regex": "^(?=[\\s\\S]*\\bImportId\\b)(?=[\\s\\S]*\\bProductId\\b)(?=[\\s\\S]*\\bNumber\\b)(?=[\\s\\S]*\\bName\\b)(?=[\\s\\S]*\\bTargetDate\\b)(?=[\\s\\S]*\\bCutAt\\b)(?=[\\s\\S]*\\bReleasedAt\\b)(?=[\\s\\S]*\\bSequence\\b)(?=[\\s\\S]*\\bNotes\\b)(?=[\\s\\S]*17f79eeb-d355-4118-9cb0-166b213dd916)"
+          }
+        },
+        "result": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93",
+          "importType": "product-management.versions",
+          "displayName": "Versions",
+          "atomicity": "PerGroup",
+          "groupNoun": "product",
+          "status": "Succeeded",
+          "isPreflight": true,
+          "appliedImportProcessId": null,
+          "submissionGroupId": null,
+          "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "submittedByName": "Jordan Ellis",
+          "submittedOn": "2026-10-17T09:12:03Z",
+          "startedOn": "2026-10-17T09:12:03Z",
+          "completedOn": "2026-10-17T09:12:05Z",
+          "lastProgressOn": "2026-10-17T09:12:05Z",
+          "totalRowCount": 14,
+          "succeededRowCount": 14,
+          "failedRowCount": 0,
+          "error": null,
+          "canManage": true,
+          "unappliedRowCount": 0,
+          "isTerminal": true
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bImportId\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'ImportId'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bProductId\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'ProductId'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bNumber\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'Number'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bName\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'Name'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bTargetDate\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'TargetDate'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bCutAt\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'CutAt'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bReleasedAt\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'ReleasedAt'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bSequence\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'Sequence'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "when": {
+          "file": {
+            "$regex": "^(?![\\s\\S]*\\bNotes\\b)"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Header with name 'Notes'[0] was not found. If you are expecting some headers to be missing and want to ignore this validation, set the configuration HeaderValidated to null. You can also change the functionality to do something else, like logging the issue."
+        }
+      },
+      {
+        "tool": "Imports_Preflight",
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc4918#section-11.2",
+          "title": "One or more validation errors occurred.",
+          "status": 422,
+          "errors": {
+            "ProductId": [
+              "'Product Id' must not be empty. (Product: 00000000-0000-0000-0000-000000000000, Version: 3.0.0)"
+            ]
+          }
+        }
+      },
+      {
+        "tool": "Imports_GetById",
+        "after": "Imports_Apply",
+        "when": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93"
+        },
+        "result": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93",
+          "importType": "product-management.versions",
+          "displayName": "Versions",
+          "atomicity": "PerGroup",
+          "groupNoun": "product",
+          "status": "Succeeded",
+          "isPreflight": true,
+          "appliedImportProcessId": "4e6a8c0d-2f3b-4d5e-9a7b-1c3d5f7b9ea4",
+          "submissionGroupId": null,
+          "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "submittedByName": "Jordan Ellis",
+          "submittedOn": "2026-10-17T09:12:03Z",
+          "startedOn": "2026-10-17T09:12:03Z",
+          "completedOn": "2026-10-17T09:12:05Z",
+          "lastProgressOn": "2026-10-17T09:12:05Z",
+          "totalRowCount": 14,
+          "succeededRowCount": 14,
+          "failedRowCount": 0,
+          "error": null,
+          "canManage": true,
+          "unappliedRowCount": 0,
+          "isTerminal": true
+        }
+      },
+      {
+        "tool": "Imports_GetById",
+        "when": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93"
+        },
+        "result": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93",
+          "importType": "product-management.versions",
+          "displayName": "Versions",
+          "atomicity": "PerGroup",
+          "groupNoun": "product",
+          "status": "Succeeded",
+          "isPreflight": true,
+          "appliedImportProcessId": null,
+          "submissionGroupId": null,
+          "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "submittedByName": "Jordan Ellis",
+          "submittedOn": "2026-10-17T09:12:03Z",
+          "startedOn": "2026-10-17T09:12:03Z",
+          "completedOn": "2026-10-17T09:12:05Z",
+          "lastProgressOn": "2026-10-17T09:12:05Z",
+          "totalRowCount": 14,
+          "succeededRowCount": 14,
+          "failedRowCount": 0,
+          "error": null,
+          "canManage": true,
+          "unappliedRowCount": 0,
+          "isTerminal": true
+        }
+      },
+      {
+        "tool": "Imports_GetById",
+        "when": {
+          "id": "4e6a8c0d-2f3b-4d5e-9a7b-1c3d5f7b9ea4"
+        },
+        "result": {
+          "id": "4e6a8c0d-2f3b-4d5e-9a7b-1c3d5f7b9ea4",
+          "importType": "product-management.versions",
+          "displayName": "Versions",
+          "atomicity": "PerGroup",
+          "groupNoun": "product",
+          "status": "Succeeded",
+          "isPreflight": false,
+          "appliedImportProcessId": null,
+          "submissionGroupId": null,
+          "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "submittedByName": "Jordan Ellis",
+          "submittedOn": "2026-10-17T09:14:40Z",
+          "startedOn": "2026-10-17T09:14:40Z",
+          "completedOn": "2026-10-17T09:14:44Z",
+          "lastProgressOn": "2026-10-17T09:14:44Z",
+          "totalRowCount": 14,
+          "succeededRowCount": 14,
+          "failedRowCount": 0,
+          "error": null,
+          "canManage": true,
+          "unappliedRowCount": 0,
+          "isTerminal": true
+        }
+      },
+      {
+        "tool": "Imports_GetRows",
+        "when": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93",
+          "status": "Failed"
+        },
+        "result": {
+          "rows": [],
+          "totalCount": 0,
+          "pageNumber": 1,
+          "pageSize": 50
+        }
+      },
+      {
+        "tool": "Imports_GetRows",
+        "when": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93"
+        },
+        "result": {
+          "rows": [
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000001",
+              "importId": "3.0.0",
+              "rowNumber": 2,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000002",
+              "importId": "3.0.1",
+              "rowNumber": 3,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000003",
+              "importId": "3.0.2",
+              "rowNumber": 4,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000004",
+              "importId": "3.1.0",
+              "rowNumber": 5,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000005",
+              "importId": "3.1.1",
+              "rowNumber": 6,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000006",
+              "importId": "3.1.2",
+              "rowNumber": 7,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000007",
+              "importId": "3.1.3",
+              "rowNumber": 8,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000008",
+              "importId": "3.2.0",
+              "rowNumber": 9,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000009",
+              "importId": "3.2.1",
+              "rowNumber": 10,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000010",
+              "importId": "3.2.2",
+              "rowNumber": 11,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000011",
+              "importId": "3.2.3",
+              "rowNumber": 12,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000012",
+              "importId": "3.2.4",
+              "rowNumber": 13,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000013",
+              "importId": "3.2.5",
+              "rowNumber": 14,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            },
+            {
+              "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000014",
+              "importId": "3.2.6",
+              "rowNumber": 15,
+              "status": "Succeeded",
+              "createdEntityId": null,
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:12:04Z"
+            }
+          ],
+          "totalCount": 14,
+          "pageNumber": 1,
+          "pageSize": 50
+        }
+      },
+      {
+        "tool": "Imports_GetRows",
+        "when": {
+          "id": "4e6a8c0d-2f3b-4d5e-9a7b-1c3d5f7b9ea4",
+          "status": "Failed"
+        },
+        "result": {
+          "rows": [],
+          "totalCount": 0,
+          "pageNumber": 1,
+          "pageSize": 50
+        }
+      },
+      {
+        "tool": "Imports_GetRows",
+        "when": {
+          "id": "4e6a8c0d-2f3b-4d5e-9a7b-1c3d5f7b9ea4"
+        },
+        "result": {
+          "rows": [
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000001",
+              "importId": "3.0.0",
+              "rowNumber": 2,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000001",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000002",
+              "importId": "3.0.1",
+              "rowNumber": 3,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000002",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000003",
+              "importId": "3.0.2",
+              "rowNumber": 4,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000003",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000004",
+              "importId": "3.1.0",
+              "rowNumber": 5,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000004",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000005",
+              "importId": "3.1.1",
+              "rowNumber": 6,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000005",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000006",
+              "importId": "3.1.2",
+              "rowNumber": 7,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000006",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000007",
+              "importId": "3.1.3",
+              "rowNumber": 8,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000007",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000008",
+              "importId": "3.2.0",
+              "rowNumber": 9,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000008",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000009",
+              "importId": "3.2.1",
+              "rowNumber": 10,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000009",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000010",
+              "importId": "3.2.2",
+              "rowNumber": 11,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000010",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000011",
+              "importId": "3.2.3",
+              "rowNumber": 12,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000011",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000012",
+              "importId": "3.2.4",
+              "rowNumber": 13,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000012",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000013",
+              "importId": "3.2.5",
+              "rowNumber": 14,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000013",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            },
+            {
+              "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000014",
+              "importId": "3.2.6",
+              "rowNumber": 15,
+              "status": "Succeeded",
+              "createdEntityId": "5f7b9d1e-3a4c-4e6f-a8b0-000000000014",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-17T09:14:42Z"
+            }
+          ],
+          "totalCount": 14,
+          "pageNumber": 1,
+          "pageSize": 50
+        }
+      },
+      {
+        "tool": "Imports_Apply",
+        "when": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93"
+        },
+        "result": {
+          "id": "4e6a8c0d-2f3b-4d5e-9a7b-1c3d5f7b9ea4",
+          "importType": "product-management.versions",
+          "displayName": "Versions",
+          "atomicity": "PerGroup",
+          "groupNoun": "product",
+          "status": "Succeeded",
+          "isPreflight": false,
+          "appliedImportProcessId": null,
+          "submissionGroupId": null,
+          "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "submittedByName": "Jordan Ellis",
+          "submittedOn": "2026-10-17T09:14:40Z",
+          "startedOn": "2026-10-17T09:14:40Z",
+          "completedOn": "2026-10-17T09:14:44Z",
+          "lastProgressOn": "2026-10-17T09:14:44Z",
+          "totalRowCount": 14,
+          "succeededRowCount": 14,
+          "failedRowCount": 0,
+          "error": null,
+          "canManage": true,
+          "unappliedRowCount": 0,
+          "isTerminal": true
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Imports_Preflight",
+        "with": {
+          "importType": "product-management.versions",
+          "file": {
+            "$regex": "17f79eeb-d355-4118-9cb0-166b213dd916"
+          }
+        },
+        "because": "The versions import names the product by id, so the Northwind Billing API UUID is looked up and written into ProductId, not its name."
+      },
+      {
+        "type": "order",
+        "first": "Imports_Preflight",
+        "then": "Imports_Apply",
+        "because": "A file only gets in through a preflight; there is no one-step import."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Imports_Apply",
+        "because": "The skill says to show the user what the preflight found before applying, and Apply is destructive."
+      },
+      {
+        "type": "called",
+        "tool": "Imports_Apply",
+        "with": {
+          "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93"
+        },
+        "because": "Apply takes the finished preflight's id and imports exactly the rows it checked."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Versions_Plan",
+        "because": "Fourteen historical versions with cut and released moments are a migration, which is what the versions import is for."
+      }
+    ],
+    "expected": "The agent reads the versions format (Imports_GetFileFormat / Imports_GetDefinitions), finds the Northwind Billing API UUID, writes a CSV with every header (ImportId,ProductId,Number,Name,TargetDate,CutAt,ReleasedAt,Sequence,Notes) and the moments copied as-is, and runs Imports_Preflight for product-management.versions. It reports the preflight (14 of 14 rows would import, no refusals) and waits; after the user agrees, it calls Imports_Apply with the preflight id and reports the applied run. Cited: the skill's \"A file only gets in through a preflight\" and \"The flow\" steps 1-8."
+  },
+  {
+    "id": "imports-handful-of-edits",
+    "skill": "wayd-imports",
+    "prompt": "I have a little spreadsheet of fixes: the engineering notes on three Northwind Billing API versions are wrong. 3.2.0 should read \"Adds SEPA direct debit.\", 3.2.1 should read \"Fixes rounding on prorated invoices.\" and 3.3.0 should read \"Moves invoice PDFs to the new renderer.\" Can you bulk-load these corrections?",
+    "replies": [
+      "Yes, go ahead."
+    ],
+    "traps": [
+      "wrong-tool",
+      "whole-record-overwrite",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "after": "Versions_Update",
+        "result": [
+          {
+            "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+            "key": 188,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.0",
+            "name": "Invoice Renderer",
+            "notes": "Moves invoice PDFs to the new renderer.",
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-08-24T14:00:00Z",
+            "releasedAt": "2026-08-26T01:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+            "key": 163,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.1",
+            "name": null,
+            "notes": "Fixes rounding on prorated invoices.",
+            "sequence": 3021,
+            "targetDate": null,
+            "cutAt": "2026-04-27T13:00:00Z",
+            "releasedAt": "2026-04-28T00:20:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+            "key": 160,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.0",
+            "name": "Spring Payments",
+            "notes": "Adds SEPA direct debit.",
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-04-13T15:30:00Z",
+            "releasedAt": "2026-04-15T01:15:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "result": [
+          {
+            "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+            "key": 188,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.0",
+            "name": "Invoice Renderer",
+            "notes": "Renderer changes.",
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-08-24T14:00:00Z",
+            "releasedAt": "2026-08-26T01:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+            "key": 163,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.1",
+            "name": null,
+            "notes": "Fixes rounding.",
+            "sequence": 3021,
+            "targetDate": null,
+            "cutAt": "2026-04-27T13:00:00Z",
+            "releasedAt": "2026-04-28T00:20:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+            "key": 160,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.2.0",
+            "name": "Spring Payments",
+            "notes": "Adds SEPA payments.",
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-04-13T15:30:00Z",
+            "releasedAt": "2026-04-15T01:15:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Update",
+        "when": {
+          "idOrKey": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27"
+        },
+        "result": {
+          "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+          "key": 188,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.0",
+          "name": "Invoice Renderer",
+          "notes": "Moves invoice PDFs to the new renderer.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-08-24T14:00:00Z",
+          "releasedAt": "2026-08-26T01:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27"
+        },
+        "result": {
+          "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+          "key": 188,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.0",
+          "name": "Invoice Renderer",
+          "notes": "Renderer changes.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-08-24T14:00:00Z",
+          "releasedAt": "2026-08-26T01:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Update",
+        "when": {
+          "idOrKey": "188"
+        },
+        "result": {
+          "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+          "key": 188,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.0",
+          "name": "Invoice Renderer",
+          "notes": "Moves invoice PDFs to the new renderer.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-08-24T14:00:00Z",
+          "releasedAt": "2026-08-26T01:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "188"
+        },
+        "result": {
+          "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+          "key": 188,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.0",
+          "name": "Invoice Renderer",
+          "notes": "Renderer changes.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-08-24T14:00:00Z",
+          "releasedAt": "2026-08-26T01:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Update",
+        "when": {
+          "idOrKey": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16"
+        },
+        "result": {
+          "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+          "key": 163,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.1",
+          "name": null,
+          "notes": "Fixes rounding on prorated invoices.",
+          "sequence": 3021,
+          "targetDate": null,
+          "cutAt": "2026-04-27T13:00:00Z",
+          "releasedAt": "2026-04-28T00:20:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16"
+        },
+        "result": {
+          "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+          "key": 163,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.1",
+          "name": null,
+          "notes": "Fixes rounding.",
+          "sequence": 3021,
+          "targetDate": null,
+          "cutAt": "2026-04-27T13:00:00Z",
+          "releasedAt": "2026-04-28T00:20:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Update",
+        "when": {
+          "idOrKey": "163"
+        },
+        "result": {
+          "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+          "key": 163,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.1",
+          "name": null,
+          "notes": "Fixes rounding on prorated invoices.",
+          "sequence": 3021,
+          "targetDate": null,
+          "cutAt": "2026-04-27T13:00:00Z",
+          "releasedAt": "2026-04-28T00:20:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "163"
+        },
+        "result": {
+          "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+          "key": 163,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.1",
+          "name": null,
+          "notes": "Fixes rounding.",
+          "sequence": 3021,
+          "targetDate": null,
+          "cutAt": "2026-04-27T13:00:00Z",
+          "releasedAt": "2026-04-28T00:20:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Update",
+        "when": {
+          "idOrKey": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05"
+        },
+        "result": {
+          "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+          "key": 160,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.0",
+          "name": "Spring Payments",
+          "notes": "Adds SEPA direct debit.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-04-13T15:30:00Z",
+          "releasedAt": "2026-04-15T01:15:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05"
+        },
+        "result": {
+          "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+          "key": 160,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.0",
+          "name": "Spring Payments",
+          "notes": "Adds SEPA payments.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-04-13T15:30:00Z",
+          "releasedAt": "2026-04-15T01:15:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Update",
+        "when": {
+          "idOrKey": "160"
+        },
+        "result": {
+          "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+          "key": 160,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.0",
+          "name": "Spring Payments",
+          "notes": "Adds SEPA direct debit.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-04-13T15:30:00Z",
+          "releasedAt": "2026-04-15T01:15:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "160"
+        },
+        "result": {
+          "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+          "key": 160,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.2.0",
+          "name": "Spring Payments",
+          "notes": "Adds SEPA payments.",
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-04-13T15:30:00Z",
+          "releasedAt": "2026-04-15T01:15:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_Update",
+        "result": null
+      },
+      {
+        "tool": "Imports_GetDefinitions",
+        "result": [
+          {
+            "key": "product-management.products",
+            "displayName": "Products",
+            "atomicity": "PerGroup",
+            "groupNoun": "product tree",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.versions",
+            "displayName": "Versions",
+            "atomicity": "PerGroup",
+            "groupNoun": "product",
+            "maxRows": 10000,
+            "preflightMaxRows": 10000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.release-packages",
+            "displayName": "Release Packages",
+            "atomicity": "PerGroup",
+            "groupNoun": "package",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.releases",
+            "displayName": "Releases",
+            "atomicity": "PerGroup",
+            "groupNoun": "release",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.deployments",
+            "displayName": "Deployments",
+            "atomicity": "PerRow",
+            "groupNoun": null,
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.deployment-environments",
+            "displayName": "Deployment Environments",
+            "atomicity": "PerGroup",
+            "groupNoun": "environment",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          }
+        ]
+      },
+      {
+        "tool": "Imports_Preflight",
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "A version numbered 3.2.0 already exists for this product."
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Imports_Preflight",
+        "because": "The versions import only creates; correcting three existing records is the area's update tool's job, per the skill's opening line."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Imports_Apply",
+        "because": "No import should run for edits to existing records."
+      },
+      {
+        "type": "called",
+        "tool": "Versions_Update",
+        "with": {
+          "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+          "requestBody": {
+            "id": "6a8c0e2f-4b5d-4f7a-9c1e-3d5f7b9d1c05",
+            "version": "3.2.0",
+            "name": "Spring Payments",
+            "notes": {
+              "$regex": "SEPA direct debit"
+            }
+          }
+        },
+        "because": "Versions_Update is a whole-record overwrite: 3.2.0's name must be sent back or it is cleared."
+      },
+      {
+        "type": "called",
+        "tool": "Versions_Update",
+        "with": {
+          "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+          "requestBody": {
+            "id": "7b9d1f3a-5c6e-4a8b-ad2f-4e6a8c0e2d16",
+            "version": "3.2.1",
+            "sequence": 3021,
+            "notes": {
+              "$regex": "prorated invoices"
+            }
+          }
+        },
+        "because": "3.2.1's sequence override must be sent back or it is cleared."
+      },
+      {
+        "type": "called",
+        "tool": "Versions_Update",
+        "with": {
+          "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+          "requestBody": {
+            "id": "8c0e2a4b-6d7f-4b9c-be3a-5f7b9d1f3e27",
+            "version": "3.3.0",
+            "name": "Invoice Renderer",
+            "notes": {
+              "$regex": "new renderer"
+            }
+          }
+        },
+        "because": "3.3.0's name must be sent back or it is cleared."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Versions_Update",
+        "because": "Versions_Update changes existing records and needs the user's explicit confirmation."
+      }
+    ],
+    "expected": "Three corrections to existing versions are not an import — the versions import only creates, and the wayd-imports skill says a handful of existing records go through the area's own update tools. The agent finds the three versions with Versions_GetVersions, confirms, then calls Versions_Update for each with its UUID, its number, and every field it already has (3.2.0 and 3.3.0 keep their names, 3.2.1 keeps sequence 3021) plus the new notes, since the tool description says an omitted field is cleared."
+  },
+  {
+    "id": "imports-why-partial-run",
+    "skill": "wayd-imports",
+    "prompt": "Someone on the platform team ran a deployments import from Settings yesterday and it says it only partly worked. What went wrong?",
+    "fixtures": [
+      {
+        "tool": "Imports_GetList",
+        "when": {
+          "status": "Succeeded"
+        },
+        "result": {
+          "processes": [
+            {
+              "id": "ae2a4c6d-8f9b-4d1e-b03c-7b9d1f3b5a49",
+              "importType": "product-management.versions",
+              "displayName": "Versions",
+              "atomicity": "PerGroup",
+              "groupNoun": "product",
+              "status": "Succeeded",
+              "isPreflight": false,
+              "appliedImportProcessId": null,
+              "submissionGroupId": null,
+              "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+              "submittedByName": "Jordan Ellis",
+              "submittedOn": "2026-10-09T10:03:00Z",
+              "startedOn": "2026-10-09T10:03:00Z",
+              "completedOn": "2026-10-09T10:03:06Z",
+              "lastProgressOn": "2026-10-09T10:03:06Z",
+              "totalRowCount": 22,
+              "succeededRowCount": 22,
+              "failedRowCount": 0,
+              "error": null,
+              "canManage": true,
+              "unappliedRowCount": 0,
+              "isTerminal": true
+            }
+          ],
+          "totalCount": 1,
+          "pageNumber": 1,
+          "pageSize": 100
+        }
+      },
+      {
+        "tool": "Imports_GetList",
+        "result": {
+          "processes": [
+            {
+              "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38",
+              "importType": "product-management.deployments",
+              "displayName": "Deployments",
+              "atomicity": "PerRow",
+              "groupNoun": null,
+              "status": "PartiallySucceeded",
+              "isPreflight": false,
+              "appliedImportProcessId": null,
+              "submissionGroupId": null,
+              "submittedByUserId": "f1e2d3c4-b5a6-4978-8a6b-5c4d3e2f1a0b",
+              "submittedByName": "Priya Raman",
+              "submittedOn": "2026-10-16T14:22:10Z",
+              "startedOn": "2026-10-16T14:22:10Z",
+              "completedOn": "2026-10-16T14:22:34Z",
+              "lastProgressOn": "2026-10-16T14:22:34Z",
+              "totalRowCount": 48,
+              "succeededRowCount": 45,
+              "failedRowCount": 3,
+              "error": null,
+              "canManage": true,
+              "unappliedRowCount": 0,
+              "isTerminal": true
+            },
+            {
+              "id": "ae2a4c6d-8f9b-4d1e-b03c-7b9d1f3b5a49",
+              "importType": "product-management.versions",
+              "displayName": "Versions",
+              "atomicity": "PerGroup",
+              "groupNoun": "product",
+              "status": "Succeeded",
+              "isPreflight": false,
+              "appliedImportProcessId": null,
+              "submissionGroupId": null,
+              "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+              "submittedByName": "Jordan Ellis",
+              "submittedOn": "2026-10-09T10:03:00Z",
+              "startedOn": "2026-10-09T10:03:00Z",
+              "completedOn": "2026-10-09T10:03:06Z",
+              "lastProgressOn": "2026-10-09T10:03:06Z",
+              "totalRowCount": 22,
+              "succeededRowCount": 22,
+              "failedRowCount": 0,
+              "error": null,
+              "canManage": true,
+              "unappliedRowCount": 0,
+              "isTerminal": true
+            }
+          ],
+          "totalCount": 2,
+          "pageNumber": 1,
+          "pageSize": 100
+        }
+      },
+      {
+        "tool": "Imports_GetDefinitions",
+        "result": [
+          {
+            "key": "product-management.products",
+            "displayName": "Products",
+            "atomicity": "PerGroup",
+            "groupNoun": "product tree",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.versions",
+            "displayName": "Versions",
+            "atomicity": "PerGroup",
+            "groupNoun": "product",
+            "maxRows": 10000,
+            "preflightMaxRows": 10000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.release-packages",
+            "displayName": "Release Packages",
+            "atomicity": "PerGroup",
+            "groupNoun": "package",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.releases",
+            "displayName": "Releases",
+            "atomicity": "PerGroup",
+            "groupNoun": "release",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.deployments",
+            "displayName": "Deployments",
+            "atomicity": "PerRow",
+            "groupNoun": null,
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          },
+          {
+            "key": "product-management.deployment-environments",
+            "displayName": "Deployment Environments",
+            "atomicity": "PerGroup",
+            "groupNoun": "environment",
+            "maxRows": 50000,
+            "preflightMaxRows": 50000,
+            "canSubmit": true
+          }
+        ]
+      },
+      {
+        "tool": "Imports_GetById",
+        "when": {
+          "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38"
+        },
+        "result": {
+          "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38",
+          "importType": "product-management.deployments",
+          "displayName": "Deployments",
+          "atomicity": "PerRow",
+          "groupNoun": null,
+          "status": "PartiallySucceeded",
+          "isPreflight": false,
+          "appliedImportProcessId": null,
+          "submissionGroupId": null,
+          "submittedByUserId": "f1e2d3c4-b5a6-4978-8a6b-5c4d3e2f1a0b",
+          "submittedByName": "Priya Raman",
+          "submittedOn": "2026-10-16T14:22:10Z",
+          "startedOn": "2026-10-16T14:22:10Z",
+          "completedOn": "2026-10-16T14:22:34Z",
+          "lastProgressOn": "2026-10-16T14:22:34Z",
+          "totalRowCount": 48,
+          "succeededRowCount": 45,
+          "failedRowCount": 3,
+          "error": null,
+          "canManage": true,
+          "unappliedRowCount": 0,
+          "isTerminal": true
+        }
+      },
+      {
+        "tool": "Imports_GetById",
+        "when": {
+          "id": "ae2a4c6d-8f9b-4d1e-b03c-7b9d1f3b5a49"
+        },
+        "result": {
+          "id": "ae2a4c6d-8f9b-4d1e-b03c-7b9d1f3b5a49",
+          "importType": "product-management.versions",
+          "displayName": "Versions",
+          "atomicity": "PerGroup",
+          "groupNoun": "product",
+          "status": "Succeeded",
+          "isPreflight": false,
+          "appliedImportProcessId": null,
+          "submissionGroupId": null,
+          "submittedByUserId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "submittedByName": "Jordan Ellis",
+          "submittedOn": "2026-10-09T10:03:00Z",
+          "startedOn": "2026-10-09T10:03:00Z",
+          "completedOn": "2026-10-09T10:03:06Z",
+          "lastProgressOn": "2026-10-09T10:03:06Z",
+          "totalRowCount": 22,
+          "succeededRowCount": 22,
+          "failedRowCount": 0,
+          "error": null,
+          "canManage": true,
+          "unappliedRowCount": 0,
+          "isTerminal": true
+        }
+      },
+      {
+        "tool": "Imports_GetRows",
+        "when": {
+          "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38",
+          "status": "Failed"
+        },
+        "result": {
+          "rows": [
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000031",
+              "importId": "dep-031",
+              "rowNumber": 32,
+              "status": "Failed",
+              "createdEntityId": null,
+              "error": "No environment was found named 'qa-west'.",
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000032",
+              "importId": "dep-032",
+              "rowNumber": 33,
+              "status": "Failed",
+              "createdEntityId": null,
+              "error": "No environment was found named 'qa-west'.",
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000044",
+              "importId": "dep-044",
+              "rowNumber": 45,
+              "status": "Failed",
+              "createdEntityId": null,
+              "error": "No version was found with id '0b2d4f6a-8c9e-4f1a-b2c3-d4e5f6a7b8c9'.",
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            }
+          ],
+          "totalCount": 3,
+          "pageNumber": 1,
+          "pageSize": 50
+        }
+      },
+      {
+        "tool": "Imports_GetRows",
+        "when": {
+          "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38"
+        },
+        "result": {
+          "rows": [
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000001",
+              "importId": "dep-001",
+              "rowNumber": 2,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000001",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000002",
+              "importId": "dep-002",
+              "rowNumber": 3,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000002",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000003",
+              "importId": "dep-003",
+              "rowNumber": 4,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000003",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000004",
+              "importId": "dep-004",
+              "rowNumber": 5,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000004",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000005",
+              "importId": "dep-005",
+              "rowNumber": 6,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000005",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000006",
+              "importId": "dep-006",
+              "rowNumber": 7,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000006",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000007",
+              "importId": "dep-007",
+              "rowNumber": 8,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000007",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000008",
+              "importId": "dep-008",
+              "rowNumber": 9,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000008",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000009",
+              "importId": "dep-009",
+              "rowNumber": 10,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000009",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000010",
+              "importId": "dep-010",
+              "rowNumber": 11,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000010",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000011",
+              "importId": "dep-011",
+              "rowNumber": 12,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000011",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000012",
+              "importId": "dep-012",
+              "rowNumber": 13,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000012",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000013",
+              "importId": "dep-013",
+              "rowNumber": 14,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000013",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000014",
+              "importId": "dep-014",
+              "rowNumber": 15,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000014",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000015",
+              "importId": "dep-015",
+              "rowNumber": 16,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000015",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000016",
+              "importId": "dep-016",
+              "rowNumber": 17,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000016",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000017",
+              "importId": "dep-017",
+              "rowNumber": 18,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000017",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000018",
+              "importId": "dep-018",
+              "rowNumber": 19,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000018",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000019",
+              "importId": "dep-019",
+              "rowNumber": 20,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000019",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000020",
+              "importId": "dep-020",
+              "rowNumber": 21,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000020",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000021",
+              "importId": "dep-021",
+              "rowNumber": 22,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000021",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000022",
+              "importId": "dep-022",
+              "rowNumber": 23,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000022",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000023",
+              "importId": "dep-023",
+              "rowNumber": 24,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000023",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000024",
+              "importId": "dep-024",
+              "rowNumber": 25,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000024",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000025",
+              "importId": "dep-025",
+              "rowNumber": 26,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000025",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000026",
+              "importId": "dep-026",
+              "rowNumber": 27,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000026",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000027",
+              "importId": "dep-027",
+              "rowNumber": 28,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000027",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000028",
+              "importId": "dep-028",
+              "rowNumber": 29,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000028",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000029",
+              "importId": "dep-029",
+              "rowNumber": 30,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000029",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000030",
+              "importId": "dep-030",
+              "rowNumber": 31,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000030",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000031",
+              "importId": "dep-031",
+              "rowNumber": 32,
+              "status": "Failed",
+              "createdEntityId": null,
+              "error": "No environment was found named 'qa-west'.",
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000032",
+              "importId": "dep-032",
+              "rowNumber": 33,
+              "status": "Failed",
+              "createdEntityId": null,
+              "error": "No environment was found named 'qa-west'.",
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000033",
+              "importId": "dep-033",
+              "rowNumber": 34,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000033",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000034",
+              "importId": "dep-034",
+              "rowNumber": 35,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000034",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000035",
+              "importId": "dep-035",
+              "rowNumber": 36,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000035",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000036",
+              "importId": "dep-036",
+              "rowNumber": 37,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000036",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000037",
+              "importId": "dep-037",
+              "rowNumber": 38,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000037",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000038",
+              "importId": "dep-038",
+              "rowNumber": 39,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000038",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000039",
+              "importId": "dep-039",
+              "rowNumber": 40,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000039",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000040",
+              "importId": "dep-040",
+              "rowNumber": 41,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000040",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000041",
+              "importId": "dep-041",
+              "rowNumber": 42,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000041",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000042",
+              "importId": "dep-042",
+              "rowNumber": 43,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000042",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000043",
+              "importId": "dep-043",
+              "rowNumber": 44,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000043",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000044",
+              "importId": "dep-044",
+              "rowNumber": 45,
+              "status": "Failed",
+              "createdEntityId": null,
+              "error": "No version was found with id '0b2d4f6a-8c9e-4f1a-b2c3-d4e5f6a7b8c9'.",
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000045",
+              "importId": "dep-045",
+              "rowNumber": 46,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000045",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000046",
+              "importId": "dep-046",
+              "rowNumber": 47,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000046",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000047",
+              "importId": "dep-047",
+              "rowNumber": 48,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000047",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            },
+            {
+              "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000048",
+              "importId": "dep-048",
+              "rowNumber": 49,
+              "status": "Succeeded",
+              "createdEntityId": "d6f8b0c2-4e5a-4b7c-9d1e-000000000048",
+              "error": null,
+              "warning": null,
+              "attemptedOn": "2026-10-16T14:22:31Z"
+            }
+          ],
+          "totalCount": 48,
+          "pageNumber": 1,
+          "pageSize": 50
+        }
+      },
+      {
+        "tool": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "result": [
+          {
+            "id": "deb12eb7-e4ee-45f5-8e62-e5a51fe6e3c9",
+            "key": 2,
+            "name": "qa-east",
+            "category": "Testing",
+            "ringOrder": 1,
+            "isActive": true,
+            "deploymentCount": 642
+          },
+          {
+            "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+            "key": 4,
+            "name": "stg-us",
+            "category": "Staging",
+            "ringOrder": 2,
+            "isActive": true,
+            "deploymentCount": 388
+          },
+          {
+            "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+            "key": 5,
+            "name": "prd-us",
+            "category": "Production",
+            "ringOrder": 3,
+            "isActive": true,
+            "deploymentCount": 297
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "0b2d4f6a-8c9e-4f1a-b2c3-d4e5f6a7b8c9"
+        },
+        "error": true,
+        "result": {
+          "title": "Not Found",
+          "status": 404,
+          "detail": "No record matches the identifier given."
+        }
+      },
+      {
+        "tool": "Imports_RetryFailed",
+        "result": {
+          "queuedRowCount": 3,
+          "skippedRowCount": 0
+        }
+      },
+      {
+        "tool": "Imports_Resume",
+        "result": {
+          "queuedRowCount": 0,
+          "skippedRowCount": 0
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Imports_GetRows",
+        "with": {
+          "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38"
+        },
+        "because": "Refused rows carry their reasons on the rows, not on the run."
+      },
+      {
+        "type": "says",
+        "pattern": "qa-west",
+        "because": "Two rows were refused because no environment is named qa-west."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Imports_RetryFailed",
+        "because": "The user asked what went wrong; retrying would resubmit rows whose problem is in the file and is not fixed."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Imports_Resume",
+        "because": "Nothing was asked to be re-run."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Imports_Preflight",
+        "because": "A read-only question submits nothing."
+      }
+    ],
+    "expected": "The agent finds the run with Imports_GetList (yesterday's PartiallySucceeded deployments run, 45 of 48), then reads its refused rows with Imports_GetRows (status Failed): dep-031 and dep-032 name an environment qa-west that does not exist, and dep-044 names a version id Wayd does not have. It reports those three and changes nothing. A good answer adds that deployments have no natural key, so only the three fixed rows should be resubmitted (skill: \"Finding an existing import\" and \"All-or-nothing versus row by row\")."
+  }
+]

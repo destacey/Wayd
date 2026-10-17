@@ -17,14 +17,15 @@
     "inspect": "npm run build && npx -y @modelcontextprotocol/inspector node build/index.js",
     "build": "npm run generate && tsc && node -e \"require('fs').chmodSync('build/index.js', 0o755)\"",
     "generate": "tsx scripts/generate-import-formats.ts && tsx scripts/generate-zod-schemas.ts",
-    "lint": "eslint src tests scripts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json && tsc --noEmit -p tests/tsconfig.json",
+    "lint": "eslint src tests scripts evals",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json && tsc --noEmit -p tests/tsconfig.json && tsc --noEmit -p evals/tsconfig.json",
     "test": "npm run build && npm run test:only",
     "test:only": "node --import tsx --test tests/**/*.test.ts",
     "prepare": "npm run build",
     "changeset": "changeset",
     "version-packages": "changeset version && npm install --package-lock-only",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "evals": "npm run build && node --import tsx evals/run-eval.mjs"
   },
   "keywords": [
     "mcp",

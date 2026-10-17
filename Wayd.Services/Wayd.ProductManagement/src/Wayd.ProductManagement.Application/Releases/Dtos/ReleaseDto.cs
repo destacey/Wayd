@@ -35,7 +35,7 @@ public sealed record ReleaseDto
     public LocalDate? TargetDate { get; init; }
     public LocalDate? ReleasedDate { get; init; }
 
-    /// <summary>The release's current status.</summary>
+    /// <summary>The release's current status: the organization's name for it, its category and its well-known alias.</summary>
     public StatusNavigationDto Status { get; init; } = default!;
 
     /// <summary>The versions this release announces directly, outside any package.</summary>
@@ -110,7 +110,7 @@ public sealed record ReleaseDto
 /// <summary>One version a release announces directly.</summary>
 public sealed record ReleaseVersionDto
 {
-    /// <summary>The version record. Its <c>Name</c> is the version number.</summary>
+    /// <summary>The version record. Its <c>name</c> is the version number.</summary>
     public NavigationDto Version { get; init; } = default!;
 
     /// <summary>The product that version was cut against.</summary>
@@ -129,7 +129,7 @@ public sealed record ReleaseVersionDto
 /// <summary>One package a release shipped.</summary>
 public sealed record ReleasePackageSummaryDto
 {
-    /// <summary>The package. Its <c>Name</c> is the package version.</summary>
+    /// <summary>The package. Its <c>name</c> is the package version.</summary>
     public NavigationDto Package { get; init; } = default!;
 
     /// <summary>When that package shipped, or <c>null</c> while it has not.</summary>

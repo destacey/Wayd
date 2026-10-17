@@ -13,7 +13,7 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Dtos;
 /// </remarks>
 public sealed record TeamCapacityPlanDto
 {
-    /// <summary>The team's capacity over the range, as the team's capacity read gives it.</summary>
+    /// <summary>The team's capacity totals over the range, the same as the team capacity request returns.</summary>
     public required TeamCapacityDto Capacity { get; set; }
 
     /// <summary>
@@ -23,19 +23,19 @@ public sealed record TeamCapacityPlanDto
     public required IReadOnlyList<LocalDate> Days { get; set; }
 
     /// <summary>
-    /// The days of <see cref="Days"/> the whole team is off, as asked for, such as a sprint's team days off. Nobody
-    /// is counted on them, so they add nothing to <see cref="Capacity"/> or to any day's person-days.
+    /// The days of <c>days</c> the whole team is off, as asked for, such as a sprint's team days off. Nobody
+    /// is counted on them, so they add nothing to <c>capacity</c> or to any day's person-days.
     /// </summary>
     public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
 
-    /// <summary>Everyone with time allocated to the team in the range, in the order of <see cref="TeamCapacityDto.People"/>.</summary>
+    /// <summary>Everyone with time allocated to the team in the range, in the same order as <c>capacity.people</c>.</summary>
     public required IReadOnlyList<TeamCapacityPlanPersonDto> People { get; set; }
 }
 
 /// <summary>One person's time on a team, day by day.</summary>
 public sealed record TeamCapacityPlanPersonDto
 {
-    /// <summary>The employee, as named in <see cref="TeamCapacityDto.People"/>.</summary>
+    /// <summary>The employee's id, matching <c>employee.id</c> of an entry in <c>capacity.people</c>.</summary>
     public required Guid EmployeeId { get; set; }
 
     /// <summary>

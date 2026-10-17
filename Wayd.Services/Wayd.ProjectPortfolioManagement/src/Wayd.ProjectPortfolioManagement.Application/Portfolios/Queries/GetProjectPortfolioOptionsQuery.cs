@@ -4,9 +4,8 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
 
 /// <summary>
-/// Retrieves a list of ProjectPortfolios based on the provided filter.  Returns all ProjectPortfolios if no filter is provided.
+/// Retrieves every project portfolio as an option.
 /// </summary>
-/// <param name="StatusFilter"></param>
 public sealed record GetProjectPortfolioOptionsQuery() : IQuery<List<ProjectPortfolioOptionDto>>;
 
 public sealed class GetProjectPortfolioOptionsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)

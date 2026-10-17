@@ -20,7 +20,7 @@ public sealed record SprintWorkItemMetricsDto
 
     public int TotalWorkItems { get; init; }
 
-    /// <summary>The sum of every item's estimate in <see cref="SizingMethod"/>; unestimated items add nothing.</summary>
+    /// <summary>The sum of every item's estimate in <c>sizingMethod</c>; unestimated items add nothing.</summary>
     public double TotalEstimate { get; init; }
 
     public int CompletedWorkItems { get; init; }
@@ -32,7 +32,7 @@ public sealed record SprintWorkItemMetricsDto
     public int NotStartedWorkItems { get; init; }
     public double NotStartedEstimate { get; init; }
 
-    /// <summary>Items with no value in <see cref="SizingMethod"/>. An estimate of 0 is an estimate.</summary>
+    /// <summary>Items with no value in <c>sizingMethod</c>. An estimate of 0 is an estimate.</summary>
     public int UnestimatedWorkItems { get; init; }
 
     /// <summary>

@@ -6,7 +6,7 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Dtos;
 public sealed record StrategicThemeOptionDto : IMapFrom<StrategicTheme>
 {
     /// <summary>
-    /// The unique identifier of the StrategicTheme.
+    /// The unique identifier of the strategic theme.
     /// </summary>
     public Guid Id { get; set; }
 

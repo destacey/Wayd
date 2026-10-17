@@ -11,9 +11,8 @@ public sealed record AzureOpenAIConnectionConfigurationDto : IMapFrom<AzureOpenA
     public required string BaseUrl { get; set; }
 
     /// <summary>
-    /// Gets or sets the API key for Azure OpenAI resource.
+    /// The API key for the Azure OpenAI resource. Returned masked as a fixed-width placeholder.
     /// </summary>
-    /// <remarks>Masked to a fixed-width placeholder when returned from the API.</remarks>
     public required string ApiKey { get; set; }
 
     /// <summary>

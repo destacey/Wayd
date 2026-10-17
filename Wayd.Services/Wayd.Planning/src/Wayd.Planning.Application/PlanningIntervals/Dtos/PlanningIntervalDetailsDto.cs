@@ -4,12 +4,10 @@ namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
 
 public sealed record PlanningIntervalDetailsDto
 {
-    /// <summary>Gets or sets the identifier.</summary>
-    /// <value>The identifier.</value>
+    /// <summary>The planning interval's unique identifier.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Gets the key.</summary>
-    /// <value>The key.</value>
+    /// <summary>The planning interval's numeric key, an alternate to its id.</summary>
     public int Key { get; set; }
 
     /// <summary>
@@ -17,16 +15,13 @@ public sealed record PlanningIntervalDetailsDto
     /// </summary>
     public required string Name { get; set; }
 
-    /// <summary>Gets or sets the description.</summary>
-    /// <value>The description.</value>
+    /// <summary>The planning interval's description; null when none is set.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Gets or sets the start.</summary>
-    /// <value>The start.</value>
+    /// <summary>The planning interval's first day.</summary>
     public required LocalDate Start { get; set; }
 
-    /// <summary>Gets or sets the end.</summary>
-    /// <value>The end.</value>
+    /// <summary>The planning interval's last day, included in it.</summary>
     public required LocalDate End { get; set; }
 
     /// <summary>
@@ -34,8 +29,11 @@ public sealed record PlanningIntervalDetailsDto
     /// </summary>
     public required SimpleNavigationDto State { get; set; }
 
-    /// <summary>Gets or sets a value indicating whether [objectives locked].</summary>
-    /// <value><c>true</c> if [objectives locked]; otherwise, <c>false</c>.</value>
+    /// <summary>
+    /// Whether the planning interval's objectives are locked. While locked, objectives cannot be added or
+    /// deleted, and an update keeps each objective's stored name and stretch flag, ignoring new values without
+    /// an error; its description, status, progress and dates stay editable.
+    /// </summary>
     public bool ObjectivesLocked { get; set; }
 
     public double? Predictability { get; set; }

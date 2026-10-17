@@ -11,7 +11,7 @@ public sealed record VisionDto : IMapFrom<Vision>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the vision.  This is an alternate key to the Id.
+    /// The vision's unique, human-readable number; an alternate key to <c>id</c>.
     /// </summary>
     public int Key { get; set; }
 
@@ -21,17 +21,17 @@ public sealed record VisionDto : IMapFrom<Vision>
     public required string Description { get; set; }
 
     /// <summary>
-    /// The current lifecycle state of the vision.
+    /// The current lifecycle state of the vision: Proposed, Active, or Archived.
     /// </summary>
     public required SimpleNavigationDto State { get; set; }
 
     /// <summary>
-    /// The date when the vision became active or started guiding the organization.
+    /// When the vision became active and started guiding the organization; null while it is proposed.
     /// </summary>
     public Instant? Start { get; set; }
 
     /// <summary>
-    /// The date when the vision was archived or replaced.
+    /// When the vision was archived; null until it is archived.
     /// </summary>
     public Instant? End { get; set; }
 

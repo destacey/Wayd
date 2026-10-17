@@ -43,7 +43,7 @@ public sealed record RecentDeliveryEventDto
     /// </remarks>
     public ProductStatusAlias Alias { get; init; }
 
-    /// <summary>When it changed.</summary>
+    /// <summary>When the record moved into this status.</summary>
     public Instant ChangedOn { get; init; }
 
     /// <summary>

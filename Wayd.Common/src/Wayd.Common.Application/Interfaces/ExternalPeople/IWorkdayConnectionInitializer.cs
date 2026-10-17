@@ -23,15 +23,22 @@ public interface IWorkdayConnectionInitializer
 }
 
 /// <summary>
-/// One organization returned by <see cref="IWorkdayConnectionInitializer.GetOrganizationsByType"/>.
-/// <see cref="Reference"/> is the stable Workday WID we use for exclusion matching.
-/// <see cref="DisplayName"/> is the human-friendly Name (or Descriptor) for the picker.
-/// <see cref="ReferenceId"/> is the tenant-defined business code (e.g. "ENG-001", "COMP-EMEA");
-/// surfaced as secondary context so admins can disambiguate two orgs with the same name.
+/// One Workday organization of a given organization type.
+/// <c>reference</c> is the organization's stable Workday WID, used for exclusion matching.
+/// <c>displayName</c> is its human-friendly name (or descriptor).
+/// <c>referenceId</c> is the tenant-defined business code (e.g. "ENG-001", "COMP-EMEA"), shown as
+/// secondary context to tell apart two organizations with the same name; null when the tenant has none.
 /// </summary>
+/// <remarks>
+/// Returned by <see cref="IWorkdayConnectionInitializer.GetOrganizationsByType"/>.
+/// </remarks>
 public sealed record DiscoveredOrg(string Reference, string? DisplayName, string? ReferenceId = null);
 
-/// <summary>Structured outcome of an init probe. Persisted on the connection so the UI can render it without re-running.</summary>
+/// <summary>
+/// Outcome of the connection's most recent init probe: whether it could authenticate and read the
+/// fields Wayd requires, and the organization types it discovered.
+/// </summary>
+/// <remarks>Persisted on the connection so the UI can render it without re-running the probe.</remarks>
 public sealed record ConnectionInitResult(
     bool IsValid,
     int WorkersProbed,
@@ -41,8 +48,11 @@ public sealed record ConnectionInitResult(
     IReadOnlyList<DiscoveredOrgType>? DiscoveredOrgTypes = null);
 
 /// <summary>
-/// One entry in the org-type catalog discovered by the init probe. Mirrors the domain
-/// <c>WorkdayOrgType</c> record but lives in Common.Application so the initializer interface
-/// doesn't take a dependency on AppIntegration.Domain.
+/// One Workday organization type discovered by the connection's init probe, with how many
+/// organizations of that type the tenant has.
 /// </summary>
+/// <remarks>
+/// Mirrors the domain <c>WorkdayOrgType</c> record but lives in Common.Application so the
+/// initializer interface doesn't take a dependency on AppIntegration.Domain.
+/// </remarks>
 public sealed record DiscoveredOrgType(string TypeId, string? DisplayName, int Count);

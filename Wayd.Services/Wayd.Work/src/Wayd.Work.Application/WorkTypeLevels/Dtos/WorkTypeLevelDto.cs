@@ -7,20 +7,16 @@ public sealed record WorkTypeLevelDto : IMapFrom<WorkTypeLevel>, IWorkTypeLevelD
 {
     public int Id { get; set; }
 
-    /// <summary>The name of the work type.  The name cannot be changed.</summary>
-    /// <value>The name.</value>
+    /// <summary>The name of the work type level.</summary>
     public required string Name { get; set; }
 
-    /// <summary>The description of the work type.</summary>
-    /// <value>The description.</value>
+    /// <summary>The description of the work type level; null when it has none.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Gets or sets the tier.</summary>
-    /// <value>The tier.</value>
+    /// <summary>The tier the level belongs to: Portfolio, Requirement, Task or Other.</summary>
     public required SimpleNavigationDto Tier { get; set; }
 
-    /// <summary>Gets or sets the order.</summary>
-    /// <value>The order.</value>
+    /// <summary>The level's position within its tier; levels sort by it in ascending order.</summary>
     public int Order { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)

@@ -32,8 +32,9 @@ public record ConnectionListDto : IMapFrom<Connection>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The unique identifier for the system that this connection connects to.
-    /// Only applicable to syncable connections (Work Management connectors).
+    /// The unique identifier for the external system that this connection connects to.
+    /// Null when the connector has no external system identifier, such as Entra, Workday, or Azure OpenAI,
+    /// and for an Azure DevOps connection whose identifier has not been resolved yet.
     /// </summary>
     public string? SystemId { get; set; }
 
@@ -58,8 +59,9 @@ public record ConnectionListDto : IMapFrom<Connection>
     public bool IsValidConfiguration { get; set; }
 
     /// <summary>
-    /// Indicates whether the connection can currently sync.
-    /// Only applicable to syncable connections (Work Management connectors).
+    /// Indicates whether the connection can currently sync: true when it is active, its configuration
+    /// is valid, and it has something to sync (for Azure DevOps, at least one active work process or workspace).
+    /// Null for connectors that do not sync, such as Azure OpenAI.
     /// </summary>
     public bool? CanSync { get; set; }
 

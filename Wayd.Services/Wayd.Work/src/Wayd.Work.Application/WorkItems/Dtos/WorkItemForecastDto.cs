@@ -5,8 +5,8 @@ namespace Wayd.Work.Application.WorkItems.Dtos;
 public sealed record WorkItemForecastDto
 {
     /// <summary>
-    /// A <see cref="WorkItemForecastOutcome"/>. Only <see cref="WorkItemForecastOutcome.Forecast"/>
-    /// fills the percentiles and histogram.
+    /// Whether a forecast could be made: Forecast, Done, Not Enough History, Blocked by Dependency,
+    /// Cannot Forecast or Nothing Remaining. Only Forecast fills the percentiles and histogram.
     /// </summary>
     public required SimpleNavigationDto Outcome { get; init; }
 
@@ -43,7 +43,7 @@ public sealed record WorkItemForecastDto
     public int RemainingWorkItems { get; init; }
 
     /// <summary>
-    /// Remaining work items left out because they could not be forecast (see <see cref="Issues"/>
+    /// Remaining work items left out because they could not be forecast (see <c>issues</c>
     /// for why). A forecast with exclusions is a lower bound.
     /// </summary>
     public List<ForecastWorkItemDto> ExcludedWorkItems { get; init; } = [];
@@ -60,7 +60,7 @@ public sealed record WorkItemForecastDto
     public LocalDate? TargetDate { get; init; }
 
     /// <summary>
-    /// The share of trials (0 to 1) that finished on or before <see cref="TargetDate"/>. Null
+    /// The share of trials (0 to 1) that finished on or before <c>targetDate</c>. Null
     /// without a target date or a forecast.
     /// </summary>
     public double? ChanceOfFinishingByTargetDate { get; init; }
@@ -76,7 +76,7 @@ public sealed record WorkItemForecastDto
     public List<ForecastDependencyInfluenceDto> Dependencies { get; init; } = [];
 
     /// <summary>
-    /// Dependencies left out of the forecast, each with its <see cref="ForecastDependencyLinkDto.Reason"/>:
+    /// Dependencies left out of the forecast, each with its <c>reason</c>:
     /// it closed a cycle, or its predecessor was removed.
     /// </summary>
     public List<ForecastDependencyLinkDto> IgnoredDependencies { get; init; } = [];

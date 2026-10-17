@@ -3,7 +3,7 @@
 namespace Wayd.Organization.Application.Teams.Dtos;
 
 /// <summary>
-/// Represents an organizational unit.
+/// A team or team of teams in the functional organization chart, with the units beneath it.
 /// </summary>
 public sealed record OrganizationalUnitDto
 {

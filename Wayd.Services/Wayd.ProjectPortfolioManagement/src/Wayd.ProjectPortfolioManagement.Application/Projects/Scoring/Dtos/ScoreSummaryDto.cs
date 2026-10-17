@@ -3,9 +3,12 @@
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;
 
 /// <summary>
-/// The denormalised current-score summary for a project, surfaced so the score, its
-/// date, who set it, and the model can be shown without joining to the score history.
+/// A summary of a project's current score: the score, when it was recorded, who recorded it, and the
+/// scoring model used.
 /// </summary>
+/// <remarks>
+/// Denormalised onto the project so it can be shown without joining to the score history.
+/// </remarks>
 public sealed record ScoreSummaryDto
 {
     public decimal Value { get; set; }

@@ -9,14 +9,14 @@ namespace Wayd.Common.Application.Employees.Dtos;
 /// </summary>
 public sealed record EmployeeEmailDto : IMapFrom<EmployeeEmail>
 {
-    /// <summary>Gets the identifier.</summary>
+    /// <summary>The address entry's unique identifier.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Gets the work email address.</summary>
+    /// <summary>The work email address.</summary>
     public required string Email { get; set; }
 
     /// <summary>
-    /// Indicates this is the employee's primary address — the one <see cref="EmployeeDetailsDto.Email"/>
+    /// Whether this is the employee's primary address — the one the employee's <c>email</c> field
     /// carries and that the rest of the app resolves against. Exactly one address per employee has this.
     /// </summary>
     public bool IsPrimary { get; set; }

@@ -7,7 +7,8 @@ using NodaTime;
 namespace Wayd.Organization.Application.Teams.Dtos;
 
 /// <summary>
-/// Represents the operating model for a team.
+/// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week and
+/// holiday calendar.
 /// </summary>
 public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
 {

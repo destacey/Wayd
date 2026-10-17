@@ -13,15 +13,15 @@ public sealed record TeamSprintMetricsDto
     /// <summary>The team the metrics are of.</summary>
     public Guid TeamId { get; init; }
 
-    /// <summary>How many sprints the window holds when full: the number asked for, or else <see cref="DefaultSprintWindow"/>.</summary>
+    /// <summary>How many sprints the window holds when full: the number asked for, or else <c>defaultSprintWindow</c>.</summary>
     public int SprintWindow { get; init; }
 
     /// <summary>The organization's sprint window, from the system settings, which team pages are measured over.</summary>
     public int DefaultSprintWindow { get; init; }
 
     /// <summary>
-    /// The estimate <see cref="ByEstimate"/> is measured in: the team's sizing method now. Under Count
-    /// <see cref="ByEstimate"/> equals <see cref="ByCount"/>.
+    /// The estimate <c>byEstimate</c> is measured in: the team's sizing method now. Under Count
+    /// <c>byEstimate</c> equals <c>byCount</c>.
     /// </summary>
     public SizingMethod SizingMethod { get; init; }
 
@@ -29,13 +29,13 @@ public sealed record TeamSprintMetricsDto
     public required SprintMetricSummariesDto ByCount { get; init; }
 
     /// <summary>
-    /// Each metric in <see cref="SizingMethod"/>, across the counted sprints measured in it. A sprint measured
+    /// Each metric in <c>sizingMethod</c>, across the counted sprints measured in it. A sprint measured
     /// in another estimate is left out: estimates in different units are never averaged.
     /// </summary>
     public required SprintMetricSummariesDto ByEstimate { get; init; }
 
     /// <summary>
-    /// The sprints counted, most recent first. Fewer than <see cref="SprintWindow"/> when the team has too few
+    /// The sprints counted, most recent first. Fewer than <c>sprintWindow</c> when the team has too few
     /// usable sprints among its most recent completed ones.
     /// </summary>
     public required List<TeamSprintMetricsSprintDto> Sprints { get; init; }
@@ -79,7 +79,7 @@ public sealed record TeamSprintMetricsSprintDto
     public SizingMethod SizingMethod { get; init; }
 
     /// <summary>
-    /// Whether <see cref="ByEstimate"/> counts toward the report's estimate averages. False when the team has
+    /// Whether <c>byEstimate</c> counts toward the report's estimate averages. False when the team has
     /// since changed its sizing method, so this sprint's estimates are in another unit.
     /// </summary>
     public bool InEstimateAverages { get; init; }
@@ -87,7 +87,7 @@ public sealed record TeamSprintMetricsSprintDto
     /// <summary>The sprint's values by item count.</summary>
     public required SprintMetricFiguresDto ByCount { get; init; }
 
-    /// <summary>The sprint's values in its own <see cref="SizingMethod"/>.</summary>
+    /// <summary>The sprint's values in its own <c>sizingMethod</c>.</summary>
     public required SprintMetricFiguresDto ByEstimate { get; init; }
 
     public static TeamSprintMetricsSprintDto From(MeasuredSprint measured, bool inEstimateAverages) => new()

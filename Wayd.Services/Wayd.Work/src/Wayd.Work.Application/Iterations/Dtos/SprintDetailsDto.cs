@@ -10,7 +10,7 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the sprint.  This is an alternate key to the Id.
+    /// The sprint's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public int Key { get; set; }
 
@@ -53,14 +53,14 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public Instant? Completed { get; set; }
 
     /// <summary>
-    /// When the sprint became Active: <see cref="Started"/>, or by default the start of its first planned day
-    /// in <see cref="TimeZone"/>, never before the previous sprint ended. <see cref="State"/> is Future before
+    /// When the sprint became Active: <c>started</c>, or by default the start of its first planned day
+    /// in <c>timeZone</c>, never before the previous sprint ended. <c>state</c> is Future before
     /// it. Null for a sprint whose team is not mapped or that has no planned dates.
     /// </summary>
     public Instant? ActiveFrom { get; set; }
 
     /// <summary>
-    /// When the sprint stops being Active, exclusive: <see cref="Completed"/>, or by default the end of its last
+    /// When the sprint stops being Active, exclusive: <c>completed</c>, or by default the end of its last
     /// planned day, cut to the next sprint's start where the two overlap. A sprint that runs to the end of a day
     /// ends at the next midnight, so its last day is the one before.
     /// </summary>
@@ -73,7 +73,7 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
 
     /// <summary>
     /// Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
-    /// offsite, in date order. Those managing the sprint (<see cref="CanManageSprint"/>) can change them.
+    /// offsite, in date order. Those managing the sprint (<c>canManageSprint</c>) can change them.
     /// </summary>
     public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
 
@@ -91,13 +91,13 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
 
     /// <summary>
     /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
-    /// the team's sprint metrics. Worked out when read: see <see cref="SprintTypeSource"/>.
+    /// the team's sprint metrics. Worked out when read: see <c>sprintTypeSource</c>.
     /// </summary>
     public SprintType SprintType { get; set; }
 
     /// <summary>
-    /// Where <see cref="SprintType"/> came from: the team, the mapped planning interval iteration's category,
-    /// or the default. Those managing the sprint (<see cref="CanManageSprint"/>) can set or clear the team's.
+    /// Where <c>sprintType</c> came from: the team, the mapped planning interval iteration's category,
+    /// or the default. Those managing the sprint (<c>canManageSprint</c>) can set or clear the team's.
     /// </summary>
     public SprintTypeSource SprintTypeSource { get; set; }
 

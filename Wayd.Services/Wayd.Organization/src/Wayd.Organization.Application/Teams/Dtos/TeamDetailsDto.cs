@@ -8,13 +8,13 @@ namespace Wayd.Organization.Application.Teams.Dtos;
 public sealed record TeamDetailsDto : IMapFrom<Team>
 {
     /// <summary>
-    /// The identifier of the team.
+    /// The team's unique identifier.
     /// </summary>
     [Required]
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The key of the team.
+    /// The team's numeric key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     [Required]
     public int Key { get; set; }
@@ -26,40 +26,40 @@ public sealed record TeamDetailsDto : IMapFrom<Team>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The code of the team.
+    /// The team's short code, 2 to 10 characters, unique across teams and teams of teams.
     /// </summary>
     [Required]
     public required string Code { get; set; }
 
     /// <summary>
-    /// The description of the team.
+    /// The team's description, or null when it has none.
     /// </summary>
     public string? Description { get; set; }
 
     /// <summary>
-    /// The type of team.
+    /// The team type's display name: "Team" or "Team of Teams".
     /// </summary>
     [Required]
     public required string Type { get; set; }
 
     /// <summary>
-    /// The date for when the team became active.
+    /// The date the team became active.
     /// </summary>
     public LocalDate ActiveDate { get; set; }
 
     /// <summary>
-    /// The date for when the team became inactive.
+    /// The date the team became inactive, or null while it is active.
     /// </summary>
     public LocalDate? InactiveDate { get; set; }
 
     /// <summary>
-    /// Indicates whether the team is active or not.  
+    /// Whether the team is active.
     /// </summary>
     [Required]
     public bool IsActive { get; set; }
 
     /// <summary>
-    /// The parent team of the team.
+    /// The team of teams the team belongs to today, or null when it belongs to none.
     /// </summary>
     public TeamNavigationDto? TeamOfTeams { get; set; }
 

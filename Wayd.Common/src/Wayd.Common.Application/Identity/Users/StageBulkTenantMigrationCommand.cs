@@ -13,10 +13,10 @@ public sealed record StageBulkTenantMigrationCommand(
     IReadOnlyList<string> UserIds);
 
 /// <summary>
-/// Per-user outcome of a bulk staging run. <see cref="StagedUserIds"/> are the users
-/// whose <c>PendingMigrationTenantId</c> was set; <see cref="Skipped"/> carries the
-/// ones that no longer qualified (re-validated server-side, so the client's list may
-/// be stale) with a human-readable reason.
+/// Per-user outcome of a bulk staging run. <c>stagedUserIds</c> are the users whose
+/// migration was staged; <c>skipped</c> lists the ones that no longer qualified, each with
+/// a human-readable reason. Eligibility is re-checked on the server, so a submitted list
+/// that has gone stale shows up as skipped users.
 /// </summary>
 public sealed record BulkTenantMigrationResult(
     IReadOnlyList<string> StagedUserIds,

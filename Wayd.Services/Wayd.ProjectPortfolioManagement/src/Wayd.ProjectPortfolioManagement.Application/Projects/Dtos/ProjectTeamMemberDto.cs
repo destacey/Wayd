@@ -8,7 +8,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 public sealed record ProjectTeamMemberDto
 {
     /// <summary>
-    /// The employee.
+    /// The employee on the project team.
     /// </summary>
     public required EmployeeNavigationDto Employee { get; init; }
 

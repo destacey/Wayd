@@ -8,10 +8,12 @@ namespace Wayd.Common.Application.Activities.Dtos;
 public sealed record ActivityLogDto : IMapFrom<ActivityLogEntry>
 {
     /// <summary>
-    /// The entry's key, which readers use only to tell one row from another. The event's own id is
-    /// <see cref="ActivityLogEntry.EventId"/> and is not published: it identifies the event, not the entry,
-    /// and nothing outside the log has a use for it.
+    /// The entry's key, used only to tell one row from another. It is not the id of the event the entry records.
     /// </summary>
+    /// <remarks>
+    /// The event's own id is <see cref="ActivityLogEntry.EventId"/> and is not published: it identifies the event,
+    /// not the entry, and nothing outside the log has a use for it.
+    /// </remarks>
     public long Id { get; init; }
 
     public required string EventType { get; init; }
@@ -29,16 +31,16 @@ public sealed record ActivityLogDto : IMapFrom<ActivityLogEntry>
 
     /// <summary>
     /// Whether the entry was raised on another record and is listed here because its event names this one.
-    /// <see cref="AggregateType"/> and <see cref="AggregateId"/> are then that other record.
+    /// <c>aggregateType</c> and <c>aggregateId</c> are then that other record.
     /// </summary>
     public bool IsRelated { get; init; }
 
     /// <summary>
-    /// The record a related entry was raised on, where the module reading the log resolved it.
+    /// The record a related entry was raised on. Null when the entry is not related, or when the record could
+    /// not be resolved, typically because it has since been removed.
     /// </summary>
     /// <remarks>
-    /// Left to the module because the log holds ids only. Null on a related entry means the record could not
-    /// be resolved, typically because it has since been removed.
+    /// Left to the module reading the log because the log holds ids only.
     /// </remarks>
     public NavigationDto? RaisedOn { get; init; }
 }

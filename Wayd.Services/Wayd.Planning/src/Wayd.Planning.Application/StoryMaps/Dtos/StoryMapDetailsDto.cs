@@ -5,8 +5,7 @@ using Wayd.Planning.Domain.Models.StoryMaps;
 namespace Wayd.Planning.Application.StoryMaps.Dtos;
 
 /// <summary>
-/// The full Story Map: its goals (each with steps and tasks), swim lanes, and personas — the whole
-/// document loaded for the map page.
+/// The full Story Map: its goals (each with steps and tasks), swim lanes, and personas.
 /// </summary>
 public sealed record StoryMapDetailsDto : IMapFrom<StoryMap>
 {

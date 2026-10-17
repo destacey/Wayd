@@ -5,12 +5,10 @@ namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
 
 public sealed record PlanningIntervalObjectiveListDto
 {
-    /// <summary>Gets or sets the identifier.</summary>
-    /// <value>The identifier.</value>
+    /// <summary>The objective's unique identifier.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Gets the key.</summary>
-    /// <value>The key.</value>
+    /// <summary>The objective's numeric key, an alternate to its id.</summary>
     public int Key { get; set; }
 
     /// <summary>
@@ -18,12 +16,10 @@ public sealed record PlanningIntervalObjectiveListDto
     /// </summary>
     public required string Name { get; set; }
 
-    /// <summary>Gets or sets the status.</summary>
-    /// <value>The status.</value>
+    /// <summary>The objective's status.</summary>
     public required SimpleNavigationDto Status { get; set; }
 
-    /// <summary>Gets or sets the health status.</summary>
-    /// <value>The status.</value>
+    /// <summary>The objective's current health check; null when it has none that has not expired.</summary>
     public PlanningHealthCheckDto? HealthCheck { get; set; }
 
     public required NavigationDto PlanningInterval { get; set; }
@@ -32,20 +28,16 @@ public sealed record PlanningIntervalObjectiveListDto
 
     public double Progress { get; set; }
 
-    /// <summary>Gets or sets the type.</summary>
-    /// <value>The PI objective type.</value>
+    /// <summary>The objective's type.</summary>
     public required SimpleNavigationDto Type { get; set; }
 
-    /// <summary>Gets or sets the start date.</summary>
-    /// <value>The start date.</value>
+    /// <summary>The day work on the objective is planned to start; null when not set.</summary>
     public LocalDate? StartDate { get; set; }
 
-    /// <summary>Gets or sets the target date.</summary>
-    /// <value>The target date.</value>
+    /// <summary>The day the objective is targeted to be done by; null when not set.</summary>
     public LocalDate? TargetDate { get; set; }
 
-    /// <summary>Gets a value indicating whether this instance is stretch.</summary>
-    /// <value><c>true</c> if this instance is stretch; otherwise, <c>false</c>.</value>
+    /// <summary>Whether the objective is a stretch objective rather than a committed one.</summary>
     public bool IsStretch { get; set; }
 
     /// <summary>

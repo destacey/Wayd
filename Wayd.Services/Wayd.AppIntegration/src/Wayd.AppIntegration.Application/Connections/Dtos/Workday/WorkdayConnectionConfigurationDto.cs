@@ -5,34 +5,38 @@ namespace Wayd.AppIntegration.Application.Connections.Dtos.Workday;
 
 public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnectionConfiguration>
 {
-    /// <summary>The WSDL URL the admin entered. Source of truth for the endpoint.</summary>
+    /// <summary>
+    /// The Workday Web Services WSDL URL entered for the connection. The service host, tenant alias,
+    /// and version are derived from it.
+    /// </summary>
     public required string WsdlUrl { get; set; }
 
-    /// <summary>Derived from <see cref="WsdlUrl"/>. The Workday service host.</summary>
+    /// <summary>The Workday service host, derived from <c>wsdlUrl</c>.</summary>
     public required string ServiceHost { get; set; }
 
-    /// <summary>Derived from <see cref="WsdlUrl"/>. The tenant alias.</summary>
+    /// <summary>The Workday tenant alias, derived from <c>wsdlUrl</c>.</summary>
     public required string TenantAlias { get; set; }
 
-    /// <summary>Derived from <see cref="WsdlUrl"/>. The WWS version.</summary>
+    /// <summary>The Workday Web Services (WWS) version, derived from <c>wsdlUrl</c>.</summary>
     public required string WsdlVersion { get; set; }
 
-    /// <summary>The Integration System User username.</summary>
+    /// <summary>The username of the Workday Integration System User (ISU) the connection signs in as.</summary>
     public required string IsuUsername { get; set; }
 
     /// <summary>
-    /// The Integration System User password.
+    /// The Integration System User password. Returned masked as a fixed-width placeholder.
     /// </summary>
-    /// <remarks>Masked to a fixed-width placeholder when returned from the API.</remarks>
     public required string IsuPassword { get; set; }
 
-    /// <summary>Which Workday worker identifier is used as the upsert key.</summary>
+    /// <summary>Which Workday worker identifier the sync uses to identify each worker.</summary>
+    /// <remarks>Used as the upsert key.</remarks>
     public WorkdayWorkerKey WorkerKey { get; set; }
 
     /// <summary>When true, terminated/inactive workers are also returned by the sync.</summary>
     public bool IncludeInactive { get; set; }
 
-    /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
+    /// <summary>The employee field the sync uses to match a worker to an existing employee.</summary>
+    /// <remarks>Each option is a uniquely-indexed Employee field; the sync upsert matches on it.</remarks>
     public EmployeeMatchProperty MatchBy { get; set; }
 
     /// <summary>
@@ -52,27 +56,28 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     public bool NormalizeNameCasing { get; set; }
 
     /// <summary>
-    /// Workday <c>Organization_Type_ID</c> that drives <c>Employee.Department</c>. Null means the
-    /// admin opted out of Department sync.
+    /// Workday <c>Organization_Type_ID</c> whose organization sets each employee's department.
+    /// Null when department sync is turned off.
     /// </summary>
     public string? DepartmentOrganizationTypeId { get; set; }
 
     /// <summary>
-    /// Catalogue of org-types discovered during the most recent init probe. Drives the
-    /// admin-facing dropdown for <see cref="DepartmentOrganizationTypeId"/>.
+    /// The organization types discovered during the most recent init probe; the choices for
+    /// <c>departmentOrganizationTypeId</c>.
     /// </summary>
     public List<WorkdayOrgTypeDto>? DiscoveredOrgTypes { get; set; }
 
     /// <summary>
-    /// Admin-configured rules that filter workers out of the sync. Each rule names an
-    /// Organization_Type_ID plus the WID of an org of that type; workers whose
-    /// Worker_Organization_Data references that WID are dropped before upsert. Empty by default.
+    /// Rules that filter workers out of the sync. Each rule names an <c>Organization_Type_ID</c>
+    /// plus the WID of an organization of that type; workers whose <c>Worker_Organization_Data</c>
+    /// references that WID are excluded from the sync. Empty by default.
     /// </summary>
+    /// <remarks>Excluded workers are dropped before upsert.</remarks>
     public List<WorkdayOrgExclusionDto> OrgExclusions { get; set; } = [];
 
     // --- Init / probe result ---
 
-    /// <summary>UTC timestamp of the most recent init probe.</summary>
+    /// <summary>UTC timestamp of the most recent init probe; null when no probe has run.</summary>
     public DateTimeOffset? LastInitAt { get; set; }
 
     /// <summary>Whether the most recent init probe succeeded.</summary>
@@ -84,7 +89,11 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// <summary>Non-fatal observations from the most recent probe.</summary>
     public List<string>? LastInitWarnings { get; set; }
 
-    /// <summary>Authentication error from the most recent probe, if applicable.</summary>
+    /// <summary>
+    /// The authentication error the most recent probe reported. Null when it reported none, which does not mean
+    /// the credentials are valid: a probe that could not reach Workday, timed out or failed for another reason
+    /// also leaves it null. Read it with <c>lastInitSucceeded</c>.
+    /// </summary>
     public string? LastInitAuthError { get; set; }
 
     /// <summary>Replaces the ISU password with the fixed-width placeholder. See <see cref="ConnectionSecret"/>.</summary>

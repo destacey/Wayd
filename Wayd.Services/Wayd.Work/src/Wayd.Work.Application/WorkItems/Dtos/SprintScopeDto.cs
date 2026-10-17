@@ -96,7 +96,7 @@ public sealed record SprintScopeTotalsDto
     /// <summary>Completed items, including those completed as Removed.</summary>
     public required SprintScopeMeasureDto Completed { get; init; }
 
-    /// <summary>The part of <see cref="Completed"/> completed as Removed.</summary>
+    /// <summary>The part of <c>completed</c> completed as Removed.</summary>
     public required SprintScopeMeasureDto Removed { get; init; }
 
     /// <summary>
@@ -116,7 +116,7 @@ public sealed record SprintScopeTotalsDto
 
     /// <summary>
     /// Committed items that were completed, measured with their committed estimate so it compares with
-    /// <see cref="Committed"/>.
+    /// <c>committed</c>.
     /// </summary>
     public required SprintScopeMeasureDto CompletedOfCommitted { get; init; }
 

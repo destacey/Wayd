@@ -34,7 +34,7 @@ public sealed record TeamBacklogHealthDto
     public int TotalWorkItems { get; init; }
 
     /// <summary>
-    /// The sum of the open work items' estimates in <see cref="SizingMethod"/>; under Count, the number of items.
+    /// The sum of the open work items' estimates in <c>sizingMethod</c>; under Count, the number of items.
     /// </summary>
     public double TotalEstimate { get; init; }
 
@@ -73,7 +73,7 @@ public sealed record TeamBacklogHealthDto
     public double? AgingWipDays { get; init; }
 
     /// <summary>
-    /// The estimate, in <see cref="SizingMethod"/>, a work item is flagged as oversized above. Null without
+    /// The estimate, in <c>sizingMethod</c>, a work item is flagged as oversized above. Null without
     /// enough history, or when the team sizes by count.
     /// </summary>
     public double? OversizedEstimate { get; init; }
@@ -89,17 +89,17 @@ public sealed record TeamBacklogHealthDto
 public sealed record BacklogHealthCheckDto : IMapFrom<BacklogHealthCheckResult>
 {
     /// <summary>
-    /// A <see cref="BacklogHealthCheck"/>.
+    /// The backlog health check this result is for, such as Runway, Net Flow, Stale or Aging WIP.
     /// </summary>
     public required SimpleNavigationDto Check { get; init; }
 
     /// <summary>
-    /// A <see cref="BacklogHealthOutcome"/>.
+    /// Whether the check was graded: Assessed, Not Enough History or Not Applicable.
     /// </summary>
     public required SimpleNavigationDto Outcome { get; init; }
 
     /// <summary>
-    /// A <see cref="HealthStatus"/>, or null when the check was not assessed.
+    /// The check's grade: Healthy, At Risk or Unhealthy; null when the check was not assessed.
     /// </summary>
     public SimpleNavigationDto? Grade { get; init; }
 

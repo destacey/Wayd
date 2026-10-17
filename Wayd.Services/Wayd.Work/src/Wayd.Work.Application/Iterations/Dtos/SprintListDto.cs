@@ -10,7 +10,7 @@ public sealed record SprintListDto : IMapFrom<Iteration>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the sprint.  This is an alternate key to the Id.
+    /// The sprint's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public int Key { get; set; }
 
@@ -48,12 +48,12 @@ public sealed record SprintListDto : IMapFrom<Iteration>
 
     /// <summary>
     /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
-    /// the team's sprint metrics. Worked out when read: see <see cref="SprintTypeSource"/>.
+    /// the team's sprint metrics. Worked out when read: see <c>sprintTypeSource</c>.
     /// </summary>
     public SprintType SprintType { get; set; }
 
     /// <summary>
-    /// Where <see cref="SprintType"/> came from: the team, the mapped planning interval iteration's category,
+    /// Where <c>sprintType</c> came from: the team, the mapped planning interval iteration's category,
     /// or the default.
     /// </summary>
     public SprintTypeSource SprintTypeSource { get; set; }

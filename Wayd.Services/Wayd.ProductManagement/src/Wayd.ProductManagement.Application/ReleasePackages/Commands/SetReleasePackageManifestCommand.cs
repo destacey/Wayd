@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
+﻿using Wayd.Common.Domain.StatusWorkflows.Enums;
+
+namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
 
 /// <summary>
 /// Replaces a package's manifest wholesale.
@@ -92,8 +94,17 @@ public sealed class SetReleasePackageManifestCommandHandler(
                 }
             }
 
+            // Withdrawn releases are left out: their contents are frozen and announce nothing.
+            var versionIdsCarriedDirectly = await _productManagementDbContext.Releases
+                .Where(r => r.StatusCategory != StatusCategory.Removed
+                    && r.Packages.Any(p => p.PackageId == package.Id))
+                .SelectMany(r => r.Versions.Select(v => v.VersionId))
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
             var result = package.SetManifest(
                 [.. request.Components.Select(c => (c.ProductId, c.VersionId, c.Version, c.Kind))],
+                versionIdsCarriedDirectly,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 

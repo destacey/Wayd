@@ -47,7 +47,7 @@ A private roadmap is visible only to its roadmap managers. To anyone else it is 
 
 For a question like "what's planned next quarter on the Platform roadmap?":
 
-1. `Roadmaps_GetRoadmaps` — find the roadmap by name; confirm its `start`/`end` cover the period.
+1. `Roadmaps_GetRoadmaps` with `state: ["Active"]` — find the roadmap by name; confirm its `start`/`end` cover the period. Without the filter, archived roadmaps come back too.
 2. `Roadmaps_GetItems` with its `id` or `key`.
 3. Flatten the tree through `children`, then keep items that overlap the period: activities and timeboxes where `start` ≤ period end and `end` ≥ period start; milestones whose `date` falls inside it.
 4. Present milestones in date order, then activities grouped under their top-level parent activity, sorted by `start`. Name any timebox the period falls in.

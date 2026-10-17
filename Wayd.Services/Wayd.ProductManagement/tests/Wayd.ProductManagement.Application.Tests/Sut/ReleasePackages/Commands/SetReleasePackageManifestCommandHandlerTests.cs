@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.ReleasePackages.Commands;
@@ -76,6 +77,54 @@ public sealed class SetReleasePackageManifestCommandHandlerTests : ProductComman
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Release package not found.");
         DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenAReleaseListingThePackageCarriesTheVersionDirectly()
+    {
+        // Arrange
+        var product = SeedProduct();
+        var version = SeedVersion(product.Id);
+        var package = SeedReleasePackage(product.Id);
+        var release = SeedRelease();
+        release.SetContents([version.Id], [package.Id], [], EventActor.System, Now);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(
+            new SetReleasePackageManifestCommand(
+                package.Id,
+                [new ManifestEntry(product.Id, version.Id, "1.0", ManifestEntryKind.Changed)]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot also ship inside the package");
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAllowTheVersion_WhenTheReleaseCarryingItIsWithdrawn()
+    {
+        // Arrange
+        var product = SeedProduct();
+        var version = SeedVersion(product.Id);
+        var package = SeedReleasePackage(product.Id);
+        var release = SeedRelease();
+        release.SetContents([version.Id], [package.Id], [], EventActor.System, Now);
+        release.Withdraw("Pulled before announcement.", Status("Withdrawn", StatusCategory.Removed, ProductStatusAlias.Withdrawn), EventActor.System, Now);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(
+            new SetReleasePackageManifestCommand(
+                package.Id,
+                [new ManifestEntry(product.Id, version.Id, "1.0", ManifestEntryKind.Changed)]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

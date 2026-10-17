@@ -196,9 +196,10 @@ describe('stdio transport', () => {
     const instructions = responses.get(1)?.result?.instructions as string | undefined;
     assert.ok(instructions, 'initialize result carries no instructions');
     assert.match(instructions, /overwrite/i, 'instructions should say updates overwrite the whole record');
-    assert.match(instructions, /omitted or empty/i, 'instructions should say an omitted or empty role list removes everyone');
+    assert.match(instructions, /omitted or empty/i, 'instructions should say an omitted or empty list removes everything in it');
     assert.match(instructions, /idOrKey/, 'instructions should say which parameters take a key');
-    assert.match(instructions, /confirm/i, 'instructions should require confirmation before destructive tools');
+    assert.match(instructions, /confirm every change/i, 'instructions should require confirmation before every change');
+    assert.match(instructions, /employee ids/i, 'instructions should say people are employee ids');
   });
 
   test('lists every registered tool with a valid schema', async () => {

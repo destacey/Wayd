@@ -20981,6 +20981,16 @@
               }
             }
           },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Bad Request",
             "content": {
@@ -24043,7 +24053,7 @@
           "StoryMaps"
         ],
         "summary": "Add a goal to a story map.",
-        "description": "The goal is created with one step already in it.",
+        "description": "The goal is created empty; add its steps with StoryMaps_AddStep.",
         "operationId": "StoryMaps_AddGoal",
         "parameters": [
           {

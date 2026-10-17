@@ -1534,7 +1534,7 @@
       {
         "tool": "Deployments_GetDeployments",
         "when": {
-          "environmentCategory": 4
+          "environmentCategory": "Production"
         },
         "result": [
           {

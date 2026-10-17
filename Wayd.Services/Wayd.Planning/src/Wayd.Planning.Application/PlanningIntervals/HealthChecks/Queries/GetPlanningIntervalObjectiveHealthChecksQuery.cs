@@ -2,16 +2,27 @@
 
 namespace Wayd.Planning.Application.PlanningIntervals.HealthChecks.Queries;
 
-public sealed record GetPlanningIntervalObjectiveHealthChecksQuery(Guid PlanningIntervalObjectiveId)
-    : IQuery<IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>>;
+/// <summary>
+/// An objective's health check history, newest first, or <c>null</c> when the objective is not in the given
+/// planning interval.
+/// </summary>
+public sealed record GetPlanningIntervalObjectiveHealthChecksQuery(Guid PlanningIntervalId, Guid PlanningIntervalObjectiveId)
+    : IQuery<IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>?>;
 
+/// <summary>Handles <see cref="GetPlanningIntervalObjectiveHealthChecksQuery"/>.</summary>
 public sealed class GetPlanningIntervalObjectiveHealthChecksQueryHandler(IPlanningDbContext planningDbContext)
-    : IQueryHandler<GetPlanningIntervalObjectiveHealthChecksQuery, IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>>
+    : IQueryHandler<GetPlanningIntervalObjectiveHealthChecksQuery, IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
 
-    public async Task<IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>> Handle(GetPlanningIntervalObjectiveHealthChecksQuery request, CancellationToken cancellationToken)
+    /// <summary>Returns the history, or <c>null</c> when the objective is not in the planning interval.</summary>
+    public async Task<IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>?> Handle(GetPlanningIntervalObjectiveHealthChecksQuery request, CancellationToken cancellationToken)
     {
+        var objectiveInInterval = await _planningDbContext.PlanningIntervalObjectives
+            .AnyAsync(o => o.Id == request.PlanningIntervalObjectiveId && o.PlanningIntervalId == request.PlanningIntervalId, cancellationToken);
+        if (!objectiveInInterval)
+            return null;
+
         var healthChecks = await _planningDbContext.PlanningIntervalObjectiveHealthChecks
             .AsNoTracking()
             .Where(h => h.PlanningIntervalObjectiveId == request.PlanningIntervalObjectiveId)

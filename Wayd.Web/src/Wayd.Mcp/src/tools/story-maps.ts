@@ -96,7 +96,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['StoryMaps_AddGoal', {
     name: 'StoryMaps_AddGoal',
-    description: `Add a goal to a story map. The goal is created with one step already in it.`,
+    description: `Add a goal to a story map. The goal is created empty; add its steps with StoryMaps_AddStep.`,
     inputSchema: {"type":"object","properties":{"storyMapId":{"type":"string","format":"uuid"},"requestBody":{"type":"object","properties":{"name":{"type":"string","maxLength":128}},"required":["name"]}},"required":["storyMapId","requestBody"]},
     method: 'post',
     pathTemplate: '/api/planning/story-maps/{storyMapId}/goals',

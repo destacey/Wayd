@@ -142,7 +142,7 @@ public sealed class ReleasePackageTests
         var sut = _faker.WithComponents(existing).Generate();
 
         // Act
-        var result = sut.SetManifest(Manifest(changed: 3, carriedForward: 2), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetManifest(Manifest(changed: 3, carriedForward: 2), [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // Amending after assembly means an earlier answer to "what was running" was wrong, which is a
@@ -161,7 +161,7 @@ public sealed class ReleasePackageTests
         var sut = _faker.WithComponents(existing).Generate();
 
         // Act
-        var result = sut.SetManifest(components, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetManifest(components, [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // Claiming an amendment when the record of what shipped is unchanged reports the one thing this
@@ -182,7 +182,7 @@ public sealed class ReleasePackageTests
         amended[0] = (amended[0].ProductId, amended[0].ReleaseId, "9.9.9", amended[0].Kind);
 
         // Act
-        var result = sut.SetManifest(amended, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetManifest(amended, [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -198,7 +198,7 @@ public sealed class ReleasePackageTests
         var sut = _faker.WithComponents(existing).Generate();
 
         // Act
-        var result = sut.SetManifest([], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetManifest([], [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // Emptying a manifest would destroy the record that answers "what was running on this date"
@@ -215,7 +215,7 @@ public sealed class ReleasePackageTests
         var sut = _faker.AsWithdrawn().Generate();
 
         // Act
-        var result = sut.SetManifest(Manifest(changed: 1, carriedForward: 0), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetManifest(Manifest(changed: 1, carriedForward: 0), [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -234,11 +234,33 @@ public sealed class ReleasePackageTests
         sut.MarkReleased(Instant.FromUtc(2026, 8, 29, 2, 30), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = sut.SetManifest(Manifest(changed: 1, carriedForward: 0), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetManifest(Manifest(changed: 1, carriedForward: 0), [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A released package's manifest cannot be amended.");
+    }
+
+    [Fact]
+    public void SetManifest_ShouldFail_WhenAListingReleaseCarriesAManifestVersionDirectly()
+    {
+        // A release listing this package that also carries the version directly would announce the same
+        // shipment twice.
+        // Arrange
+        var existing = Manifest(changed: 1, carriedForward: 1)
+            .Select(c => new ReleasePackageComponent(Guid.CreateVersion7(), c.ProductId, c.ReleaseId, c.Version, c.Kind));
+        var sut = _faker.WithComponents(existing).Generate();
+        var versionId = Guid.CreateVersion7();
+        (Guid, Guid?, string, ManifestEntryKind)[] amended = [(Guid.CreateVersion7(), versionId, "3.0.0", ManifestEntryKind.Changed)];
+
+        // Act
+        var result = sut.SetManifest(amended, [versionId], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot also ship inside the package");
+        sut.Components.Should().HaveCount(2);
+        sut.DomainEvents.Should().BeEmpty();
     }
 
     #endregion SetManifest

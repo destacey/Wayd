@@ -89,7 +89,8 @@ one release announces the same shipment twice, and "what did 2026.09 contain" ha
 The rule is judged against what the release *ends up* containing — so moving a version out of the
 direct list and into a package that ships it works, provided both changes go in the same
 `Releases_SetContents` call. A manifest line that names no version record covers nothing and never
-conflicts.
+conflicts. The rule holds from the package's side too: `ReleasePackages_SetManifest` refuses a version
+that a release listing the package, other than a withdrawn one, carries directly.
 
 ### A release cannot be announced while its contents have not shipped
 

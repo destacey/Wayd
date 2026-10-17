@@ -86,9 +86,22 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
     /// Whole-manifest replacement, not incremental: a partially-updated manifest would claim a set of
     /// versions that never shipped together.
     /// </remarks>
-    public Result SetManifest(IReadOnlyCollection<(Guid ProductId, Guid? VersionId, string Version, ManifestEntryKind Kind)> components, EventActor actor, Instant timestamp)
+    /// <param name="components">The replacement manifest.</param>
+    /// <param name="versionIdsCarriedDirectly">
+    /// Versions that an open release listing this package also carries directly. The manifest may not
+    /// name one: the release would then announce the same shipment twice, the rule
+    /// <see cref="Release.SetContents"/> enforces from the release's side.
+    /// </param>
+    /// <param name="actor">Who made the change.</param>
+    /// <param name="timestamp">When the change was made.</param>
+    public Result SetManifest(
+        IReadOnlyCollection<(Guid ProductId, Guid? VersionId, string Version, ManifestEntryKind Kind)> components,
+        IReadOnlyCollection<Guid> versionIdsCarriedDirectly,
+        EventActor actor,
+        Instant timestamp)
     {
         Guard.Against.Null(components, nameof(components));
+        Guard.Against.Null(versionIdsCarriedDirectly, nameof(versionIdsCarriedDirectly));
 
         if (StatusCategory == StatusCategory.Removed)
         {
@@ -112,6 +125,14 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
         if (duplicate is not null)
         {
             return Result.Failure("A component can appear only once in a package manifest.");
+        }
+
+        var doubleCounted = components
+            .Any(c => c.VersionId is { } versionId && versionIdsCarriedDirectly.Contains(versionId));
+        if (doubleCounted)
+        {
+            return Result.Failure(
+                "A version that a release listing this package carries directly cannot also ship inside the package. Remove it from the release's versions first, so that one shipment is announced once.");
         }
 
         // Order is not part of the comparison: a manifest is a set.

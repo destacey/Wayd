@@ -78,7 +78,7 @@ public class DeleteHolidayCalendarCommandHandlerTests : IDisposable
         // Arrange
         var team = new TeamFaker().Generate();
         var model = team.SetOperatingModel(new LocalDate(2026, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1,
-            WorkingWeek.MondayToFriday, _calendar.Id, EventActor.System, _dateTimeProvider.Now).Value;
+            WorkingWeek.MondayToFriday, _calendar.Id, null, EventActor.System, _dateTimeProvider.Now).Value;
         _dbContext.AddTeamOperatingModel(model);
 
         // Act

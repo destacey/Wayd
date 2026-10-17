@@ -30,7 +30,7 @@ public sealed class GetTeamsScheduleHistoryQueryHandlerTests(SqlServerDbContextF
         var team = Team.Create($"Schedule {code.Value}", code, null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints,
             "Asia/Jerusalem", 1, WorkingWeek.MondayToFriday, EventActor.System, SqlServerDbContextFixture.FixedNow);
         team.SetOperatingModel(ActiveDate.PlusDays(30), Methodology.Scrum, SizingMethod.StoryPoints, "Asia/Jerusalem", 1,
-            sundayToThursday, calendar.Id, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            sundayToThursday, calendar.Id, null, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
 
         await using (var seed = _fixture.CreateContext())
         {
@@ -52,5 +52,36 @@ public sealed class GetTeamsScheduleHistoryQueryHandlerTests(SqlServerDbContextF
         periods[0].HolidayCalendarId.Should().BeNull();
         periods[1].WorkingWeek.Should().Be(sundayToThursday);
         periods[1].HolidayCalendarId.Should().Be(calendar.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsEachModelsCadenceOrNone()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var cadence = ReportingCadence.Create(2, ActiveDate).Value;
+        var code = new TeamCode($"C{Random.Shared.Next(10_000, 99_999)}");
+        var team = Team.Create($"Cadence {code.Value}", code, null, ActiveDate, Methodology.Kanban, SizingMethod.Count,
+            "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, SqlServerDbContextFixture.FixedNow);
+        team.SetOperatingModel(ActiveDate.PlusDays(30), Methodology.Kanban, SizingMethod.Count, "UTC", 1,
+            WorkingWeek.MondayToFriday, null, cadence, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+
+        await using (var seed = _fixture.CreateContext())
+        {
+            seed.Teams.Add(team);
+            await seed.SaveChangesAsync(cancellationToken);
+        }
+
+        await using var context = _fixture.CreateContext();
+        var handler = new GetTeamsScheduleHistoryQueryHandler(context);
+
+        // Act
+        var result = await handler.Handle(new GetTeamsScheduleHistoryQuery([team.Id]), cancellationToken);
+
+        // Assert
+        var periods = result[team.Id];
+        periods.Should().HaveCount(2);
+        periods[0].Cadence.Should().BeNull();
+        periods[1].Cadence.Should().Be(cadence);
     }
 }

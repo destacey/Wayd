@@ -31,4 +31,13 @@ public sealed record TeamSchedulePeriodDto(LocalDate Start, LocalDate? End, stri
     /// calendar, which <see cref="GetHolidayDatesQuery"/> resolves when read.
     /// </summary>
     public Guid? HolidayCalendarId { get; init; }
+
+    /// <summary>
+    /// The periods a Kanban team's velocity is reported in during the period, or null for none, which is always
+    /// so for a Scrum team.
+    /// </summary>
+    public ReportingCadence? Cadence { get; init; }
+
+    /// <summary>Whether <paramref name="date"/> falls in this period.</summary>
+    public bool IncludesDate(LocalDate date) => Start <= date && (End is null || date <= End);
 }

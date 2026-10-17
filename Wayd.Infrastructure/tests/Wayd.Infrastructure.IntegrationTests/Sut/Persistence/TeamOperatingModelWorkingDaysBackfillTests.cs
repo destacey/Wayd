@@ -40,7 +40,7 @@ public sealed class TeamOperatingModelWorkingDaysBackfillTests(SqlServerDbContex
         var code = new TeamCode($"W{Random.Shared.Next(10_000, 99_999)}");
         var team = Team.Create($"Backfill {code.Value} {Guid.NewGuid():N}", code, null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints,
             "America/Chicago", 1, WorkingWeek.MondayToFriday, EventActor.System, Now);
-        team.SetOperatingModel(ChangedOn, Methodology.Kanban, SizingMethod.Count, "Asia/Jerusalem", 2, SundayToThursday, null, EventActor.System, Now)
+        team.SetOperatingModel(ChangedOn, Methodology.Kanban, SizingMethod.Count, "Asia/Jerusalem", 2, SundayToThursday, null, null, EventActor.System, Now)
             .IsSuccess.Should().BeTrue();
         context.Teams.Add(team);
         await context.SaveChangesAsync(ct);
@@ -103,8 +103,13 @@ public sealed class TeamOperatingModelWorkingDaysBackfillTests(SqlServerDbContex
             // the live payload less those fields is what it must have written.
             var expectedPayload = JsonNode.Parse(expected.Payload)!;
             expectedPayload["eventVersion"] = "1.1";
-            expectedPayload["settings"]!.AsObject().Remove("holidayCalendarId");
-            expectedPayload["previous"]!.AsObject().Remove("holidayCalendarId");
+            foreach (var group in new[] { "settings", "previous" })
+            {
+                var groupObject = expectedPayload[group]!.AsObject();
+                groupObject.Remove("holidayCalendarId");
+                groupObject.Remove("cadenceWeeks");
+                groupObject.Remove("cadenceAnchor");
+            }
 
             entry.EventId.Should().NotBe(model.Id);
             entry.EventVersion.Should().Be("1.1");

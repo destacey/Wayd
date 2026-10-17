@@ -7,7 +7,7 @@ namespace Wayd.Organization.Domain.Models;
 
 /// <summary>
 /// Represents the operating model for a team, defining how the team works (methodology, sizing method, time
-/// zone, commitment grace period, working week and holiday calendar) for a specific date range.
+/// zone, commitment grace period, working week, holiday calendar and reporting cadence) for a specific date range.
 /// </summary>
 /// <remarks>
 /// <see cref="Team.CorrectOperatingModel"/> edits a model in place and so corrects its whole period.
@@ -16,7 +16,7 @@ public sealed class TeamOperatingModel : OperatingModel
 {
     private TeamOperatingModel() { }
 
-    private TeamOperatingModel(OperatingModelDateRange dateRange, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId)
+    private TeamOperatingModel(OperatingModelDateRange dateRange, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, ReportingCadence? cadence)
         : base(dateRange, timeZone)
     {
         Methodology = methodology;
@@ -24,6 +24,7 @@ public sealed class TeamOperatingModel : OperatingModel
         CommitmentGraceDays = commitmentGraceDays;
         WorkingWeek = workingWeek;
         HolidayCalendarId = holidayCalendarId;
+        Cadence = cadence;
     }
 
     /// <summary>Gets the methodology the team uses.</summary>
@@ -48,6 +49,12 @@ public sealed class TeamOperatingModel : OperatingModel
     public Guid? HolidayCalendarId { get; private set; }
 
     /// <summary>
+    /// Gets the periods a Kanban team's velocity is reported in, or null for none. A Scrum team's sprints are its
+    /// cadence, so a Scrum model never has one.
+    /// </summary>
+    public ReportingCadence? Cadence { get; private set; }
+
+    /// <summary>
     /// Corrects this operating model for its whole period.
     /// </summary>
     /// <param name="methodology">The new methodology.</param>
@@ -56,12 +63,13 @@ public sealed class TeamOperatingModel : OperatingModel
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
     /// <param name="workingWeek">The days of the week the team works.</param>
     /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
+    /// <param name="cadence">The team's reporting cadence, or null for none.</param>
     /// <returns>A result indicating success or failure.</returns>
-    internal Result Update(Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId)
+    internal Result Update(Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, ReportingCadence? cadence)
     {
         ArgumentNullException.ThrowIfNull(workingWeek);
 
-        var scheduleResult = ValidateSchedule(timeZone, commitmentGraceDays);
+        var scheduleResult = ValidateSchedule(methodology, timeZone, commitmentGraceDays, cadence);
         if (scheduleResult.IsFailure)
             return scheduleResult;
 
@@ -71,6 +79,7 @@ public sealed class TeamOperatingModel : OperatingModel
         CommitmentGraceDays = commitmentGraceDays;
         WorkingWeek = workingWeek;
         HolidayCalendarId = holidayCalendarId;
+        Cadence = cadence;
         return Result.Success();
     }
 
@@ -85,6 +94,7 @@ public sealed class TeamOperatingModel : OperatingModel
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
     /// <param name="workingWeek">The days of the week the team works.</param>
     /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
+    /// <param name="cadence">The team's reporting cadence, or null for none.</param>
     /// <param name="currentModel">The current operating model, if one exists.</param>
     /// <returns>A result containing the new operating model or an error.</returns>
     internal static Result<TeamOperatingModel> Create(
@@ -95,11 +105,12 @@ public sealed class TeamOperatingModel : OperatingModel
         int commitmentGraceDays,
         WorkingWeek workingWeek,
         Guid? holidayCalendarId,
+        ReportingCadence? cadence,
         TeamOperatingModel? currentModel = null)
     {
         ArgumentNullException.ThrowIfNull(workingWeek);
 
-        var scheduleResult = ValidateSchedule(timeZone, commitmentGraceDays);
+        var scheduleResult = ValidateSchedule(methodology, timeZone, commitmentGraceDays, cadence);
         if (scheduleResult.IsFailure)
             return Result.Failure<TeamOperatingModel>(scheduleResult.Error);
 
@@ -107,10 +118,10 @@ public sealed class TeamOperatingModel : OperatingModel
         if (dateRange.IsFailure)
             return Result.Failure<TeamOperatingModel>(dateRange.Error);
 
-        return new TeamOperatingModel(dateRange.Value, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId);
+        return new TeamOperatingModel(dateRange.Value, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId, cadence);
     }
 
-    private static Result ValidateSchedule(string timeZone, int commitmentGraceDays)
+    private static Result ValidateSchedule(Methodology methodology, string timeZone, int commitmentGraceDays, ReportingCadence? cadence)
     {
         var timeZoneResult = ValidateTimeZone(timeZone);
         if (timeZoneResult.IsFailure)
@@ -118,6 +129,9 @@ public sealed class TeamOperatingModel : OperatingModel
 
         if (commitmentGraceDays < 0)
             return Result.Failure("The commitment grace period cannot be negative.");
+
+        if (cadence is not null && methodology != Methodology.Kanban)
+            return Result.Failure("Only a Kanban team has a reporting cadence; a Scrum team's sprints are its cadence.");
 
         return Result.Success();
     }

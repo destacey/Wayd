@@ -41,9 +41,21 @@ public sealed record SetTeamOperatingModelRequest
     /// </summary>
     public Guid? HolidayCalendarId { get; set; }
 
+    /// <summary>
+    /// The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+    /// A Scrum team's sprints are its cadence, so a Scrum model takes none.
+    /// </summary>
+    public int? CadenceWeeks { get; set; }
+
+    /// <summary>
+    /// The first day of one of the cadence's periods, which aligns the others. Required with
+    /// <see cref="CadenceWeeks"/>, and omitted without it.
+    /// </summary>
+    public LocalDate? CadenceAnchor { get; set; }
+
     public SetTeamOperatingModelCommand ToSetTeamOperatingModelCommand(Guid teamId)
     {
-        return new SetTeamOperatingModelCommand(teamId, StartDate, Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays, HolidayCalendarId);
+        return new SetTeamOperatingModelCommand(teamId, StartDate, Methodology, SizingMethod, TimeZone, CommitmentGraceDays, WorkingDays, HolidayCalendarId, CadenceWeeks, CadenceAnchor);
     }
 }
 
@@ -72,5 +84,7 @@ public sealed class SetTeamOperatingModelRequestValidator : CustomValidator<SetT
         RuleFor(r => r.WorkingDays)
             .IsWorkingWeek()
             .When(r => r.WorkingDays is not null);
+
+        this.RulesForReportingCadence(r => r.Methodology, r => r.CadenceWeeks, r => r.CadenceAnchor);
     }
 }

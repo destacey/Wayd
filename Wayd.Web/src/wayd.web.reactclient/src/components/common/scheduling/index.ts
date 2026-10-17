@@ -8,6 +8,14 @@ export {
 export type { WorkingDaysSelectProps } from './working-days-select'
 export { default as HolidayCalendarSelect } from './holiday-calendar-select'
 export type { HolidayCalendarSelectProps } from './holiday-calendar-select'
+export {
+  default as ReportingCadenceFields,
+  toReportingCadenceRequest,
+  formatReportingCadence,
+  MIN_CADENCE_WEEKS,
+  MAX_CADENCE_WEEKS,
+} from './reporting-cadence-fields'
+export type { ReportingCadenceFormValues } from './reporting-cadence-fields'
 
 // The server's bound (SchedulingSettingsValidator.MaxCommitmentGraceDays), which rejects anything past it.
 export const MAX_COMMITMENT_GRACE_DAYS = 14

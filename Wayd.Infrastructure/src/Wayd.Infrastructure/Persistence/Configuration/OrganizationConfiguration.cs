@@ -362,6 +362,12 @@ public class TeamOperatingModelConfig : IEntityTypeConfiguration<TeamOperatingMo
             options.Property(d => d.End).HasColumnName("End");
         });
 
+        builder.ComplexProperty(m => m.Cadence, options =>
+        {
+            options.Property(c => c.Weeks).HasColumnName("CadenceWeeks");
+            options.Property(c => c.Anchor).HasColumnName("CadenceAnchor");
+        });
+
         // Restrict: a calendar in use cannot be deleted, so no model loses its holidays silently.
         builder.HasOne<HolidayCalendar>()
             .WithMany()

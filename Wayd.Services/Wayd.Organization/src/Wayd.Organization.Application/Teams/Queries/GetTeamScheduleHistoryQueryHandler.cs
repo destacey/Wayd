@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Requests.Organization;
+﻿using Wayd.Common.Application.Requests.Organization;
 
 namespace Wayd.Organization.Application.Teams.Queries;
 
@@ -17,6 +17,7 @@ public sealed class GetTeamScheduleHistoryQueryHandler(IOrganizationDbContext or
             {
                 WorkingWeek = m.WorkingWeek,
                 HolidayCalendarId = m.HolidayCalendarId,
+                Cadence = m.Cadence,
             })
             .ToListAsync(cancellationToken);
     }

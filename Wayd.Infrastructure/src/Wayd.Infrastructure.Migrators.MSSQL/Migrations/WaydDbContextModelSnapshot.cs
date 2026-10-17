@@ -2503,6 +2503,17 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("varchar")
                         .HasColumnName("WorkingDays");
 
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Cadence", "Wayd.Organization.Domain.Models.TeamOperatingModel.Cadence#ReportingCadence", b1 =>
+                        {
+                            b1.Property<DateTime>("Anchor")
+                                .HasColumnType("date")
+                                .HasColumnName("CadenceAnchor");
+
+                            b1.Property<int>("Weeks")
+                                .HasColumnType("int")
+                                .HasColumnName("CadenceWeeks");
+                        });
+
                     b.ComplexProperty(typeof(Dictionary<string, object>), "DateRange", "Wayd.Organization.Domain.Models.TeamOperatingModel.DateRange#OperatingModelDateRange", b1 =>
                         {
                             b1.IsRequired();

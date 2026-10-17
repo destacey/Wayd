@@ -57172,6 +57172,18 @@
             "description": "The holiday calendar whose holidays the team takes off, or null for the system default calendar.",
             "format": "uuid",
             "nullable": true
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "description": "The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.\nA Scrum team's sprints are its cadence, so a Scrum model takes none.",
+            "format": "int32",
+            "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "description": "The first day of one of the cadence's periods, which aligns the others. Required with\nint? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it.",
+            "format": "date",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -61083,6 +61095,16 @@
             ],
             "nullable": true
           },
+          "cadenceWeeks": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
           "isCurrent": {
             "type": "boolean"
           }
@@ -61106,6 +61128,11 @@
           },
           "sizingMethod": {
             "$ref": "#/components/schemas/SizingMethod"
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -64018,6 +64045,18 @@
             "type": "string",
             "description": "The holiday calendar whose holidays the team takes off, or null for the system default calendar.",
             "format": "uuid",
+            "nullable": true
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "description": "The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.\nA Scrum team's sprints are its cadence, so a Scrum model takes none.",
+            "format": "int32",
+            "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "description": "The first day of one of the cadence's periods, which aligns the others. Required with\nint? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it.",
+            "format": "date",
             "nullable": true
           }
         },

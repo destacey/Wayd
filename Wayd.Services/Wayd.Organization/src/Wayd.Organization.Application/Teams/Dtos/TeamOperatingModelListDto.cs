@@ -26,4 +26,15 @@ public sealed record TeamOperatingModelListDto : IMapFrom<TeamOperatingModel>
     /// </summary>
     [Required]
     public SizingMethod SizingMethod { get; set; }
+
+    /// <summary>
+    /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+    /// </summary>
+    public int? CadenceWeeks { get; set; }
+
+    public void ConfigureMapping(TypeAdapterConfig config)
+    {
+        config.NewConfig<TeamOperatingModel, TeamOperatingModelListDto>()
+            .Map(dest => dest.CadenceWeeks, src => src.Cadence == null ? (int?)null : src.Cadence.Weeks);
+    }
 }

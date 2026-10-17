@@ -52690,6 +52690,12 @@ export interface SetTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+A Scrum team's sprints are its cadence, so a Scrum model takes none. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others. Required with
+int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
+    cadenceAnchor?: string | undefined;
 }
 
 export interface SetupRequest {
@@ -53711,6 +53717,8 @@ export interface TeamOperatingModelDetailsDto {
     commitmentGraceDays: number;
     workingDays: IsoDayOfWeek[];
     holidayCalendar?: NavigationDto | undefined;
+    cadenceWeeks?: number | undefined;
+    cadenceAnchor?: string | undefined;
     isCurrent: boolean;
 }
 
@@ -53718,6 +53726,7 @@ export interface TeamOperatingModelListDto {
     id: string;
     methodology: Methodology;
     sizingMethod: SizingMethod;
+    cadenceWeeks?: number | undefined;
 }
 
 export interface TeamSprintMetricsDto {
@@ -54543,6 +54552,12 @@ export interface UpdateTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+A Scrum team's sprints are its cadence, so a Scrum model takes none. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others. Required with
+int? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
+    cadenceAnchor?: string | undefined;
 }
 
 export interface UpdateTeamRequest {

@@ -7,7 +7,8 @@ namespace Wayd.Organization.Application.Teams.Commands;
 
 /// <summary>
 /// Sets a new operating model for a team from <paramref name="StartDate"/>. <paramref name="WorkingDays"/> left
-/// null carries over the current model's working week, or Monday to Friday for a team with none.
+/// null carries over the current model's working week, or Monday to Friday for a team with none. A null
+/// <paramref name="CadenceWeeks"/> gives the new model no reporting cadence.
 /// </summary>
 public sealed record SetTeamOperatingModelCommand(
     Guid TeamId,
@@ -17,7 +18,9 @@ public sealed record SetTeamOperatingModelCommand(
     string TimeZone,
     int CommitmentGraceDays,
     IReadOnlyList<IsoDayOfWeek>? WorkingDays,
-    Guid? HolidayCalendarId) : ICommand<Guid>;
+    Guid? HolidayCalendarId,
+    int? CadenceWeeks = null,
+    LocalDate? CadenceAnchor = null) : ICommand<Guid>;
 
 public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetTeamOperatingModelCommand>
 {
@@ -47,6 +50,8 @@ public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetT
         RuleFor(c => c.WorkingDays)
             .IsWorkingWeek()
             .When(c => c.WorkingDays is not null);
+
+        this.RulesForReportingCadence(c => c.Methodology, c => c.CadenceWeeks, c => c.CadenceAnchor);
     }
 }
 
@@ -86,7 +91,11 @@ public sealed class SetTeamOperatingModelCommandHandler(
                 && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
                 return Result.Failure<Guid>($"Holiday calendar {calendarId} not found.");
 
-            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, request.HolidayCalendarId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            var cadence = ReportingCadence.CreateOptional(request.CadenceWeeks, request.CadenceAnchor);
+            if (cadence.IsFailure)
+                return Result.Failure<Guid>(cadence.Error);
+
+            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, request.HolidayCalendarId, cadence.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",

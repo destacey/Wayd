@@ -24,6 +24,9 @@ import {
   HolidayCalendarSelect,
   WorkingDaysSelect,
   workingDaysRule,
+  ReportingCadenceFields,
+  toReportingCadenceRequest,
+  type ReportingCadenceFormValues,
 } from '@/src/components/common/scheduling'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
@@ -38,7 +41,7 @@ export interface SetTeamOperatingModelFormProps {
   onFormCancel: () => void
 }
 
-interface SetTeamOperatingModelFormValues {
+interface SetTeamOperatingModelFormValues extends ReportingCadenceFormValues {
   startDate: Dayjs
   methodology: Methodology
   sizingMethod: SizingMethod
@@ -64,6 +67,7 @@ const mapToRequestValues = (
     commitmentGraceDays: values.commitmentGraceDays,
     workingDays: values.workingDays,
     holidayCalendarId: values.holidayCalendarId,
+    ...toReportingCadenceRequest(values.methodology, values),
   } as SetTeamOperatingModelRequest
 }
 
@@ -241,6 +245,7 @@ const SetTeamOperatingModelForm = ({
             aria-label="Holiday Calendar"
           />
         </FormItem>
+        <ReportingCadenceFields />
       </Form>
     </Modal>
   )

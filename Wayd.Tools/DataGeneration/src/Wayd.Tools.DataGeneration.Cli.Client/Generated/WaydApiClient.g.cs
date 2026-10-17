@@ -100773,6 +100773,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
 
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+        /// <br/>A Scrum team's sprints are its cadence, so a Scrum model takes none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others. Required with
+        /// <br/>int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -103883,6 +103898,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendar")]
         public NavigationDto? HolidayCalendar { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
         public bool IsCurrent { get; set; } = default!;
 
@@ -103905,6 +103927,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
 
     }
 
@@ -106471,6 +106496,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+        /// <br/>A Scrum team's sprints are its cadence, so a Scrum model takes none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others. Required with
+        /// <br/>int? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
     }
 

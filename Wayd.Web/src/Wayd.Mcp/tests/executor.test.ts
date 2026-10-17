@@ -342,7 +342,7 @@ describe('executeApiTool', () => {
       await executeApiTool(
         'Projects_GetProjects',
         definition,
-        { status: [1, 2] },
+        { status: ['Proposed', 'Active'] },
         securitySchemes
       );
     } finally {
@@ -351,7 +351,7 @@ describe('executeApiTool', () => {
 
     // Assert
     const decoded = decodeURIComponent(capturedUrl);
-    assert.match(decoded, /status=1&status=2/, 'array params must repeat the bare key');
+    assert.match(decoded, /status=Proposed&status=Active/, 'array params must repeat the bare key');
     assert.doesNotMatch(decoded, /status\[\]/, 'bracket syntax does not bind server-side');
   });
 

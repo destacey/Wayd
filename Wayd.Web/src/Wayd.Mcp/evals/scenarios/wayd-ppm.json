@@ -1,0 +1,3397 @@
+[
+  {
+    "id": "ppm-rename-project",
+    "skill": "wayd-ppm",
+    "prompt": "Can you rename the ATLAS project to \"Atlas Cloud Migration\"? The old name undersells what it's actually doing.",
+    "replies": [
+      "Yes, rename it."
+    ],
+    "traps": [
+      "role-list-wipe",
+      "whole-record-overwrite",
+      "key-vs-uuid",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "Projects_GetProject",
+        "after": "Projects_Update",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06|ATLAS)$"
+          }
+        },
+        "result": {
+          "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+          "key": "ATLAS",
+          "name": "Atlas Cloud Migration",
+          "description": "Move the order management platform from the on-premises data centre to the cloud.",
+          "businessCase": "The data centre lease ends in 2027; renewing costs more than migrating.",
+          "expectedBenefits": "Lower hosting cost and faster environment provisioning.",
+          "status": {
+            "id": 2,
+            "name": "Active",
+            "lifecycleCategory": "Active"
+          },
+          "expenditureCategory": {
+            "id": 2,
+            "name": "Capital"
+          },
+          "start": "2026-03-02",
+          "end": "2026-12-18",
+          "portfolio": {
+            "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+            "key": 3,
+            "name": "Digital Platforms"
+          },
+          "program": null,
+          "projectSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "projectOwners": [
+            {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            }
+          ],
+          "projectManagers": [
+            {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            }
+          ],
+          "projectMembers": [
+            {
+              "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+              "key": 1021,
+              "name": "Aisha Bello"
+            },
+            {
+              "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+              "key": 1033,
+              "name": "Samuel Reyes"
+            }
+          ],
+          "strategicThemes": [
+            {
+              "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+              "key": 4,
+              "name": "Cloud First"
+            }
+          ],
+          "strategicInitiatives": [],
+          "projectLifecycle": {
+            "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+            "key": 1,
+            "name": "Standard Delivery",
+            "description": "Initiate, plan, execute and close."
+          },
+          "stages": [
+            {
+              "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+              "name": "Plan",
+              "status": {
+                "id": 3,
+                "name": "Completed"
+              },
+              "order": 1,
+              "start": "2026-03-02",
+              "end": "2026-04-30",
+              "progress": 100
+            },
+            {
+              "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+              "name": "Execute",
+              "status": {
+                "id": 2,
+                "name": "In Progress"
+              },
+              "order": 2,
+              "start": "2026-05-01",
+              "end": "2026-11-30",
+              "progress": 55
+            },
+            {
+              "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+              "name": "Close",
+              "status": {
+                "id": 1,
+                "name": "Not Started"
+              },
+              "order": 3,
+              "start": "2026-12-01",
+              "end": "2026-12-18",
+              "progress": 0
+            }
+          ],
+          "healthCheck": null,
+          "canManageProject": true,
+          "backwardStatusTargets": [
+            {
+              "id": 5,
+              "name": "Approved",
+              "lifecycleCategory": "NotStarted"
+            }
+          ],
+          "portfolioScoringModel": null,
+          "currentScore": null,
+          "rank": 0.5
+        }
+      },
+      {
+        "tool": "Projects_GetProject",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06|ATLAS)$"
+          }
+        },
+        "result": {
+          "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+          "key": "ATLAS",
+          "name": "Atlas Migration",
+          "description": "Move the order management platform from the on-premises data centre to the cloud.",
+          "businessCase": "The data centre lease ends in 2027; renewing costs more than migrating.",
+          "expectedBenefits": "Lower hosting cost and faster environment provisioning.",
+          "status": {
+            "id": 2,
+            "name": "Active",
+            "lifecycleCategory": "Active"
+          },
+          "expenditureCategory": {
+            "id": 2,
+            "name": "Capital"
+          },
+          "start": "2026-03-02",
+          "end": "2026-12-18",
+          "portfolio": {
+            "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+            "key": 3,
+            "name": "Digital Platforms"
+          },
+          "program": null,
+          "projectSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "projectOwners": [
+            {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            }
+          ],
+          "projectManagers": [
+            {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            }
+          ],
+          "projectMembers": [
+            {
+              "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+              "key": 1021,
+              "name": "Aisha Bello"
+            },
+            {
+              "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+              "key": 1033,
+              "name": "Samuel Reyes"
+            }
+          ],
+          "strategicThemes": [
+            {
+              "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+              "key": 4,
+              "name": "Cloud First"
+            }
+          ],
+          "strategicInitiatives": [],
+          "projectLifecycle": {
+            "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+            "key": 1,
+            "name": "Standard Delivery",
+            "description": "Initiate, plan, execute and close."
+          },
+          "stages": [
+            {
+              "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+              "name": "Plan",
+              "status": {
+                "id": 3,
+                "name": "Completed"
+              },
+              "order": 1,
+              "start": "2026-03-02",
+              "end": "2026-04-30",
+              "progress": 100
+            },
+            {
+              "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+              "name": "Execute",
+              "status": {
+                "id": 2,
+                "name": "In Progress"
+              },
+              "order": 2,
+              "start": "2026-05-01",
+              "end": "2026-11-30",
+              "progress": 55
+            },
+            {
+              "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+              "name": "Close",
+              "status": {
+                "id": 1,
+                "name": "Not Started"
+              },
+              "order": 3,
+              "start": "2026-12-01",
+              "end": "2026-12-18",
+              "progress": 0
+            }
+          ],
+          "healthCheck": null,
+          "canManageProject": true,
+          "backwardStatusTargets": [
+            {
+              "id": 5,
+              "name": "Approved",
+              "lifecycleCategory": "NotStarted"
+            }
+          ],
+          "portfolioScoringModel": null,
+          "currentScore": null,
+          "rank": 0.5
+        }
+      },
+      {
+        "tool": "Projects_GetProjects",
+        "after": "Projects_Update",
+        "result": [
+          {
+            "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+            "key": "ATLAS",
+            "name": "Atlas Cloud Migration",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjects",
+        "result": [
+          {
+            "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+            "key": "ATLAS",
+            "name": "Atlas Migration",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Portfolios_GetPortfolioProjects",
+        "after": "Projects_Update",
+        "result": [
+          {
+            "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+            "key": "ATLAS",
+            "name": "Atlas Cloud Migration",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Portfolios_GetPortfolioProjects",
+        "result": [
+          {
+            "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+            "key": "ATLAS",
+            "name": "Atlas Migration",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjectTeam",
+        "result": [
+          {
+            "employee": {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            },
+            "roles": [
+              "Sponsor"
+            ],
+            "assignedStages": [],
+            "activeWorkItemCount": 0
+          },
+          {
+            "employee": {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            },
+            "roles": [
+              "Owner"
+            ],
+            "assignedStages": [],
+            "activeWorkItemCount": 0
+          },
+          {
+            "employee": {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            },
+            "roles": [
+              "Manager"
+            ],
+            "assignedStages": [
+              "Execute"
+            ],
+            "activeWorkItemCount": 2
+          },
+          {
+            "employee": {
+              "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+              "key": 1021,
+              "name": "Aisha Bello"
+            },
+            "roles": [
+              "Member"
+            ],
+            "assignedStages": [
+              "Execute"
+            ],
+            "activeWorkItemCount": 5
+          },
+          {
+            "employee": {
+              "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+              "key": 1033,
+              "name": "Samuel Reyes"
+            },
+            "roles": [
+              "Member",
+              "Task Assignee"
+            ],
+            "assignedStages": [
+              "Execute"
+            ],
+            "activeWorkItemCount": 3
+          }
+        ]
+      },
+      {
+        "tool": "ExpenditureCategories_GetOptions",
+        "result": [
+          {
+            "id": 1,
+            "name": "Operating"
+          },
+          {
+            "id": 2,
+            "name": "Capital"
+          }
+        ]
+      },
+      {
+        "tool": "Projects_Update",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Projects_Update",
+        "with": {
+          "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+          "requestBody": {
+            "id": "0b4e7a91-6c2d-4f58-9a13-8e5c2d7b4f06",
+            "name": "Atlas Cloud Migration",
+            "sponsorIds": [
+              "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e"
+            ],
+            "ownerIds": [
+              "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39"
+            ],
+            "managerIds": [
+              "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74"
+            ],
+            "memberIds": [
+              "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+              "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70"
+            ],
+            "strategicThemeIds": [
+              "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97"
+            ],
+            "expenditureCategoryId": 2,
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "description": {
+              "$regex": "^Move the order management platform"
+            },
+            "businessCase": {
+              "$regex": "data centre lease"
+            },
+            "expectedBenefits": {
+              "$regex": "hosting cost"
+            }
+          }
+        },
+        "because": "Projects_Update is a whole-record overwrite: every role list, theme set, date and text field must be passed back as read (SKILL.md \"Updating a record (checklist)\")."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_Update",
+        "with": {
+          "requestBody": {
+            "ownerIds": {
+              "$empty": true
+            }
+          }
+        },
+        "because": "An omitted or empty ownerIds strips every Owner and leaves a record nobody can manage."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_Update",
+        "with": {
+          "requestBody": {
+            "managerIds": {
+              "$empty": true
+            }
+          }
+        },
+        "because": "An omitted or empty managerIds strips every Manager."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_ChangeKey",
+        "because": "The user asked for a new name, not a new key; a rekey breaks task keys and saved links."
+      },
+      {
+        "type": "order",
+        "first": "Projects_GetProject",
+        "then": "Projects_Update",
+        "because": "The record must be read before the overwrite so its fields can be echoed back."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Projects_Update",
+        "because": "An update overwrites the whole record, so the change is confirmed with the user before it is sent."
+      }
+    ],
+    "expected": "The agent reads ATLAS with Projects_GetProject (which accepts the key), takes its UUID, and calls Projects_Update with that UUID as both the path id and requestBody.id, the new name, and every other field copied from the read: description, business case, expected benefits, expenditureCategoryId 2, both dates, all four role lists as employee ids, and the strategic theme id. This is the SKILL.md \"Updating a record (checklist)\" and the Projects_Update description (\"whole-record update ... omitting a field clears it\"; \"An omitted or empty list REMOVES everyone\"). It must not change the key."
+  },
+  {
+    "id": "ppm-complete-program-open-project",
+    "skill": "wayd-ppm",
+    "prompt": "We've wrapped up the Customer Onboarding program — please mark it as completed.",
+    "traps": [
+      "status-prerequisite",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "Programs_GetPrograms",
+        "result": [
+          {
+            "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+            "key": 14,
+            "name": "Customer Onboarding",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-01-05",
+            "end": "2026-09-30",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "programSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "programOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "programManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "strategicThemes": []
+          }
+        ]
+      },
+      {
+        "tool": "Programs_GetProgram",
+        "result": {
+          "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+          "key": 14,
+          "name": "Customer Onboarding",
+          "description": "Rebuild how new customers are signed up, verified and welcomed.",
+          "status": {
+            "id": 2,
+            "name": "Active",
+            "lifecycleCategory": "Active"
+          },
+          "start": "2026-01-05",
+          "end": "2026-09-30",
+          "portfolio": {
+            "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+            "key": 3,
+            "name": "Digital Platforms"
+          },
+          "programSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "programOwners": [
+            {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            }
+          ],
+          "programManagers": [
+            {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            }
+          ],
+          "strategicThemes": [],
+          "canManageProgram": true
+        }
+      },
+      {
+        "tool": "Programs_GetProgramStatuses",
+        "result": [
+          {
+            "id": 1,
+            "code": "Proposed",
+            "name": "Proposed",
+            "description": "The program is in the initial planning or conceptualization stage.",
+            "order": 1,
+            "lifecycleCategory": "NotStarted"
+          },
+          {
+            "id": 2,
+            "code": "Active",
+            "name": "Active",
+            "description": "The program has been approved and is actively managed, with projects in progress.",
+            "order": 2,
+            "lifecycleCategory": "Active"
+          },
+          {
+            "id": 3,
+            "code": "Completed",
+            "name": "Completed",
+            "description": "The program has achieved its goals and is considered finished.",
+            "order": 3,
+            "lifecycleCategory": "Completed"
+          },
+          {
+            "id": 4,
+            "code": "Canceled",
+            "name": "Canceled",
+            "description": "The program was terminated before achieving its goals.",
+            "order": 4,
+            "lifecycleCategory": "Canceled"
+          }
+        ]
+      },
+      {
+        "tool": "Programs_GetProgramProjects",
+        "result": [
+          {
+            "id": "5a2d8f4c-1e67-4b93-9d0a-7c3e6b1f8a24",
+            "key": "ONBRD",
+            "name": "Onboarding Portal Revamp",
+            "status": {
+              "id": 3,
+              "name": "Completed",
+              "lifecycleCategory": "Completed"
+            },
+            "start": "2026-01-12",
+            "end": "2026-09-25",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          },
+          {
+            "id": "6b3e9a5d-2f78-4ca4-8e1b-8d4f7c2a9b35",
+            "key": "KYCAUT",
+            "name": "KYC Automation",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-01-12",
+            "end": "2026-11-27",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          },
+          {
+            "id": "7c4f0b6e-3a89-4db5-9f2c-9e5a8d3b0c46",
+            "key": "WELCOM",
+            "name": "Welcome Journey Emails",
+            "status": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "start": "2026-01-12",
+            "end": "2026-09-25",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Portfolios_GetPortfolioProjects",
+        "result": [
+          {
+            "id": "5a2d8f4c-1e67-4b93-9d0a-7c3e6b1f8a24",
+            "key": "ONBRD",
+            "name": "Onboarding Portal Revamp",
+            "status": {
+              "id": 3,
+              "name": "Completed",
+              "lifecycleCategory": "Completed"
+            },
+            "start": "2026-01-12",
+            "end": "2026-09-25",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          },
+          {
+            "id": "6b3e9a5d-2f78-4ca4-8e1b-8d4f7c2a9b35",
+            "key": "KYCAUT",
+            "name": "KYC Automation",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-01-12",
+            "end": "2026-11-27",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          },
+          {
+            "id": "7c4f0b6e-3a89-4db5-9f2c-9e5a8d3b0c46",
+            "key": "WELCOM",
+            "name": "Welcome Journey Emails",
+            "status": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "start": "2026-01-12",
+            "end": "2026-09-25",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjects",
+        "result": [
+          {
+            "id": "5a2d8f4c-1e67-4b93-9d0a-7c3e6b1f8a24",
+            "key": "ONBRD",
+            "name": "Onboarding Portal Revamp",
+            "status": {
+              "id": 3,
+              "name": "Completed",
+              "lifecycleCategory": "Completed"
+            },
+            "start": "2026-01-12",
+            "end": "2026-09-25",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          },
+          {
+            "id": "6b3e9a5d-2f78-4ca4-8e1b-8d4f7c2a9b35",
+            "key": "KYCAUT",
+            "name": "KYC Automation",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-01-12",
+            "end": "2026-11-27",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          },
+          {
+            "id": "7c4f0b6e-3a89-4db5-9f2c-9e5a8d3b0c46",
+            "key": "WELCOM",
+            "name": "Welcome Journey Emails",
+            "status": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "start": "2026-01-12",
+            "end": "2026-09-25",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": {
+              "id": "2c7e9b4a-5d13-4f86-a2b0-7e4c1d9f3a65",
+              "key": 14,
+              "name": "Customer Onboarding"
+            },
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Programs_Complete",
+        "error": true,
+        "result": {
+          "status": 400,
+          "title": "Bad Request",
+          "detail": "All projects must be completed or canceled before the program can be completed."
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Programs_Complete",
+        "because": "KYC Automation is still Active; SKILL.md \"Prerequisites that cause rejections\" says to check the program's projects first so the transition fails in conversation, not at the API — and no confirmation was given."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Programs_Cancel",
+        "because": "The user asked to complete the program, not cancel it."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_Complete",
+        "because": "Completing the blocking project is a separate status change the user has not confirmed."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_Cancel",
+        "because": "Cancelling the blocking project is a separate status change the user has not confirmed."
+      },
+      {
+        "type": "says",
+        "pattern": "KYC",
+        "because": "The user must be told which project blocks completion."
+      }
+    ],
+    "expected": "The agent finds the program (Programs_GetPrograms or Programs_GetProgram with key 14), lists its projects with Programs_GetProgramProjects, sees that KYC Automation (KYCAUT) is still Active, and tells the user the program cannot be completed until that project is completed or canceled. It calls no transition: SKILL.md \"Prerequisites that cause rejections\" (program complete needs every project completed or canceled) and the Programs_Complete description establish the rule, and \"Changing status\" requires confirmation before any transition."
+  },
+  {
+    "id": "ppm-reopen-cancelled-project",
+    "skill": "wayd-ppm",
+    "prompt": "Leadership has revived Harbor Analytics (HRBR) — we cancelled it back in August. Please reopen it and put it straight back to Active so the team can get going.",
+    "replies": [
+      "Yes, put it back to Proposed with that reason."
+    ],
+    "traps": [
+      "status-prerequisite",
+      "confirm-destructive",
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "Projects_GetProject",
+        "after": "Projects_RevertStatus",
+        "result": {
+          "id": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+          "key": "HRBR",
+          "name": "Harbor Analytics",
+          "description": "Self-service analytics over port logistics data for the operations team.",
+          "businessCase": "Operations analysts spend two days a month assembling the same reports by hand.",
+          "expectedBenefits": "Reports in minutes instead of days.",
+          "status": {
+            "id": 1,
+            "name": "Proposed",
+            "lifecycleCategory": "NotStarted"
+          },
+          "expenditureCategory": {
+            "id": 1,
+            "name": "Operating"
+          },
+          "start": null,
+          "end": null,
+          "portfolio": {
+            "id": "1b6d9f3e-8a24-4c57-b0e9-4f2a7c5d8e13",
+            "key": 5,
+            "name": "Data & Insights"
+          },
+          "program": null,
+          "projectSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "projectOwners": [
+            {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            }
+          ],
+          "projectManagers": [
+            {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            }
+          ],
+          "projectMembers": [],
+          "strategicThemes": [],
+          "strategicInitiatives": [],
+          "projectLifecycle": null,
+          "stages": [],
+          "healthCheck": null,
+          "canManageProject": true,
+          "backwardStatusTargets": [],
+          "portfolioScoringModel": null,
+          "currentScore": null,
+          "rank": 0.5
+        }
+      },
+      {
+        "tool": "Projects_GetProject",
+        "result": {
+          "id": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+          "key": "HRBR",
+          "name": "Harbor Analytics",
+          "description": "Self-service analytics over port logistics data for the operations team.",
+          "businessCase": "Operations analysts spend two days a month assembling the same reports by hand.",
+          "expectedBenefits": "Reports in minutes instead of days.",
+          "status": {
+            "id": 4,
+            "name": "Canceled",
+            "lifecycleCategory": "Canceled"
+          },
+          "expenditureCategory": {
+            "id": 1,
+            "name": "Operating"
+          },
+          "start": null,
+          "end": null,
+          "portfolio": {
+            "id": "1b6d9f3e-8a24-4c57-b0e9-4f2a7c5d8e13",
+            "key": 5,
+            "name": "Data & Insights"
+          },
+          "program": null,
+          "projectSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "projectOwners": [
+            {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            }
+          ],
+          "projectManagers": [
+            {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            }
+          ],
+          "projectMembers": [],
+          "strategicThemes": [],
+          "strategicInitiatives": [],
+          "projectLifecycle": null,
+          "stages": [],
+          "healthCheck": null,
+          "canManageProject": true,
+          "backwardStatusTargets": [
+            {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            }
+          ],
+          "portfolioScoringModel": null,
+          "currentScore": null,
+          "rank": 0.5
+        }
+      },
+      {
+        "tool": "Projects_GetProjects",
+        "after": "Projects_RevertStatus",
+        "result": [
+          {
+            "id": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "key": "HRBR",
+            "name": "Harbor Analytics",
+            "status": {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            },
+            "start": null,
+            "end": null,
+            "portfolio": {
+              "id": "1b6d9f3e-8a24-4c57-b0e9-4f2a7c5d8e13",
+              "key": 5,
+              "name": "Data & Insights"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": null,
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjects",
+        "result": [
+          {
+            "id": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "key": "HRBR",
+            "name": "Harbor Analytics",
+            "status": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "start": null,
+            "end": null,
+            "portfolio": {
+              "id": "1b6d9f3e-8a24-4c57-b0e9-4f2a7c5d8e13",
+              "key": 5,
+              "name": "Data & Insights"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": null,
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Portfolios_GetPortfolioProjects",
+        "after": "Projects_RevertStatus",
+        "result": [
+          {
+            "id": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "key": "HRBR",
+            "name": "Harbor Analytics",
+            "status": {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            },
+            "start": null,
+            "end": null,
+            "portfolio": {
+              "id": "1b6d9f3e-8a24-4c57-b0e9-4f2a7c5d8e13",
+              "key": 5,
+              "name": "Data & Insights"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": null,
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Portfolios_GetPortfolioProjects",
+        "result": [
+          {
+            "id": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "key": "HRBR",
+            "name": "Harbor Analytics",
+            "status": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "start": null,
+            "end": null,
+            "portfolio": {
+              "id": "1b6d9f3e-8a24-4c57-b0e9-4f2a7c5d8e13",
+              "key": 5,
+              "name": "Data & Insights"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+                "key": 1042,
+                "name": "Priya Natarajan"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [],
+            "strategicThemes": [],
+            "projectLifecycle": null,
+            "stages": [],
+            "healthCheck": null,
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetStatusHistory",
+        "after": "Projects_RevertStatus",
+        "result": [
+          {
+            "id": "9d5a1c7f-4b8e-4e26-a3d0-1f6c8b2e5a97",
+            "projectId": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "fromStatus": null,
+            "toStatus": {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            },
+            "changedBy": {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            },
+            "changedBySystem": false,
+            "changedOn": "2026-05-11T09:14:00Z",
+            "source": {
+              "id": 1,
+              "name": "Recorded"
+            },
+            "reason": null
+          },
+          {
+            "id": "ae6b2d80-5c9f-4f37-b4e1-2a7d9c3f6b08",
+            "projectId": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "fromStatus": {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            },
+            "toStatus": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "changedBy": {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            },
+            "changedBySystem": false,
+            "changedOn": "2026-08-20T16:02:00Z",
+            "source": {
+              "id": 1,
+              "name": "Recorded"
+            },
+            "reason": null
+          },
+          {
+            "id": "b7c3e9a1-6d0f-4a48-c5f2-3b8e0d4a7c19",
+            "projectId": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "fromStatus": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "toStatus": {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            },
+            "changedBy": {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            },
+            "changedBySystem": false,
+            "changedOn": "2026-10-17T14:00:00Z",
+            "source": {
+              "id": 1,
+              "name": "Recorded"
+            },
+            "reason": "Leadership revived the project."
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetStatusHistory",
+        "result": [
+          {
+            "id": "9d5a1c7f-4b8e-4e26-a3d0-1f6c8b2e5a97",
+            "projectId": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "fromStatus": null,
+            "toStatus": {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            },
+            "changedBy": {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            },
+            "changedBySystem": false,
+            "changedOn": "2026-05-11T09:14:00Z",
+            "source": {
+              "id": 1,
+              "name": "Recorded"
+            },
+            "reason": null
+          },
+          {
+            "id": "ae6b2d80-5c9f-4f37-b4e1-2a7d9c3f6b08",
+            "projectId": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+            "fromStatus": {
+              "id": 1,
+              "name": "Proposed",
+              "lifecycleCategory": "NotStarted"
+            },
+            "toStatus": {
+              "id": 4,
+              "name": "Canceled",
+              "lifecycleCategory": "Canceled"
+            },
+            "changedBy": {
+              "id": "2a9e4c71-8d35-4f0b-b6e2-91c7d3a05e48",
+              "key": 1042,
+              "name": "Priya Natarajan"
+            },
+            "changedBySystem": false,
+            "changedOn": "2026-08-20T16:02:00Z",
+            "source": {
+              "id": 1,
+              "name": "Recorded"
+            },
+            "reason": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_RevertStatus",
+        "when": {
+          "requestBody": {
+            "toStatus": "Active"
+          }
+        },
+        "error": true,
+        "result": {
+          "status": 400,
+          "title": "Bad Request",
+          "detail": "A Canceled project cannot be reverted to Active. It can be reverted to: Proposed."
+        }
+      },
+      {
+        "tool": "Projects_RevertStatus",
+        "when": {
+          "requestBody": {
+            "toStatus": "Approved"
+          }
+        },
+        "error": true,
+        "result": {
+          "status": 400,
+          "title": "Bad Request",
+          "detail": "A Canceled project cannot be reverted to Approved. It can be reverted to: Proposed."
+        }
+      },
+      {
+        "tool": "Projects_RevertStatus",
+        "result": null
+      },
+      {
+        "tool": "Projects_Activate",
+        "error": true,
+        "result": {
+          "status": 400,
+          "title": "Bad Request",
+          "detail": "Only proposed or approved projects can be activated."
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Projects_RevertStatus",
+        "with": {
+          "requestBody": {
+            "toStatus": "Active"
+          }
+        },
+        "because": "backwardStatusTargets offers only Proposed: Active needs a start and end date, which this project lacks (SKILL.md \"Moving a project backwards\")."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_Activate",
+        "because": "Activation needs a start and end date, and the project has none."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Projects_RevertStatus",
+        "because": "Every status change must be confirmed with the user, naming the record and the target status."
+      },
+      {
+        "type": "called",
+        "tool": "Projects_RevertStatus",
+        "with": {
+          "id": "8a3f6c1e-4d97-4b25-9e08-6c2a5f8d1b43",
+          "requestBody": {
+            "toStatus": "Proposed",
+            "reason": {
+              "$regex": "\\S{3,}"
+            }
+          }
+        },
+        "because": "Once the user approves, the only valid revert is to Proposed, by UUID, with a reason a later reader will understand."
+      }
+    ],
+    "expected": "The agent reads HRBR with Projects_GetProject, sees it is Canceled with no lifecycle and no dates, and that backwardStatusTargets lists only Proposed. It explains that it cannot go straight back to Active (Active needs a start and end date; Approved needs a lifecycle) and offers to revert it to Proposed with a reason such as leadership reviving the project, then calls Projects_RevertStatus with the UUID, toStatus \"Proposed\" and that reason once the user approves. Established by SKILL.md \"Moving a project backwards\" and the Projects_RevertStatus description (\"offer only what it contains\")."
+  },
+  {
+    "id": "ppm-log-health-check",
+    "skill": "wayd-ppm",
+    "prompt": "Nova's health needs updating — the payment gateway vendor just slipped their API delivery by three weeks, so it's at risk now. It should be looked at again by the end of the month.",
+    "replies": [
+      "Yes, log that health check."
+    ],
+    "traps": [
+      "wrong-tool",
+      "key-vs-uuid",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "Projects_GetProjects",
+        "after": "Projects_CreateProjectHealthCheck",
+        "result": [
+          {
+            "id": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82",
+            "key": "NOVA",
+            "name": "Nova Customer Portal",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": {
+              "id": "3b8d1f5a-9e46-4c72-a1d8-6f0b4e2c7a93",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              }
+            },
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjects",
+        "result": [
+          {
+            "id": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82",
+            "key": "NOVA",
+            "name": "Nova Customer Portal",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": {
+              "id": "1f6b9d3a-8c24-4e71-b5a0-3d7e2c9f4b18",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              }
+            },
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProject",
+        "after": "Projects_CreateProjectHealthCheck",
+        "result": {
+          "id": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82",
+          "key": "NOVA",
+          "name": "Nova Customer Portal",
+          "description": "A self-service portal for customers to manage orders and payments.",
+          "businessCase": "The data centre lease ends in 2027; renewing costs more than migrating.",
+          "expectedBenefits": "Lower hosting cost and faster environment provisioning.",
+          "status": {
+            "id": 2,
+            "name": "Active",
+            "lifecycleCategory": "Active"
+          },
+          "expenditureCategory": {
+            "id": 2,
+            "name": "Capital"
+          },
+          "start": "2026-03-02",
+          "end": "2026-12-18",
+          "portfolio": {
+            "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+            "key": 3,
+            "name": "Digital Platforms"
+          },
+          "program": null,
+          "projectSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "projectOwners": [
+            {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            }
+          ],
+          "projectManagers": [
+            {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            }
+          ],
+          "projectMembers": [
+            {
+              "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+              "key": 1021,
+              "name": "Aisha Bello"
+            },
+            {
+              "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+              "key": 1033,
+              "name": "Samuel Reyes"
+            }
+          ],
+          "strategicThemes": [
+            {
+              "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+              "key": 4,
+              "name": "Cloud First"
+            }
+          ],
+          "strategicInitiatives": [],
+          "projectLifecycle": {
+            "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+            "key": 1,
+            "name": "Standard Delivery",
+            "description": "Initiate, plan, execute and close."
+          },
+          "stages": [
+            {
+              "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+              "name": "Plan",
+              "status": {
+                "id": 3,
+                "name": "Completed"
+              },
+              "order": 1,
+              "start": "2026-03-02",
+              "end": "2026-04-30",
+              "progress": 100
+            },
+            {
+              "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+              "name": "Execute",
+              "status": {
+                "id": 2,
+                "name": "In Progress"
+              },
+              "order": 2,
+              "start": "2026-05-01",
+              "end": "2026-11-30",
+              "progress": 55
+            },
+            {
+              "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+              "name": "Close",
+              "status": {
+                "id": 1,
+                "name": "Not Started"
+              },
+              "order": 3,
+              "start": "2026-12-01",
+              "end": "2026-12-18",
+              "progress": 0
+            }
+          ],
+          "healthCheck": {
+            "id": "3b8d1f5a-9e46-4c72-a1d8-6f0b4e2c7a93",
+            "status": {
+              "id": 2,
+              "name": "At Risk"
+            },
+            "reportedBy": {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            },
+            "reportedOn": "2026-10-17T14:00:00Z",
+            "expiration": "2026-10-31T23:59:00Z",
+            "note": "The payment gateway vendor slipped their API delivery by three weeks."
+          },
+          "canManageProject": true,
+          "backwardStatusTargets": [
+            {
+              "id": 5,
+              "name": "Approved",
+              "lifecycleCategory": "NotStarted"
+            }
+          ],
+          "portfolioScoringModel": null,
+          "currentScore": null,
+          "rank": 0.5
+        }
+      },
+      {
+        "tool": "Projects_GetProject",
+        "result": {
+          "id": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82",
+          "key": "NOVA",
+          "name": "Nova Customer Portal",
+          "description": "A self-service portal for customers to manage orders and payments.",
+          "businessCase": "The data centre lease ends in 2027; renewing costs more than migrating.",
+          "expectedBenefits": "Lower hosting cost and faster environment provisioning.",
+          "status": {
+            "id": 2,
+            "name": "Active",
+            "lifecycleCategory": "Active"
+          },
+          "expenditureCategory": {
+            "id": 2,
+            "name": "Capital"
+          },
+          "start": "2026-03-02",
+          "end": "2026-12-18",
+          "portfolio": {
+            "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+            "key": 3,
+            "name": "Digital Platforms"
+          },
+          "program": null,
+          "projectSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "projectOwners": [
+            {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            }
+          ],
+          "projectManagers": [
+            {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            }
+          ],
+          "projectMembers": [
+            {
+              "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+              "key": 1021,
+              "name": "Aisha Bello"
+            },
+            {
+              "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+              "key": 1033,
+              "name": "Samuel Reyes"
+            }
+          ],
+          "strategicThemes": [
+            {
+              "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+              "key": 4,
+              "name": "Cloud First"
+            }
+          ],
+          "strategicInitiatives": [],
+          "projectLifecycle": {
+            "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+            "key": 1,
+            "name": "Standard Delivery",
+            "description": "Initiate, plan, execute and close."
+          },
+          "stages": [
+            {
+              "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+              "name": "Plan",
+              "status": {
+                "id": 3,
+                "name": "Completed"
+              },
+              "order": 1,
+              "start": "2026-03-02",
+              "end": "2026-04-30",
+              "progress": 100
+            },
+            {
+              "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+              "name": "Execute",
+              "status": {
+                "id": 2,
+                "name": "In Progress"
+              },
+              "order": 2,
+              "start": "2026-05-01",
+              "end": "2026-11-30",
+              "progress": 55
+            },
+            {
+              "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+              "name": "Close",
+              "status": {
+                "id": 1,
+                "name": "Not Started"
+              },
+              "order": 3,
+              "start": "2026-12-01",
+              "end": "2026-12-18",
+              "progress": 0
+            }
+          ],
+          "healthCheck": {
+            "id": "1f6b9d3a-8c24-4e71-b5a0-3d7e2c9f4b18",
+            "status": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedBy": {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            },
+            "reportedOn": "2026-10-05T15:30:00Z",
+            "expiration": "2026-10-19T15:30:00Z",
+            "note": "Sprint goals met; vendor API on track for delivery."
+          },
+          "canManageProject": true,
+          "backwardStatusTargets": [
+            {
+              "id": 5,
+              "name": "Approved",
+              "lifecycleCategory": "NotStarted"
+            }
+          ],
+          "portfolioScoringModel": null,
+          "currentScore": null,
+          "rank": 0.5
+        }
+      },
+      {
+        "tool": "Portfolios_GetPortfolioProjects",
+        "after": "Projects_CreateProjectHealthCheck",
+        "result": [
+          {
+            "id": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82",
+            "key": "NOVA",
+            "name": "Nova Customer Portal",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": {
+              "id": "3b8d1f5a-9e46-4c72-a1d8-6f0b4e2c7a93",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              }
+            },
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Portfolios_GetPortfolioProjects",
+        "result": [
+          {
+            "id": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82",
+            "key": "NOVA",
+            "name": "Nova Customer Portal",
+            "status": {
+              "id": 2,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-03-02",
+            "end": "2026-12-18",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "program": null,
+            "projectSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "projectOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ],
+            "projectManagers": [
+              {
+                "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+                "key": 1017,
+                "name": "Marcus Okafor"
+              }
+            ],
+            "projectMembers": [
+              {
+                "id": "7c2e9a4f-1b63-4d85-a7f0-2e9c6b3d8a51",
+                "key": 1021,
+                "name": "Aisha Bello"
+              },
+              {
+                "id": "4d8b2f6e-7a13-4c59-b1e8-9f3a6d2c5b70",
+                "key": 1033,
+                "name": "Samuel Reyes"
+              }
+            ],
+            "strategicThemes": [
+              {
+                "id": "5c8a1e3f-7d24-4b69-9e05-2a6d8f1c3b97",
+                "key": 4,
+                "name": "Cloud First"
+              }
+            ],
+            "projectLifecycle": {
+              "id": "a3d7f1c9-5e82-4b46-9c0d-8e1b4f6a2d75",
+              "key": 1,
+              "name": "Standard Delivery"
+            },
+            "stages": [
+              {
+                "id": "c1e5a9d3-7b26-4f84-a0c1-3d8e6b2f9a47",
+                "name": "Plan",
+                "status": {
+                  "id": 3,
+                  "name": "Completed"
+                },
+                "order": 1,
+                "start": "2026-03-02",
+                "end": "2026-04-30",
+                "progress": 100
+              },
+              {
+                "id": "d2f6b0e4-8c37-4a95-b1d2-4e9f7c3a0b58",
+                "name": "Execute",
+                "status": {
+                  "id": 2,
+                  "name": "In Progress"
+                },
+                "order": 2,
+                "start": "2026-05-01",
+                "end": "2026-11-30",
+                "progress": 55
+              },
+              {
+                "id": "e3a7c1f5-9d48-4b06-82e3-5f0a8d4b1c69",
+                "name": "Close",
+                "status": {
+                  "id": 1,
+                  "name": "Not Started"
+                },
+                "order": 3,
+                "start": "2026-12-01",
+                "end": "2026-12-18",
+                "progress": 0
+              }
+            ],
+            "healthCheck": {
+              "id": "1f6b9d3a-8c24-4e71-b5a0-3d7e2c9f4b18",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              }
+            },
+            "canManageProject": true,
+            "currentScore": null,
+            "rank": 0.5,
+            "position": null
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjectHealthChecks",
+        "after": "Projects_CreateProjectHealthCheck",
+        "result": [
+          {
+            "id": "3b8d1f5a-9e46-4c72-a1d8-6f0b4e2c7a93",
+            "status": {
+              "id": 2,
+              "name": "At Risk"
+            },
+            "reportedBy": {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            },
+            "reportedOn": "2026-10-17T14:00:00Z",
+            "expiration": "2026-10-31T23:59:00Z",
+            "note": "The payment gateway vendor slipped their API delivery by three weeks.",
+            "projectId": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82"
+          },
+          {
+            "id": "1f6b9d3a-8c24-4e71-b5a0-3d7e2c9f4b18",
+            "status": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedBy": {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            },
+            "reportedOn": "2026-10-05T15:30:00Z",
+            "expiration": "2026-10-17T14:00:00Z",
+            "note": "Sprint goals met; vendor API on track for delivery.",
+            "projectId": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82"
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjectHealthChecks",
+        "result": [
+          {
+            "id": "1f6b9d3a-8c24-4e71-b5a0-3d7e2c9f4b18",
+            "status": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedBy": {
+              "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+              "key": 1017,
+              "name": "Marcus Okafor"
+            },
+            "reportedOn": "2026-10-05T15:30:00Z",
+            "expiration": "2026-10-19T15:30:00Z",
+            "note": "Sprint goals met; vendor API on track for delivery.",
+            "projectId": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82"
+          }
+        ]
+      },
+      {
+        "tool": "Projects_GetProjectHealthCheck",
+        "after": "Projects_CreateProjectHealthCheck",
+        "when": {
+          "healthCheckId": "3b8d1f5a-9e46-4c72-a1d8-6f0b4e2c7a93"
+        },
+        "result": {
+          "id": "3b8d1f5a-9e46-4c72-a1d8-6f0b4e2c7a93",
+          "status": {
+            "id": 2,
+            "name": "At Risk"
+          },
+          "reportedBy": {
+            "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+            "key": 1017,
+            "name": "Marcus Okafor"
+          },
+          "reportedOn": "2026-10-17T14:00:00Z",
+          "expiration": "2026-10-31T23:59:00Z",
+          "note": "The payment gateway vendor slipped their API delivery by three weeks.",
+          "projectId": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82"
+        }
+      },
+      {
+        "tool": "Projects_GetProjectHealthCheck",
+        "after": "Projects_CreateProjectHealthCheck",
+        "result": {
+          "id": "1f6b9d3a-8c24-4e71-b5a0-3d7e2c9f4b18",
+          "status": {
+            "id": 1,
+            "name": "Healthy"
+          },
+          "reportedBy": {
+            "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+            "key": 1017,
+            "name": "Marcus Okafor"
+          },
+          "reportedOn": "2026-10-05T15:30:00Z",
+          "expiration": "2026-10-17T14:00:00Z",
+          "note": "Sprint goals met; vendor API on track for delivery.",
+          "projectId": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82"
+        }
+      },
+      {
+        "tool": "Projects_GetProjectHealthCheck",
+        "result": {
+          "id": "1f6b9d3a-8c24-4e71-b5a0-3d7e2c9f4b18",
+          "status": {
+            "id": 1,
+            "name": "Healthy"
+          },
+          "reportedBy": {
+            "id": "6b7f1d22-4c98-4e3a-a5d1-0f8e2c6b9a74",
+            "key": 1017,
+            "name": "Marcus Okafor"
+          },
+          "reportedOn": "2026-10-05T15:30:00Z",
+          "expiration": "2026-10-19T15:30:00Z",
+          "note": "Sprint goals met; vendor API on track for delivery.",
+          "projectId": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82"
+        }
+      },
+      {
+        "tool": "Projects_CreateProjectHealthCheck",
+        "result": "3b8d1f5a-9e46-4c72-a1d8-6f0b4e2c7a93"
+      },
+      {
+        "tool": "Projects_UpdateProjectHealthCheck",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Projects_CreateProjectHealthCheck",
+        "with": {
+          "id": "7d1a4c8e-2f59-4b36-a0e7-5c9b3d6f1a82",
+          "requestBody": {
+            "status": "AtRisk",
+            "expiration": {
+              "$present": true
+            },
+            "note": {
+              "$regex": "vendor|gateway|API"
+            }
+          }
+        },
+        "because": "A changed assessment is logged as a new check, by project UUID, with the write enum \"AtRisk\" (health-checks.md \"Log, correct, or delete\")."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_UpdateProjectHealthCheck",
+        "because": "Updating rewrites what was reported on 5 October; the health has changed, so history needs a new check."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Projects_DeleteProjectHealthCheck",
+        "because": "Nothing about the old check was wrong when it was recorded."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Projects_CreateProjectHealthCheck",
+        "because": "health-checks.md: never log a check without the user confirming the status, expiration and note."
+      }
+    ],
+    "expected": "The agent finds Nova (key NOVA) and its UUID, sees the current Healthy check, drafts a new At Risk check with an expiration at the end of the month and a note about the payment gateway vendor's three-week slip, and presents it for confirmation. After the user approves it calls Projects_CreateProjectHealthCheck with the UUID and status \"AtRisk\"; it does not update or delete the existing check. Established by health-checks.md \"Log, correct, or delete\" (default to logging a new check; confirm before any of the three) and the Projects_UpdateProjectHealthCheck description."
+  },
+  {
+    "id": "ppm-kpi-on-track",
+    "skill": "wayd-ppm",
+    "prompt": "Is the open support tickets KPI on the Customer Experience Uplift initiative on track?",
+    "traps": [
+      "wrong-tool"
+    ],
+    "fixtures": [
+      {
+        "tool": "StrategicInitiatives_GetStrategicInitiatives",
+        "result": [
+          {
+            "id": "4f9a2d6c-1e83-4b57-8c0d-9a3e6f2b5d71",
+            "key": 7,
+            "name": "Customer Experience Uplift",
+            "status": {
+              "id": 3,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-01-01",
+            "end": "2026-12-31",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "strategicInitiativeSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "strategicInitiativeOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Portfolios_GetPortfolioStrategicInitiatives",
+        "result": [
+          {
+            "id": "4f9a2d6c-1e83-4b57-8c0d-9a3e6f2b5d71",
+            "key": 7,
+            "name": "Customer Experience Uplift",
+            "status": {
+              "id": 3,
+              "name": "Active",
+              "lifecycleCategory": "Active"
+            },
+            "start": "2026-01-01",
+            "end": "2026-12-31",
+            "portfolio": {
+              "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+              "key": 3,
+              "name": "Digital Platforms"
+            },
+            "strategicInitiativeSponsors": [
+              {
+                "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+                "key": 1003,
+                "name": "Tomasz Kowalski"
+              }
+            ],
+            "strategicInitiativeOwners": [
+              {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "StrategicInitiatives_GetStrategicInitiative",
+        "result": {
+          "id": "4f9a2d6c-1e83-4b57-8c0d-9a3e6f2b5d71",
+          "key": 7,
+          "name": "Customer Experience Uplift",
+          "description": "Make support faster and self-service easier across every channel.",
+          "status": {
+            "id": 3,
+            "name": "Active",
+            "lifecycleCategory": "Active"
+          },
+          "start": "2026-01-01",
+          "end": "2026-12-31",
+          "portfolio": {
+            "id": "9e2c5a7d-4b81-4f36-8d0a-1c7e3b9f5a24",
+            "key": 3,
+            "name": "Digital Platforms"
+          },
+          "strategicInitiativeSponsors": [
+            {
+              "id": "3e5a8c1d-9f26-4b74-8e03-5d7b1c9f2a6e",
+              "key": 1003,
+              "name": "Tomasz Kowalski"
+            }
+          ],
+          "strategicInitiativeOwners": [
+            {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "StrategicInitiatives_GetKpis",
+        "result": [
+          {
+            "id": "6e1b8d4a-3c72-4f95-b0a6-2d9c7e5f1b38",
+            "key": 2,
+            "name": "Open support tickets",
+            "startingValue": 1200,
+            "targetValue": 400,
+            "actualValue": 820,
+            "progress": 47.5,
+            "prefix": null,
+            "suffix": null,
+            "targetDirection": "Decrease",
+            "order": 1
+          },
+          {
+            "id": "8f3d0b6c-5e94-4a17-b2c8-4f1e9a7d3c50",
+            "key": 3,
+            "name": "Self-service adoption",
+            "startingValue": 22,
+            "targetValue": 60,
+            "actualValue": 41,
+            "progress": 50,
+            "prefix": null,
+            "suffix": "%",
+            "targetDirection": "Increase",
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "StrategicInitiatives_GetKpi",
+        "result": {
+          "id": "6e1b8d4a-3c72-4f95-b0a6-2d9c7e5f1b38",
+          "key": 2,
+          "name": "Open support tickets",
+          "startingValue": 1200,
+          "targetValue": 400,
+          "actualValue": 820,
+          "progress": 47.5,
+          "prefix": null,
+          "suffix": null,
+          "targetDirection": "Decrease",
+          "order": 1,
+          "description": "Tickets open at month end, all channels."
+        }
+      },
+      {
+        "tool": "StrategicInitiatives_GetKpiCheckpointPlan",
+        "result": [
+          {
+            "id": "c2e6a0d4-8b37-4f5b-a09c-3d7f1e5b9a84",
+            "targetValue": 1000,
+            "atRiskValue": 1080,
+            "checkpointDate": "2026-03-31T00:00:00Z",
+            "dateLabel": "Q1",
+            "measurement": {
+              "id": "a0c4e8b2-6f15-4d39-8e7a-1b5d9c3f7e62",
+              "actualValue": 980,
+              "measurementDate": "2026-03-31T00:00:00Z",
+              "measuredBy": {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              },
+              "note": null
+            },
+            "health": "Healthy",
+            "trend": "Improving"
+          },
+          {
+            "id": "d3f7b1e5-9c48-4a6c-b1ad-4e8a2f6c0b95",
+            "targetValue": 800,
+            "atRiskValue": 880,
+            "checkpointDate": "2026-06-30T00:00:00Z",
+            "dateLabel": "Q2",
+            "measurement": {
+              "id": "b1d5f9c3-7a26-4e4a-9f8b-2c6e0d4a8f73",
+              "actualValue": 820,
+              "measurementDate": "2026-06-30T00:00:00Z",
+              "measuredBy": {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              },
+              "note": "Chatbot launch slipped to July."
+            },
+            "health": "AtRisk",
+            "trend": "Improving"
+          },
+          {
+            "id": "e4a8c2f6-0d59-4b7d-82be-5f9b3a7d1ca6",
+            "targetValue": 600,
+            "atRiskValue": 680,
+            "checkpointDate": "2026-09-30T00:00:00Z",
+            "dateLabel": "Q3",
+            "measurement": null,
+            "health": null,
+            "trend": null
+          },
+          {
+            "id": "f5b9d3a7-1e6a-4c8e-93cf-6a0c4b8e2db7",
+            "targetValue": 400,
+            "atRiskValue": 480,
+            "checkpointDate": "2026-12-31T00:00:00Z",
+            "dateLabel": "Q4",
+            "measurement": null,
+            "health": null,
+            "trend": null
+          }
+        ]
+      },
+      {
+        "tool": "StrategicInitiatives_GetKpiCheckpoints",
+        "result": [
+          {
+            "id": "c2e6a0d4-8b37-4f5b-a09c-3d7f1e5b9a84",
+            "targetValue": 1000,
+            "atRiskValue": 1080,
+            "checkpointDate": "2026-03-31T00:00:00Z",
+            "dateLabel": "Q1"
+          },
+          {
+            "id": "d3f7b1e5-9c48-4a6c-b1ad-4e8a2f6c0b95",
+            "targetValue": 800,
+            "atRiskValue": 880,
+            "checkpointDate": "2026-06-30T00:00:00Z",
+            "dateLabel": "Q2"
+          },
+          {
+            "id": "e4a8c2f6-0d59-4b7d-82be-5f9b3a7d1ca6",
+            "targetValue": 600,
+            "atRiskValue": 680,
+            "checkpointDate": "2026-09-30T00:00:00Z",
+            "dateLabel": "Q3"
+          },
+          {
+            "id": "f5b9d3a7-1e6a-4c8e-93cf-6a0c4b8e2db7",
+            "targetValue": 400,
+            "atRiskValue": 480,
+            "checkpointDate": "2026-12-31T00:00:00Z",
+            "dateLabel": "Q4"
+          }
+        ]
+      },
+      {
+        "tool": "StrategicInitiatives_GetKpiMeasurements",
+        "result": [
+          {
+            "id": "b1d5f9c3-7a26-4e4a-9f8b-2c6e0d4a8f73",
+            "actualValue": 820,
+            "measurementDate": "2026-06-30T00:00:00Z",
+            "measuredBy": {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            },
+            "note": "Chatbot launch slipped to July."
+          },
+          {
+            "id": "a0c4e8b2-6f15-4d39-8e7a-1b5d9c3f7e62",
+            "actualValue": 980,
+            "measurementDate": "2026-03-31T00:00:00Z",
+            "measuredBy": {
+              "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+              "key": 1005,
+              "name": "Elena Vasquez"
+            },
+            "note": null
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "StrategicInitiatives_GetKpiCheckpointPlan",
+        "because": "kpis.md: for \"is this KPI on track?\" use the checkpoint plan, the one call that sets actuals against the plan with health and trend."
+      },
+      {
+        "type": "notCalled",
+        "tool": "StrategicInitiatives_AddKpiMeasurement",
+        "because": "A read-only question changes nothing."
+      },
+      {
+        "type": "notCalled",
+        "tool": "StrategicInitiatives_RemoveKpiMeasurement",
+        "because": "A read-only question changes nothing."
+      },
+      {
+        "type": "says",
+        "pattern": "at.?risk|behind|off.?track|not (quite )?on track|short of",
+        "because": "The latest measured checkpoint (Q2: 820 against a target of 800, Decrease KPI) is At Risk, so the answer is not an unqualified \"yes\"."
+      }
+    ],
+    "expected": "The agent resolves the initiative and the \"Open support tickets\" KPI (read tools accept ids or keys), then calls StrategicInitiatives_GetKpiCheckpointPlan. It reports that this is a Decrease KPI, that Q1 was Healthy, that the latest measurement (820 at Q2 against a target of 800) is At Risk though improving, reports progress as 47.5% as supplied, and describes Q3 as not yet measured rather than failing. Established by kpis.md \"Tools\" and \"Reading a KPI\" and the GetKpiCheckpointPlan description (\"best single call for assessing whether a KPI is on track\")."
+  }
+]

@@ -11,8 +11,9 @@ public sealed class ImportEmployeeRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-    /// reported against it, and it is how a row is identified without depending on a display name. Falls
-    /// back to the row's position when the column is absent, so a hand-authored file still works.
+    /// reported against it, and it is how a row is identified without depending on a display name.
+    /// Leave a cell blank and the row is known by its position instead, but the column itself must be
+    /// in the file.
     /// </summary>
     public string? ImportId { get; set; }
 
@@ -34,7 +35,7 @@ public sealed class ImportEmployeeRequest
     /// <summary>The manager's employee number. May name someone elsewhere in the file.</summary>
     public string? ManagerNumber { get; set; }
 
-    /// <summary>Whether the employee is currently active. Defaults to true when the column is absent.</summary>
+    /// <summary>Whether the employee is currently active.</summary>
     public bool IsActive { get; set; } = true;
 
     /// <summary>The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form.</summary>

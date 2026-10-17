@@ -5,7 +5,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['StrategicInitiatives_GetStrategicInitiatives', {
     name: 'StrategicInitiatives_GetStrategicInitiatives',
     description: `Get a list of strategic initiatives. Optionally filter by status and/or portfolioId.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"portfolioId":{"type":["string","null"],"format":"uuid"}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Approved","Active","OnHold","Completed","Canceled"]}},"portfolioId":{"type":["string","null"],"format":"uuid"}}},
     method: 'get',
     pathTemplate: '/api/ppm/strategic-initiatives',
     executionParameters: [{"name":"status","in":"query"},{"name":"portfolioId","in":"query"}],
@@ -52,7 +52,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['StrategicInitiatives_GetKpis', {
     name: 'StrategicInitiatives_GetKpis',
-    description: `Get the KPIs for a strategic initiative — the measures that define whether it succeeded. Each KPI carries a starting (baseline) value, a target value, the latest actual value, and a computed progress percentage toward the target. targetDirection is 1=Increase or 2=Decrease; for a Decrease KPI a falling value is improvement, so never assume a lower number is worse.`,
+    description: `Get the KPIs for a strategic initiative — the measures that define whether it succeeded. Each KPI carries a starting (baseline) value, a target value, the latest actual value, and a computed progress percentage toward the target. targetDirection is Increase or Decrease; for a Decrease KPI a falling value is improvement, so never assume a lower number is worse.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","description":"Strategic initiative ID or key."}},"required":["id"]},
     method: 'get',
     pathTemplate: '/api/ppm/strategic-initiatives/{id}/kpis',

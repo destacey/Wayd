@@ -6858,7 +6858,7 @@
           "Products"
         ],
         "summary": "Record that a product depends on another.",
-        "description": "Returns the new dependency's id.\n\nRecord the **most specific product known** — the service that makes the call, not the platform it belongs to — since the read side rolls links up to every ancestor anyway. A product cannot depend on itself, nor on anything above or below it in the tree: that is composition, which the tree already records.\n\n**Strength has no default and must be chosen deliberately**: 1 Hard if the product stops working without it, 2 Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.\n\n`interactionStyles` says how the product reaches it — `Synchronous`, `Asynchronous`, or both, since a pair commonly calls for what it needs now and subscribes for what it needs eventually. Unlike strength it has no requirement to be set, but leaving it out records nothing rather than recording that there are none, so supply it when the person has said.\n\nA product holds at most one open dependency on another product, and a later one on the same pair cannot overlap an earlier one. `startsOn` defaults to today, may be backdated, and cannot be in the future.",
+        "description": "Returns the new dependency's id.\n\nRecord the **most specific product known** — the service that makes the call, not the platform it belongs to — since the read side rolls links up to every ancestor anyway. A product cannot depend on itself, nor on anything above or below it in the tree: that is composition, which the tree already records.\n\n**Strength has no default and must be chosen deliberately**: Hard if the product stops working without it, Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.\n\n`interactionStyles` says how the product reaches it — `Synchronous`, `Asynchronous`, or both, since a pair commonly calls for what it needs now and subscribes for what it needs eventually. Unlike strength it has no requirement to be set, but leaving it out records nothing rather than recording that there are none, so supply it when the person has said.\n\nA product holds at most one open dependency on another product, and a later one on the same pair cannot overlap an earlier one. `startsOn` defaults to today, may be backdated, and cannot be in the future.",
         "operationId": "Products_AddDependency",
         "parameters": [
           {
@@ -36167,7 +36167,7 @@
           "Imports"
         ],
         "summary": "Get a page of an import run's row outcomes, as `rows` with a `totalCount`.",
-        "description": "Each row has its `importId` (the file's ImportId column, or its position when the file had none), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.",
+        "description": "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.",
         "operationId": "Imports_GetRows",
         "parameters": [
           {
@@ -47923,7 +47923,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -47973,7 +47973,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48057,7 +48057,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and it is how a row is identified without depending on a display name. Falls\nback to the row's position when the column is absent, so a hand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and it is how a row is identified without depending on a display name.\nLeave a cell blank and the row is known by its position instead, but the column itself must be\nin the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48125,7 +48125,7 @@
           },
           "isActive": {
             "type": "boolean",
-            "description": "Whether the employee is currently active. Defaults to true when the column is absent.",
+            "description": "Whether the employee is currently active.",
             "x-csv-column": "IsActive"
           },
           "employeeType": {
@@ -48158,7 +48158,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48248,7 +48248,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48312,7 +48312,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48331,7 +48331,7 @@
           "status": {
             "minLength": 1,
             "type": "string",
-            "description": "The portfolio's status. Defaults to Active when the column is absent.",
+            "description": "The portfolio's status.",
             "x-csv-column": "Status",
             "x-csv-values": [
               "Proposed",
@@ -48386,7 +48386,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48669,7 +48669,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48740,7 +48740,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and child rows name it as their ParentImportId. Falls back to the row's\nposition when the column is absent — but a file with parents should supply it, since a\nposition is a fragile thing to reference.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and child rows name it as their ParentImportId. Leave a cell blank and the\nrow is known by its position instead — but a file with parents should fill it, since a position\nis a fragile thing to reference. The column itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48777,7 +48777,7 @@
           },
           "status": {
             "type": "string",
-            "description": "The status by name, which must belong to the product workflow. Defaults to the workflow's\ninitial status when the column is absent or blank.",
+            "description": "The status by name, which must belong to the product workflow. Defaults to the workflow's\ninitial status when the cell is blank.",
             "nullable": true,
             "x-csv-column": "Status"
           },
@@ -48803,7 +48803,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48829,7 +48829,7 @@
           "status": {
             "minLength": 1,
             "type": "string",
-            "description": "The program's status. Defaults to Active when the column is absent.",
+            "description": "The program's status.",
             "x-csv-column": "Status",
             "x-csv-values": [
               "Proposed",
@@ -48907,7 +48907,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -48947,7 +48947,7 @@
           "status": {
             "minLength": 1,
             "type": "string",
-            "description": "The project's status. Defaults to Active when the column is absent.",
+            "description": "The project's status.",
             "x-csv-column": "Status",
             "x-csv-values": [
               "Proposed",
@@ -49061,7 +49061,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49106,7 +49106,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and child rows name it as their ParentImportId. Falls back to the row's\nposition when the column is absent, so a hand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and child rows name it as their ParentImportId. Leave a cell blank and the\nrow is known by its position instead, but the column itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49150,7 +49150,7 @@
           "type": {
             "minLength": 1,
             "type": "string",
-            "description": "'Task' or 'Milestone'. Defaults to Task when the column is absent.",
+            "description": "'Task' or 'Milestone'.",
             "x-csv-column": "Type",
             "x-csv-values": [
               "Task",
@@ -49320,7 +49320,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the manifest file names it to say which package a line belongs to.\nFalls back to the row's position when the column is absent.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the manifest file names it to say which package a line belongs to.\nLeave a cell blank and the row is known by its position instead, but the column itself must be\nin the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49362,7 +49362,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the contents file names it to say which release a row belongs to.\nFalls back to the row's position when the column is absent.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the contents file names it to say which release a row belongs to. Leave\na cell blank and the row is known by its position instead, but the column itself must be in the\nfile.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49432,7 +49432,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49612,7 +49612,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back\nto the row's position when the column is absent, so a hand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a\ncell blank and the row is known by its position instead, but the column itself must be in the\nfile.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49638,7 +49638,7 @@
           "status": {
             "minLength": 1,
             "type": "string",
-            "description": "The initiative's status. Defaults to Active when the column is absent.",
+            "description": "The initiative's status.",
             "x-csv-column": "Status",
             "x-csv-values": [
               "Proposed",
@@ -49695,7 +49695,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49714,7 +49714,7 @@
           "state": {
             "minLength": 1,
             "type": "string",
-            "description": "The theme's state. Defaults to Active when the column is absent.",
+            "description": "The theme's state.",
             "x-csv-column": "State",
             "x-csv-values": [
               "Proposed",
@@ -49736,7 +49736,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49775,7 +49775,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49823,7 +49823,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },
@@ -49864,7 +49864,7 @@
           },
           "isActive": {
             "type": "boolean",
-            "description": "Whether the team is currently active. Defaults to true when the column is absent.",
+            "description": "Whether the team is currently active.",
             "x-csv-column": "IsActive"
           },
           "inactiveDate": {
@@ -49887,7 +49887,7 @@
         "properties": {
           "importId": {
             "type": "string",
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
             "nullable": true,
             "x-csv-column": "ImportId"
           },

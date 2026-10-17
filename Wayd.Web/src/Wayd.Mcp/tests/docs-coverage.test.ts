@@ -31,15 +31,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /** The user-facing tool reference, four levels up from the MCP package. */
 const docsPath = join(__dirname, '../../../../docs/getting-started/mcp-server.mdx');
 
-/** Skills ship from the repo root and are listed on the same page. */
-const skillsDir = join(__dirname, '../../../../skills');
-
 /**
- * Skills that guide work *on this repository* rather than against a Wayd
- * instance. They are not part of the MCP server's offering, so the user-facing
- * page deliberately omits them.
+ * Skills ship from the repo root and are listed on the same page. Everything
+ * there is installed for end users by `npx skills add`; skills for working on
+ * this repository belong in `.agents/skills/`, and this test fails if one
+ * lands here instead.
  */
-const contributorSkills = new Set(['wayd-testing']);
+const skillsDir = join(__dirname, '../../../../skills');
 
 /** Matches a tool name wherever it appears — a table cell, backticks, or prose. */
 const toolNamePattern = /\b[A-Z][A-Za-z]*_[A-Za-z][A-Za-z0-9]*\b/g;
@@ -83,7 +81,7 @@ describe('documentation coverage', () => {
 
   test('every user-facing skill is listed, and the stated count matches', () => {
     const shipped = readdirSync(skillsDir, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && !contributorSkills.has(entry.name))
+      .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
 

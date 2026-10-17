@@ -1,25 +1,17 @@
 ---
 name: wayd-products
-description: Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag axes themselves.
+description: Read before calling the Wayd MCP tools named Products_*, ProductTypes_*, ProductTagCategories_*, DeploymentEnvironments_*, DeliveryMetrics_* or DeliveryOverview_*. Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag axes themselves. For releases, versions, packages and deployments, use the wayd-delivery skill instead.
 ---
 
 # Wayd Products (Catalog / Dependencies / Types / Tags / Environments / Metrics)
 
-## When to use
-
-- Finding what the organization owns, and how it fits together
-- Creating a product, or moving one to a different parent
-- Changing a product's type or status, or tagging it
-- Deleting a product, and understanding why one refuses to delete
-- Recording what a product depends on, and answering what depends on it
-- Defining, updating or retiring deployment environments
-- Asking what is running in each environment right now
-- Reading delivery measures and version activity over a window, or what shipped recently
-- Managing the configuration itself — product types, tag axes and their tags
-
 For releases, versions, packages and deployments, use the **wayd-delivery** skill instead.
 
----
+## Before any change
+
+Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
+
+When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
 
 ## Tool map
 
@@ -141,7 +133,7 @@ Record each with `Products_AddDependency`.
 - **Record the most specific product known** — the service that makes the call, not its platform.
   The read side rolls it up to every ancestor anyway, and a link on the platform cannot be rolled
   down.
-- **Strength has no default.** 1 Hard: the product stops working without it. 2 Soft: it degrades or
+- **Strength has no default.** `Hard`: the product stops working without it. `Soft`: it degrades or
   loses a feature but keeps working. Impact attribution reads this, so ask the person if they have not
   said rather than guessing.
 - **Interaction styles refine strength.** A Hard **synchronous** dependency caps the consumer's

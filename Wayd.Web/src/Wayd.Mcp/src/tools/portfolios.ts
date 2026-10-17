@@ -5,7 +5,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Portfolios_GetPortfolios', {
     name: 'Portfolios_GetPortfolios',
     description: `Get a list of project portfolios.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","OnHold","Closed","Archived"]}}}},
     method: 'get',
     pathTemplate: '/api/ppm/portfolios',
     executionParameters: [{"name":"status","in":"query"}],
@@ -53,7 +53,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Portfolios_GetPortfolioPrograms', {
     name: 'Portfolios_GetPortfolioPrograms',
     description: `Get a list of programs for a portfolio. Optionally filter by status.`,
-    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}}},"required":["idOrKey"]},
+    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled"]}}},"required":["idOrKey"]},
     method: 'get',
     pathTemplate: '/api/ppm/portfolios/{idOrKey}/programs',
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],
@@ -65,7 +65,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Portfolios_GetPortfolioProjects', {
     name: 'Portfolios_GetPortfolioProjects',
     description: `Get a list of projects for a portfolio. Optionally filter by status.`,
-    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}}},"required":["idOrKey"]},
+    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled","Approved"]}}},"required":["idOrKey"]},
     method: 'get',
     pathTemplate: '/api/ppm/portfolios/{idOrKey}/projects',
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],
@@ -77,7 +77,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Portfolios_GetPortfolioStrategicInitiatives', {
     name: 'Portfolios_GetPortfolioStrategicInitiatives',
     description: `Get a list of strategic initiatives for a portfolio. Optionally filter by status.`,
-    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}}},"required":["idOrKey"]},
+    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Approved","Active","OnHold","Completed","Canceled"]}}},"required":["idOrKey"]},
     method: 'get',
     pathTemplate: '/api/ppm/portfolios/{idOrKey}/strategic-initiatives',
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],

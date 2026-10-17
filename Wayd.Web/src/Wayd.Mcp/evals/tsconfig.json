@@ -1,0 +1,12 @@
+{
+  // The evaluation harness imports from ../build like the tests do. It is type-checked, never emitted:
+  // `npm run evals` runs it under tsx.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "types": ["node"]
+  },
+  "exclude": ["../node_modules", "results"],
+  "include": ["**/*.ts", "../build/**/*.d.ts"]
+}

@@ -1,0 +1,74 @@
+{
+  "metrics": [
+    {
+      "id": "pass",
+      "label": "Pass",
+      "kind": "binary"
+    },
+    {
+      "id": "score",
+      "label": "Assertions",
+      "kind": "float",
+      "scale": 1
+    }
+  ],
+  "perf_fields": [
+    {
+      "id": "skill_loaded",
+      "label": "Skill loaded"
+    },
+    {
+      "id": "tool_calls",
+      "label": "Tool calls"
+    },
+    {
+      "id": "unfixtured_calls",
+      "label": "Unfixtured"
+    },
+    {
+      "id": "num_turns",
+      "label": "Turns"
+    },
+    {
+      "id": "latency_s",
+      "label": "Latency",
+      "unit": "s"
+    },
+    {
+      "id": "api_equiv_usd",
+      "label": "API-equiv",
+      "unit": "$"
+    }
+  ],
+  "harness_paths": [
+    "evals/harness.ts",
+    "evals/scenario.ts",
+    "evals/stub-server.ts"
+  ],
+  "variants": {
+    "baseline": {
+      "skills": "none"
+    },
+    "v1": {
+      "skills": "available"
+    },
+    "v2": {
+      "skills": "preloaded"
+    },
+    "v3": {
+      "skills": "preloaded",
+      "ref": "27ed23359"
+    },
+    "v4": {
+      "skills": "preloaded"
+    },
+    "v5": {
+      "skills": "available",
+      "ref": "b3cf83566"
+    },
+    "v6": {
+      "skills": "available"
+    }
+  },
+  "harness_sha": "3d7bf94d2c6bebb671b344d4e70cee515152d95b2bcdaa5ab246f2e15dfffb7c"
+}

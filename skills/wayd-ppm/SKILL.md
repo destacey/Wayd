@@ -1,9 +1,15 @@
 ---
 name: wayd-ppm
-description: Guides agents working with Wayd portfolio, program, project, and task management via the Wayd MCP server. Use when looking up or creating and updating portfolios, programs, or projects; exploring project lifecycles, stages, the project plan, or team; approving, activating, completing, cancelling, closing, archiving, or reverting any of those records or a strategic initiative; creating, updating, or deleting tasks within a project; reviewing project scores or a portfolio's ranking board; exploring strategic initiatives and recording KPI measurements; or recommending, logging, or correcting project health checks.
+description: Read before calling the Wayd MCP tools named Portfolios_*, Programs_*, Projects_*, Tasks_*, ProjectLifecycles_*, StrategicInitiatives_* or ExpenditureCategories_*. Guides agents working with Wayd portfolio, program, project, and task management via the Wayd MCP server. Use when looking up or creating and updating portfolios, programs, or projects; exploring project lifecycles, stages, the project plan, or team; approving, activating, completing, cancelling, closing, archiving, or reverting any of those records or a strategic initiative; creating, updating, or deleting tasks within a project; reviewing project scores or a portfolio's ranking board; exploring strategic initiatives and recording KPI measurements; or recommending, logging, or correcting project health checks.
 ---
 
 # Wayd PPM (Portfolio / Program / Project / Task Management)
+
+## Before any change
+
+Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
+
+When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
 
 ## Reference files
 
@@ -33,15 +39,15 @@ Portfolio
 ```
 
 - **Project** — belongs to one portfolio and at most one program. Has a unique `key` (2–20 uppercase letters and digits), a committed timeline `start`/`end`, a status, an optional lifecycle, and an embedded current `healthCheck`. There is no project-level progress field; progress lives on stages and tasks.
-- **Lifecycle** — a reusable template of ordered stages, with a state `1=Proposed`, `2=Active`, `3=Archived`. Only Active lifecycles can be assigned. Through MCP a lifecycle can only be set at creation (`projectLifecycleId` on `Projects_Create`); otherwise it is assigned in the Wayd UI.
+- **Lifecycle** — a reusable template of ordered stages, with a state of `Proposed`, `Active` or `Archived`. Only Active lifecycles can be assigned. Through MCP a lifecycle can only be set at creation (`projectLifecycleId` on `Projects_Create`); otherwise it is assigned in the Wayd UI.
 - **Stage** — one stage of a project's plan, from its lifecycle, with its own status, `start`/`end`, and `progress`.
 - **Task** — type `Task` (planned `plannedStart`/`plannedEnd`, `progress` 0–100) or `Milestone` (a single `plannedDate`, no progress). Every task sits under a stage or under another task. Dependencies are finish-to-start.
 
 ## Common patterns
 
 - **Ids and keys.** A parameter named `idOrKey` (or `projectIdOrKey`, `taskIdOrKey`) accepts a UUID or a key. On portfolio, program, project, and task tools, a parameter named `id` takes a **UUID only** — this covers every record update, `Projects_GetStatusHistory`, and the stage, health-check, and scoring tools. Read the UUID off a read tool first.
-- **Status enums.** Status filters take integer arrays. Resolve the values first with `Portfolios_GetPortfolioStatuses`, `Programs_GetProgramStatuses`, `Projects_GetStatuses`, `Tasks_GetTaskStatuses`, or `StrategicInitiatives_GetStatuses`.
-- **Role filters.** `1=Sponsor`, `2=Owner`, `3=Manager`, `4=Member`, `5=Task Assignee`. There is no lookup tool for these.
+- **Status filters** take status names (`Active`, `Completed`, …), which each tool's schema lists. The status tools — `Portfolios_GetPortfolioStatuses`, `Programs_GetProgramStatuses`, `Projects_GetStatuses`, `Tasks_GetTaskStatuses`, `StrategicInitiatives_GetStatuses` — describe each one; its `code` is the name a filter takes.
+- **Role filters** take `Sponsor`, `Owner`, `Manager`, `Member` or `Assignee` (assigned a task on the project). There is no lookup tool for these.
 - **People are employee ids.** Role lists, task `assigneeIds`, `employeeId` filters, and people in activity payloads all take or return employee ids, never user ids. Resolve a name with `employee.id` from `Users_GetUsers` — see the `wayd-users` skill.
 - **Delivery leadership.** Changing a portfolio, program, or project — updates, status transitions, key and program changes — and writing project health checks require the caller to be an **Owner or Manager** of the record or of an ancestor (project ← program ← portfolio). Sponsors and Members do not qualify, and a permission alone is not enough. Strategic initiative transitions and task changes check permissions only. When a call is rejected as unauthorized, check the record's role lists before retrying.
 

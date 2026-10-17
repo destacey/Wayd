@@ -1,0 +1,3944 @@
+[
+  {
+    "id": "delivery-announce-unshipped-content",
+    "skill": "wayd-delivery",
+    "prompt": "We announced the October billing release (2026.10) to customers yesterday, the 16th. Can you mark it as released in Wayd?",
+    "traps": [
+      "status-prerequisite",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "Releases_GetReleases",
+        "result": [
+          {
+            "id": "7a932895-f6cd-4a30-8394-47042577c7d7",
+            "key": 61,
+            "product": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "version": "2026.10",
+            "name": "October Billing Update",
+            "notes": "Faster invoice exports, SEPA mandate reminders and portal accessibility fixes.",
+            "sequence": null,
+            "targetDate": "2026-10-16",
+            "releasedDate": null,
+            "status": {
+              "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+              "name": "Planned",
+              "category": "Proposed",
+              "alias": 0
+            },
+            "versions": [
+              {
+                "version": {
+                  "id": "2941f742-c73b-43ac-bce4-2125ca9f1bbc",
+                  "key": 205,
+                  "name": "2.8.1"
+                },
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "releasedAt": "2026-10-12T16:20:00Z"
+              },
+              {
+                "version": {
+                  "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+                  "key": 208,
+                  "name": "3.4.0"
+                },
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "releasedAt": null
+              }
+            ],
+            "packages": [
+              {
+                "package": {
+                  "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+                  "key": 33,
+                  "name": "NWB-1009"
+                },
+                "releasedAt": "2026-10-09T23:12:00Z"
+              }
+            ]
+          },
+          {
+            "id": "c08cc555-89b1-4290-b8e3-f9cc75bd6b9d",
+            "key": 58,
+            "product": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "version": "2026.09",
+            "name": "September Billing Update",
+            "notes": null,
+            "sequence": null,
+            "targetDate": "2026-09-15",
+            "releasedDate": "2026-09-15",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            },
+            "versions": [],
+            "packages": []
+          }
+        ]
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "when": {
+          "idOrKey": "7a932895-f6cd-4a30-8394-47042577c7d7"
+        },
+        "result": {
+          "id": "7a932895-f6cd-4a30-8394-47042577c7d7",
+          "key": 61,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.10",
+          "name": "October Billing Update",
+          "notes": "Faster invoice exports, SEPA mandate reminders and portal accessibility fixes.",
+          "sequence": null,
+          "targetDate": "2026-10-16",
+          "releasedDate": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "versions": [
+            {
+              "version": {
+                "id": "2941f742-c73b-43ac-bce4-2125ca9f1bbc",
+                "key": 205,
+                "name": "2.8.1"
+              },
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "releasedAt": "2026-10-12T16:20:00Z"
+            },
+            {
+              "version": {
+                "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+                "key": 208,
+                "name": "3.4.0"
+              },
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "releasedAt": null
+            }
+          ],
+          "packages": [
+            {
+              "package": {
+                "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+                "key": 33,
+                "name": "NWB-1009"
+              },
+              "releasedAt": "2026-10-09T23:12:00Z"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "when": {
+          "idOrKey": "61"
+        },
+        "result": {
+          "id": "7a932895-f6cd-4a30-8394-47042577c7d7",
+          "key": 61,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.10",
+          "name": "October Billing Update",
+          "notes": "Faster invoice exports, SEPA mandate reminders and portal accessibility fixes.",
+          "sequence": null,
+          "targetDate": "2026-10-16",
+          "releasedDate": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "versions": [
+            {
+              "version": {
+                "id": "2941f742-c73b-43ac-bce4-2125ca9f1bbc",
+                "key": 205,
+                "name": "2.8.1"
+              },
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "releasedAt": "2026-10-12T16:20:00Z"
+            },
+            {
+              "version": {
+                "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+                "key": 208,
+                "name": "3.4.0"
+              },
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "releasedAt": null
+            }
+          ],
+          "packages": [
+            {
+              "package": {
+                "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+                "key": 33,
+                "name": "NWB-1009"
+              },
+              "releasedAt": "2026-10-09T23:12:00Z"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "when": {
+          "idOrKey": "c08cc555-89b1-4290-b8e3-f9cc75bd6b9d"
+        },
+        "result": {
+          "id": "c08cc555-89b1-4290-b8e3-f9cc75bd6b9d",
+          "key": 58,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.09",
+          "name": "September Billing Update",
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-09-15",
+          "releasedDate": "2026-09-15",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "versions": [],
+          "packages": []
+        }
+      },
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "result": [
+          {
+            "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+            "key": 208,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.4.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": "2026-10-15",
+            "cutAt": "2026-10-13T15:00:00Z",
+            "releasedAt": null,
+            "status": {
+              "id": "43e4ad3b-9e86-4ae0-8624-60574a6e79c8",
+              "name": "Ready",
+              "category": "Active",
+              "alias": 10
+            }
+          },
+          {
+            "id": "2941f742-c73b-43ac-bce4-2125ca9f1bbc",
+            "key": 205,
+            "product": {
+              "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+              "key": 15,
+              "name": "Northwind Billing Portal"
+            },
+            "number": "2.8.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-10T14:30:00Z",
+            "releasedAt": "2026-10-12T16:20:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+            "key": 201,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-06T13:00:00Z",
+            "releasedAt": "2026-10-09T23:12:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7"
+        },
+        "result": {
+          "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+          "key": 208,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.4.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-10-15",
+          "cutAt": "2026-10-13T15:00:00Z",
+          "releasedAt": null,
+          "status": {
+            "id": "43e4ad3b-9e86-4ae0-8624-60574a6e79c8",
+            "name": "Ready",
+            "category": "Active",
+            "alias": 10
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "208"
+        },
+        "result": {
+          "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+          "key": 208,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.4.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-10-15",
+          "cutAt": "2026-10-13T15:00:00Z",
+          "releasedAt": null,
+          "status": {
+            "id": "43e4ad3b-9e86-4ae0-8624-60574a6e79c8",
+            "name": "Ready",
+            "category": "Active",
+            "alias": 10
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "2941f742-c73b-43ac-bce4-2125ca9f1bbc"
+        },
+        "result": {
+          "id": "2941f742-c73b-43ac-bce4-2125ca9f1bbc",
+          "key": 205,
+          "product": {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal"
+          },
+          "number": "2.8.1",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-10T14:30:00Z",
+          "releasedAt": "2026-10-12T16:20:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "205"
+        },
+        "result": {
+          "id": "2941f742-c73b-43ac-bce4-2125ca9f1bbc",
+          "key": 205,
+          "product": {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal"
+          },
+          "number": "2.8.1",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-10T14:30:00Z",
+          "releasedAt": "2026-10-12T16:20:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "956523fd-45f0-46e9-86ee-cb89cf9b1079"
+        },
+        "result": {
+          "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+          "key": 201,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.2",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-06T13:00:00Z",
+          "releasedAt": "2026-10-09T23:12:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "201"
+        },
+        "result": {
+          "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+          "key": 201,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.2",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-06T13:00:00Z",
+          "releasedAt": "2026-10-09T23:12:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackages",
+        "result": [
+          {
+            "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+            "key": 33,
+            "version": "NWB-1009",
+            "name": null,
+            "targetDate": "2026-10-09",
+            "releasedAt": "2026-10-09T23:12:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            },
+            "components": [
+              {
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "versionRecord": {
+                  "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                  "key": 201,
+                  "name": "3.3.2"
+                },
+                "version": "3.3.2",
+                "kind": "Changed"
+              },
+              {
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "versionRecord": null,
+                "version": "2.8.0",
+                "kind": "CarriedForward"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "d25b61ca-085c-49df-9ae3-3b238d5e1979"
+        },
+        "result": {
+          "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+          "key": 33,
+          "version": "NWB-1009",
+          "name": null,
+          "targetDate": "2026-10-09",
+          "releasedAt": "2026-10-09T23:12:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                "key": 201,
+                "name": "3.3.2"
+              },
+              "version": "3.3.2",
+              "kind": "Changed"
+            },
+            {
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "versionRecord": null,
+              "version": "2.8.0",
+              "kind": "CarriedForward"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "33"
+        },
+        "result": {
+          "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+          "key": 33,
+          "version": "NWB-1009",
+          "name": null,
+          "targetDate": "2026-10-09",
+          "releasedAt": "2026-10-09T23:12:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                "key": 201,
+                "name": "3.3.2"
+              },
+              "version": "3.3.2",
+              "kind": "Changed"
+            },
+            {
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "versionRecord": null,
+              "version": "2.8.0",
+              "kind": "CarriedForward"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "when": {
+          "versionId": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7"
+        },
+        "result": [
+          {
+            "id": "2c0d4fbc-3d36-4dd1-b1a8-5bde9fbdd1ed",
+            "key": 412,
+            "version": {
+              "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+              "key": 208,
+              "name": "3.4.0"
+            },
+            "package": null,
+            "environment": {
+              "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+              "key": 4,
+              "name": "stg-us"
+            },
+            "environmentCategory": "Staging",
+            "artifactId": "3.4.0.017",
+            "startedAt": "2026-10-14T16:02:00Z",
+            "completedAt": "2026-10-14T16:19:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          }
+        ]
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "result": []
+      },
+      {
+        "tool": "Releases_MarkReleased",
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "This release carries a version or package that has not shipped. Release those first, or remove them from this release."
+        }
+      },
+      {
+        "tool": "Versions_MarkReleased",
+        "result": null
+      },
+      {
+        "tool": "Releases_SetContents",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Releases_MarkReleased",
+        "because": "Releases_MarkReleased is refused while the release carries Northwind Billing API 3.4.0, which has no releasedAt; the skill says to read the contents first and clear every unshipped entry before announcing."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Versions_MarkReleased",
+        "because": "The user never said 3.4.0 shipped or when; marking it released would invent a released moment to get the announcement through."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Releases_SetContents",
+        "because": "Dropping 3.4.0 from the release changes what customers were told it contains; that is the user's call, not the agent's."
+      },
+      {
+        "type": "says",
+        "pattern": "3\\.4\\.0",
+        "because": "The answer must name the version that blocks the announcement."
+      }
+    ],
+    "expected": "The agent reads release 2026.10 (Releases_GetRelease, or the contents returned by Releases_GetReleases) and sees that Northwind Billing API 3.4.0, carried directly, has no releasedAt (it is cut and only reached staging). Per the skill's \"A release cannot be announced while its contents have not shipped\" checklist and the Releases_MarkReleased description, it does not announce; it tells the user 3.4.0 has not shipped and asks whether it shipped (and when) or should be removed from the release. It neither marks 3.4.0 released nor edits the contents on its own."
+  },
+  {
+    "id": "delivery-add-package-to-release",
+    "skill": "wayd-delivery",
+    "prompt": "Please add the NWB-1110 package to the November billing release (2026.11) as well.",
+    "replies": [
+      "Yes, add NWB-1110 to 2026.11 and keep everything already in it."
+    ],
+    "traps": [
+      "whole-record-overwrite",
+      "key-vs-uuid",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "Releases_GetReleases",
+        "after": "Releases_SetContents",
+        "result": [
+          {
+            "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+            "key": 64,
+            "product": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "version": "2026.11",
+            "name": "November Billing Update",
+            "notes": null,
+            "sequence": null,
+            "targetDate": "2026-11-13",
+            "releasedDate": null,
+            "status": {
+              "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+              "name": "Planned",
+              "category": "Proposed",
+              "alias": 0
+            },
+            "versions": [
+              {
+                "version": {
+                  "id": "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847",
+                  "key": 214,
+                  "name": "2.9.0"
+                },
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "releasedAt": null
+              }
+            ],
+            "packages": [
+              {
+                "package": {
+                  "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+                  "key": 36,
+                  "name": "NWB-1103"
+                },
+                "releasedAt": null
+              },
+              {
+                "package": {
+                  "id": "f516e9e1-b9ee-4ffc-a48b-f15709a17875",
+                  "key": 38,
+                  "name": "NWB-1110"
+                },
+                "releasedAt": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Releases_GetReleases",
+        "result": [
+          {
+            "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+            "key": 64,
+            "product": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "version": "2026.11",
+            "name": "November Billing Update",
+            "notes": null,
+            "sequence": null,
+            "targetDate": "2026-11-13",
+            "releasedDate": null,
+            "status": {
+              "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+              "name": "Planned",
+              "category": "Proposed",
+              "alias": 0
+            },
+            "versions": [
+              {
+                "version": {
+                  "id": "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847",
+                  "key": 214,
+                  "name": "2.9.0"
+                },
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "releasedAt": null
+              }
+            ],
+            "packages": [
+              {
+                "package": {
+                  "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+                  "key": 36,
+                  "name": "NWB-1103"
+                },
+                "releasedAt": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "after": "Releases_SetContents",
+        "when": {
+          "idOrKey": "db73ecf1-843f-4f53-aec4-d29535113030"
+        },
+        "result": {
+          "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+          "key": 64,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.11",
+          "name": "November Billing Update",
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-11-13",
+          "releasedDate": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "versions": [
+            {
+              "version": {
+                "id": "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847",
+                "key": 214,
+                "name": "2.9.0"
+              },
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "releasedAt": null
+            }
+          ],
+          "packages": [
+            {
+              "package": {
+                "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+                "key": 36,
+                "name": "NWB-1103"
+              },
+              "releasedAt": null
+            },
+            {
+              "package": {
+                "id": "f516e9e1-b9ee-4ffc-a48b-f15709a17875",
+                "key": 38,
+                "name": "NWB-1110"
+              },
+              "releasedAt": null
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "when": {
+          "idOrKey": "db73ecf1-843f-4f53-aec4-d29535113030"
+        },
+        "result": {
+          "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+          "key": 64,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.11",
+          "name": "November Billing Update",
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-11-13",
+          "releasedDate": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "versions": [
+            {
+              "version": {
+                "id": "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847",
+                "key": 214,
+                "name": "2.9.0"
+              },
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "releasedAt": null
+            }
+          ],
+          "packages": [
+            {
+              "package": {
+                "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+                "key": 36,
+                "name": "NWB-1103"
+              },
+              "releasedAt": null
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "after": "Releases_SetContents",
+        "when": {
+          "idOrKey": "64"
+        },
+        "result": {
+          "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+          "key": 64,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.11",
+          "name": "November Billing Update",
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-11-13",
+          "releasedDate": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "versions": [
+            {
+              "version": {
+                "id": "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847",
+                "key": 214,
+                "name": "2.9.0"
+              },
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "releasedAt": null
+            }
+          ],
+          "packages": [
+            {
+              "package": {
+                "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+                "key": 36,
+                "name": "NWB-1103"
+              },
+              "releasedAt": null
+            },
+            {
+              "package": {
+                "id": "f516e9e1-b9ee-4ffc-a48b-f15709a17875",
+                "key": 38,
+                "name": "NWB-1110"
+              },
+              "releasedAt": null
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "when": {
+          "idOrKey": "64"
+        },
+        "result": {
+          "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+          "key": 64,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.11",
+          "name": "November Billing Update",
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-11-13",
+          "releasedDate": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "versions": [
+            {
+              "version": {
+                "id": "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847",
+                "key": 214,
+                "name": "2.9.0"
+              },
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "releasedAt": null
+            }
+          ],
+          "packages": [
+            {
+              "package": {
+                "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+                "key": 36,
+                "name": "NWB-1103"
+              },
+              "releasedAt": null
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackages",
+        "result": [
+          {
+            "id": "f516e9e1-b9ee-4ffc-a48b-f15709a17875",
+            "key": 38,
+            "version": "NWB-1110",
+            "name": null,
+            "targetDate": "2026-11-10",
+            "releasedAt": null,
+            "status": {
+              "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+              "name": "Planned",
+              "category": "Proposed",
+              "alias": 0
+            },
+            "components": [
+              {
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "versionRecord": {
+                  "id": "6e9be380-e169-4685-997d-3ac029fb0b3b",
+                  "key": 223,
+                  "name": "3.5.1"
+                },
+                "version": "3.5.1",
+                "kind": "Changed"
+              }
+            ]
+          },
+          {
+            "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+            "key": 36,
+            "version": "NWB-1103",
+            "name": null,
+            "targetDate": "2026-11-03",
+            "releasedAt": null,
+            "status": {
+              "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+              "name": "Planned",
+              "category": "Proposed",
+              "alias": 0
+            },
+            "components": [
+              {
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "versionRecord": {
+                  "id": "767547fe-cd10-4492-bebb-82ae5143689c",
+                  "key": 219,
+                  "name": "3.5.0"
+                },
+                "version": "3.5.0",
+                "kind": "Changed"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "f516e9e1-b9ee-4ffc-a48b-f15709a17875"
+        },
+        "result": {
+          "id": "f516e9e1-b9ee-4ffc-a48b-f15709a17875",
+          "key": 38,
+          "version": "NWB-1110",
+          "name": null,
+          "targetDate": "2026-11-10",
+          "releasedAt": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "6e9be380-e169-4685-997d-3ac029fb0b3b",
+                "key": 223,
+                "name": "3.5.1"
+              },
+              "version": "3.5.1",
+              "kind": "Changed"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "38"
+        },
+        "result": {
+          "id": "f516e9e1-b9ee-4ffc-a48b-f15709a17875",
+          "key": 38,
+          "version": "NWB-1110",
+          "name": null,
+          "targetDate": "2026-11-10",
+          "releasedAt": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "6e9be380-e169-4685-997d-3ac029fb0b3b",
+                "key": 223,
+                "name": "3.5.1"
+              },
+              "version": "3.5.1",
+              "kind": "Changed"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "8f58ecd9-5968-4c7f-b853-49a205cc9533"
+        },
+        "result": {
+          "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+          "key": 36,
+          "version": "NWB-1103",
+          "name": null,
+          "targetDate": "2026-11-03",
+          "releasedAt": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "767547fe-cd10-4492-bebb-82ae5143689c",
+                "key": 219,
+                "name": "3.5.0"
+              },
+              "version": "3.5.0",
+              "kind": "Changed"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "36"
+        },
+        "result": {
+          "id": "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+          "key": 36,
+          "version": "NWB-1103",
+          "name": null,
+          "targetDate": "2026-11-03",
+          "releasedAt": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "767547fe-cd10-4492-bebb-82ae5143689c",
+                "key": 219,
+                "name": "3.5.0"
+              },
+              "version": "3.5.0",
+              "kind": "Changed"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Releases_SetContents",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Releases_SetContents",
+        "with": {
+          "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+          "requestBody": {
+            "packageIds": [
+              "8f58ecd9-5968-4c7f-b853-49a205cc9533",
+              "f516e9e1-b9ee-4ffc-a48b-f15709a17875"
+            ],
+            "versionIds": [
+              "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847"
+            ]
+          }
+        },
+        "because": "Releases_SetContents replaces both routes: the existing package NWB-1103 and the directly carried Portal 2.9.0 must be sent back alongside the new package."
+      },
+      {
+        "type": "everyCall",
+        "tool": "Releases_SetContents",
+        "with": {
+          "id": "db73ecf1-843f-4f53-aec4-d29535113030",
+          "requestBody": {
+            "packageIds": [
+              "8f58ecd9-5968-4c7f-b853-49a205cc9533"
+            ],
+            "versionIds": [
+              "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847"
+            ]
+          }
+        },
+        "because": "No call may drop what the release already carries, even as a first attempt, and the id is the release UUID rather than its key or label."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Releases_SetContents",
+        "because": "Releases_SetContents is a destructive change the server instructions say needs the user's explicit confirmation."
+      }
+    ],
+    "expected": "The agent finds release 2026.11 and package NWB-1110 (a package label, not a key) with the list/get tools, reads the release's current contents (package NWB-1103 and the directly carried Northwind Billing Portal 2.9.0), confirms the change with the user, then calls Releases_SetContents with the release UUID, packageIds [NWB-1103, NWB-1110] and versionIds [Portal 2.9.0]. The skill's \"Overwrite, not patch\" section and the Releases_SetContents description both say anything left out is removed."
+  },
+  {
+    "id": "delivery-record-version-not-release",
+    "skill": "wayd-delivery",
+    "prompt": "Can you log the 3.5.0 release of the Northwind Billing API in Wayd? We cut it yesterday, the tag went out at 2026-10-16T18:05:00Z. It hasn't gone to production yet.",
+    "replies": [
+      "Yes, record 3.5.0 as cut at that time. It hasn't shipped yet."
+    ],
+    "traps": [
+      "wrong-tool",
+      "key-vs-uuid",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "ProductTypes_GetProductTypes",
+        "result": [
+          {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line",
+            "description": null,
+            "isReleasable": false,
+            "order": 1,
+            "isActive": true,
+            "isSystem": true,
+            "productCount": 1
+          },
+          {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application",
+            "description": null,
+            "isReleasable": true,
+            "order": 2,
+            "isActive": true,
+            "isSystem": true,
+            "productCount": 1
+          },
+          {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service",
+            "description": null,
+            "isReleasable": true,
+            "order": 3,
+            "isActive": true,
+            "isSystem": true,
+            "productCount": 1
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "when": {
+          "productId": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": []
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "after": "Versions_Cut",
+        "result": [
+          {
+            "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+            "key": 221,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.5.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-16T18:05:00Z",
+            "releasedAt": null,
+            "status": {
+              "id": "43e4ad3b-9e86-4ae0-8624-60574a6e79c8",
+              "name": "Ready",
+              "category": "Active",
+              "alias": 10
+            }
+          },
+          {
+            "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+            "key": 208,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.4.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-13T15:00:00Z",
+            "releasedAt": "2026-10-15T22:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+            "key": 201,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-06T13:00:00Z",
+            "releasedAt": "2026-10-09T23:12:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "after": "Versions_Plan",
+        "result": [
+          {
+            "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+            "key": 221,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.5.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": null,
+            "releasedAt": null,
+            "status": {
+              "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+              "name": "Planned",
+              "category": "Proposed",
+              "alias": 0
+            }
+          },
+          {
+            "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+            "key": 208,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.4.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-13T15:00:00Z",
+            "releasedAt": "2026-10-15T22:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+            "key": 201,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-06T13:00:00Z",
+            "releasedAt": "2026-10-09T23:12:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "result": [
+          {
+            "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+            "key": 208,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.4.0",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-13T15:00:00Z",
+            "releasedAt": "2026-10-15T22:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+            "key": 201,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-10-06T13:00:00Z",
+            "releasedAt": "2026-10-09T23:12:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7"
+        },
+        "result": {
+          "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+          "key": 208,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.4.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-13T15:00:00Z",
+          "releasedAt": "2026-10-15T22:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "208"
+        },
+        "result": {
+          "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+          "key": 208,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.4.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-13T15:00:00Z",
+          "releasedAt": "2026-10-15T22:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "956523fd-45f0-46e9-86ee-cb89cf9b1079"
+        },
+        "result": {
+          "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+          "key": 201,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.2",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-06T13:00:00Z",
+          "releasedAt": "2026-10-09T23:12:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "201"
+        },
+        "result": {
+          "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+          "key": 201,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.2",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-06T13:00:00Z",
+          "releasedAt": "2026-10-09T23:12:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Cut",
+        "when": {
+          "idOrKey": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1"
+        },
+        "result": {
+          "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+          "key": 221,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.5.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-16T18:05:00Z",
+          "releasedAt": null,
+          "status": {
+            "id": "43e4ad3b-9e86-4ae0-8624-60574a6e79c8",
+            "name": "Ready",
+            "category": "Active",
+            "alias": 10
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1"
+        },
+        "result": {
+          "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+          "key": 221,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.5.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": null,
+          "releasedAt": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "after": "Versions_Cut",
+        "when": {
+          "idOrKey": "221"
+        },
+        "result": {
+          "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+          "key": 221,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.5.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-10-16T18:05:00Z",
+          "releasedAt": null,
+          "status": {
+            "id": "43e4ad3b-9e86-4ae0-8624-60574a6e79c8",
+            "name": "Ready",
+            "category": "Active",
+            "alias": 10
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "221"
+        },
+        "result": {
+          "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+          "key": 221,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.5.0",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": null,
+          "releasedAt": null,
+          "status": {
+            "id": "aa24e9e2-c84b-4c1b-803e-dacbbcae6cf9",
+            "name": "Planned",
+            "category": "Proposed",
+            "alias": 0
+          }
+        }
+      },
+      {
+        "tool": "Versions_Plan",
+        "when": {
+          "requestBody": {
+            "productId": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+          }
+        },
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "Versions cannot be cut against this product's type."
+        }
+      },
+      {
+        "tool": "Versions_Plan",
+        "result": {
+          "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+          "key": 221
+        }
+      },
+      {
+        "tool": "Versions_Cut",
+        "result": null
+      },
+      {
+        "tool": "Releases_Plan",
+        "result": {
+          "id": "2dc094e7-b77e-476b-b7e0-996e3763abfb",
+          "key": 66
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Releases_Plan",
+        "because": "\"3.5.0\" names one artifact and a version number, so it is a version; the skill's four-records section calls this the most common error."
+      },
+      {
+        "type": "called",
+        "tool": "Versions_Plan",
+        "with": {
+          "requestBody": {
+            "productId": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "version": "3.5.0"
+          }
+        },
+        "because": "The version is recorded against the releasable Northwind Billing API by UUID."
+      },
+      {
+        "type": "everyCall",
+        "tool": "Versions_Plan",
+        "with": {
+          "requestBody": {
+            "productId": "17f79eeb-d355-4118-9cb0-166b213dd916"
+          }
+        },
+        "because": "The product line Northwind Billing is not releasable; versions are cut against the service."
+      },
+      {
+        "type": "called",
+        "tool": "Versions_Cut",
+        "with": {
+          "id": "4d1076ae-1b17-4b05-ae82-ee907b8b5ff1",
+          "requestBody": {
+            "cutAt": {
+              "$regex": "^2026-10-16T18:05(:00(\\.0+)?)?(Z|\\+00:00)$"
+            }
+          }
+        },
+        "because": "The user gave the cut moment; it is sent as the instant reported, on the new version's UUID."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Versions_MarkReleased",
+        "because": "The user said it has not reached production, so it has not shipped."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Versions_Cut",
+        "because": "Cutting is a status change, which needs the user's explicit confirmation."
+      }
+    ],
+    "expected": "Despite the word \"release\", 3.5.0 names one artifact, so the agent records a version: it finds the Northwind Billing API (releasable Service, not the Northwind Billing product line) with Products_GetProducts, calls Versions_Plan with its UUID and \"3.5.0\", then Versions_Cut on the returned id with cutAt 2026-10-16T18:05:00Z (asking first if it treats the cut as a status change). It does not call Releases_Plan or Versions_MarkReleased. Cited: the skill's \"The most common error\" note and the Versions_Plan / Versions_Cut descriptions."
+  },
+  {
+    "id": "delivery-where-did-version-go",
+    "skill": "wayd-delivery",
+    "prompt": "Where did Northwind Billing API 3.3.1 end up? Which environments got it, and did we ever announce it to customers?",
+    "traps": [
+      "wrong-tool"
+    ],
+    "fixtures": [
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Versions_GetVersions",
+        "result": [
+          {
+            "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+            "key": 201,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.2",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-09-24T13:00:00Z",
+            "releasedAt": "2026-09-27T01:50:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          },
+          {
+            "id": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68",
+            "key": 196,
+            "product": {
+              "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+              "key": 14,
+              "name": "Northwind Billing API"
+            },
+            "number": "3.3.1",
+            "name": null,
+            "notes": null,
+            "sequence": null,
+            "targetDate": null,
+            "cutAt": "2026-09-08T14:00:00Z",
+            "releasedAt": "2026-09-12T02:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "956523fd-45f0-46e9-86ee-cb89cf9b1079"
+        },
+        "result": {
+          "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+          "key": 201,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.2",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-09-24T13:00:00Z",
+          "releasedAt": "2026-09-27T01:50:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "201"
+        },
+        "result": {
+          "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+          "key": 201,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.2",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-09-24T13:00:00Z",
+          "releasedAt": "2026-09-27T01:50:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68"
+        },
+        "result": {
+          "id": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68",
+          "key": 196,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.1",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-09-08T14:00:00Z",
+          "releasedAt": "2026-09-12T02:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Versions_GetVersion",
+        "when": {
+          "idOrKey": "196"
+        },
+        "result": {
+          "id": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68",
+          "key": 196,
+          "product": {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API"
+          },
+          "number": "3.3.1",
+          "name": null,
+          "notes": null,
+          "sequence": null,
+          "targetDate": null,
+          "cutAt": "2026-09-08T14:00:00Z",
+          "releasedAt": "2026-09-12T02:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          }
+        }
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "when": {
+          "versionId": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68"
+        },
+        "result": []
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "when": {
+          "packageId": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279"
+        },
+        "result": [
+          {
+            "id": "f9287743-327e-4e78-93f6-3267247f05ab",
+            "key": 371,
+            "version": null,
+            "package": {
+              "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+              "key": 29,
+              "name": "NWB-0912"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-0912.2",
+            "startedAt": "2026-09-12T02:10:00Z",
+            "completedAt": "2026-09-12T02:40:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "312cd7ea-cfe0-4ef8-b0d5-6f9c687479f3",
+            "key": 368,
+            "version": null,
+            "package": {
+              "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+              "key": 29,
+              "name": "NWB-0912"
+            },
+            "environment": {
+              "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+              "key": 4,
+              "name": "stg-us"
+            },
+            "environmentCategory": "Staging",
+            "artifactId": "nwb-0912.2",
+            "startedAt": "2026-09-11T20:10:00Z",
+            "completedAt": "2026-09-11T20:31:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          }
+        ]
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "when": {
+          "packageId": "c4683161-b675-4c25-bd29-84e25d92f029"
+        },
+        "result": [
+          {
+            "id": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+            "key": 389,
+            "version": null,
+            "package": {
+              "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+              "key": 31,
+              "name": "NWB-0926"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-0926.1",
+            "startedAt": "2026-09-27T01:20:00Z",
+            "completedAt": "2026-09-27T01:50:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "4685623b-9e5f-4bd3-bbe9-aa64663fb3e0",
+            "key": 386,
+            "version": null,
+            "package": {
+              "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+              "key": 31,
+              "name": "NWB-0926"
+            },
+            "environment": {
+              "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+              "key": 4,
+              "name": "stg-us"
+            },
+            "environmentCategory": "Staging",
+            "artifactId": "nwb-0926.1",
+            "startedAt": "2026-09-26T19:05:00Z",
+            "completedAt": "2026-09-26T19:22:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          }
+        ]
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "result": [
+          {
+            "id": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+            "key": 389,
+            "version": null,
+            "package": {
+              "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+              "key": 31,
+              "name": "NWB-0926"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-0926.1",
+            "startedAt": "2026-09-27T01:20:00Z",
+            "completedAt": "2026-09-27T01:50:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "4685623b-9e5f-4bd3-bbe9-aa64663fb3e0",
+            "key": 386,
+            "version": null,
+            "package": {
+              "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+              "key": 31,
+              "name": "NWB-0926"
+            },
+            "environment": {
+              "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+              "key": 4,
+              "name": "stg-us"
+            },
+            "environmentCategory": "Staging",
+            "artifactId": "nwb-0926.1",
+            "startedAt": "2026-09-26T19:05:00Z",
+            "completedAt": "2026-09-26T19:22:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "f9287743-327e-4e78-93f6-3267247f05ab",
+            "key": 371,
+            "version": null,
+            "package": {
+              "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+              "key": 29,
+              "name": "NWB-0912"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-0912.2",
+            "startedAt": "2026-09-12T02:10:00Z",
+            "completedAt": "2026-09-12T02:40:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "312cd7ea-cfe0-4ef8-b0d5-6f9c687479f3",
+            "key": 368,
+            "version": null,
+            "package": {
+              "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+              "key": 29,
+              "name": "NWB-0912"
+            },
+            "environment": {
+              "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+              "key": 4,
+              "name": "stg-us"
+            },
+            "environmentCategory": "Staging",
+            "artifactId": "nwb-0912.2",
+            "startedAt": "2026-09-11T20:10:00Z",
+            "completedAt": "2026-09-11T20:31:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          }
+        ]
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackages",
+        "when": {
+          "containingVersionId": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68"
+        },
+        "result": [
+          {
+            "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+            "key": 29,
+            "version": "NWB-0912",
+            "name": null,
+            "targetDate": "2026-09-11",
+            "releasedAt": "2026-09-12T02:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            },
+            "components": [
+              {
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "versionRecord": {
+                  "id": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68",
+                  "key": 196,
+                  "name": "3.3.1"
+                },
+                "version": "3.3.1",
+                "kind": "Changed"
+              },
+              {
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "versionRecord": null,
+                "version": "2.8.0",
+                "kind": "CarriedForward"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackages",
+        "when": {
+          "containingVersionId": "956523fd-45f0-46e9-86ee-cb89cf9b1079"
+        },
+        "result": [
+          {
+            "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+            "key": 31,
+            "version": "NWB-0926",
+            "name": null,
+            "targetDate": "2026-09-26",
+            "releasedAt": "2026-09-27T01:50:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            },
+            "components": [
+              {
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "versionRecord": {
+                  "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                  "key": 201,
+                  "name": "3.3.2"
+                },
+                "version": "3.3.2",
+                "kind": "Changed"
+              },
+              {
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "versionRecord": null,
+                "version": "2.8.0",
+                "kind": "CarriedForward"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackages",
+        "result": [
+          {
+            "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+            "key": 31,
+            "version": "NWB-0926",
+            "name": null,
+            "targetDate": "2026-09-26",
+            "releasedAt": "2026-09-27T01:50:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            },
+            "components": [
+              {
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "versionRecord": {
+                  "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                  "key": 201,
+                  "name": "3.3.2"
+                },
+                "version": "3.3.2",
+                "kind": "Changed"
+              },
+              {
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "versionRecord": null,
+                "version": "2.8.0",
+                "kind": "CarriedForward"
+              }
+            ]
+          },
+          {
+            "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+            "key": 29,
+            "version": "NWB-0912",
+            "name": null,
+            "targetDate": "2026-09-11",
+            "releasedAt": "2026-09-12T02:40:00Z",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            },
+            "components": [
+              {
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "versionRecord": {
+                  "id": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68",
+                  "key": 196,
+                  "name": "3.3.1"
+                },
+                "version": "3.3.1",
+                "kind": "Changed"
+              },
+              {
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "versionRecord": null,
+                "version": "2.8.0",
+                "kind": "CarriedForward"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279"
+        },
+        "result": {
+          "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+          "key": 29,
+          "version": "NWB-0912",
+          "name": null,
+          "targetDate": "2026-09-11",
+          "releasedAt": "2026-09-12T02:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68",
+                "key": 196,
+                "name": "3.3.1"
+              },
+              "version": "3.3.1",
+              "kind": "Changed"
+            },
+            {
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "versionRecord": null,
+              "version": "2.8.0",
+              "kind": "CarriedForward"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "29"
+        },
+        "result": {
+          "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+          "key": 29,
+          "version": "NWB-0912",
+          "name": null,
+          "targetDate": "2026-09-11",
+          "releasedAt": "2026-09-12T02:40:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "8e4b1d6c-2a9f-4c35-b7e1-0d6a3f9c2b68",
+                "key": 196,
+                "name": "3.3.1"
+              },
+              "version": "3.3.1",
+              "kind": "Changed"
+            },
+            {
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "versionRecord": null,
+              "version": "2.8.0",
+              "kind": "CarriedForward"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "c4683161-b675-4c25-bd29-84e25d92f029"
+        },
+        "result": {
+          "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+          "key": 31,
+          "version": "NWB-0926",
+          "name": null,
+          "targetDate": "2026-09-26",
+          "releasedAt": "2026-09-27T01:50:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                "key": 201,
+                "name": "3.3.2"
+              },
+              "version": "3.3.2",
+              "kind": "Changed"
+            },
+            {
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "versionRecord": null,
+              "version": "2.8.0",
+              "kind": "CarriedForward"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "ReleasePackages_GetReleasePackage",
+        "when": {
+          "idOrKey": "31"
+        },
+        "result": {
+          "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+          "key": 31,
+          "version": "NWB-0926",
+          "name": null,
+          "targetDate": "2026-09-26",
+          "releasedAt": "2026-09-27T01:50:00Z",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "components": [
+            {
+              "product": {
+                "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                "key": 14,
+                "name": "Northwind Billing API"
+              },
+              "versionRecord": {
+                "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                "key": 201,
+                "name": "3.3.2"
+              },
+              "version": "3.3.2",
+              "kind": "Changed"
+            },
+            {
+              "product": {
+                "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                "key": 15,
+                "name": "Northwind Billing Portal"
+              },
+              "versionRecord": null,
+              "version": "2.8.0",
+              "kind": "CarriedForward"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Releases_GetReleases",
+        "result": [
+          {
+            "id": "b5d1f8e3-7a2c-4e9b-8f16-4c3a0e2d7b80",
+            "key": 58,
+            "product": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "version": "2026.09",
+            "name": "September Billing Update",
+            "notes": null,
+            "sequence": null,
+            "targetDate": "2026-09-15",
+            "releasedDate": "2026-09-15",
+            "status": {
+              "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+              "name": "Released",
+              "category": "Done",
+              "alias": 11
+            },
+            "versions": [],
+            "packages": [
+              {
+                "package": {
+                  "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+                  "key": 29,
+                  "name": "NWB-0912"
+                },
+                "releasedAt": "2026-09-12T02:40:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "when": {
+          "idOrKey": "b5d1f8e3-7a2c-4e9b-8f16-4c3a0e2d7b80"
+        },
+        "result": {
+          "id": "b5d1f8e3-7a2c-4e9b-8f16-4c3a0e2d7b80",
+          "key": 58,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.09",
+          "name": "September Billing Update",
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-09-15",
+          "releasedDate": "2026-09-15",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "versions": [],
+          "packages": [
+            {
+              "package": {
+                "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+                "key": 29,
+                "name": "NWB-0912"
+              },
+              "releasedAt": "2026-09-12T02:40:00Z"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Releases_GetRelease",
+        "when": {
+          "idOrKey": "58"
+        },
+        "result": {
+          "id": "b5d1f8e3-7a2c-4e9b-8f16-4c3a0e2d7b80",
+          "key": 58,
+          "product": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "version": "2026.09",
+          "name": "September Billing Update",
+          "notes": null,
+          "sequence": null,
+          "targetDate": "2026-09-15",
+          "releasedDate": "2026-09-15",
+          "status": {
+            "id": "c9acfaf3-7993-4587-b677-6c12989f1cca",
+            "name": "Released",
+            "category": "Done",
+            "alias": 11
+          },
+          "versions": [],
+          "packages": [
+            {
+              "package": {
+                "id": "2c7e5a9b-4d1f-4b6c-9e38-a1f0d4b7c279",
+                "key": 29,
+                "name": "NWB-0912"
+              },
+              "releasedAt": "2026-09-12T02:40:00Z"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "DeploymentEnvironments_GetRollout",
+        "result": [
+          {
+            "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+            "key": 4,
+            "name": "stg-us",
+            "category": "Staging",
+            "ringOrder": 2,
+            "isActive": true,
+            "running": [
+              {
+                "deploymentId": "4685623b-9e5f-4bd3-bbe9-aa64663fb3e0",
+                "deploymentKey": 386,
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "version": {
+                  "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                  "key": 201,
+                  "name": "3.3.2"
+                },
+                "versionLabel": "3.3.2",
+                "package": {
+                  "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+                  "key": 31,
+                  "name": "NWB-0926"
+                },
+                "artifactId": "nwb-0926.1",
+                "deployedAt": "2026-09-26T19:22:00Z",
+                "hasFailedAttemptSince": false
+              },
+              {
+                "deploymentId": "4685623b-9e5f-4bd3-bbe9-aa64663fb3e0",
+                "deploymentKey": 386,
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "version": null,
+                "versionLabel": "2.8.0",
+                "package": {
+                  "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+                  "key": 31,
+                  "name": "NWB-0926"
+                },
+                "artifactId": "nwb-0926.1",
+                "deployedAt": "2026-09-26T19:22:00Z",
+                "hasFailedAttemptSince": false
+              }
+            ]
+          },
+          {
+            "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+            "key": 5,
+            "name": "prd-us",
+            "category": "Production",
+            "ringOrder": 3,
+            "isActive": true,
+            "running": [
+              {
+                "deploymentId": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+                "deploymentKey": 389,
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "version": {
+                  "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                  "key": 201,
+                  "name": "3.3.2"
+                },
+                "versionLabel": "3.3.2",
+                "package": {
+                  "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+                  "key": 31,
+                  "name": "NWB-0926"
+                },
+                "artifactId": "nwb-0926.1",
+                "deployedAt": "2026-09-27T01:50:00Z",
+                "hasFailedAttemptSince": false
+              },
+              {
+                "deploymentId": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+                "deploymentKey": 389,
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "version": null,
+                "versionLabel": "2.8.0",
+                "package": {
+                  "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+                  "key": 31,
+                  "name": "NWB-0926"
+                },
+                "artifactId": "nwb-0926.1",
+                "deployedAt": "2026-09-27T01:50:00Z",
+                "hasFailedAttemptSince": false
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "says",
+        "pattern": "NWB-0912",
+        "because": "3.3.1 has no deployment of its own; it shipped inside package NWB-0912, found from the packages side (containingVersionId) or the release contents."
+      },
+      {
+        "type": "says",
+        "pattern": "prd-us|production",
+        "because": "The package carrying 3.3.1 was deployed to production, so \"never deployed\" is wrong."
+      },
+      {
+        "type": "says",
+        "pattern": "2026\\.09|September Billing",
+        "because": "Release 2026.09 announced the package that carried 3.3.1."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Deployments_Start",
+        "because": "A read-only question changes nothing."
+      }
+    ],
+    "expected": "The agent finds 3.3.1's UUID, sees Deployments_GetDeployments with versionId return nothing, and — as the skill's Deployments section and \"Answering where did this version go?\" say — looks from the packages side: ReleasePackages_GetReleasePackages with containingVersionId gives NWB-0912, whose deployments reached stg-us and prd-us, and Releases_GetReleases with containingVersionId gives release 2026.09 (September Billing Update, announced 2026-09-15). It may add from the rollout that production now runs 3.3.2. It writes nothing."
+  }
+]

@@ -93,7 +93,7 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{id:guid}/rows")]
     [EndpointSummary("Get a page of an import run's row outcomes, as `rows` with a `totalCount`.")]
     [EndpointDescription(
-        "Each row has its `importId` (the file's ImportId column, or its position when the file had none), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.")]
+        "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.")]
     [McpTool("Imports_GetRows", "Get import run rows")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

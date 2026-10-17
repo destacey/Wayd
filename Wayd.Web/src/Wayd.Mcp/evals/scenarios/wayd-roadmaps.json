@@ -1,0 +1,1739 @@
+[
+  {
+    "id": "roadmaps-planned-for-quarter",
+    "skill": "wayd-roadmaps",
+    "prompt": "What's planned on the Platform roadmap for Q1 2027? Include any milestones landing in that quarter.",
+    "fixtures": [
+      {
+        "tool": "Roadmaps_GetRoadmaps",
+        "result": [
+          {
+            "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "key": 7,
+            "name": "Platform 2027",
+            "start": "2026-10-01",
+            "end": "2027-12-31",
+            "visibility": {
+              "id": 1,
+              "name": "Public"
+            },
+            "state": {
+              "id": 1,
+              "name": "Active"
+            },
+            "color": "#4096FF",
+            "roadmapManagers": [
+              {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              }
+            ]
+          },
+          {
+            "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
+            "key": 9,
+            "name": "Customer Experience 2027",
+            "start": "2027-01-01",
+            "end": "2027-12-31",
+            "visibility": {
+              "id": 1,
+              "name": "Public"
+            },
+            "state": {
+              "id": 1,
+              "name": "Active"
+            },
+            "color": "#36CFC9",
+            "roadmapManagers": [
+              {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetRoadmap",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": {
+          "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "key": 7,
+          "name": "Platform 2027",
+          "description": "Platform engineering investments for the next five quarters.",
+          "start": "2026-10-01",
+          "end": "2027-12-31",
+          "visibility": {
+            "id": 1,
+            "name": "Public"
+          },
+          "state": {
+            "id": 1,
+            "name": "Active"
+          },
+          "roadmapManagers": [
+            {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            }
+          ],
+          "colors": [
+            {
+              "color": "#4096FF",
+              "name": "Committed",
+              "order": 1,
+              "isDefault": true
+            },
+            {
+              "color": "#FAAD14",
+              "name": "Exploratory",
+              "order": 2,
+              "isDefault": false
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Roadmaps_GetItems",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": [
+          {
+            "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q4 2026",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2026-10-01",
+            "end": "2026-12-31"
+          },
+          {
+            "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q1 2027",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2027-01-01",
+            "end": "2027-03-31"
+          },
+          {
+            "id": "3a15c75f-44ff-40a4-934f-f6078deca52b",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q2 2027",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2027-04-01",
+            "end": "2027-06-30"
+          },
+          {
+            "id": "55002b35-05c7-422b-8e59-6aee0480f036",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Platform change freeze",
+            "type": {
+              "id": 2,
+              "name": "Milestone"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "milestone",
+            "date": "2026-12-11"
+          },
+          {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Infrastructure modernization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2027-06-30",
+            "order": 1,
+            "children": [
+              {
+                "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Database consolidation",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2026-10-05",
+                "end": "2026-12-18",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Edge cache rollout",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-01-11",
+                "end": "2027-03-19",
+                "order": 2,
+                "children": [
+                  {
+                    "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                    "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                    "name": "Edge cache live in all regions",
+                    "type": {
+                      "id": 2,
+                      "name": "Milestone"
+                    },
+                    "parent": {
+                      "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                      "name": "Edge cache rollout"
+                    },
+                    "color": null,
+                    "$type": "milestone",
+                    "date": "2027-03-19"
+                  }
+                ]
+              },
+              {
+                "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Observability v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#FAAD14",
+                "$type": "activity",
+                "start": "2027-04-05",
+                "end": "2027-06-25",
+                "order": 3,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Developer experience",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2027-02-01",
+            "end": "2027-05-28",
+            "order": 2,
+            "children": [
+              {
+                "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "CLI v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-02-01",
+                "end": "2027-03-31",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Partner API GA",
+                "type": {
+                  "id": 2,
+                  "name": "Milestone"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": null,
+                "$type": "milestone",
+                "date": "2027-03-08"
+              }
+            ]
+          },
+          {
+            "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Cost optimization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#FAAD14",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2026-12-31",
+            "order": 3,
+            "children": []
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetActivities",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": [
+          {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Infrastructure modernization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2027-06-30",
+            "order": 1,
+            "children": [
+              {
+                "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Database consolidation",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2026-10-05",
+                "end": "2026-12-18",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Edge cache rollout",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-01-11",
+                "end": "2027-03-19",
+                "order": 2,
+                "children": []
+              },
+              {
+                "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Observability v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#FAAD14",
+                "$type": "activity",
+                "start": "2027-04-05",
+                "end": "2027-06-25",
+                "order": 3,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Developer experience",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2027-02-01",
+            "end": "2027-05-28",
+            "order": 2,
+            "children": [
+              {
+                "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "CLI v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-02-01",
+                "end": "2027-03-31",
+                "order": 1,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Cost optimization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#FAAD14",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2026-12-31",
+            "order": 3,
+            "children": []
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetItem",
+        "when": {
+          "roadmapIdOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          },
+          "itemId": "ac909c63-981e-4e37-a126-00e39212d1b8"
+        },
+        "result": {
+          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+          "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "name": "Edge cache rollout",
+          "type": {
+            "id": 1,
+            "name": "Activity"
+          },
+          "parent": {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "name": "Infrastructure modernization"
+          },
+          "color": "#4096FF",
+          "$type": "activity",
+          "description": "Move static asset delivery to the edge cache in all six regions, with stale-while-revalidate for catalog pages.",
+          "start": "2027-01-11",
+          "end": "2027-03-19",
+          "order": 2,
+          "children": [
+            {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+              "name": "Edge cache live in all regions",
+              "type": {
+                "id": 2,
+                "name": "Milestone"
+              },
+              "parent": {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "name": "Edge cache rollout"
+              },
+              "color": null,
+              "$type": "milestone",
+              "date": "2027-03-19"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Roadmaps_GetItem",
+        "when": {
+          "roadmapIdOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          },
+          "itemId": "260f94c0-2da5-46b7-add5-bb86b47e3174"
+        },
+        "result": {
+          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+          "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "name": "Partner API GA",
+          "type": {
+            "id": 2,
+            "name": "Milestone"
+          },
+          "parent": {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "name": "Developer experience"
+          },
+          "color": null,
+          "$type": "milestone",
+          "description": "Partner API reaches general availability with published SLAs.",
+          "date": "2027-03-08"
+        }
+      },
+      {
+        "tool": "Roadmaps_GetVisibilityOptions",
+        "result": [
+          {
+            "id": 1,
+            "name": "Public",
+            "description": "The object is visible to all users.",
+            "order": 1
+          },
+          {
+            "id": 2,
+            "name": "Private",
+            "description": "The object is only visible to specific users.",
+            "order": 2
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Roadmaps_GetItems",
+        "with": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "because": "Only Roadmaps_GetItems returns milestones and timeboxes as well as activities."
+      },
+      {
+        "type": "says",
+        "pattern": "edge cache rollout",
+        "because": "'Edge cache rollout' is nested under 'Infrastructure modernization'; finding it shows the agent walked children."
+      },
+      {
+        "type": "says",
+        "pattern": "partner api ga",
+        "because": "The 'Partner API GA' milestone (2027-03-08) is a child of 'Developer experience', not a root item."
+      },
+      {
+        "type": "says",
+        "pattern": "cli v2",
+        "because": "'CLI v2' is a nested activity overlapping Q1 2027."
+      }
+    ],
+    "expected": "Following the wayd-roadmaps 'what is planned for a period' recipe, the agent finds 'Platform 2027' with Roadmaps_GetRoadmaps, calls Roadmaps_GetItems, flattens the tree through `children`, and keeps items overlapping 2027-01-01 to 2027-03-31: milestones 'Partner API GA' (Mar 8) and 'Edge cache live in all regions' (Mar 19); activities 'Edge cache rollout' and 'CLI v2' under their parents 'Infrastructure modernization' and 'Developer experience'; and the 'Q1 2027' timebox. 'Database consolidation', 'Observability v2', 'Cost optimization' and the December freeze fall outside it."
+  },
+  {
+    "id": "roadmaps-move-milestone-unsupported",
+    "skill": "wayd-roadmaps",
+    "prompt": "Can you push the Partner API GA milestone on the Platform 2027 roadmap back to March 22? The partner contracts slipped.",
+    "traps": [
+      "unsupported"
+    ],
+    "fixtures": [
+      {
+        "tool": "Roadmaps_GetRoadmaps",
+        "result": [
+          {
+            "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "key": 7,
+            "name": "Platform 2027",
+            "start": "2026-10-01",
+            "end": "2027-12-31",
+            "visibility": {
+              "id": 1,
+              "name": "Public"
+            },
+            "state": {
+              "id": 1,
+              "name": "Active"
+            },
+            "color": "#4096FF",
+            "roadmapManagers": [
+              {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              }
+            ]
+          },
+          {
+            "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
+            "key": 9,
+            "name": "Customer Experience 2027",
+            "start": "2027-01-01",
+            "end": "2027-12-31",
+            "visibility": {
+              "id": 1,
+              "name": "Public"
+            },
+            "state": {
+              "id": 1,
+              "name": "Active"
+            },
+            "color": "#36CFC9",
+            "roadmapManagers": [
+              {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetRoadmap",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": {
+          "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "key": 7,
+          "name": "Platform 2027",
+          "description": "Platform engineering investments for the next five quarters.",
+          "start": "2026-10-01",
+          "end": "2027-12-31",
+          "visibility": {
+            "id": 1,
+            "name": "Public"
+          },
+          "state": {
+            "id": 1,
+            "name": "Active"
+          },
+          "roadmapManagers": [
+            {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            }
+          ],
+          "colors": [
+            {
+              "color": "#4096FF",
+              "name": "Committed",
+              "order": 1,
+              "isDefault": true
+            },
+            {
+              "color": "#FAAD14",
+              "name": "Exploratory",
+              "order": 2,
+              "isDefault": false
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Roadmaps_GetItems",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": [
+          {
+            "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q4 2026",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2026-10-01",
+            "end": "2026-12-31"
+          },
+          {
+            "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q1 2027",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2027-01-01",
+            "end": "2027-03-31"
+          },
+          {
+            "id": "3a15c75f-44ff-40a4-934f-f6078deca52b",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q2 2027",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2027-04-01",
+            "end": "2027-06-30"
+          },
+          {
+            "id": "55002b35-05c7-422b-8e59-6aee0480f036",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Platform change freeze",
+            "type": {
+              "id": 2,
+              "name": "Milestone"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "milestone",
+            "date": "2026-12-11"
+          },
+          {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Infrastructure modernization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2027-06-30",
+            "order": 1,
+            "children": [
+              {
+                "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Database consolidation",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2026-10-05",
+                "end": "2026-12-18",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Edge cache rollout",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-01-11",
+                "end": "2027-03-19",
+                "order": 2,
+                "children": [
+                  {
+                    "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                    "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                    "name": "Edge cache live in all regions",
+                    "type": {
+                      "id": 2,
+                      "name": "Milestone"
+                    },
+                    "parent": {
+                      "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                      "name": "Edge cache rollout"
+                    },
+                    "color": null,
+                    "$type": "milestone",
+                    "date": "2027-03-19"
+                  }
+                ]
+              },
+              {
+                "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Observability v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#FAAD14",
+                "$type": "activity",
+                "start": "2027-04-05",
+                "end": "2027-06-25",
+                "order": 3,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Developer experience",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2027-02-01",
+            "end": "2027-05-28",
+            "order": 2,
+            "children": [
+              {
+                "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "CLI v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-02-01",
+                "end": "2027-03-31",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Partner API GA",
+                "type": {
+                  "id": 2,
+                  "name": "Milestone"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": null,
+                "$type": "milestone",
+                "date": "2027-03-08"
+              }
+            ]
+          },
+          {
+            "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Cost optimization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#FAAD14",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2026-12-31",
+            "order": 3,
+            "children": []
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetActivities",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": [
+          {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Infrastructure modernization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2027-06-30",
+            "order": 1,
+            "children": [
+              {
+                "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Database consolidation",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2026-10-05",
+                "end": "2026-12-18",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Edge cache rollout",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-01-11",
+                "end": "2027-03-19",
+                "order": 2,
+                "children": []
+              },
+              {
+                "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Observability v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#FAAD14",
+                "$type": "activity",
+                "start": "2027-04-05",
+                "end": "2027-06-25",
+                "order": 3,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Developer experience",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2027-02-01",
+            "end": "2027-05-28",
+            "order": 2,
+            "children": [
+              {
+                "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "CLI v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-02-01",
+                "end": "2027-03-31",
+                "order": 1,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Cost optimization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#FAAD14",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2026-12-31",
+            "order": 3,
+            "children": []
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetItem",
+        "when": {
+          "roadmapIdOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          },
+          "itemId": "ac909c63-981e-4e37-a126-00e39212d1b8"
+        },
+        "result": {
+          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+          "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "name": "Edge cache rollout",
+          "type": {
+            "id": 1,
+            "name": "Activity"
+          },
+          "parent": {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "name": "Infrastructure modernization"
+          },
+          "color": "#4096FF",
+          "$type": "activity",
+          "description": "Move static asset delivery to the edge cache in all six regions, with stale-while-revalidate for catalog pages.",
+          "start": "2027-01-11",
+          "end": "2027-03-19",
+          "order": 2,
+          "children": [
+            {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+              "name": "Edge cache live in all regions",
+              "type": {
+                "id": 2,
+                "name": "Milestone"
+              },
+              "parent": {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "name": "Edge cache rollout"
+              },
+              "color": null,
+              "$type": "milestone",
+              "date": "2027-03-19"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Roadmaps_GetItem",
+        "when": {
+          "roadmapIdOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          },
+          "itemId": "260f94c0-2da5-46b7-add5-bb86b47e3174"
+        },
+        "result": {
+          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+          "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "name": "Partner API GA",
+          "type": {
+            "id": 2,
+            "name": "Milestone"
+          },
+          "parent": {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "name": "Developer experience"
+          },
+          "color": null,
+          "$type": "milestone",
+          "description": "Partner API reaches general availability with published SLAs.",
+          "date": "2027-03-08"
+        }
+      },
+      {
+        "tool": "Roadmaps_GetVisibilityOptions",
+        "result": [
+          {
+            "id": 1,
+            "name": "Public",
+            "description": "The object is visible to all users.",
+            "order": 1
+          },
+          {
+            "id": 2,
+            "name": "Private",
+            "description": "The object is only visible to specific users.",
+            "order": 2
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Tasks_UpdateProjectTask",
+        "because": "A project milestone task is not the roadmap milestone; the change must not be approximated with other tools."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Releases_MoveTargetDate",
+        "because": "A release is not the roadmap milestone."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Releases_Update",
+        "because": "A release is not the roadmap milestone."
+      },
+      {
+        "type": "says",
+        "pattern": "can'?t|cannot|can not|unable|not able|no (mcp )?tool|read.?only|doesn'?t (support|allow|let|provide|have)|isn'?t (possible|supported|available)|not (possible|supported|available)",
+        "because": "Roadmaps are read-only through MCP; the agent must say it cannot make the change."
+      },
+      {
+        "type": "says",
+        "pattern": "wayd (app|ui|web)|in wayd|the app\\b|web app|user interface|\\bui\\b|roadmap (page|editor|view)",
+        "because": "wayd-roadmaps: to create or change a roadmap, direct the user to the Wayd app."
+      }
+    ],
+    "expected": "The wayd-roadmaps skill says every roadmap tool is read-only and to direct the user to the Wayd app for changes. The agent may look up the milestone (2027-03-08) to confirm it exists, then tells the user it cannot move it through these tools and that the date must be changed in the Wayd app, without touching project tasks or releases as a stand-in."
+  },
+  {
+    "id": "roadmaps-item-details-by-name",
+    "skill": "wayd-roadmaps",
+    "prompt": "What's the description on the Edge cache rollout activity in roadmap 7?",
+    "traps": [
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "Roadmaps_GetRoadmaps",
+        "result": [
+          {
+            "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "key": 7,
+            "name": "Platform 2027",
+            "start": "2026-10-01",
+            "end": "2027-12-31",
+            "visibility": {
+              "id": 1,
+              "name": "Public"
+            },
+            "state": {
+              "id": 1,
+              "name": "Active"
+            },
+            "color": "#4096FF",
+            "roadmapManagers": [
+              {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              }
+            ]
+          },
+          {
+            "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
+            "key": 9,
+            "name": "Customer Experience 2027",
+            "start": "2027-01-01",
+            "end": "2027-12-31",
+            "visibility": {
+              "id": 1,
+              "name": "Public"
+            },
+            "state": {
+              "id": 1,
+              "name": "Active"
+            },
+            "color": "#36CFC9",
+            "roadmapManagers": [
+              {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetRoadmap",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": {
+          "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "key": 7,
+          "name": "Platform 2027",
+          "description": "Platform engineering investments for the next five quarters.",
+          "start": "2026-10-01",
+          "end": "2027-12-31",
+          "visibility": {
+            "id": 1,
+            "name": "Public"
+          },
+          "state": {
+            "id": 1,
+            "name": "Active"
+          },
+          "roadmapManagers": [
+            {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            }
+          ],
+          "colors": [
+            {
+              "color": "#4096FF",
+              "name": "Committed",
+              "order": 1,
+              "isDefault": true
+            },
+            {
+              "color": "#FAAD14",
+              "name": "Exploratory",
+              "order": 2,
+              "isDefault": false
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Roadmaps_GetItems",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": [
+          {
+            "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q4 2026",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2026-10-01",
+            "end": "2026-12-31"
+          },
+          {
+            "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q1 2027",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2027-01-01",
+            "end": "2027-03-31"
+          },
+          {
+            "id": "3a15c75f-44ff-40a4-934f-f6078deca52b",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Q2 2027",
+            "type": {
+              "id": 3,
+              "name": "Timebox"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "timebox",
+            "start": "2027-04-01",
+            "end": "2027-06-30"
+          },
+          {
+            "id": "55002b35-05c7-422b-8e59-6aee0480f036",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Platform change freeze",
+            "type": {
+              "id": 2,
+              "name": "Milestone"
+            },
+            "parent": null,
+            "color": null,
+            "$type": "milestone",
+            "date": "2026-12-11"
+          },
+          {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Infrastructure modernization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2027-06-30",
+            "order": 1,
+            "children": [
+              {
+                "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Database consolidation",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2026-10-05",
+                "end": "2026-12-18",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Edge cache rollout",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-01-11",
+                "end": "2027-03-19",
+                "order": 2,
+                "children": [
+                  {
+                    "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+                    "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                    "name": "Edge cache live in all regions",
+                    "type": {
+                      "id": 2,
+                      "name": "Milestone"
+                    },
+                    "parent": {
+                      "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                      "name": "Edge cache rollout"
+                    },
+                    "color": null,
+                    "$type": "milestone",
+                    "date": "2027-03-19"
+                  }
+                ]
+              },
+              {
+                "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Observability v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#FAAD14",
+                "$type": "activity",
+                "start": "2027-04-05",
+                "end": "2027-06-25",
+                "order": 3,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Developer experience",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2027-02-01",
+            "end": "2027-05-28",
+            "order": 2,
+            "children": [
+              {
+                "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "CLI v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-02-01",
+                "end": "2027-03-31",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Partner API GA",
+                "type": {
+                  "id": 2,
+                  "name": "Milestone"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": null,
+                "$type": "milestone",
+                "date": "2027-03-08"
+              }
+            ]
+          },
+          {
+            "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Cost optimization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#FAAD14",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2026-12-31",
+            "order": 3,
+            "children": []
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetActivities",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          }
+        },
+        "result": [
+          {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Infrastructure modernization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2027-06-30",
+            "order": 1,
+            "children": [
+              {
+                "id": "8ecf715d-1110-429f-9586-e45a535f2f66",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Database consolidation",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2026-10-05",
+                "end": "2026-12-18",
+                "order": 1,
+                "children": []
+              },
+              {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Edge cache rollout",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-01-11",
+                "end": "2027-03-19",
+                "order": 2,
+                "children": []
+              },
+              {
+                "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "Observability v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                  "name": "Infrastructure modernization"
+                },
+                "color": "#FAAD14",
+                "$type": "activity",
+                "start": "2027-04-05",
+                "end": "2027-06-25",
+                "order": 3,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Developer experience",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#4096FF",
+            "$type": "activity",
+            "start": "2027-02-01",
+            "end": "2027-05-28",
+            "order": 2,
+            "children": [
+              {
+                "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+                "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+                "name": "CLI v2",
+                "type": {
+                  "id": 1,
+                  "name": "Activity"
+                },
+                "parent": {
+                  "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+                  "name": "Developer experience"
+                },
+                "color": "#4096FF",
+                "$type": "activity",
+                "start": "2027-02-01",
+                "end": "2027-03-31",
+                "order": 1,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+            "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "name": "Cost optimization",
+            "type": {
+              "id": 1,
+              "name": "Activity"
+            },
+            "parent": null,
+            "color": "#FAAD14",
+            "$type": "activity",
+            "start": "2026-10-01",
+            "end": "2026-12-31",
+            "order": 3,
+            "children": []
+          }
+        ]
+      },
+      {
+        "tool": "Roadmaps_GetItem",
+        "when": {
+          "roadmapIdOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          },
+          "itemId": "ac909c63-981e-4e37-a126-00e39212d1b8"
+        },
+        "result": {
+          "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+          "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "name": "Edge cache rollout",
+          "type": {
+            "id": 1,
+            "name": "Activity"
+          },
+          "parent": {
+            "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+            "name": "Infrastructure modernization"
+          },
+          "color": "#4096FF",
+          "$type": "activity",
+          "description": "Move static asset delivery to the edge cache in all six regions, with stale-while-revalidate for catalog pages.",
+          "start": "2027-01-11",
+          "end": "2027-03-19",
+          "order": 2,
+          "children": [
+            {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+              "name": "Edge cache live in all regions",
+              "type": {
+                "id": 2,
+                "name": "Milestone"
+              },
+              "parent": {
+                "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+                "name": "Edge cache rollout"
+              },
+              "color": null,
+              "$type": "milestone",
+              "date": "2027-03-19"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Roadmaps_GetItem",
+        "when": {
+          "roadmapIdOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          },
+          "itemId": "260f94c0-2da5-46b7-add5-bb86b47e3174"
+        },
+        "result": {
+          "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+          "roadmapId": "e7edfb60-f3ec-425a-9902-8661a616c536",
+          "name": "Partner API GA",
+          "type": {
+            "id": 2,
+            "name": "Milestone"
+          },
+          "parent": {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "name": "Developer experience"
+          },
+          "color": null,
+          "$type": "milestone",
+          "description": "Partner API reaches general availability with published SLAs.",
+          "date": "2027-03-08"
+        }
+      },
+      {
+        "tool": "Roadmaps_GetVisibilityOptions",
+        "result": [
+          {
+            "id": 1,
+            "name": "Public",
+            "description": "The object is visible to all users.",
+            "order": 1
+          },
+          {
+            "id": 2,
+            "name": "Private",
+            "description": "The object is only visible to specific users.",
+            "order": 2
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Roadmaps_GetItem",
+        "with": {
+          "roadmapIdOrKey": {
+            "$regex": "^(e7edfb60-f3ec-425a-9902-8661a616c536|7)$"
+          },
+          "itemId": "ac909c63-981e-4e37-a126-00e39212d1b8"
+        },
+        "because": "Only Roadmaps_GetItem returns an item's description, and its itemId is UUID-only, so the id must first be found in the item tree."
+      },
+      {
+        "type": "says",
+        "pattern": "six regions|stale.while.revalidate",
+        "because": "The answer quotes the description returned by Roadmaps_GetItem."
+      }
+    ],
+    "expected": "Per wayd-roadmaps 'Identifiers', the agent finds the item's UUID by walking Roadmaps_GetItems (or Roadmaps_GetActivities) for roadmap key 7 — 'Edge cache rollout' is nested under 'Infrastructure modernization' — then calls Roadmaps_GetItem with roadmapIdOrKey 7 (or the roadmap UUID) and that itemId, and reports the description about moving static assets to the edge cache in all six regions."
+  }
+]

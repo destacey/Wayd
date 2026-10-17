@@ -1,0 +1,1807 @@
+[
+  {
+    "id": "products-tag-single-value-axis",
+    "skill": "wayd-products",
+    "prompt": "Please tag the Northwind Billing API as Tier 1.",
+    "replies": [
+      "Yes, tag it Tier 1."
+    ],
+    "traps": [
+      "confirm-destructive",
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "Products_GetProducts",
+        "after": "Products_Tag",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": [
+              {
+                "tagId": "1f8c0e3a-6b2d-4c59-9a71-3e5d8b0f2c14",
+                "tagName": "Tier 1",
+                "categoryId": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+                "categoryName": "Service Tier"
+              },
+              {
+                "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+                "tagName": "Kubernetes",
+                "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+                "categoryName": "Hosting Platform"
+              }
+            ]
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProducts",
+        "after": "Products_Untag",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": [
+              {
+                "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+                "tagName": "Kubernetes",
+                "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+                "categoryName": "Hosting Platform"
+              }
+            ]
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": [
+              {
+                "tagId": "5a9e2d7c-0f3b-4e16-8c42-7d1b6a3e9f25",
+                "tagName": "Tier 2",
+                "categoryId": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+                "categoryName": "Service Tier"
+              },
+              {
+                "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+                "tagName": "Kubernetes",
+                "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+                "categoryName": "Hosting Platform"
+              }
+            ]
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "after": "Products_Tag",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": [
+            {
+              "tagId": "1f8c0e3a-6b2d-4c59-9a71-3e5d8b0f2c14",
+              "tagName": "Tier 1",
+              "categoryId": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+              "categoryName": "Service Tier"
+            },
+            {
+              "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+              "tagName": "Kubernetes",
+              "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+              "categoryName": "Hosting Platform"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "after": "Products_Untag",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": [
+            {
+              "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+              "tagName": "Kubernetes",
+              "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+              "categoryName": "Hosting Platform"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": [
+            {
+              "tagId": "5a9e2d7c-0f3b-4e16-8c42-7d1b6a3e9f25",
+              "tagName": "Tier 2",
+              "categoryId": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+              "categoryName": "Service Tier"
+            },
+            {
+              "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+              "tagName": "Kubernetes",
+              "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+              "categoryName": "Hosting Platform"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "after": "Products_Tag",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": [
+            {
+              "tagId": "1f8c0e3a-6b2d-4c59-9a71-3e5d8b0f2c14",
+              "tagName": "Tier 1",
+              "categoryId": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+              "categoryName": "Service Tier"
+            },
+            {
+              "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+              "tagName": "Kubernetes",
+              "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+              "categoryName": "Hosting Platform"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "after": "Products_Untag",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": [
+            {
+              "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+              "tagName": "Kubernetes",
+              "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+              "categoryName": "Hosting Platform"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": [
+            {
+              "tagId": "5a9e2d7c-0f3b-4e16-8c42-7d1b6a3e9f25",
+              "tagName": "Tier 2",
+              "categoryId": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+              "categoryName": "Service Tier"
+            },
+            {
+              "tagId": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+              "tagName": "Kubernetes",
+              "categoryId": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+              "categoryName": "Hosting Platform"
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "ProductTagCategories_GetProductTagCategories",
+        "after": "Products_Tag",
+        "result": [
+          {
+            "id": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+            "key": 3,
+            "name": "Service Tier",
+            "description": "How critical the product is to the business.",
+            "allowsMany": false,
+            "order": 1,
+            "isActive": true,
+            "isSystem": false,
+            "tags": [
+              {
+                "id": "1f8c0e3a-6b2d-4c59-9a71-3e5d8b0f2c14",
+                "name": "Tier 1",
+                "description": "Business-critical; 24x7 on-call.",
+                "isActive": true,
+                "productCount": 5
+              },
+              {
+                "id": "5a9e2d7c-0f3b-4e16-8c42-7d1b6a3e9f25",
+                "name": "Tier 2",
+                "description": "Important; business-hours response.",
+                "isActive": true,
+                "productCount": 8
+              },
+              {
+                "id": "9c3b7f1e-4a6d-4b28-a5e0-2f8d1c7b3a36",
+                "name": "Tier 3",
+                "description": "Best effort.",
+                "isActive": true,
+                "productCount": 6
+              }
+            ]
+          },
+          {
+            "id": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+            "key": 4,
+            "name": "Hosting Platform",
+            "description": null,
+            "allowsMany": true,
+            "order": 2,
+            "isActive": true,
+            "isSystem": false,
+            "tags": [
+              {
+                "id": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+                "name": "Kubernetes",
+                "description": null,
+                "isActive": true,
+                "productCount": 11
+              },
+              {
+                "id": "7b1e3c5a-9d2f-4a68-b0c4-8e6a2d4f1b58",
+                "name": "Serverless",
+                "description": null,
+                "isActive": true,
+                "productCount": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "ProductTagCategories_GetProductTagCategories",
+        "after": "Products_Untag",
+        "result": [
+          {
+            "id": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+            "key": 3,
+            "name": "Service Tier",
+            "description": "How critical the product is to the business.",
+            "allowsMany": false,
+            "order": 1,
+            "isActive": true,
+            "isSystem": false,
+            "tags": [
+              {
+                "id": "1f8c0e3a-6b2d-4c59-9a71-3e5d8b0f2c14",
+                "name": "Tier 1",
+                "description": "Business-critical; 24x7 on-call.",
+                "isActive": true,
+                "productCount": 4
+              },
+              {
+                "id": "5a9e2d7c-0f3b-4e16-8c42-7d1b6a3e9f25",
+                "name": "Tier 2",
+                "description": "Important; business-hours response.",
+                "isActive": true,
+                "productCount": 8
+              },
+              {
+                "id": "9c3b7f1e-4a6d-4b28-a5e0-2f8d1c7b3a36",
+                "name": "Tier 3",
+                "description": "Best effort.",
+                "isActive": true,
+                "productCount": 6
+              }
+            ]
+          },
+          {
+            "id": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+            "key": 4,
+            "name": "Hosting Platform",
+            "description": null,
+            "allowsMany": true,
+            "order": 2,
+            "isActive": true,
+            "isSystem": false,
+            "tags": [
+              {
+                "id": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+                "name": "Kubernetes",
+                "description": null,
+                "isActive": true,
+                "productCount": 11
+              },
+              {
+                "id": "7b1e3c5a-9d2f-4a68-b0c4-8e6a2d4f1b58",
+                "name": "Serverless",
+                "description": null,
+                "isActive": true,
+                "productCount": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "ProductTagCategories_GetProductTagCategories",
+        "result": [
+          {
+            "id": "cb0dd84f-9180-4209-ae6b-c3ca8be09f59",
+            "key": 3,
+            "name": "Service Tier",
+            "description": "How critical the product is to the business.",
+            "allowsMany": false,
+            "order": 1,
+            "isActive": true,
+            "isSystem": false,
+            "tags": [
+              {
+                "id": "1f8c0e3a-6b2d-4c59-9a71-3e5d8b0f2c14",
+                "name": "Tier 1",
+                "description": "Business-critical; 24x7 on-call.",
+                "isActive": true,
+                "productCount": 4
+              },
+              {
+                "id": "5a9e2d7c-0f3b-4e16-8c42-7d1b6a3e9f25",
+                "name": "Tier 2",
+                "description": "Important; business-hours response.",
+                "isActive": true,
+                "productCount": 9
+              },
+              {
+                "id": "9c3b7f1e-4a6d-4b28-a5e0-2f8d1c7b3a36",
+                "name": "Tier 3",
+                "description": "Best effort.",
+                "isActive": true,
+                "productCount": 6
+              }
+            ]
+          },
+          {
+            "id": "168ea3cc-989e-4d56-af47-bb0a1fbcce9c",
+            "key": 4,
+            "name": "Hosting Platform",
+            "description": null,
+            "allowsMany": true,
+            "order": 2,
+            "isActive": true,
+            "isSystem": false,
+            "tags": [
+              {
+                "id": "e2d4a6c8-1b3f-4e57-9a0c-6b8d2f4e1a47",
+                "name": "Kubernetes",
+                "description": null,
+                "isActive": true,
+                "productCount": 11
+              },
+              {
+                "id": "7b1e3c5a-9d2f-4a68-b0c4-8e6a2d4f1b58",
+                "name": "Serverless",
+                "description": null,
+                "isActive": true,
+                "productCount": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "Products_Tag",
+        "result": null
+      },
+      {
+        "tool": "Products_Untag",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Products_Tag",
+        "with": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "tagId": "1f8c0e3a-6b2d-4c59-9a71-3e5d8b0f2c14"
+        },
+        "because": "Products_Tag takes the product and tag UUIDs, looked up from the catalog and the tag categories."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Products_Tag",
+        "because": "Service Tier allows one tag, so tagging Tier 1 silently removes the Tier 2 the product carries; the skill says to tell the user what will be replaced, and the tool needs confirmation."
+      },
+      {
+        "type": "notCalled",
+        "tool": "ProductTagCategories_AddTag",
+        "because": "Tier 1 already exists on the Service Tier axis."
+      }
+    ],
+    "expected": "The agent looks up the product and the tag categories, sees Service Tier has allowsMany false and that the product already carries Tier 2, and tells the user Tier 2 will be replaced before tagging (skill: \"Tagging a single-value axis silently replaces\"; Products_Tag description). After the user agrees it calls Products_Tag with the product UUID and the Tier 1 tag UUID. Untagging Tier 2 first is unnecessary but harmless."
+  },
+  {
+    "id": "products-decommission-environment",
+    "skill": "wayd-products",
+    "prompt": "We decommissioned the uat-east environment last week and nothing deploys there anymore. Can you take it out of Wayd so people stop picking it as a deployment target?",
+    "replies": [
+      "Yes, retire it, but keep its deployment history."
+    ],
+    "traps": [
+      "wrong-tool",
+      "confirm-destructive"
+    ],
+    "fixtures": [
+      {
+        "tool": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "after": "DeploymentEnvironments_SetActive",
+        "when": {
+          "isActive": false
+        },
+        "result": [
+          {
+            "id": "3864ebb1-5d65-4dc1-96d8-d9c19dfc69d0",
+            "key": 3,
+            "name": "uat-east",
+            "category": "Testing",
+            "ringOrder": 1,
+            "isActive": false,
+            "deploymentCount": 214
+          }
+        ]
+      },
+      {
+        "tool": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "when": {
+          "isActive": false
+        },
+        "result": []
+      },
+      {
+        "tool": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "after": "DeploymentEnvironments_SetActive",
+        "when": {
+          "isActive": true
+        },
+        "result": [
+          {
+            "id": "d7e4b1bc-a30c-4514-85f0-4d4152f86550",
+            "key": 1,
+            "name": "dev-shared",
+            "category": "Development",
+            "ringOrder": 0,
+            "isActive": true,
+            "deploymentCount": 1310
+          },
+          {
+            "id": "deb12eb7-e4ee-45f5-8e62-e5a51fe6e3c9",
+            "key": 2,
+            "name": "qa-east",
+            "category": "Testing",
+            "ringOrder": 1,
+            "isActive": true,
+            "deploymentCount": 642
+          },
+          {
+            "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+            "key": 4,
+            "name": "stg-us",
+            "category": "Staging",
+            "ringOrder": 2,
+            "isActive": true,
+            "deploymentCount": 388
+          },
+          {
+            "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+            "key": 5,
+            "name": "prd-us",
+            "category": "Production",
+            "ringOrder": 3,
+            "isActive": true,
+            "deploymentCount": 297
+          }
+        ]
+      },
+      {
+        "tool": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "after": "DeploymentEnvironments_SetActive",
+        "result": [
+          {
+            "id": "d7e4b1bc-a30c-4514-85f0-4d4152f86550",
+            "key": 1,
+            "name": "dev-shared",
+            "category": "Development",
+            "ringOrder": 0,
+            "isActive": true,
+            "deploymentCount": 1310
+          },
+          {
+            "id": "deb12eb7-e4ee-45f5-8e62-e5a51fe6e3c9",
+            "key": 2,
+            "name": "qa-east",
+            "category": "Testing",
+            "ringOrder": 1,
+            "isActive": true,
+            "deploymentCount": 642
+          },
+          {
+            "id": "3864ebb1-5d65-4dc1-96d8-d9c19dfc69d0",
+            "key": 3,
+            "name": "uat-east",
+            "category": "Testing",
+            "ringOrder": 1,
+            "isActive": false,
+            "deploymentCount": 214
+          },
+          {
+            "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+            "key": 4,
+            "name": "stg-us",
+            "category": "Staging",
+            "ringOrder": 2,
+            "isActive": true,
+            "deploymentCount": 388
+          },
+          {
+            "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+            "key": 5,
+            "name": "prd-us",
+            "category": "Production",
+            "ringOrder": 3,
+            "isActive": true,
+            "deploymentCount": 297
+          }
+        ]
+      },
+      {
+        "tool": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "result": [
+          {
+            "id": "d7e4b1bc-a30c-4514-85f0-4d4152f86550",
+            "key": 1,
+            "name": "dev-shared",
+            "category": "Development",
+            "ringOrder": 0,
+            "isActive": true,
+            "deploymentCount": 1310
+          },
+          {
+            "id": "deb12eb7-e4ee-45f5-8e62-e5a51fe6e3c9",
+            "key": 2,
+            "name": "qa-east",
+            "category": "Testing",
+            "ringOrder": 1,
+            "isActive": true,
+            "deploymentCount": 642
+          },
+          {
+            "id": "3864ebb1-5d65-4dc1-96d8-d9c19dfc69d0",
+            "key": 3,
+            "name": "uat-east",
+            "category": "Testing",
+            "ringOrder": 1,
+            "isActive": true,
+            "deploymentCount": 214
+          },
+          {
+            "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+            "key": 4,
+            "name": "stg-us",
+            "category": "Staging",
+            "ringOrder": 2,
+            "isActive": true,
+            "deploymentCount": 388
+          },
+          {
+            "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+            "key": 5,
+            "name": "prd-us",
+            "category": "Production",
+            "ringOrder": 3,
+            "isActive": true,
+            "deploymentCount": 297
+          }
+        ]
+      },
+      {
+        "tool": "DeploymentEnvironments_GetRollout",
+        "result": []
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "result": []
+      },
+      {
+        "tool": "DeploymentEnvironments_SetActive",
+        "result": null
+      },
+      {
+        "tool": "DeploymentEnvironments_Delete",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "DeploymentEnvironments_SetActive",
+        "with": {
+          "id": "3864ebb1-5d65-4dc1-96d8-d9c19dfc69d0",
+          "requestBody": {
+            "id": "3864ebb1-5d65-4dc1-96d8-d9c19dfc69d0",
+            "isActive": false
+          }
+        },
+        "because": "Retiring stops it being offered as a target and keeps its 214 deployments counting."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "DeploymentEnvironments_SetActive",
+        "because": "Retiring is a change the server instructions say needs the user's explicit confirmation."
+      },
+      {
+        "type": "notCalled",
+        "tool": "DeploymentEnvironments_Delete",
+        "because": "Delete takes every deployment into it; the user asked only that it stop being a target, not that its history go."
+      }
+    ],
+    "expected": "The agent finds uat-east (214 deployments) with DeploymentEnvironments_GetDeploymentEnvironments, proposes retiring it rather than deleting it, and after confirmation calls DeploymentEnvironments_SetActive with its UUID and isActive false. The skill's environments table (\"It is no longer used\" → SetActive false; delete only when the user explicitly wants it and its history gone) and the SetActive / Delete descriptions establish this."
+  },
+  {
+    "id": "products-whats-in-production",
+    "skill": "wayd-products",
+    "prompt": "Which version of the Northwind Billing API is live in production right now?",
+    "fixtures": [
+      {
+        "tool": "DeploymentEnvironments_GetRollout",
+        "result": [
+          {
+            "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+            "key": 4,
+            "name": "stg-us",
+            "category": "Staging",
+            "ringOrder": 2,
+            "isActive": true,
+            "running": [
+              {
+                "deploymentId": "c3e5a7b9-4d6f-4b8a-ac2e-3a5b7d9f1e82",
+                "deploymentKey": 417,
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "version": {
+                  "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+                  "key": 208,
+                  "name": "3.4.0"
+                },
+                "versionLabel": "3.4.0",
+                "package": {
+                  "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+                  "key": 33,
+                  "name": "NWB-1009"
+                },
+                "artifactId": "nwb-1009.3",
+                "deployedAt": "2026-10-13T16:02:00Z",
+                "hasFailedAttemptSince": false
+              },
+              {
+                "deploymentId": "c3e5a7b9-4d6f-4b8a-ac2e-3a5b7d9f1e82",
+                "deploymentKey": 417,
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "version": {
+                  "id": "8c5fb8b9-6a84-437a-8b1d-ae29c8fc4847",
+                  "key": 214,
+                  "name": "2.9.0"
+                },
+                "versionLabel": "2.9.0",
+                "package": {
+                  "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+                  "key": 33,
+                  "name": "NWB-1009"
+                },
+                "artifactId": "nwb-1009.3",
+                "deployedAt": "2026-10-13T16:02:00Z",
+                "hasFailedAttemptSince": false
+              }
+            ]
+          },
+          {
+            "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+            "key": 5,
+            "name": "prd-us",
+            "category": "Production",
+            "ringOrder": 3,
+            "isActive": true,
+            "running": [
+              {
+                "deploymentId": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+                "deploymentKey": 389,
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "version": {
+                  "id": "956523fd-45f0-46e9-86ee-cb89cf9b1079",
+                  "key": 201,
+                  "name": "3.3.2"
+                },
+                "versionLabel": "3.3.2",
+                "package": {
+                  "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+                  "key": 31,
+                  "name": "NWB-0926"
+                },
+                "artifactId": "nwb-0926.1",
+                "deployedAt": "2026-09-27T01:50:00Z",
+                "hasFailedAttemptSince": true
+              },
+              {
+                "deploymentId": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+                "deploymentKey": 389,
+                "product": {
+                  "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+                  "key": 15,
+                  "name": "Northwind Billing Portal"
+                },
+                "version": null,
+                "versionLabel": "2.8.0",
+                "package": {
+                  "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+                  "key": 31,
+                  "name": "NWB-0926"
+                },
+                "artifactId": "nwb-0926.1",
+                "deployedAt": "2026-09-27T01:50:00Z",
+                "hasFailedAttemptSince": true
+              }
+            ]
+          },
+          {
+            "id": "6180d121-52f9-49ee-9eee-af6940cfc5a6",
+            "key": 6,
+            "name": "production-sandbox",
+            "category": "Other",
+            "ringOrder": 4,
+            "isActive": true,
+            "running": [
+              {
+                "deploymentId": "b2d4f6a8-3c5e-4a79-9b1d-2f4a6c8e0d71",
+                "deploymentKey": 419,
+                "product": {
+                  "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+                  "key": 14,
+                  "name": "Northwind Billing API"
+                },
+                "version": {
+                  "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+                  "key": 208,
+                  "name": "3.4.0"
+                },
+                "versionLabel": "3.4.0",
+                "package": null,
+                "artifactId": "3.4.0.017",
+                "deployedAt": "2026-10-13T18:09:00Z",
+                "hasFailedAttemptSince": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "result": [
+          {
+            "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+            "key": 4,
+            "name": "stg-us",
+            "category": "Staging",
+            "ringOrder": 2,
+            "isActive": true,
+            "deploymentCount": 388
+          },
+          {
+            "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+            "key": 5,
+            "name": "prd-us",
+            "category": "Production",
+            "ringOrder": 3,
+            "isActive": true,
+            "deploymentCount": 297
+          },
+          {
+            "id": "6180d121-52f9-49ee-9eee-af6940cfc5a6",
+            "key": 6,
+            "name": "production-sandbox",
+            "category": "Other",
+            "ringOrder": 4,
+            "isActive": true,
+            "deploymentCount": 41
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProducts",
+        "result": [
+          {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing",
+            "description": null,
+            "externalId": null,
+            "type": {
+              "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+              "key": 1,
+              "name": "Product Line"
+            },
+            "isReleasable": false,
+            "parent": null,
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+            "key": 14,
+            "name": "Northwind Billing API",
+            "description": null,
+            "externalId": "northwind/billing-api",
+            "type": {
+              "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+              "key": 3,
+              "name": "Service"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          },
+          {
+            "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+            "key": 15,
+            "name": "Northwind Billing Portal",
+            "description": null,
+            "externalId": "northwind/billing-portal",
+            "type": {
+              "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+              "key": 2,
+              "name": "Application"
+            },
+            "isReleasable": true,
+            "parent": {
+              "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+              "key": 12,
+              "name": "Northwind Billing"
+            },
+            "status": {
+              "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+              "name": "Active",
+              "category": "Active",
+              "alias": 1
+            },
+            "tags": []
+          }
+        ]
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "17f79eeb-d355-4118-9cb0-166b213dd916"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "14"
+        },
+        "result": {
+          "id": "17f79eeb-d355-4118-9cb0-166b213dd916",
+          "key": 14,
+          "name": "Northwind Billing API",
+          "description": null,
+          "externalId": "northwind/billing-api",
+          "type": {
+            "id": "9bfbcb74-ffb8-465a-813d-ea51fa0b06b4",
+            "key": 3,
+            "name": "Service"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "b98b5060-27dc-4f3f-915d-5525e3a8dcac"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "12"
+        },
+        "result": {
+          "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+          "key": 12,
+          "name": "Northwind Billing",
+          "description": null,
+          "externalId": null,
+          "type": {
+            "id": "79eabc2e-86ad-4e22-9114-b05765947419",
+            "key": 1,
+            "name": "Product Line"
+          },
+          "isReleasable": false,
+          "parent": null,
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "a7ef18b2-38af-4be8-b13d-3f2425c52b64"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Products_GetProduct",
+        "when": {
+          "idOrKey": "15"
+        },
+        "result": {
+          "id": "a7ef18b2-38af-4be8-b13d-3f2425c52b64",
+          "key": 15,
+          "name": "Northwind Billing Portal",
+          "description": null,
+          "externalId": "northwind/billing-portal",
+          "type": {
+            "id": "0e62c5d9-3f40-4f09-9899-db80bad7811b",
+            "key": 2,
+            "name": "Application"
+          },
+          "isReleasable": true,
+          "parent": {
+            "id": "b98b5060-27dc-4f3f-915d-5525e3a8dcac",
+            "key": 12,
+            "name": "Northwind Billing"
+          },
+          "status": {
+            "id": "40556c49-a9ee-4396-bacb-de94b110dddd",
+            "name": "Active",
+            "category": "Active",
+            "alias": 1
+          },
+          "tags": []
+        }
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "when": {
+          "environmentCategory": 4
+        },
+        "result": [
+          {
+            "id": "a1c3e5f7-2b4d-4f68-8a0c-1e3f5b7d9c60",
+            "key": 421,
+            "version": null,
+            "package": {
+              "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+              "key": 33,
+              "name": "NWB-1009"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-1009.3",
+            "startedAt": "2026-10-14T01:05:00Z",
+            "completedAt": "2026-10-14T01:31:00Z",
+            "reason": "Database migration timed out; pipeline aborted before cutover.",
+            "status": {
+              "id": "b3cb2d52-56e6-4012-b8c9-1b0e0c529865",
+              "name": "Failed",
+              "category": "Done",
+              "alias": 22
+            },
+            "outcome": "Failed",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+            "key": 389,
+            "version": null,
+            "package": {
+              "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+              "key": 31,
+              "name": "NWB-0926"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-0926.1",
+            "startedAt": "2026-09-27T01:20:00Z",
+            "completedAt": "2026-09-27T01:50:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          }
+        ]
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "when": {
+          "environmentId": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9"
+        },
+        "result": [
+          {
+            "id": "a1c3e5f7-2b4d-4f68-8a0c-1e3f5b7d9c60",
+            "key": 421,
+            "version": null,
+            "package": {
+              "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+              "key": 33,
+              "name": "NWB-1009"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-1009.3",
+            "startedAt": "2026-10-14T01:05:00Z",
+            "completedAt": "2026-10-14T01:31:00Z",
+            "reason": "Database migration timed out; pipeline aborted before cutover.",
+            "status": {
+              "id": "b3cb2d52-56e6-4012-b8c9-1b0e0c529865",
+              "name": "Failed",
+              "category": "Done",
+              "alias": 22
+            },
+            "outcome": "Failed",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+            "key": 389,
+            "version": null,
+            "package": {
+              "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+              "key": 31,
+              "name": "NWB-0926"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-0926.1",
+            "startedAt": "2026-09-27T01:20:00Z",
+            "completedAt": "2026-09-27T01:50:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          }
+        ]
+      },
+      {
+        "tool": "Deployments_GetDeployments",
+        "result": [
+          {
+            "id": "a1c3e5f7-2b4d-4f68-8a0c-1e3f5b7d9c60",
+            "key": 421,
+            "version": null,
+            "package": {
+              "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+              "key": 33,
+              "name": "NWB-1009"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-1009.3",
+            "startedAt": "2026-10-14T01:05:00Z",
+            "completedAt": "2026-10-14T01:31:00Z",
+            "reason": "Database migration timed out; pipeline aborted before cutover.",
+            "status": {
+              "id": "b3cb2d52-56e6-4012-b8c9-1b0e0c529865",
+              "name": "Failed",
+              "category": "Done",
+              "alias": 22
+            },
+            "outcome": "Failed",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "b2d4f6a8-3c5e-4a79-9b1d-2f4a6c8e0d71",
+            "key": 419,
+            "version": {
+              "id": "25e004e6-364f-4f1a-8c95-ebd3e3f9dba7",
+              "key": 208,
+              "name": "3.4.0"
+            },
+            "package": null,
+            "environment": {
+              "id": "6180d121-52f9-49ee-9eee-af6940cfc5a6",
+              "key": 6,
+              "name": "production-sandbox"
+            },
+            "environmentCategory": "Other",
+            "artifactId": "3.4.0.017",
+            "startedAt": "2026-10-13T18:00:00Z",
+            "completedAt": "2026-10-13T18:09:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "c3e5a7b9-4d6f-4b8a-ac2e-3a5b7d9f1e82",
+            "key": 417,
+            "version": null,
+            "package": {
+              "id": "d25b61ca-085c-49df-9ae3-3b238d5e1979",
+              "key": 33,
+              "name": "NWB-1009"
+            },
+            "environment": {
+              "id": "1f962557-2316-42b7-bed8-7846ba5005bb",
+              "key": 4,
+              "name": "stg-us"
+            },
+            "environmentCategory": "Staging",
+            "artifactId": "nwb-1009.3",
+            "startedAt": "2026-10-13T15:40:00Z",
+            "completedAt": "2026-10-13T16:02:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          },
+          {
+            "id": "311794a1-1f8f-48dc-9c91-2c327eb132bc",
+            "key": 389,
+            "version": null,
+            "package": {
+              "id": "c4683161-b675-4c25-bd29-84e25d92f029",
+              "key": 31,
+              "name": "NWB-0926"
+            },
+            "environment": {
+              "id": "0a79cfd9-88f5-46d6-b7e7-8387f48597e9",
+              "key": 5,
+              "name": "prd-us"
+            },
+            "environmentCategory": "Production",
+            "artifactId": "nwb-0926.1",
+            "startedAt": "2026-09-27T01:20:00Z",
+            "completedAt": "2026-09-27T01:50:00Z",
+            "reason": null,
+            "status": {
+              "id": "af8e3887-f56b-4c3a-943f-25fd0ac775dd",
+              "name": "Succeeded",
+              "category": "Done",
+              "alias": 21
+            },
+            "outcome": "Succeeded",
+            "isComplete": true,
+            "isChangeFailure": false
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "says",
+        "pattern": "3\\.3\\.2",
+        "because": "prd-us, the only Production-category environment, runs 3.3.2; production-sandbox is category Other and does not count, whatever its name."
+      },
+      {
+        "type": "says",
+        "pattern": "fail",
+        "because": "hasFailedAttemptSince is true: the NWB-1009 deployment carrying 3.4.0 failed in prd-us, which the skill says to mention before calling production healthy."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Deployments_Start",
+        "because": "A read-only question changes nothing."
+      }
+    ],
+    "expected": "The agent calls DeploymentEnvironments_GetRollout and reads the Production-category environment prd-us, which runs Northwind Billing API 3.3.2 (from package NWB-0926), and reports that a later attempt (NWB-1009 with 3.4.0) failed there. It does not treat production-sandbox (category Other) as production. Cited: the skill's \"Answering what version is in production?\" flow and its point that the category, not the name, decides production."
+  }
+]

@@ -12,7 +12,7 @@ public static class CsvList
 
     /// <summary>
     /// Splits a semicolon-separated column into its trimmed, non-empty values, preserving order and
-    /// dropping duplicates. Returns an empty list when the column is absent or blank.
+    /// dropping duplicates. Returns an empty list for a blank cell.
     /// </summary>
     public static IReadOnlyList<string> Split(string? value)
     {

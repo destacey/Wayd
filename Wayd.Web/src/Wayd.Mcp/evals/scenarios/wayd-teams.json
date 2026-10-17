@@ -1,0 +1,2587 @@
+[
+  {
+    "id": "teams-sprint-metrics-by-code",
+    "skill": "wayd-teams",
+    "prompt": "How has Falcon (FALC) been doing on velocity and say/do over its recent sprints? I'm trying to decide how much to commit for next sprint.",
+    "traps": [
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "cdb06ed8-62a4-48e3-9f35-2ca2e738ab05",
+            "key": 34,
+            "name": "Heron",
+            "code": "HERN",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetTeam",
+        "when": {
+          "id": 12
+        },
+        "result": {
+          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "key": 12,
+          "name": "Falcon",
+          "code": "FALC",
+          "description": "Falcon delivery team.",
+          "type": "Team",
+          "activeDate": "2024-02-05",
+          "inactiveDate": null,
+          "isActive": true,
+          "teamOfTeams": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "operatingModel": {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "methodology": "Scrum",
+            "sizingMethod": "StoryPoints"
+          }
+        }
+      },
+      {
+        "tool": "Teams_GetTeam",
+        "when": {
+          "id": 27
+        },
+        "result": {
+          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+          "key": 27,
+          "name": "Osprey",
+          "code": "OSPR",
+          "description": "Osprey delivery team.",
+          "type": "Team",
+          "activeDate": "2024-02-05",
+          "inactiveDate": null,
+          "isActive": true,
+          "teamOfTeams": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "operatingModel": {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "methodology": "Scrum",
+            "sizingMethod": "StoryPoints"
+          }
+        }
+      },
+      {
+        "tool": "TeamsOfTeams_GetList",
+        "result": [
+          {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams",
+            "isActive": true,
+            "teamOfTeams": null
+          },
+          {
+            "id": "9b942dd3-8363-45c9-80a5-4890dc6dafac",
+            "key": 6,
+            "name": "Harbor",
+            "code": "HARB",
+            "type": "Team of Teams",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetSprintMetrics",
+        "when": {
+          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614"
+        },
+        "result": {
+          "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "sprintWindow": 6,
+          "defaultSprintWindow": 6,
+          "sizingMethod": "StoryPoints",
+          "byCount": {
+            "velocity": {
+              "average": 10.5,
+              "min": 8,
+              "max": 13,
+              "standardDeviation": 1.71,
+              "sprints": 6
+            },
+            "predictability": {
+              "average": 0.86,
+              "min": 0.62,
+              "max": 1,
+              "standardDeviation": 0.14,
+              "sprints": 6
+            },
+            "sayDo": {
+              "average": 0.77,
+              "min": 0.55,
+              "max": 0.92,
+              "standardDeviation": 0.13,
+              "sprints": 6
+            }
+          },
+          "byEstimate": {
+            "velocity": {
+              "average": 31.83,
+              "min": 21,
+              "max": 40,
+              "standardDeviation": 6.47,
+              "sprints": 6
+            },
+            "predictability": {
+              "average": 0.88,
+              "min": 0.65,
+              "max": 1,
+              "standardDeviation": 0.13,
+              "sprints": 6
+            },
+            "sayDo": {
+              "average": 0.79,
+              "min": 0.57,
+              "max": 0.94,
+              "standardDeviation": 0.13,
+              "sprints": 6
+            }
+          },
+          "sprints": [
+            {
+              "id": "fec16849-fa9a-4cb3-bd61-df751cb0a36e",
+              "key": 2418,
+              "name": "Falcon 2026.24",
+              "start": "2026-09-30",
+              "end": "2026-10-13",
+              "sizingMethod": "StoryPoints",
+              "inEstimateAverages": true,
+              "byCount": {
+                "velocity": 11,
+                "predictability": 0.92,
+                "sayDo": 0.83
+              },
+              "byEstimate": {
+                "velocity": 34,
+                "predictability": 0.95,
+                "sayDo": 0.85
+              }
+            },
+            {
+              "id": "9840e33a-0dd8-4f58-9c05-5d5e86f2ea68",
+              "key": 2392,
+              "name": "Falcon 2026.22",
+              "start": "2026-09-02",
+              "end": "2026-09-15",
+              "sizingMethod": "StoryPoints",
+              "inEstimateAverages": true,
+              "byCount": {
+                "velocity": 9,
+                "predictability": 0.75,
+                "sayDo": 0.64
+              },
+              "byEstimate": {
+                "velocity": 27,
+                "predictability": 0.78,
+                "sayDo": 0.66
+              }
+            },
+            {
+              "id": "c07be355-57f3-4f8a-b1aa-7b1b05f867a9",
+              "key": 2380,
+              "name": "Falcon 2026.21",
+              "start": "2026-08-19",
+              "end": "2026-09-01",
+              "sizingMethod": "StoryPoints",
+              "inEstimateAverages": true,
+              "byCount": {
+                "velocity": 12,
+                "predictability": 1,
+                "sayDo": 0.9
+              },
+              "byEstimate": {
+                "velocity": 38,
+                "predictability": 1,
+                "sayDo": 0.92
+              }
+            },
+            {
+              "id": "9df2e106-01d8-4ef6-883c-5db2aab1c724",
+              "key": 2367,
+              "name": "Falcon 2026.20",
+              "start": "2026-08-05",
+              "end": "2026-08-18",
+              "sizingMethod": "StoryPoints",
+              "inEstimateAverages": true,
+              "byCount": {
+                "velocity": 8,
+                "predictability": 0.62,
+                "sayDo": 0.55
+              },
+              "byEstimate": {
+                "velocity": 21,
+                "predictability": 0.65,
+                "sayDo": 0.57
+              }
+            },
+            {
+              "id": "71817860-d7d7-4514-84b9-5aeaea0bd772",
+              "key": 2355,
+              "name": "Falcon 2026.19",
+              "start": "2026-07-22",
+              "end": "2026-08-04",
+              "sizingMethod": "StoryPoints",
+              "inEstimateAverages": true,
+              "byCount": {
+                "velocity": 10,
+                "predictability": 0.86,
+                "sayDo": 0.78
+              },
+              "byEstimate": {
+                "velocity": 31,
+                "predictability": 0.89,
+                "sayDo": 0.8
+              }
+            },
+            {
+              "id": "ca86591c-6e7a-499a-96f6-b51ee7e901c3",
+              "key": 2341,
+              "name": "Falcon 2026.18",
+              "start": "2026-07-08",
+              "end": "2026-07-21",
+              "sizingMethod": "StoryPoints",
+              "inEstimateAverages": true,
+              "byCount": {
+                "velocity": 13,
+                "predictability": 1,
+                "sayDo": 0.92
+              },
+              "byEstimate": {
+                "velocity": 40,
+                "predictability": 1,
+                "sayDo": 0.94
+              }
+            }
+          ],
+          "excluded": [
+            {
+              "id": "ee08747d-8777-41fd-90d8-44d716b95d99",
+              "key": 2404,
+              "name": "Falcon 2026.23 IP",
+              "start": "2026-09-16",
+              "end": "2026-09-29",
+              "reason": "NonStandard"
+            }
+          ]
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Teams_GetSprintMetrics",
+        "with": {
+          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614"
+        },
+        "because": "Teams_GetSprintMetrics takes the team's UUID only (wayd-teams identifier table; the parameter description says 'not the integer key or the code')."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Teams_GetSprintMetrics",
+        "with": {
+          "id": {
+            "$regex": "^(FALC|12)$"
+          }
+        },
+        "because": "The code FALC and the key 12 are not accepted; resolve the UUID with Teams_GetTeams first."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Teams_GetSprintMetrics",
+        "with": {
+          "id": 12
+        },
+        "because": "The integer key is not accepted."
+      },
+      {
+        "type": "everyCall",
+        "tool": "Teams_GetSprintMetrics",
+        "with": {
+          "sprintWindow": {
+            "$absent": true
+          }
+        },
+        "because": "wayd-teams: use the organization's sprint window unless the user asks for another range."
+      }
+    ],
+    "expected": "The agent resolves Falcon with Teams_GetTeams (or Teams_GetTeam with key 12) to its UUID and calls Teams_GetSprintMetrics with that id and no sprintWindow, as the wayd-teams identifier table and 'Use the organization's window unless asked' say. It reports velocity in story points and items with the min–max range beside the average, say/do and predictability as percents, and mentions the excluded non-standard IP sprint."
+  },
+  {
+    "id": "teams-backlog-health-runway",
+    "skill": "wayd-teams",
+    "prompt": "Is Osprey's backlog in good enough shape to plan the next PI from? Mostly I want to know how many weeks of runway they have.",
+    "traps": [
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "cdb06ed8-62a4-48e3-9f35-2ca2e738ab05",
+            "key": 34,
+            "name": "Heron",
+            "code": "HERN",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetTeam",
+        "when": {
+          "id": 12
+        },
+        "result": {
+          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "key": 12,
+          "name": "Falcon",
+          "code": "FALC",
+          "description": "Falcon delivery team.",
+          "type": "Team",
+          "activeDate": "2024-02-05",
+          "inactiveDate": null,
+          "isActive": true,
+          "teamOfTeams": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "operatingModel": {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "methodology": "Scrum",
+            "sizingMethod": "StoryPoints"
+          }
+        }
+      },
+      {
+        "tool": "Teams_GetTeam",
+        "when": {
+          "id": 27
+        },
+        "result": {
+          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+          "key": 27,
+          "name": "Osprey",
+          "code": "OSPR",
+          "description": "Osprey delivery team.",
+          "type": "Team",
+          "activeDate": "2024-02-05",
+          "inactiveDate": null,
+          "isActive": true,
+          "teamOfTeams": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "operatingModel": {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "methodology": "Scrum",
+            "sizingMethod": "StoryPoints"
+          }
+        }
+      },
+      {
+        "tool": "TeamsOfTeams_GetList",
+        "result": [
+          {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams",
+            "isActive": true,
+            "teamOfTeams": null
+          },
+          {
+            "id": "9b942dd3-8363-45c9-80a5-4890dc6dafac",
+            "key": 6,
+            "name": "Harbor",
+            "code": "HARB",
+            "type": "Team of Teams",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetBacklogHealth",
+        "when": {
+          "idOrCode": {
+            "$regex": "^(1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3|OSPR)$"
+          }
+        },
+        "result": {
+          "team": {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team"
+          },
+          "thresholds": {
+            "staleDays": 90,
+            "oldProposedDays": 180,
+            "agingWipPercentile": 85,
+            "oversizedPercentile": 85,
+            "readinessWindowWeeks": 4,
+            "readinessFallbackItems": 20,
+            "atRiskPercent": 10,
+            "unhealthyPercent": 25,
+            "runwayAtRiskWeeks": 4,
+            "runwayUnhealthyWeeks": 2,
+            "runwayTooLongWeeks": 26,
+            "netFlowAtRisk": 1.2,
+            "netFlowUnhealthy": 1.5,
+            "wipLoadAtRisk": 1.5,
+            "wipLoadUnhealthy": 2
+          },
+          "lookbackDays": 90,
+          "from": "2026-07-19",
+          "to": "2026-10-16",
+          "sizingMethod": "StoryPoints",
+          "totalWorkItems": 18,
+          "totalEstimate": 39,
+          "proposedWorkItems": 12,
+          "activeWorkItems": 6,
+          "itemsCompleted": 7,
+          "itemsCreated": 9,
+          "minimumItemsCompleted": 10,
+          "memberCount": 6,
+          "readinessWindowWorkItems": 18,
+          "agingWipDays": null,
+          "oversizedEstimate": null,
+          "checks": [
+            {
+              "check": {
+                "id": 1,
+                "name": "Runway"
+              },
+              "outcome": {
+                "id": 2,
+                "name": "Not Enough History"
+              },
+              "grade": null,
+              "value": null,
+              "flagged": null,
+              "inScope": null
+            },
+            {
+              "check": {
+                "id": 2,
+                "name": "Net Flow"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "value": 1.29,
+              "flagged": null,
+              "inScope": null
+            },
+            {
+              "check": {
+                "id": 3,
+                "name": "WIP Load"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "value": 1,
+              "flagged": null,
+              "inScope": null
+            },
+            {
+              "check": {
+                "id": 4,
+                "name": "Stale"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "value": 16.67,
+              "flagged": 3,
+              "inScope": 18
+            },
+            {
+              "check": {
+                "id": 5,
+                "name": "Old Proposed"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "value": 0,
+              "flagged": 0,
+              "inScope": 12
+            },
+            {
+              "check": {
+                "id": 6,
+                "name": "Aging WIP"
+              },
+              "outcome": {
+                "id": 2,
+                "name": "Not Enough History"
+              },
+              "grade": null,
+              "value": null,
+              "flagged": null,
+              "inScope": null
+            },
+            {
+              "check": {
+                "id": 7,
+                "name": "Missing Estimate"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "value": 27.78,
+              "flagged": 5,
+              "inScope": 18
+            },
+            {
+              "check": {
+                "id": 8,
+                "name": "Oversized"
+              },
+              "outcome": {
+                "id": 2,
+                "name": "Not Enough History"
+              },
+              "grade": null,
+              "value": null,
+              "flagged": null,
+              "inScope": null
+            },
+            {
+              "check": {
+                "id": 9,
+                "name": "No Parent"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "value": 11.11,
+              "flagged": 2,
+              "inScope": 18
+            },
+            {
+              "check": {
+                "id": 10,
+                "name": "No Project"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "value": 5.56,
+              "flagged": 1,
+              "inScope": 18
+            },
+            {
+              "check": {
+                "id": 11,
+                "name": "Unassigned Active"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "value": 0,
+              "flagged": 0,
+              "inScope": 6
+            },
+            {
+              "check": {
+                "id": 12,
+                "name": "Carry-over"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "value": 0,
+              "flagged": 0,
+              "inScope": 18
+            },
+            {
+              "check": {
+                "id": 13,
+                "name": "Closed Parent"
+              },
+              "outcome": {
+                "id": 1,
+                "name": "Assessed"
+              },
+              "grade": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "value": 0,
+              "flagged": 0,
+              "inScope": 16
+            },
+            {
+              "check": {
+                "id": 14,
+                "name": "Rank Inversion"
+              },
+              "outcome": {
+                "id": 3,
+                "name": "Not Applicable"
+              },
+              "grade": null,
+              "value": null,
+              "flagged": null,
+              "inScope": null
+            }
+          ],
+          "workItems": [
+            {
+              "id": "d920c90d-63f3-420d-b69d-f83393afa3ab",
+              "key": "MOB-230",
+              "title": "Mobile backlog item 230",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": "2026-10-05T10:00:00Z",
+              "externalViewWorkItemUrl": null,
+              "rank": 100,
+              "flags": []
+            },
+            {
+              "id": "6fe52528-0d49-4565-84ff-50ef4286ea02",
+              "key": "MOB-231",
+              "title": "Mobile backlog item 231",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": "2026-10-05T10:00:00Z",
+              "externalViewWorkItemUrl": null,
+              "rank": 200,
+              "flags": []
+            },
+            {
+              "id": "18d5c7a6-19df-4e7e-9a59-822a599319fc",
+              "key": "MOB-232",
+              "title": "Mobile backlog item 232",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": null,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": "2026-10-05T10:00:00Z",
+              "externalViewWorkItemUrl": null,
+              "rank": 300,
+              "flags": [
+                {
+                  "id": 7,
+                  "name": "Missing Estimate"
+                }
+              ]
+            },
+            {
+              "id": "9dc13521-984b-4c66-89fd-684f7c20e7b7",
+              "key": "MOB-233",
+              "title": "Mobile backlog item 233",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": "2026-10-05T10:00:00Z",
+              "externalViewWorkItemUrl": null,
+              "rank": 400,
+              "flags": []
+            },
+            {
+              "id": "337a9af3-84cf-4bab-8d0c-254d89e016d2",
+              "key": "MOB-234",
+              "title": "Mobile backlog item 234",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "sprint": null,
+              "assignedTo": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": null,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": "2026-10-05T10:00:00Z",
+              "externalViewWorkItemUrl": null,
+              "rank": 500,
+              "flags": [
+                {
+                  "id": 7,
+                  "name": "Missing Estimate"
+                },
+                {
+                  "id": 9,
+                  "name": "No Parent"
+                }
+              ]
+            },
+            {
+              "id": "e8904f8e-f7b1-49ec-a6b0-7a4e59da2195",
+              "key": "MOB-235",
+              "title": "Mobile backlog item 235",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": "2026-10-05T10:00:00Z",
+              "externalViewWorkItemUrl": null,
+              "rank": 600,
+              "flags": []
+            },
+            {
+              "id": "72a376d8-d176-41af-b29e-eb0d607fac3f",
+              "key": "MOB-236",
+              "title": "Mobile backlog item 236",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": null,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 700,
+              "flags": [
+                {
+                  "id": 7,
+                  "name": "Missing Estimate"
+                }
+              ]
+            },
+            {
+              "id": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+              "key": "MOB-237",
+              "title": "Mobile backlog item 237",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-05-18T10:00:00Z",
+              "lastModified": "2026-06-30T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 800,
+              "flags": [
+                {
+                  "id": 4,
+                  "name": "Stale"
+                }
+              ]
+            },
+            {
+              "id": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+              "key": "MOB-238",
+              "title": "Mobile backlog item 238",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 900,
+              "flags": []
+            },
+            {
+              "id": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+              "key": "MOB-239",
+              "title": "Mobile backlog item 239",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": null,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1000,
+              "flags": [
+                {
+                  "id": 7,
+                  "name": "Missing Estimate"
+                }
+              ]
+            },
+            {
+              "id": "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "key": "MOB-240",
+              "title": "Mobile backlog item 240",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1100,
+              "flags": []
+            },
+            {
+              "id": "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+              "key": "MOB-241",
+              "title": "Mobile backlog item 241",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": null,
+              "estimate": 3,
+              "created": "2026-05-18T10:00:00Z",
+              "lastModified": "2026-06-30T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1200,
+              "flags": [
+                {
+                  "id": 4,
+                  "name": "Stale"
+                },
+                {
+                  "id": 10,
+                  "name": "No Project"
+                }
+              ]
+            },
+            {
+              "id": "315d6689-3abf-4c87-b68c-463695f1bdec",
+              "key": "MOB-242",
+              "title": "Mobile backlog item 242",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": null,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1300,
+              "flags": [
+                {
+                  "id": 7,
+                  "name": "Missing Estimate"
+                }
+              ]
+            },
+            {
+              "id": "4c314845-1e14-435e-803e-93ca0e1eea18",
+              "key": "MOB-243",
+              "title": "Mobile backlog item 243",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1400,
+              "flags": []
+            },
+            {
+              "id": "e992a7ab-aa18-4b47-ab50-fa86513fb4d0",
+              "key": "MOB-244",
+              "title": "Mobile backlog item 244",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": null,
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-05-18T10:00:00Z",
+              "lastModified": "2026-06-30T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1500,
+              "flags": [
+                {
+                  "id": 4,
+                  "name": "Stale"
+                },
+                {
+                  "id": 9,
+                  "name": "No Parent"
+                }
+              ]
+            },
+            {
+              "id": "58e26a7e-1ac0-4947-b990-5a0c94bab2bf",
+              "key": "MOB-245",
+              "title": "Mobile backlog item 245",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1600,
+              "flags": []
+            },
+            {
+              "id": "9bf8d8c8-b601-4482-a4fc-66f4d608a693",
+              "key": "MOB-246",
+              "title": "Mobile backlog item 246",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1700,
+              "flags": []
+            },
+            {
+              "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+              "key": "MOB-247",
+              "title": "Mobile backlog item 247",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": "User Story",
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": {
+                "id": "6875b20d-09b8-44f0-a9cb-4709611f3523",
+                "key": "MOB-150",
+                "title": "Offline-first mobile app",
+                "workspaceKey": "MOB",
+                "externalViewWorkItemUrl": null
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "project": {
+                "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+                "key": "MOBX",
+                "name": "Mobile Experience Refresh"
+              },
+              "estimate": 3,
+              "created": "2026-08-03T10:00:00Z",
+              "lastModified": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "externalViewWorkItemUrl": null,
+              "rank": 1800,
+              "flags": []
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Teams_GetThroughputForecast",
+        "when": {
+          "idOrCode": {
+            "$regex": "^(1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3|OSPR)$"
+          }
+        },
+        "result": {
+          "outcome": {
+            "id": 2,
+            "name": "Not Enough History"
+          },
+          "team": {
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "from": "2026-07-19",
+            "to": "2026-10-16",
+            "itemsCompleted": 7
+          },
+          "forecastStart": "2026-10-17",
+          "targetDate": "2026-12-18",
+          "lookbackDays": 90,
+          "startedWorkFirst": true,
+          "days": 63,
+          "backlogWorkItems": 18,
+          "trials": 0,
+          "percentiles": [],
+          "histogram": []
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Teams_GetBacklogHealth",
+        "with": {
+          "idOrCode": {
+            "$regex": "^(1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3|OSPR)$"
+          }
+        },
+        "because": "Teams_GetBacklogHealth grades runway and takes the team's UUID or code."
+      },
+      {
+        "type": "notCalled",
+        "tool": "Teams_GetBacklogHealth",
+        "with": {
+          "idOrCode": {
+            "$regex": "^27$"
+          }
+        },
+        "because": "The parameter description says 'not the integer key'."
+      },
+      {
+        "type": "says",
+        "pattern": "not enough history|too few|insufficient|fewer than 10|only 7|(could not|couldn'?t|cannot|can'?t|unable to)( be)? (assess|grade|calculat|determin|measur|comput|estimat)",
+        "because": "wayd-teams: read the outcome before the grade — Runway is Not Enough History (7 completed items, 10 needed), so it cannot be assessed and must not be reported as a number of weeks or as healthy."
+      }
+    ],
+    "expected": "The agent resolves Osprey to its UUID or code OSPR and calls Teams_GetBacklogHealth. Following wayd-teams 'Backlog health', it reads the outcome first: Runway (and Aging WIP, Oversized) are Not Enough History because the team completed only 7 items against a minimum of 10, so runway cannot be assessed. It reports the assessed problems — Missing Estimate Unhealthy (5 of 18 items, naming them), Stale and No Parent At Risk, Net Flow At Risk at 1.29 — and quotes the thresholds used."
+  },
+  {
+    "id": "teams-tot-work-distribution",
+    "skill": "wayd-teams",
+    "prompt": "Where did the Raptors put their effort between July 1 and September 30, 2026? Break it down by project.",
+    "traps": [
+      "wrong-tool"
+    ],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "cdb06ed8-62a4-48e3-9f35-2ca2e738ab05",
+            "key": 34,
+            "name": "Heron",
+            "code": "HERN",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetTeam",
+        "when": {
+          "id": 12
+        },
+        "result": {
+          "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "key": 12,
+          "name": "Falcon",
+          "code": "FALC",
+          "description": "Falcon delivery team.",
+          "type": "Team",
+          "activeDate": "2024-02-05",
+          "inactiveDate": null,
+          "isActive": true,
+          "teamOfTeams": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "operatingModel": {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "methodology": "Scrum",
+            "sizingMethod": "StoryPoints"
+          }
+        }
+      },
+      {
+        "tool": "Teams_GetTeam",
+        "when": {
+          "id": 27
+        },
+        "result": {
+          "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+          "key": 27,
+          "name": "Osprey",
+          "code": "OSPR",
+          "description": "Osprey delivery team.",
+          "type": "Team",
+          "activeDate": "2024-02-05",
+          "inactiveDate": null,
+          "isActive": true,
+          "teamOfTeams": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "operatingModel": {
+            "id": "4316cd0a-e874-4ec5-a8c7-f1b4b7e7a9c2",
+            "methodology": "Scrum",
+            "sizingMethod": "StoryPoints"
+          }
+        }
+      },
+      {
+        "tool": "TeamsOfTeams_GetList",
+        "result": [
+          {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams",
+            "isActive": true,
+            "teamOfTeams": null
+          },
+          {
+            "id": "9b942dd3-8363-45c9-80a5-4890dc6dafac",
+            "key": 6,
+            "name": "Harbor",
+            "code": "HARB",
+            "type": "Team of Teams",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "TeamsOfTeams_GetWorkDistribution",
+        "when": {
+          "idOrCode": {
+            "$regex": "^(c227785d-1026-46d9-bf46-7693ffdc8024|RAPT)$"
+          },
+          "measure": "TeamEffort"
+        },
+        "result": {
+          "team": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "from": "2026-07-01",
+          "to": "2026-09-30",
+          "summary": {
+            "itemsCompleted": 412,
+            "itemsInPointSizedTeams": 271,
+            "estimatedItems": 248,
+            "storyPoints": 0,
+            "filledItems": 0,
+            "filledStoryPoints": 0,
+            "teamsIncluded": 3,
+            "excludedTeams": [],
+            "noProjectItems": 135,
+            "noProjectShare": 32.7
+          },
+          "groups": [
+            {
+              "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+              "kind": "Record",
+              "recordId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+              "recordKey": "MOBX",
+              "name": "Mobile Experience Refresh",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "MOBX"
+              ],
+              "programCount": 0,
+              "items": 109,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 26.4,
+              "share": 26.4,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "code": "OSPR",
+                "name": "Osprey",
+                "value": 21.1,
+                "items": 87
+              }
+            },
+            {
+              "id": "60a8d842-67b5-4ea9-b9ec-8b71222fb3ff",
+              "kind": "Record",
+              "recordId": "60a8d842-67b5-4ea9-b9ec-8b71222fb3ff",
+              "recordKey": "PAYRC",
+              "name": "Payments Reconciliation",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "PAYRC"
+              ],
+              "programCount": 0,
+              "items": 78,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 18.9,
+              "share": 18.9,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "code": "KEST",
+                "name": "Kestrel",
+                "value": 15.1,
+                "items": 62
+              }
+            },
+            {
+              "id": "8851dd31-e3e6-43e4-b056-da5f02ae6ed3",
+              "kind": "Record",
+              "recordId": "8851dd31-e3e6-43e4-b056-da5f02ae6ed3",
+              "recordKey": "ONBRD",
+              "name": "Self-Service Onboarding",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "ONBRD"
+              ],
+              "programCount": 0,
+              "items": 63,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 15.2,
+              "share": 15.2,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "code": "FALC",
+                "name": "Falcon",
+                "value": 12.2,
+                "items": 50
+              }
+            },
+            {
+              "id": "55002b35-05c7-422b-8e59-6aee0480f036",
+              "kind": "Record",
+              "recordId": "55002b35-05c7-422b-8e59-6aee0480f036",
+              "recordKey": "BILLX",
+              "name": "Billing Export Retirement",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "BILLX"
+              ],
+              "programCount": 0,
+              "items": 28,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 6.8,
+              "share": 6.8,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "code": "FALC",
+                "name": "Falcon",
+                "value": 5.4,
+                "items": 22
+              }
+            },
+            {
+              "id": "no-project",
+              "kind": "NoProject",
+              "recordId": null,
+              "recordKey": null,
+              "name": "No project",
+              "portfolio": null,
+              "program": null,
+              "projectKeys": [],
+              "programCount": 0,
+              "items": 135,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 32.7,
+              "share": 32.7,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "code": "KEST",
+                "name": "Kestrel",
+                "value": 20,
+                "items": 82
+              }
+            }
+          ],
+          "teams": [
+            {
+              "teamId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "code": "RAPT",
+              "name": "Raptors",
+              "isTeamOfTeams": true,
+              "parentId": null,
+              "level": 0,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 412,
+              "storyPoints": 0,
+              "value": 100,
+              "cells": [
+                {
+                  "value": 26.4,
+                  "share": 26.4,
+                  "items": 109
+                },
+                {
+                  "value": 18.9,
+                  "share": 18.9,
+                  "items": 78
+                },
+                {
+                  "value": 15.2,
+                  "share": 15.2,
+                  "items": 63
+                },
+                {
+                  "value": 6.8,
+                  "share": 6.8,
+                  "items": 28
+                },
+                {
+                  "value": 32.7,
+                  "share": 32.7,
+                  "items": 135
+                }
+              ],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "code": "FALC",
+              "name": "Falcon",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 141,
+              "storyPoints": 0,
+              "value": 34.2,
+              "cells": [],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "code": "OSPR",
+              "name": "Osprey",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 130,
+              "storyPoints": 0,
+              "value": 31.6,
+              "cells": [],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "code": "KEST",
+              "name": "Kestrel",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 141,
+              "storyPoints": 0,
+              "value": 34.2,
+              "cells": [],
+              "noProjectShare": null
+            }
+          ],
+          "periods": []
+        }
+      },
+      {
+        "tool": "TeamsOfTeams_GetWorkDistribution",
+        "when": {
+          "idOrCode": {
+            "$regex": "^(c227785d-1026-46d9-bf46-7693ffdc8024|RAPT)$"
+          }
+        },
+        "result": {
+          "team": {
+            "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+            "key": 5,
+            "name": "Raptors",
+            "code": "RAPT",
+            "type": "Team of Teams"
+          },
+          "from": "2026-07-01",
+          "to": "2026-09-30",
+          "summary": {
+            "itemsCompleted": 412,
+            "itemsInPointSizedTeams": 271,
+            "estimatedItems": 248,
+            "storyPoints": 0,
+            "filledItems": 0,
+            "filledStoryPoints": 0,
+            "teamsIncluded": 3,
+            "excludedTeams": [],
+            "noProjectItems": 135,
+            "noProjectShare": 32.7
+          },
+          "groups": [
+            {
+              "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+              "kind": "Record",
+              "recordId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+              "recordKey": "MOBX",
+              "name": "Mobile Experience Refresh",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "MOBX"
+              ],
+              "programCount": 0,
+              "items": 109,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 108.8,
+              "share": 26.4,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "code": "OSPR",
+                "name": "Osprey",
+                "value": 87,
+                "items": 87
+              }
+            },
+            {
+              "id": "60a8d842-67b5-4ea9-b9ec-8b71222fb3ff",
+              "kind": "Record",
+              "recordId": "60a8d842-67b5-4ea9-b9ec-8b71222fb3ff",
+              "recordKey": "PAYRC",
+              "name": "Payments Reconciliation",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "PAYRC"
+              ],
+              "programCount": 0,
+              "items": 78,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 77.9,
+              "share": 18.9,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "code": "KEST",
+                "name": "Kestrel",
+                "value": 62.3,
+                "items": 62
+              }
+            },
+            {
+              "id": "8851dd31-e3e6-43e4-b056-da5f02ae6ed3",
+              "kind": "Record",
+              "recordId": "8851dd31-e3e6-43e4-b056-da5f02ae6ed3",
+              "recordKey": "ONBRD",
+              "name": "Self-Service Onboarding",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "ONBRD"
+              ],
+              "programCount": 0,
+              "items": 63,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 62.6,
+              "share": 15.2,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "code": "FALC",
+                "name": "Falcon",
+                "value": 50.1,
+                "items": 50
+              }
+            },
+            {
+              "id": "55002b35-05c7-422b-8e59-6aee0480f036",
+              "kind": "Record",
+              "recordId": "55002b35-05c7-422b-8e59-6aee0480f036",
+              "recordKey": "BILLX",
+              "name": "Billing Export Retirement",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "BILLX"
+              ],
+              "programCount": 0,
+              "items": 28,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 28,
+              "share": 6.8,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "code": "FALC",
+                "name": "Falcon",
+                "value": 22.4,
+                "items": 22
+              }
+            },
+            {
+              "id": "no-project",
+              "kind": "NoProject",
+              "recordId": null,
+              "recordKey": null,
+              "name": "No project",
+              "portfolio": null,
+              "program": null,
+              "projectKeys": [],
+              "programCount": 0,
+              "items": 135,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 134.7,
+              "share": 32.7,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "code": "KEST",
+                "name": "Kestrel",
+                "value": 82.4,
+                "items": 82
+              }
+            }
+          ],
+          "teams": [
+            {
+              "teamId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "code": "RAPT",
+              "name": "Raptors",
+              "isTeamOfTeams": true,
+              "parentId": null,
+              "level": 0,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 412,
+              "storyPoints": 0,
+              "value": 412,
+              "cells": [
+                {
+                  "value": 108.8,
+                  "share": 26.4,
+                  "items": 109
+                },
+                {
+                  "value": 77.9,
+                  "share": 18.9,
+                  "items": 78
+                },
+                {
+                  "value": 62.6,
+                  "share": 15.2,
+                  "items": 63
+                },
+                {
+                  "value": 28,
+                  "share": 6.8,
+                  "items": 28
+                },
+                {
+                  "value": 134.7,
+                  "share": 32.7,
+                  "items": 135
+                }
+              ],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "code": "FALC",
+              "name": "Falcon",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 141,
+              "storyPoints": 0,
+              "value": 141,
+              "cells": [],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "code": "OSPR",
+              "name": "Osprey",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 130,
+              "storyPoints": 0,
+              "value": 130,
+              "cells": [],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "code": "KEST",
+              "name": "Kestrel",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 141,
+              "storyPoints": 0,
+              "value": 141,
+              "cells": [],
+              "noProjectShare": null
+            }
+          ],
+          "periods": []
+        }
+      },
+      {
+        "tool": "Teams_GetTeamWorkDistribution",
+        "when": {
+          "idOrCode": {
+            "$regex": "^(bd6ce03b-f23d-4e43-bc94-08be7e62f614|FALC)$"
+          }
+        },
+        "result": {
+          "team": {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team"
+          },
+          "from": "2026-07-01",
+          "to": "2026-09-30",
+          "summary": {
+            "itemsCompleted": 412,
+            "itemsInPointSizedTeams": 271,
+            "estimatedItems": 248,
+            "storyPoints": 0,
+            "filledItems": 0,
+            "filledStoryPoints": 0,
+            "teamsIncluded": 3,
+            "excludedTeams": [],
+            "noProjectItems": 135,
+            "noProjectShare": 32.7
+          },
+          "groups": [
+            {
+              "id": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+              "kind": "Record",
+              "recordId": "a1708ba9-8de8-4014-8cf5-5d5319229f48",
+              "recordKey": "MOBX",
+              "name": "Mobile Experience Refresh",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "MOBX"
+              ],
+              "programCount": 0,
+              "items": 109,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 108.8,
+              "share": 26.4,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "code": "OSPR",
+                "name": "Osprey",
+                "value": 87,
+                "items": 87
+              }
+            },
+            {
+              "id": "60a8d842-67b5-4ea9-b9ec-8b71222fb3ff",
+              "kind": "Record",
+              "recordId": "60a8d842-67b5-4ea9-b9ec-8b71222fb3ff",
+              "recordKey": "PAYRC",
+              "name": "Payments Reconciliation",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "PAYRC"
+              ],
+              "programCount": 0,
+              "items": 78,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 77.9,
+              "share": 18.9,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "code": "KEST",
+                "name": "Kestrel",
+                "value": 62.3,
+                "items": 62
+              }
+            },
+            {
+              "id": "8851dd31-e3e6-43e4-b056-da5f02ae6ed3",
+              "kind": "Record",
+              "recordId": "8851dd31-e3e6-43e4-b056-da5f02ae6ed3",
+              "recordKey": "ONBRD",
+              "name": "Self-Service Onboarding",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "ONBRD"
+              ],
+              "programCount": 0,
+              "items": 63,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 62.6,
+              "share": 15.2,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "code": "FALC",
+                "name": "Falcon",
+                "value": 50.1,
+                "items": 50
+              }
+            },
+            {
+              "id": "55002b35-05c7-422b-8e59-6aee0480f036",
+              "kind": "Record",
+              "recordId": "55002b35-05c7-422b-8e59-6aee0480f036",
+              "recordKey": "BILLX",
+              "name": "Billing Export Retirement",
+              "portfolio": {
+                "id": "c93ceaeb-6810-404d-8ebf-06457fe59759",
+                "key": 3,
+                "name": "Digital Commerce"
+              },
+              "program": null,
+              "projectKeys": [
+                "BILLX"
+              ],
+              "programCount": 0,
+              "items": 28,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 28,
+              "share": 6.8,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "code": "FALC",
+                "name": "Falcon",
+                "value": 22.4,
+                "items": 22
+              }
+            },
+            {
+              "id": "no-project",
+              "kind": "NoProject",
+              "recordId": null,
+              "recordKey": null,
+              "name": "No project",
+              "portfolio": null,
+              "program": null,
+              "projectKeys": [],
+              "programCount": 0,
+              "items": 135,
+              "storyPoints": 0,
+              "filledStoryPoints": 0,
+              "value": 134.7,
+              "share": 32.7,
+              "noProjectValue": null,
+              "noProjectShare": null,
+              "largestContributor": {
+                "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "code": "KEST",
+                "name": "Kestrel",
+                "value": 82.4,
+                "items": 82
+              }
+            }
+          ],
+          "teams": [
+            {
+              "teamId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "code": "RAPT",
+              "name": "Raptors",
+              "isTeamOfTeams": true,
+              "parentId": null,
+              "level": 0,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 412,
+              "storyPoints": 0,
+              "value": 412,
+              "cells": [
+                {
+                  "value": 108.8,
+                  "share": 26.4,
+                  "items": 109
+                },
+                {
+                  "value": 77.9,
+                  "share": 18.9,
+                  "items": 78
+                },
+                {
+                  "value": 62.6,
+                  "share": 15.2,
+                  "items": 63
+                },
+                {
+                  "value": 28,
+                  "share": 6.8,
+                  "items": 28
+                },
+                {
+                  "value": 134.7,
+                  "share": 32.7,
+                  "items": 135
+                }
+              ],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "code": "FALC",
+              "name": "Falcon",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 141,
+              "storyPoints": 0,
+              "value": 141,
+              "cells": [],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "code": "OSPR",
+              "name": "Osprey",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 130,
+              "storyPoints": 0,
+              "value": 130,
+              "cells": [],
+              "noProjectShare": null
+            },
+            {
+              "teamId": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "code": "KEST",
+              "name": "Kestrel",
+              "isTeamOfTeams": false,
+              "parentId": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "level": 1,
+              "excluded": false,
+              "excludedReason": null,
+              "items": 141,
+              "storyPoints": 0,
+              "value": 141,
+              "cells": [],
+              "noProjectShare": null
+            }
+          ],
+          "periods": []
+        }
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "TeamsOfTeams_GetWorkDistribution",
+        "with": {
+          "idOrCode": {
+            "$regex": "^(c227785d-1026-46d9-bf46-7693ffdc8024|RAPT)$"
+          },
+          "from": "2026-07-01",
+          "to": "2026-09-30",
+          "dimension": "Project",
+          "measure": "TeamEffort"
+        },
+        "because": "Raptors is a team of teams, so the report comes from TeamsOfTeams_GetWorkDistribution; wayd-teams says to default to TeamEffort for a team of teams, and the tool description recommends it, since story points don't compare across teams."
+      },
+      {
+        "type": "notCalled",
+        "tool": "TeamsOfTeams_GetWorkDistribution",
+        "with": {
+          "measure": "StoryPoints"
+        },
+        "because": "Adding story points across teams mixes estimation scales."
+      },
+      {
+        "type": "says",
+        "pattern": "no project|without a project|not (linked|tied|attached) to (a|any) project|unlinked",
+        "because": "wayd-teams: gap groups are findings — 32.7% of the work has no project, above the 20–30% level the skill calls significant."
+      }
+    ],
+    "expected": "The agent resolves Raptors with TeamsOfTeams_GetList (it is a team of teams, not a team) and calls TeamsOfTeams_GetWorkDistribution for 2026-07-01 to 2026-09-30 with dimension Project and measure TeamEffort, per the wayd-teams 'Parameters' section. It presents the project shares, names the largest contributing team per project, and calls out the 32.7% No project share as significant effort escaping portfolio visibility."
+  }
+]

@@ -1,0 +1,4687 @@
+[
+  {
+    "id": "pi-log-objective-health-check",
+    "skill": "wayd-pi",
+    "prompt": "Falcon's onboarding objective in PI 2026.4 needs to go to at risk. The identity provider integration slipped about two weeks, so verification won't be ready until early November. Have the check expire on October 30.",
+    "replies": [
+      "Yes, log that health check."
+    ],
+    "traps": [
+      "confirm-destructive",
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "PlanningIntervals_GetList",
+        "result": [
+          {
+            "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+            "key": 13,
+            "name": "PI 2026.3",
+            "start": "2026-06-29",
+            "end": "2026-09-25",
+            "state": {
+              "id": 1,
+              "name": "Completed"
+            }
+          },
+          {
+            "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+            "key": 14,
+            "name": "PI 2026.4",
+            "start": "2026-09-28",
+            "end": "2026-12-18",
+            "state": {
+              "id": 2,
+              "name": "Active"
+            }
+          },
+          {
+            "id": "8bdbf32e-163b-4b6e-bb70-6d4a243f2797",
+            "key": 15,
+            "name": "PI 2027.1",
+            "start": "2027-01-04",
+            "end": "2027-03-26",
+            "state": {
+              "id": 3,
+              "name": "Future"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "key": 14,
+          "name": "PI 2026.4",
+          "description": "Fourth planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-09-28",
+          "end": "2026-12-18",
+          "state": {
+            "id": 2,
+            "name": "Active"
+          },
+          "objectivesLocked": true,
+          "predictability": 0
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          }
+        },
+        "result": {
+          "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+          "key": 13,
+          "name": "PI 2026.3",
+          "description": "Third planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-06-29",
+          "end": "2026-09-25",
+          "state": {
+            "id": 1,
+            "name": "Completed"
+          },
+          "objectivesLocked": true,
+          "predictability": 90
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetTeams",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "after": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614"
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "5f9c2d1e-7a43-4b8e-9c61-2d0e8b7f4a35",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-17T14:00:00Z",
+              "expiration": "2026-10-30T23:59:00Z",
+              "note": "Identity provider integration slipped about two weeks; verification won't be ready until early November."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614"
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-02T15:10:00Z",
+              "expiration": "2026-10-16T23:59:00Z",
+              "note": "Identity provider integration on track; design signed off."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3"
+        },
+        "result": [
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": null,
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-06",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "reportedOn": "2026-10-12T16:30:00Z",
+              "expiration": "2026-10-26T23:59:00Z",
+              "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": true,
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "12102401-b256-4ed2-b18b-e299300f8c56"
+        },
+        "result": [
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "status": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "reportedBy": {
+                "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                "key": 117,
+                "name": "Dana Whitfield"
+              },
+              "reportedOn": "2026-10-14T13:00:00Z",
+              "expiration": "2026-10-28T23:59:00Z",
+              "note": "Bank sandbox access still blocked; no stories started."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 1
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "after": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "5f9c2d1e-7a43-4b8e-9c61-2d0e8b7f4a35",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-17T14:00:00Z",
+              "expiration": "2026-10-30T23:59:00Z",
+              "note": "Identity provider integration slipped about two weeks; verification won't be ready until early November."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          },
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": null,
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-06",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "reportedOn": "2026-10-12T16:30:00Z",
+              "expiration": "2026-10-26T23:59:00Z",
+              "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": true,
+            "order": 2
+          },
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "status": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "reportedBy": {
+                "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                "key": 117,
+                "name": "Dana Whitfield"
+              },
+              "reportedOn": "2026-10-14T13:00:00Z",
+              "expiration": "2026-10-28T23:59:00Z",
+              "note": "Bank sandbox access still blocked; no stories started."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 1
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-02T15:10:00Z",
+              "expiration": "2026-10-16T23:59:00Z",
+              "note": "Identity provider integration on track; design signed off."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          },
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": null,
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-06",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "reportedOn": "2026-10-12T16:30:00Z",
+              "expiration": "2026-10-26T23:59:00Z",
+              "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": true,
+            "order": 2
+          },
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "status": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "reportedBy": {
+                "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                "key": 117,
+                "name": "Dana Whitfield"
+              },
+              "reportedOn": "2026-10-14T13:00:00Z",
+              "expiration": "2026-10-28T23:59:00Z",
+              "note": "Bank sandbox access still blocked; no stories started."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 1
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjective",
+        "after": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(2f737444-48e6-4d0c-9e70-6ee7a97610e9|412)$"
+          }
+        },
+        "result": {
+          "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+          "key": 412,
+          "name": "Launch self-service onboarding",
+          "status": {
+            "id": 2,
+            "name": "In Progress"
+          },
+          "healthCheck": {
+            "id": "5f9c2d1e-7a43-4b8e-9c61-2d0e8b7f4a35",
+            "status": {
+              "id": 2,
+              "name": "At Risk"
+            },
+            "reportedBy": {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            },
+            "reportedOn": "2026-10-17T14:00:00Z",
+            "expiration": "2026-10-30T23:59:00Z",
+            "note": "Identity provider integration slipped about two weeks; verification won't be ready until early November."
+          },
+          "planningInterval": {
+            "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+            "key": 14,
+            "name": "PI 2026.4"
+          },
+          "team": {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team"
+          },
+          "progress": 40,
+          "type": {
+            "id": 1,
+            "name": "Team"
+          },
+          "startDate": "2026-09-28",
+          "targetDate": "2026-11-20",
+          "isStretch": false,
+          "description": "New customers can create and verify an account without contacting support, using the corporate identity provider.",
+          "closedDate": null
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetObjective",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(2f737444-48e6-4d0c-9e70-6ee7a97610e9|412)$"
+          }
+        },
+        "result": {
+          "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+          "key": 412,
+          "name": "Launch self-service onboarding",
+          "status": {
+            "id": 2,
+            "name": "In Progress"
+          },
+          "healthCheck": {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "status": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedBy": {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            },
+            "reportedOn": "2026-10-02T15:10:00Z",
+            "expiration": "2026-10-16T23:59:00Z",
+            "note": "Identity provider integration on track; design signed off."
+          },
+          "planningInterval": {
+            "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+            "key": 14,
+            "name": "PI 2026.4"
+          },
+          "team": {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team"
+          },
+          "progress": 40,
+          "type": {
+            "id": 1,
+            "name": "Team"
+          },
+          "startDate": "2026-09-28",
+          "targetDate": "2026-11-20",
+          "isStretch": false,
+          "description": "New customers can create and verify an account without contacting support, using the corporate identity provider.",
+          "closedDate": null
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveHealthChecks",
+        "after": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "when": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "objectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9"
+        },
+        "result": [
+          {
+            "id": "5f9c2d1e-7a43-4b8e-9c61-2d0e8b7f4a35",
+            "planningIntervalObjectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "status": {
+              "id": 2,
+              "name": "At Risk"
+            },
+            "reportedBy": {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            },
+            "reportedOn": "2026-10-17T14:00:00Z",
+            "expiration": "2026-10-30T23:59:00Z",
+            "note": "Identity provider integration slipped about two weeks; verification won't be ready until early November."
+          },
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "planningIntervalObjectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "status": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedBy": {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            },
+            "reportedOn": "2026-10-02T15:10:00Z",
+            "expiration": "2026-10-16T23:59:00Z",
+            "note": "Identity provider integration on track; design signed off."
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveHealthChecks",
+        "when": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "objectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9"
+        },
+        "result": [
+          {
+            "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "planningIntervalObjectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "status": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedBy": {
+              "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+              "key": 101,
+              "name": "Priya Raman"
+            },
+            "reportedOn": "2026-10-02T15:10:00Z",
+            "expiration": "2026-10-16T23:59:00Z",
+            "note": "Identity provider integration on track; design signed off."
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveWorkItems",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(2f737444-48e6-4d0c-9e70-6ee7a97610e9|412)$"
+          }
+        },
+        "result": {
+          "progressSummary": {
+            "proposed": 4,
+            "active": 3,
+            "done": 5,
+            "total": 12
+          },
+          "workItems": []
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveWorkItemMetrics",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(2f737444-48e6-4d0c-9e70-6ee7a97610e9|412)$"
+          }
+        },
+        "result": []
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(2f737444-48e6-4d0c-9e70-6ee7a97610e9|412)$"
+          }
+        },
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+          "title": "Not Found",
+          "status": 404
+        },
+        "error": true
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveActivities",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(2f737444-48e6-4d0c-9e70-6ee7a97610e9|412)$"
+          }
+        },
+        "result": {
+          "items": [],
+          "pageNumber": 1,
+          "pageSize": 100,
+          "totalCount": 0,
+          "totalPages": 0,
+          "hasPreviousPage": false,
+          "hasNextPage": false
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetRisks",
+        "result": []
+      },
+      {
+        "tool": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "when": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "objectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+          "requestBody": {
+            "planningIntervalObjectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9"
+          }
+        },
+        "result": "5f9c2d1e-7a43-4b8e-9c61-2d0e8b7f4a35"
+      }
+    ],
+    "expect": [
+      {
+        "type": "confirmedBefore",
+        "tool": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "because": "The wayd-pi skill says never to log a health check without the user confirming the status, expiration and note; the server instructions require confirmation for status changes."
+      },
+      {
+        "type": "called",
+        "tool": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "with": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "objectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+          "requestBody": {
+            "planningIntervalObjectiveId": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "statusId": 2,
+            "expiration": {
+              "$regex": "^2026-10-(30|31)"
+            }
+          }
+        },
+        "because": "The check is logged on the PI and objective UUIDs (not their keys), with statusId 2 (AtRisk) and the expiration the user asked for."
+      },
+      {
+        "type": "everyCall",
+        "tool": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "with": {
+          "requestBody": {
+            "statusId": 2
+          }
+        },
+        "because": "The user asked for At Risk; no other status should be logged."
+      }
+    ],
+    "expected": "The agent finds PI 2026.4 and Falcon's objective 'Launch self-service onboarding' (key 412) by listing objectives, then presents the proposed check — At Risk (statusId 2), expiring 2026-10-30, with a note about the identity provider slip — and waits for confirmation (wayd-pi 'Present to the user before submitting'). After 'Yes, go ahead.' it calls PlanningIntervals_CreateObjectiveHealthCheck with the PI and objective UUIDs, and planningIntervalObjectiveId matching objectiveId, as the tool description and the skill's health-check table require."
+  },
+  {
+    "id": "pi-team-predictability",
+    "skill": "wayd-pi",
+    "prompt": "How predictable was Falcon in PI 2026.3? I need the number for the inspect and adapt.",
+    "traps": [
+      "wrong-tool",
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "PlanningIntervals_GetList",
+        "result": [
+          {
+            "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+            "key": 13,
+            "name": "PI 2026.3",
+            "start": "2026-06-29",
+            "end": "2026-09-25",
+            "state": {
+              "id": 1,
+              "name": "Completed"
+            }
+          },
+          {
+            "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+            "key": 14,
+            "name": "PI 2026.4",
+            "start": "2026-09-28",
+            "end": "2026-12-18",
+            "state": {
+              "id": 2,
+              "name": "Active"
+            }
+          },
+          {
+            "id": "8bdbf32e-163b-4b6e-bb70-6d4a243f2797",
+            "key": 15,
+            "name": "PI 2027.1",
+            "start": "2027-01-04",
+            "end": "2027-03-26",
+            "state": {
+              "id": 3,
+              "name": "Future"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "key": 14,
+          "name": "PI 2026.4",
+          "description": "Fourth planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-09-28",
+          "end": "2026-12-18",
+          "state": {
+            "id": 2,
+            "name": "Active"
+          },
+          "objectivesLocked": true,
+          "predictability": 0
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          }
+        },
+        "result": {
+          "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+          "key": 13,
+          "name": "PI 2026.3",
+          "description": "Third planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-06-29",
+          "end": "2026-09-25",
+          "state": {
+            "id": 1,
+            "name": "Completed"
+          },
+          "objectivesLocked": true,
+          "predictability": 90
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetTeams",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetTeams",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          }
+        },
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetPredictability",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          }
+        },
+        "result": {
+          "predictability": 90,
+          "teamPredictabilities": [
+            {
+              "team": {
+                "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "key": 12,
+                "name": "Falcon",
+                "code": "FALC",
+                "type": "Team"
+              },
+              "predictability": 75,
+              "regularObjectivesCount": 4,
+              "stretchObjectivesCount": 1,
+              "completedObjectivesCount": 3
+            },
+            {
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "predictability": 100,
+              "regularObjectivesCount": 3,
+              "stretchObjectivesCount": 1,
+              "completedObjectivesCount": 4
+            },
+            {
+              "team": {
+                "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "key": 31,
+                "name": "Kestrel",
+                "code": "KEST",
+                "type": "Team"
+              },
+              "predictability": 66.67,
+              "regularObjectivesCount": 3,
+              "stretchObjectivesCount": 0,
+              "completedObjectivesCount": 2
+            }
+          ]
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetTeamPredictability",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          },
+          "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614"
+        },
+        "result": 75
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          }
+        },
+        "result": []
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Teams_GetSprintMetrics",
+        "because": "PI predictability is the share of a team's PI objectives it met (PlanningIntervals_GetTeamPredictability / GetPredictability), not the sprint-level predictability in Teams_GetSprintMetrics."
+      },
+      {
+        "type": "says",
+        "pattern": "\\b75(\\.0+)?\\b(?!\\.\\d)",
+        "because": "Falcon's PI 2026.3 predictability is 75%; quoting it shows the PI endpoint was read."
+      }
+    ],
+    "expected": "The agent resolves PI 2026.3 from PlanningIntervals_GetList and reads Falcon's predictability from PlanningIntervals_GetTeamPredictability (with Falcon's UUID from PlanningIntervals_GetTeams) or from PlanningIntervals_GetPredictability, reporting 75% (3 of 4 regular objectives completed). The wayd-pi 'Predictability' section names these tools; sprint metrics measure something different and are not used."
+  },
+  {
+    "id": "pi-health-report",
+    "skill": "wayd-pi",
+    "prompt": "Give me a quick health readout on PI 2026.4 for tomorrow's ART sync — which objectives are in trouble?",
+    "traps": [
+      "wrong-tool"
+    ],
+    "fixtures": [
+      {
+        "tool": "PlanningIntervals_GetList",
+        "result": [
+          {
+            "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+            "key": 13,
+            "name": "PI 2026.3",
+            "start": "2026-06-29",
+            "end": "2026-09-25",
+            "state": {
+              "id": 1,
+              "name": "Completed"
+            }
+          },
+          {
+            "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+            "key": 14,
+            "name": "PI 2026.4",
+            "start": "2026-09-28",
+            "end": "2026-12-18",
+            "state": {
+              "id": 2,
+              "name": "Active"
+            }
+          },
+          {
+            "id": "8bdbf32e-163b-4b6e-bb70-6d4a243f2797",
+            "key": 15,
+            "name": "PI 2027.1",
+            "start": "2027-01-04",
+            "end": "2027-03-26",
+            "state": {
+              "id": 3,
+              "name": "Future"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "key": 14,
+          "name": "PI 2026.4",
+          "description": "Fourth planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-09-28",
+          "end": "2026-12-18",
+          "state": {
+            "id": 2,
+            "name": "Active"
+          },
+          "objectivesLocked": true,
+          "predictability": 0
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          }
+        },
+        "result": {
+          "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+          "key": 13,
+          "name": "PI 2026.3",
+          "description": "Third planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-06-29",
+          "end": "2026-09-25",
+          "state": {
+            "id": 1,
+            "name": "Completed"
+          },
+          "objectivesLocked": true,
+          "predictability": 90
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetTeams",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectivesHealthReport",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "isStretch": false,
+            "healthCheckId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "healthStatus": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedOn": "2026-10-02T15:10:00Z",
+            "expiration": "2026-10-16T23:59:00Z",
+            "note": "Identity provider integration on track; design signed off."
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "isStretch": false,
+            "healthCheckId": "ac909c63-981e-4e37-a126-00e39212d1b8",
+            "healthStatus": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedOn": "2026-10-09T14:00:00Z",
+            "expiration": "2026-10-23T23:59:00Z",
+            "note": "Two of three exports retired."
+          },
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "isStretch": false,
+            "healthCheckId": null,
+            "healthStatus": null,
+            "reportedOn": null,
+            "expiration": null,
+            "note": null
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "isStretch": true,
+            "healthCheckId": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+            "healthStatus": {
+              "id": 2,
+              "name": "At Risk"
+            },
+            "reportedOn": "2026-10-12T16:30:00Z",
+            "expiration": "2026-10-26T23:59:00Z",
+            "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+          },
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "isStretch": false,
+            "healthCheckId": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+            "healthStatus": {
+              "id": 3,
+              "name": "Unhealthy"
+            },
+            "reportedOn": "2026-10-14T13:00:00Z",
+            "expiration": "2026-10-28T23:59:00Z",
+            "note": "Bank sandbox access still blocked; no stories started."
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614"
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-02T15:10:00Z",
+              "expiration": "2026-10-16T23:59:00Z",
+              "note": "Identity provider integration on track; design signed off."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3"
+        },
+        "result": [
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": null,
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-06",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "reportedOn": "2026-10-12T16:30:00Z",
+              "expiration": "2026-10-26T23:59:00Z",
+              "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": true,
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "12102401-b256-4ed2-b18b-e299300f8c56"
+        },
+        "result": [
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "status": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "reportedBy": {
+                "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                "key": 117,
+                "name": "Dana Whitfield"
+              },
+              "reportedOn": "2026-10-14T13:00:00Z",
+              "expiration": "2026-10-28T23:59:00Z",
+              "note": "Bank sandbox access still blocked; no stories started."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 1
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-02T15:10:00Z",
+              "expiration": "2026-10-16T23:59:00Z",
+              "note": "Identity provider integration on track; design signed off."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          },
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": null,
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-06",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "reportedOn": "2026-10-12T16:30:00Z",
+              "expiration": "2026-10-26T23:59:00Z",
+              "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": true,
+            "order": 2
+          },
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "status": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "reportedBy": {
+                "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                "key": 117,
+                "name": "Dana Whitfield"
+              },
+              "reportedOn": "2026-10-14T13:00:00Z",
+              "expiration": "2026-10-28T23:59:00Z",
+              "note": "Bank sandbox access still blocked; no stories started."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 1
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetPredictability",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": {
+          "predictability": 0,
+          "teamPredictabilities": [
+            {
+              "team": {
+                "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "key": 12,
+                "name": "Falcon",
+                "code": "FALC",
+                "type": "Team"
+              },
+              "predictability": 0,
+              "regularObjectivesCount": 2,
+              "stretchObjectivesCount": 0,
+              "completedObjectivesCount": 0
+            },
+            {
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "predictability": 0,
+              "regularObjectivesCount": 1,
+              "stretchObjectivesCount": 1,
+              "completedObjectivesCount": 0
+            },
+            {
+              "team": {
+                "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "key": 31,
+                "name": "Kestrel",
+                "code": "KEST",
+                "type": "Team"
+              },
+              "predictability": 0,
+              "regularObjectivesCount": 1,
+              "stretchObjectivesCount": 0,
+              "completedObjectivesCount": 0
+            }
+          ]
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetRisks",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+            "key": 3051,
+            "summary": "Bank sandbox credentials not issued",
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-01T09:00:00Z",
+            "status": "Open",
+            "category": "Owned",
+            "exposure": "High",
+            "assignee": {
+              "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+              "key": 117,
+              "name": "Dana Whitfield"
+            },
+            "followUpDate": "2026-10-21"
+          },
+          {
+            "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "key": 3058,
+            "summary": "Payment gateway latency fix depends on vendor release",
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-08T09:00:00Z",
+            "status": "Open",
+            "category": "Accepted",
+            "exposure": "Medium",
+            "assignee": {
+              "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+              "key": 102,
+              "name": "Marcus Hale"
+            },
+            "followUpDate": "2026-10-28"
+          },
+          {
+            "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+            "key": 3062,
+            "summary": "Mobile device lab booked out until November",
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-12T09:00:00Z",
+            "status": "Open",
+            "category": "Owned",
+            "exposure": "Medium",
+            "assignee": {
+              "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+              "key": 102,
+              "name": "Marcus Hale"
+            },
+            "followUpDate": "2026-10-23"
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveHealthChecks",
+        "result": []
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "PlanningIntervals_GetObjectivesHealthReport",
+        "with": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "because": "wayd-pi: the PI-wide health report is a dedicated endpoint — do not derive it from objectives manually."
+      },
+      {
+        "type": "notCalled",
+        "tool": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "because": "A readout is read-only."
+      },
+      {
+        "type": "says",
+        "pattern": "reconciliation",
+        "because": "Kestrel's 'Automate payments reconciliation' is the one Unhealthy objective and must be named."
+      },
+      {
+        "type": "says",
+        "pattern": "offline",
+        "because": "'Ship mobile offline mode' has no health check at all; the skill's report shape lists objectives with no active check separately rather than treating them as healthy."
+      }
+    ],
+    "expected": "The agent resolves PI 2026.4 and calls PlanningIntervals_GetObjectivesHealthReport (plus, per the skill's PI health report recipe, the PI details, predictability and open risks). It names 'Automate payments reconciliation' (Unhealthy) and 'Cut checkout p95 latency to 400 ms' (At Risk), and calls out 'Ship mobile offline mode' as having no health check rather than counting it healthy. Checks whose expiration has passed may also be flagged as not current."
+  },
+  {
+    "id": "pi-recommend-health-check",
+    "skill": "wayd-pi",
+    "prompt": "How is Osprey's offline mode objective in PI 2026.4 actually tracking? What health status would you give it?",
+    "traps": [
+      "wrong-tool",
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "PlanningIntervals_GetList",
+        "result": [
+          {
+            "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+            "key": 13,
+            "name": "PI 2026.3",
+            "start": "2026-06-29",
+            "end": "2026-09-25",
+            "state": {
+              "id": 1,
+              "name": "Completed"
+            }
+          },
+          {
+            "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+            "key": 14,
+            "name": "PI 2026.4",
+            "start": "2026-09-28",
+            "end": "2026-12-18",
+            "state": {
+              "id": 2,
+              "name": "Active"
+            }
+          },
+          {
+            "id": "8bdbf32e-163b-4b6e-bb70-6d4a243f2797",
+            "key": 15,
+            "name": "PI 2027.1",
+            "start": "2027-01-04",
+            "end": "2027-03-26",
+            "state": {
+              "id": 3,
+              "name": "Future"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "key": 14,
+          "name": "PI 2026.4",
+          "description": "Fourth planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-09-28",
+          "end": "2026-12-18",
+          "state": {
+            "id": 2,
+            "name": "Active"
+          },
+          "objectivesLocked": true,
+          "predictability": 0
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetPlanningInterval",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(f5415d8a-0533-48a3-9eb0-1b71b815d1d6|13)$"
+          }
+        },
+        "result": {
+          "id": "f5415d8a-0533-48a3-9eb0-1b71b815d1d6",
+          "key": 13,
+          "name": "PI 2026.3",
+          "description": "Third planning interval of 2026 for the Raptors team of teams.",
+          "start": "2026-06-29",
+          "end": "2026-09-25",
+          "state": {
+            "id": 1,
+            "name": "Completed"
+          },
+          "objectivesLocked": true,
+          "predictability": 90
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetTeams",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          },
+          {
+            "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+            "key": 31,
+            "name": "Kestrel",
+            "code": "KEST",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": {
+              "id": "c227785d-1026-46d9-bf46-7693ffdc8024",
+              "key": 5,
+              "name": "Raptors",
+              "code": "RAPT",
+              "type": "Team of Teams"
+            }
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614"
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-02T15:10:00Z",
+              "expiration": "2026-10-16T23:59:00Z",
+              "note": "Identity provider integration on track; design signed off."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3"
+        },
+        "result": [
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": null,
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-06",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "reportedOn": "2026-10-12T16:30:00Z",
+              "expiration": "2026-10-26T23:59:00Z",
+              "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": true,
+            "order": 2
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "12102401-b256-4ed2-b18b-e299300f8c56"
+        },
+        "result": [
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "status": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "reportedBy": {
+                "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                "key": 117,
+                "name": "Dana Whitfield"
+              },
+              "reportedOn": "2026-10-14T13:00:00Z",
+              "expiration": "2026-10-28T23:59:00Z",
+              "note": "Bank sandbox access still blocked; no stories started."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 1
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectives",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-02T15:10:00Z",
+              "expiration": "2026-10-16T23:59:00Z",
+              "note": "Identity provider integration on track; design signed off."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-20",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "ac909c63-981e-4e37-a126-00e39212d1b8",
+              "status": {
+                "id": 1,
+                "name": "Healthy"
+              },
+              "reportedBy": {
+                "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
+                "key": 101,
+                "name": "Priya Raman"
+              },
+              "reportedOn": "2026-10-09T14:00:00Z",
+              "expiration": "2026-10-23T23:59:00Z",
+              "note": "Two of three exports retired."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 2
+          },
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": null,
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": "2026-09-28",
+            "targetDate": "2026-11-06",
+            "isStretch": false,
+            "order": 1
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+              "status": {
+                "id": 2,
+                "name": "At Risk"
+              },
+              "reportedBy": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "reportedOn": "2026-10-12T16:30:00Z",
+              "expiration": "2026-10-26T23:59:00Z",
+              "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": true,
+            "order": 2
+          },
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "healthCheck": {
+              "id": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+              "status": {
+                "id": 3,
+                "name": "Unhealthy"
+              },
+              "reportedBy": {
+                "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+                "key": 117,
+                "name": "Dana Whitfield"
+              },
+              "reportedOn": "2026-10-14T13:00:00Z",
+              "expiration": "2026-10-28T23:59:00Z",
+              "note": "Bank sandbox access still blocked; no stories started."
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "startDate": null,
+            "targetDate": null,
+            "isStretch": false,
+            "order": 1
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjective",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(62ce8384-4fca-434d-870b-84faf7c93c14|418)$"
+          }
+        },
+        "result": {
+          "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+          "key": 418,
+          "name": "Ship mobile offline mode",
+          "status": {
+            "id": 2,
+            "name": "In Progress"
+          },
+          "healthCheck": null,
+          "planningInterval": {
+            "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+            "key": 14,
+            "name": "PI 2026.4"
+          },
+          "team": {
+            "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+            "key": 27,
+            "name": "Osprey",
+            "code": "OSPR",
+            "type": "Team"
+          },
+          "progress": 20,
+          "type": {
+            "id": 1,
+            "name": "Team"
+          },
+          "startDate": "2026-09-28",
+          "targetDate": "2026-11-06",
+          "isStretch": false,
+          "description": "Customers can browse the catalog, build a cart and view past orders with no connection, and changes sync when they reconnect.",
+          "closedDate": null
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveWorkItems",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(62ce8384-4fca-434d-870b-84faf7c93c14|418)$"
+          }
+        },
+        "result": {
+          "progressSummary": {
+            "proposed": 5,
+            "active": 7,
+            "done": 3,
+            "total": 15
+          },
+          "workItems": [
+            {
+              "id": "9dc13521-984b-4c66-89fd-684f7c20e7b7",
+              "key": "MOB-201",
+              "title": "Cache catalog for offline browsing",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "Done",
+              "statusCategory": {
+                "id": 2,
+                "name": "Done"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1000,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:00:00Z",
+              "activated": "2026-10-01T09:00:00Z",
+              "done": "2026-10-06T17:00:00Z",
+              "tags": [],
+              "cycleTime": 5
+            },
+            {
+              "id": "337a9af3-84cf-4bab-8d0c-254d89e016d2",
+              "key": "MOB-202",
+              "title": "Queue cart changes while offline",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "Done",
+              "statusCategory": {
+                "id": 2,
+                "name": "Done"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1010,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:05:00Z",
+              "activated": "2026-10-01T09:30:00Z",
+              "done": "2026-10-07T12:00:00Z",
+              "tags": [],
+              "cycleTime": 5
+            },
+            {
+              "id": "e8904f8e-f7b1-49ec-a6b0-7a4e59da2195",
+              "key": "MOB-203",
+              "title": "Offline indicator banner",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "Done",
+              "statusCategory": {
+                "id": 2,
+                "name": "Done"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1020,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:10:00Z",
+              "activated": "2026-10-02T09:00:00Z",
+              "done": "2026-10-07T15:00:00Z",
+              "tags": [],
+              "cycleTime": 5
+            },
+            {
+              "id": "72a376d8-d176-41af-b29e-eb0d607fac3f",
+              "key": "MOB-204",
+              "title": "Conflict resolution on reconnect",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1030,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:15:00Z",
+              "activated": "2026-10-05T09:00:00Z",
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "f7d673f9-94e6-46a0-a4cf-a5277ee81bc0",
+              "key": "MOB-205",
+              "title": "Sync engine retry policy",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1040,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:20:00Z",
+              "activated": "2026-10-05T11:00:00Z",
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "95d5aa1d-2617-483d-8a38-89602fcb8d5a",
+              "key": "MOB-206",
+              "title": "Encrypt offline store",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1050,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:25:00Z",
+              "activated": "2026-10-06T09:00:00Z",
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "192639e9-4ec0-4b67-91f0-83c7afaa73cf",
+              "key": "MOB-207",
+              "title": "Offline order history",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1060,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:30:00Z",
+              "activated": "2026-10-08T09:00:00Z",
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "4cd05772-19b4-41ed-b810-7608022d0ff8",
+              "key": "MOB-208",
+              "title": "Background sync scheduler",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1070,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-09-30T10:35:00Z",
+              "activated": "2026-10-09T09:00:00Z",
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "e7d01aa3-d9b5-4aef-8c07-a43dbcca2d9d",
+              "key": "MOB-209",
+              "title": "Offline search index",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1080,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-10-05T10:00:00Z",
+              "activated": "2026-10-12T09:00:00Z",
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "315d6689-3abf-4c87-b68c-463695f1bdec",
+              "key": "MOB-210",
+              "title": "Storage quota handling",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "In Progress",
+              "statusCategory": {
+                "id": 1,
+                "name": "Active"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1090,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-10-05T10:05:00Z",
+              "activated": "2026-10-13T09:00:00Z",
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "4c314845-1e14-435e-803e-93ca0e1eea18",
+              "key": "MOB-211",
+              "title": "Offline analytics buffering",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1100,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-10-05T10:10:00Z",
+              "activated": null,
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "e992a7ab-aa18-4b47-ab50-fa86513fb4d0",
+              "key": "MOB-212",
+              "title": "Offline payments guard",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1110,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-10-05T10:15:00Z",
+              "activated": null,
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "58e26a7e-1ac0-4947-b990-5a0c94bab2bf",
+              "key": "MOB-213",
+              "title": "Sync telemetry dashboard",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1120,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-10-08T10:00:00Z",
+              "activated": null,
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "9bf8d8c8-b601-4482-a4fc-66f4d608a693",
+              "key": "MOB-214",
+              "title": "Offline help content",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1130,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-10-08T10:05:00Z",
+              "activated": null,
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            },
+            {
+              "id": "3c5448a2-1d86-4db6-9d9e-2b0173f3f473",
+              "key": "MOB-215",
+              "title": "Airplane-mode regression suite",
+              "workspace": {
+                "id": "9eb94425-e0a4-4ee7-bc7b-48b524c71c0f",
+                "key": "MOB",
+                "name": "Mobile"
+              },
+              "type": {
+                "id": 4,
+                "name": "User Story",
+                "level": {
+                  "id": 2,
+                  "name": "Story"
+                },
+                "tier": {
+                  "id": 1,
+                  "name": "Requirement"
+                }
+              },
+              "status": "New",
+              "statusCategory": {
+                "id": 0,
+                "name": "Proposed"
+              },
+              "parent": null,
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "sprint": null,
+              "assignedTo": null,
+              "stackRank": 1140,
+              "storyPoints": 3,
+              "effort": null,
+              "size": null,
+              "project": null,
+              "externalViewWorkItemUrl": null,
+              "created": "2026-10-12T10:00:00Z",
+              "activated": null,
+              "done": null,
+              "tags": [],
+              "cycleTime": null
+            }
+          ]
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveWorkItemMetrics",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(62ce8384-4fca-434d-870b-84faf7c93c14|418)$"
+          }
+        },
+        "result": [
+          {
+            "date": "2026-09-28",
+            "proposed": 0,
+            "active": 0,
+            "done": 0,
+            "total": 0
+          },
+          {
+            "date": "2026-09-29",
+            "proposed": 0,
+            "active": 0,
+            "done": 0,
+            "total": 0
+          },
+          {
+            "date": "2026-09-30",
+            "proposed": 8,
+            "active": 0,
+            "done": 0,
+            "total": 8
+          },
+          {
+            "date": "2026-10-01",
+            "proposed": 6,
+            "active": 2,
+            "done": 0,
+            "total": 8
+          },
+          {
+            "date": "2026-10-02",
+            "proposed": 5,
+            "active": 3,
+            "done": 0,
+            "total": 8
+          },
+          {
+            "date": "2026-10-03",
+            "proposed": 5,
+            "active": 3,
+            "done": 0,
+            "total": 8
+          },
+          {
+            "date": "2026-10-04",
+            "proposed": 5,
+            "active": 3,
+            "done": 0,
+            "total": 8
+          },
+          {
+            "date": "2026-10-05",
+            "proposed": 7,
+            "active": 5,
+            "done": 0,
+            "total": 12
+          },
+          {
+            "date": "2026-10-06",
+            "proposed": 6,
+            "active": 5,
+            "done": 1,
+            "total": 12
+          },
+          {
+            "date": "2026-10-07",
+            "proposed": 6,
+            "active": 3,
+            "done": 3,
+            "total": 12
+          },
+          {
+            "date": "2026-10-08",
+            "proposed": 7,
+            "active": 4,
+            "done": 3,
+            "total": 14
+          },
+          {
+            "date": "2026-10-09",
+            "proposed": 6,
+            "active": 5,
+            "done": 3,
+            "total": 14
+          },
+          {
+            "date": "2026-10-10",
+            "proposed": 6,
+            "active": 5,
+            "done": 3,
+            "total": 14
+          },
+          {
+            "date": "2026-10-11",
+            "proposed": 6,
+            "active": 5,
+            "done": 3,
+            "total": 14
+          },
+          {
+            "date": "2026-10-12",
+            "proposed": 6,
+            "active": 6,
+            "done": 3,
+            "total": 15
+          },
+          {
+            "date": "2026-10-13",
+            "proposed": 5,
+            "active": 7,
+            "done": 3,
+            "total": 15
+          },
+          {
+            "date": "2026-10-14",
+            "proposed": 5,
+            "active": 7,
+            "done": 3,
+            "total": 15
+          },
+          {
+            "date": "2026-10-15",
+            "proposed": 5,
+            "active": 7,
+            "done": 3,
+            "total": 15
+          },
+          {
+            "date": "2026-10-16",
+            "proposed": 5,
+            "active": 7,
+            "done": 3,
+            "total": 15
+          },
+          {
+            "date": "2026-10-17",
+            "proposed": 5,
+            "active": 7,
+            "done": 3,
+            "total": 15
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(62ce8384-4fca-434d-870b-84faf7c93c14|418)$"
+          }
+        },
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+          "title": "Not Found",
+          "status": 404
+        },
+        "error": true
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveHealthChecks",
+        "when": {
+          "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+          "objectiveId": "62ce8384-4fca-434d-870b-84faf7c93c14"
+        },
+        "result": []
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveActivities",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "objectiveIdOrKey": {
+            "$regex": "^(62ce8384-4fca-434d-870b-84faf7c93c14|418)$"
+          }
+        },
+        "result": {
+          "items": [
+            {
+              "id": 90412,
+              "eventType": "PlanningIntervalObjectiveProgressUpdatedEvent",
+              "category": "Updated",
+              "domainArea": "Planning",
+              "aggregateType": "PlanningIntervalObjective",
+              "aggregateId": "62ce8384-4fca-434d-870b-84faf7c93c14",
+              "actorKind": "User",
+              "employee": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "timestamp": "2026-10-09T16:02:00Z",
+              "correlationId": null,
+              "eventVersion": "1.0",
+              "payload": "{\"fromProgress\":10,\"toProgress\":20}",
+              "summary": "Progress changed from 10% to 20%",
+              "isRelated": false,
+              "raisedOn": null
+            },
+            {
+              "id": 90233,
+              "eventType": "PlanningIntervalObjectiveCreatedEvent",
+              "category": "Created",
+              "domainArea": "Planning",
+              "aggregateType": "PlanningIntervalObjective",
+              "aggregateId": "62ce8384-4fca-434d-870b-84faf7c93c14",
+              "actorKind": "User",
+              "employee": {
+                "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+                "key": 102,
+                "name": "Marcus Hale"
+              },
+              "timestamp": "2026-09-24T18:40:00Z",
+              "correlationId": null,
+              "eventVersion": "1.0",
+              "payload": "{\"name\":\"Ship mobile offline mode\",\"targetDate\":\"2026-11-06\"}",
+              "summary": "Objective created",
+              "isRelated": false,
+              "raisedOn": null
+            }
+          ],
+          "pageNumber": 1,
+          "pageSize": 100,
+          "totalCount": 2,
+          "totalPages": 1,
+          "hasPreviousPage": false,
+          "hasNextPage": false
+        }
+      },
+      {
+        "tool": "PlanningIntervals_GetRisks",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          },
+          "teamId": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3"
+        },
+        "result": [
+          {
+            "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "key": 3058,
+            "summary": "Payment gateway latency fix depends on vendor release",
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-08T09:00:00Z",
+            "status": "Open",
+            "category": "Accepted",
+            "exposure": "Medium",
+            "assignee": {
+              "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+              "key": 102,
+              "name": "Marcus Hale"
+            },
+            "followUpDate": "2026-10-28"
+          },
+          {
+            "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+            "key": 3062,
+            "summary": "Mobile device lab booked out until November",
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-12T09:00:00Z",
+            "status": "Open",
+            "category": "Owned",
+            "exposure": "Medium",
+            "assignee": {
+              "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+              "key": 102,
+              "name": "Marcus Hale"
+            },
+            "followUpDate": "2026-10-23"
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetRisks",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "22b26899-7d82-4122-a3f5-7904792c32bc",
+            "key": 3051,
+            "summary": "Bank sandbox credentials not issued",
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-01T09:00:00Z",
+            "status": "Open",
+            "category": "Owned",
+            "exposure": "High",
+            "assignee": {
+              "id": "e21abc81-68e2-4d7d-9825-4b9cad5a0b4a",
+              "key": 117,
+              "name": "Dana Whitfield"
+            },
+            "followUpDate": "2026-10-21"
+          },
+          {
+            "id": "e7edfb60-f3ec-425a-9902-8661a616c536",
+            "key": 3058,
+            "summary": "Payment gateway latency fix depends on vendor release",
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-08T09:00:00Z",
+            "status": "Open",
+            "category": "Accepted",
+            "exposure": "Medium",
+            "assignee": {
+              "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+              "key": 102,
+              "name": "Marcus Hale"
+            },
+            "followUpDate": "2026-10-28"
+          },
+          {
+            "id": "4d742a06-6a3c-48f0-9be4-e2a32995fde4",
+            "key": 3062,
+            "summary": "Mobile device lab booked out until November",
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "reportedOn": "2026-10-12T09:00:00Z",
+            "status": "Open",
+            "category": "Owned",
+            "exposure": "Medium",
+            "assignee": {
+              "id": "db3e8d95-9739-4494-8427-42c3aace173e",
+              "key": 102,
+              "name": "Marcus Hale"
+            },
+            "followUpDate": "2026-10-23"
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectiveStatuses",
+        "result": [
+          {
+            "id": 1,
+            "name": "Not Started",
+            "description": "The objective has not been started.",
+            "order": 1
+          },
+          {
+            "id": 2,
+            "name": "In Progress",
+            "description": "The objective is in progress.",
+            "order": 2
+          },
+          {
+            "id": 3,
+            "name": "Completed",
+            "description": "The objective is completed.",
+            "order": 3
+          },
+          {
+            "id": 4,
+            "name": "Canceled",
+            "description": "The objective was canceled.",
+            "order": 4
+          },
+          {
+            "id": 5,
+            "name": "Missed",
+            "description": "The objective was missed.",
+            "order": 5
+          }
+        ]
+      },
+      {
+        "tool": "PlanningIntervals_GetObjectivesHealthReport",
+        "when": {
+          "idOrKey": {
+            "$regex": "^(a62f5d5f-8e96-4502-b9d9-52f93ea52521|14)$"
+          }
+        },
+        "result": [
+          {
+            "id": "2f737444-48e6-4d0c-9e70-6ee7a97610e9",
+            "key": 412,
+            "name": "Launch self-service onboarding",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 40,
+            "isStretch": false,
+            "healthCheckId": "ecf2d6f9-9175-4043-b379-8c5b4d69ef22",
+            "healthStatus": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedOn": "2026-10-02T15:10:00Z",
+            "expiration": "2026-10-16T23:59:00Z",
+            "note": "Identity provider integration on track; design signed off."
+          },
+          {
+            "id": "c4811964-a9ae-447c-ade1-cc1435198235",
+            "key": 413,
+            "name": "Retire legacy billing exports",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+              "key": 12,
+              "name": "Falcon",
+              "code": "FALC",
+              "type": "Team"
+            },
+            "progress": 65,
+            "isStretch": false,
+            "healthCheckId": "ac909c63-981e-4e37-a126-00e39212d1b8",
+            "healthStatus": {
+              "id": 1,
+              "name": "Healthy"
+            },
+            "reportedOn": "2026-10-09T14:00:00Z",
+            "expiration": "2026-10-23T23:59:00Z",
+            "note": "Two of three exports retired."
+          },
+          {
+            "id": "62ce8384-4fca-434d-870b-84faf7c93c14",
+            "key": 418,
+            "name": "Ship mobile offline mode",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 20,
+            "isStretch": false,
+            "healthCheckId": null,
+            "healthStatus": null,
+            "reportedOn": null,
+            "expiration": null,
+            "note": null
+          },
+          {
+            "id": "f36126bb-06c4-4bcc-abba-07c84575b4c1",
+            "key": 419,
+            "name": "Cut checkout p95 latency to 400 ms",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+              "key": 27,
+              "name": "Osprey",
+              "code": "OSPR",
+              "type": "Team"
+            },
+            "progress": 30,
+            "isStretch": true,
+            "healthCheckId": "260f94c0-2da5-46b7-add5-bb86b47e3174",
+            "healthStatus": {
+              "id": 2,
+              "name": "At Risk"
+            },
+            "reportedOn": "2026-10-12T16:30:00Z",
+            "expiration": "2026-10-26T23:59:00Z",
+            "note": "Profiling shows the payment gateway call dominates; vendor fix not yet scheduled."
+          },
+          {
+            "id": "eec74885-8c87-4a84-8eb0-a49dbb05fc82",
+            "key": 425,
+            "name": "Automate payments reconciliation",
+            "status": {
+              "id": 2,
+              "name": "In Progress"
+            },
+            "type": {
+              "id": 1,
+              "name": "Team"
+            },
+            "planningInterval": {
+              "id": "a62f5d5f-8e96-4502-b9d9-52f93ea52521",
+              "key": 14,
+              "name": "PI 2026.4"
+            },
+            "team": {
+              "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+              "key": 31,
+              "name": "Kestrel",
+              "code": "KEST",
+              "type": "Team"
+            },
+            "progress": 10,
+            "isStretch": false,
+            "healthCheckId": "74912209-beea-42ba-84ad-2cbe4c055e2e",
+            "healthStatus": {
+              "id": 3,
+              "name": "Unhealthy"
+            },
+            "reportedOn": "2026-10-14T13:00:00Z",
+            "expiration": "2026-10-28T23:59:00Z",
+            "note": "Bank sandbox access still blocked; no stories started."
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "PlanningIntervals_CreateObjectiveHealthCheck",
+        "because": "The user asked for a recommendation, not to log a check; the skill says never to log one without confirmation."
+      },
+      {
+        "type": "called",
+        "tool": "PlanningIntervals_GetObjectiveWorkItems",
+        "because": "The skill's recommendation recipe gathers the linked work items' progress before judging health."
+      },
+      {
+        "type": "says",
+        "pattern": "at.?risk|unhealthy",
+        "because": "With 3 of 15 items done, completions flat since October 7 and half the objective window gone, a correct recommendation is At Risk or Unhealthy, not Healthy."
+      }
+    ],
+    "expected": "Following the wayd-pi recommendation recipe, the agent reads the objective, its work items (3 done, 7 active, 5 proposed of 15), the CFD (no completions since October 7 while WIP grew), tries the forecast (a 404, so the delivery-forecasting flag is off and it says no forecast was available), and the empty health check history using the PI and objective UUIDs. It recommends At Risk or Unhealthy with a drafted note and expiration, and does not call PlanningIntervals_CreateObjectiveHealthCheck since the user only asked for a recommendation."
+  }
+]

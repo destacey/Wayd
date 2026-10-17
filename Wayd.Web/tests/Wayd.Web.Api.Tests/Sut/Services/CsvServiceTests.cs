@@ -1,6 +1,7 @@
 using System.Text;
 using CsvHelper;
 using FluentAssertions;
+using Wayd.Web.Api.Models.ProductManagement.Versions;
 using Wayd.Web.Api.Services;
 
 namespace Wayd.Web.Api.Tests.Sut.Services;
@@ -49,6 +50,57 @@ public sealed class CsvServiceTests
         // Assert
         rows.Single().End.Should().BeNull();
     }
+
+    [Fact]
+    public void ReadCsv_RefusesAFileMissingAColumn()
+    {
+        // Arrange & Act — even a column whose every cell could be blank must have its header
+        var read = () => Read("Name,Start\nPI 2026.1,2026-01-05\n").ToList();
+
+        // Assert
+        read.Should().Throw<CsvHelperException>();
+    }
+
+    [Fact]
+    public void ReadCsv_RefusesAnImportFileWithoutAnImportIdColumn()
+    {
+        // Arrange & Act — the import key falls back to the row's position only for a blank cell
+        var read = () => ReadVersions("ProductId,Number,Name,TargetDate,CutAt,ReleasedAt,Sequence,Notes\n"
+            + "17f79eeb-d355-4118-9cb0-166b213dd916,1.0.0,Initial release,,,,,\n");
+
+        // Assert
+        read.Should().Throw<CsvHelperException>();
+    }
+
+    [Fact]
+    public void ReadCsv_ReadsABlankImportIdAsEmpty()
+    {
+        // Arrange & Act — an empty key is what the import replaces with the row's position
+        var rows = ReadVersions("ImportId,ProductId,Number,Name,TargetDate,CutAt,ReleasedAt,Sequence,Notes\n"
+            + ",17f79eeb-d355-4118-9cb0-166b213dd916,1.0.0,Initial release,,,,,\n");
+
+        // Assert
+        rows.Single().ImportId.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReadCsv_RefusesABlankBooleanCell()
+    {
+        // Arrange & Act — a property initializer is not a default for a blank cell: the cell is converted
+        var read = () => _csvService.ReadCsv<FlagRow>(new MemoryStream(Encoding.UTF8.GetBytes("Name,IsActive\nFalcon,\n"))).ToList();
+
+        // Assert
+        read.Should().Throw<CsvHelperException>();
+    }
+
+    private sealed class FlagRow
+    {
+        public string Name { get; set; } = default!;
+        public bool IsActive { get; set; } = true;
+    }
+
+    private List<ImportVersionRequest> ReadVersions(string csv) =>
+        [.. _csvService.ReadCsv<ImportVersionRequest>(new MemoryStream(Encoding.UTF8.GetBytes(csv)))];
 
     [Fact]
     public void ReadCsv_RefusesATimestampInADateColumn()

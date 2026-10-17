@@ -85,7 +85,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Imports_GetRows', {
     name: 'Imports_GetRows',
-    description: 'Get a page of an import run\'s row outcomes, as `rows` with a `totalCount`. Each row has its `importId` (the file\'s ImportId column, or its position when the file had none), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.',
+    description: 'Get a page of an import run\'s row outcomes, as `rows` with a `totalCount`. Each row has its `importId` (the file\'s ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.',
     inputSchema: {
       type: 'object',
       properties: {

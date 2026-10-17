@@ -1,21 +1,15 @@
 ---
 name: wayd-story-maps
-description: Guides agents working with Wayd Story Maps — reading, analyzing, creating, and managing a map's goals, steps, tasks, swim lanes, and personas. Use when reading or summarizing a story map, checking its slicing, persona coverage or work item linkage, building one out, or reorganizing or deleting its parts.
+description: Read before calling the Wayd MCP tools named StoryMaps_*. Guides agents working with Wayd Story Maps via the Wayd MCP server — reading, analyzing, creating, and managing a map's goals, steps, tasks, swim lanes, personas, checklists, and work item links. Use when finding or reading a story map, summarizing it, analyzing its scope, slicing or completeness, checking persona coverage or work item linkage, building one out, reorganizing it by reordering or moving cards between steps and lanes, or managing or deleting its parts.
 ---
 
 # Wayd Story Maps
 
-## When to use
+## Before any change
 
-- Finding or listing story maps
-- Reading a story map's full structure (goals, steps, tasks)
-- Analyzing scope, slicing, or completeness of a story map
-- Checking persona coverage or work item linkage across a map
-- Creating a story map or building out its goals, steps, and tasks
-- Reorganizing a map — reordering, moving cards between steps and lanes
-- Managing swim lanes, personas, checklists, and work item links
+Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
 
----
+When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
 
 ## Entity context
 

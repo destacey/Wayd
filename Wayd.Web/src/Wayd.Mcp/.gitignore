@@ -63,3 +63,11 @@ web_modules/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Skill evaluation output: transcripts and derived reports are rebuilt from results.jsonl
+evals/results/**/traces/
+evals/results/**/report.html
+evals/results/**/state.json
+evals/results/**/trajectory/
+evals/results/**/progress.txt
+evals/results/**/ref/

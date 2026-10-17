@@ -1,22 +1,15 @@
 ---
 name: wayd-delivery
-description: Guides agents working with Wayd product delivery via the Wayd MCP server — releases announced to customers, versions of individual artifacts, release packages that ship several components together, and deployments into environments. Use when recording or looking up what was announced, what was built, what shipped together, or where something was deployed; when setting what a release contains; when cutting, releasing, withdrawing or reverting a version or release; when assembling or amending a package manifest; or when starting a deployment and recording its outcome.
+description: Read before calling the Wayd MCP tools named Releases_*, Versions_*, ReleasePackages_* or Deployments_*. Guides agents working with Wayd product delivery via the Wayd MCP server — releases announced to customers, versions of individual artifacts, release packages that ship several components together, and deployments into environments. Use when recording or looking up what was announced, what was built, what shipped together, or where something was deployed; when setting what a release contains; when cutting, releasing, withdrawing or reverting a version or release, or correcting one entered wrongly; when assembling or amending a package manifest; when starting a deployment and recording whether it succeeded, failed or was rolled back; or when answering what shipped in a release, where a version went, or what is cut but not yet shipped.
 ---
 
 # Wayd Delivery (Releases / Versions / Packages / Deployments)
 
-## When to use
+## Before any change
 
-- Finding what was announced to customers, and what a given announcement contained
-- Recording a new release, version, package or deployment
-- Setting or changing what a release announces
-- Cutting a version, marking one released, or withdrawing one
-- Announcing a release, retracting one, or correcting a record entered wrongly
-- Assembling a package and its manifest, or replacing that manifest
-- Starting a deployment and recording whether it succeeded, failed, or was rolled back
-- Answering "what shipped in X?", "where did this version go?", or "what is cut but not yet shipped?"
+Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
 
----
+When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
 
 ## The four records, and why they are separate
 

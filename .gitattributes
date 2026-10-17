@@ -7,3 +7,8 @@
 # Git hooks have no extension but are executed the same way, so they need the
 # same LF guarantee.
 .githooks/* text eol=lf
+
+# A Debug build of the API rewrites the OpenAPI document with LF on every platform.
+# Under core.autocrlf=true git expects CRLF in the working tree, so an unchanged
+# regeneration would otherwise show the file as modified.
+Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json text eol=lf

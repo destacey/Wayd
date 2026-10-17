@@ -31,10 +31,10 @@ const readsOnly = {
 } as const;
 
 const CATEGORY = {
-  type: 'integer',
-  enum: [1, 2, 3, 4, 5],
+  type: 'string',
+  enum: ['Development', 'Testing', 'Staging', 'Production', 'Other'],
   description:
-    'Environment category: 1 Development (used while building), 2 Testing (verifying a change before release), 3 Staging (production-like final validation), 4 Production (live, serving real users — the denominator for delivery metrics), 5 Other (none of those — a sandbox, a demo, a training environment; never counted as production).',
+    'Environment category: Development (used while building), Testing (verifying a change before release), Staging (production-like final validation), Production (live, serving real users — the denominator for delivery metrics), or Other (none of those — a sandbox, a demo, a training environment; never counted as production).',
 };
 
 export const definitions: [string, McpToolDefinition][] = [

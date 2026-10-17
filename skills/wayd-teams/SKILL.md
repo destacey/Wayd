@@ -1,6 +1,6 @@
 ---
 name: wayd-teams
-description: Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
+description: Read before calling the Wayd MCP tools named Teams_*, TeamsOfTeams_* or Workspaces_*. Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
 ---
 
 # Wayd Teams
@@ -17,7 +17,7 @@ A team carries three identifiers, and each tool accepts a specific one:
 
 Resolve a team name with `Teams_GetTeams`, which returns all three (active teams only unless `includeInactive: true`). A team of teams has a UUID `id` and a `code`; resolve it with `TeamsOfTeams_GetList`.
 
-Planning Interval tools take a different, PI-scoped team id — see the `wayd-pi` skill.
+Planning Interval tools take the same UUID `id` as their `teamId`; a team has no separate id within a PI. For which tools, see the `wayd-pi` skill.
 
 ## Activity history
 

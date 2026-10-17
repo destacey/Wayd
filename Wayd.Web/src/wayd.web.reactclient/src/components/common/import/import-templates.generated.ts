@@ -15,7 +15,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and it is how a row is identified without depending on a display name. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and it is how a row is identified without depending on a display name. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'EmployeeNumber',
@@ -84,8 +84,7 @@ export const importTemplates = {
             name: 'IsActive',
             type: 'boolean',
             required: true,
-            description:
-              'Whether the employee is currently active. Defaults to true when the column is absent.',
+            description: 'Whether the employee is currently active.',
           },
           {
             name: 'EmployeeType',
@@ -120,7 +119,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'PlanningIntervalId',
@@ -208,7 +207,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -274,7 +273,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'TeamId',
@@ -373,7 +372,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Type',
@@ -420,7 +419,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -438,8 +437,7 @@ export const importTemplates = {
             name: 'Status',
             type: 'text',
             required: true,
-            description:
-              "The portfolio's status. Defaults to Active when the column is absent.",
+            description: "The portfolio's status.",
             values: ['Proposed', 'Active', 'OnHold', 'Closed', 'Archived'],
           },
           {
@@ -490,7 +488,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -514,8 +512,7 @@ export const importTemplates = {
             name: 'Status',
             type: 'text',
             required: true,
-            description:
-              "The program's status. Defaults to Active when the column is absent.",
+            description: "The program's status.",
             values: ['Proposed', 'Active', 'Completed', 'Canceled'],
           },
           {
@@ -587,7 +584,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'ProjectKey',
@@ -628,7 +625,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and child rows name it as their ParentImportId. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'ProjectKey',
@@ -673,8 +670,7 @@ export const importTemplates = {
             name: 'Type',
             type: 'text',
             required: true,
-            description:
-              "'Task' or 'Milestone'. Defaults to Task when the column is absent.",
+            description: "'Task' or 'Milestone'.",
             values: ['Task', 'Milestone'],
           },
           {
@@ -745,7 +741,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -783,8 +779,7 @@ export const importTemplates = {
             name: 'Status',
             type: 'text',
             required: true,
-            description:
-              "The project's status. Defaults to Active when the column is absent.",
+            description: "The project's status.",
             values: ['Proposed', 'Active', 'Completed', 'Canceled', 'Approved'],
           },
           {
@@ -895,7 +890,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -919,8 +914,7 @@ export const importTemplates = {
             name: 'Status',
             type: 'text',
             required: true,
-            description:
-              "The initiative's status. Defaults to Active when the column is absent.",
+            description: "The initiative's status.",
             values: [
               'Proposed',
               'Approved',
@@ -1039,7 +1033,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -1094,7 +1088,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'VersionId',
@@ -1176,7 +1170,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'ProductId',
@@ -1242,7 +1236,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and child rows name it as their ParentImportId. Falls back to the row's position when the column is absent — but a file with parents should supply it, since a position is a fragile thing to reference.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the row is known by its position instead — but a file with parents should fill it, since a position is a fragile thing to reference. The column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -1282,7 +1276,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The status by name, which must belong to the product workflow. Defaults to the workflow's initial status when the column is absent or blank.",
+              "The status by name, which must belong to the product workflow. Defaults to the workflow's initial status when the cell is blank.",
           },
           {
             name: 'Tags',
@@ -1309,7 +1303,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the manifest file names it to say which package a line belongs to. Falls back to the row's position when the column is absent.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the manifest file names it to say which package a line belongs to. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Version',
@@ -1392,7 +1386,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the contents file names it to say which release a row belongs to. Falls back to the row's position when the column is absent.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the contents file names it to say which release a row belongs to. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Version',
@@ -1495,7 +1489,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'ProductId',
@@ -1567,7 +1561,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',
@@ -1585,8 +1579,7 @@ export const importTemplates = {
             name: 'State',
             type: 'text',
             required: true,
-            description:
-              "The theme's state. Defaults to Active when the column is absent.",
+            description: "The theme's state.",
             values: ['Proposed', 'Active', 'Archived'],
           },
         ],
@@ -1605,7 +1598,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'TeamCode',
@@ -1645,7 +1638,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'ChildCode',
@@ -1693,7 +1686,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent, so a hand-authored file still works.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Type',
@@ -1731,8 +1724,7 @@ export const importTemplates = {
             name: 'IsActive',
             type: 'boolean',
             required: true,
-            description:
-              'Whether the team is currently active. Defaults to true when the column is absent.',
+            description: 'Whether the team is currently active.',
           },
           {
             name: 'InactiveDate',

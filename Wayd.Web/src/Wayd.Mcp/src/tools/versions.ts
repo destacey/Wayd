@@ -43,7 +43,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Versions_GetVersions', {
     name: 'Versions_GetVersions',
     description: `List versions — the artifacts that were built, such as \`Wayd API 4.12.0\`. ${NOT_A_RELEASE} Everything not yet shipped comes first, then what has shipped, newest first: what is still coming is usually what you are looking for. Never ordered by the version number, which is free text and never parsed — \`4.8.2\` and \`2026.04\` are both just labels. There is no package filter here: a version carries no pointer to the package it shipped in, so ask that question from the packages side with ReleasePackages_GetReleasePackages.`,
-    inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"Only versions cut against this product."},"statusCategory":{"type":"array","items":{"type":"integer"},"description":"Filter by status category rather than status name, since names are per-organization."}},"required":[]},
+    inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"Only versions cut against this product."},"statusCategory":{"type":"array","items":{"type":"string","enum":["Proposed","Active","Done","Removed"]},"description":"Filter by status category rather than status name, since names are per-organization."}},"required":[]},
     method: 'get',
     pathTemplate: '/api/product-management/versions',
     executionParameters: [{"name":"productId","in":"query"},{"name":"statusCategory","in":"query"}],

@@ -14,20 +14,20 @@ public sealed record ExternalIdentityMappingDto : IMapFrom<ExternalIdentityMappi
     /// <summary>The external system's stable identifier for this person.</summary>
     public required string ExternalId { get; set; }
 
-    /// <summary>The address the external system reports, when it reports one.</summary>
+    /// <summary>The email address the external system reports for this person; null when it reports none.</summary>
     public string? Email { get; set; }
 
     public string? DisplayName { get; set; }
 
-    /// <summary>The account handle. Shown when there is no email.</summary>
+    /// <summary>The person's account handle in the external system; identifies them when there is no email.</summary>
     public string? Handle { get; set; }
 
     public Guid? EmployeeId { get; set; }
 
-    /// <summary>The mapped employee's name, for display without a second lookup.</summary>
+    /// <summary>The mapped employee's first and last name; null when the identity is not mapped to an employee.</summary>
     public string? EmployeeName { get; set; }
 
-    /// <summary>Unmapped, AutoMatched, ManuallyMapped, or Ignored.</summary>
+    /// <summary>The mapping status: Unmapped, AutoMatched, ManuallyMapped, or Ignored.</summary>
     public required string Status { get; set; }
 
     /// <summary>When a sync last saw this identity on a work item.</summary>

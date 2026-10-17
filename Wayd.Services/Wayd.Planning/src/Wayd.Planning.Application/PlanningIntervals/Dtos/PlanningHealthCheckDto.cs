@@ -25,7 +25,7 @@ public sealed record PlanningHealthCheckDto
     public Instant ReportedOn { get; set; }
 
     /// <summary>
-    /// The expiration of the health check.
+    /// When the health check expires; from then on it is no longer the current health check.
     /// </summary>
     public Instant Expiration { get; set; }
 

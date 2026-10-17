@@ -6,7 +6,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries
 /// <summary>
 /// Returns the ids of portfolios that actually need a scheduled rank rebalance: not archived
 /// (archived portfolios are read-only) and where at least one pair of adjacent project ranks has
-/// drifted closer than <see cref="MinGapThreshold"/> — i.e. inserts in that gap are running low on
+/// drifted closer than the handler's <c>MinGapThreshold</c> — i.e. inserts in that gap are running low on
 /// fractional headroom. Portfolios whose ranks are still well-spaced are skipped, so the recurring
 /// job only rewrites portfolios that benefit from it.
 /// </summary>

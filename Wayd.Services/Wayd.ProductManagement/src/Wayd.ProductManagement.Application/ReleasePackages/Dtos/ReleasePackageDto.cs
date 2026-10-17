@@ -26,7 +26,7 @@ public sealed record ReleasePackageDto
     public LocalDate? TargetDate { get; init; }
     public Instant? ReleasedAt { get; init; }
 
-    /// <summary>The package's current status.</summary>
+    /// <summary>The package's current status: the organization's name for it, its category and its well-known alias.</summary>
     public StatusNavigationDto Status { get; init; } = default!;
 
     public IReadOnlyCollection<ReleasePackageComponentDto> Components { get; init; } = [];
@@ -73,8 +73,8 @@ public sealed record ReleasePackageComponentDto
     public NavigationDto Product { get; init; } = default!;
 
     /// <summary>
-    /// The version record this line came from, where one was recorded. Its <c>Name</c> is that
-    /// version's number, which may differ from <see cref="Version"/> if the manifest was hand-authored.
+    /// The version record this line came from, where one was recorded. Its <c>name</c> is that
+    /// version's number, which may differ from <c>version</c> if the manifest was hand-authored.
     /// </summary>
     public NavigationDto? VersionRecord { get; init; }
 

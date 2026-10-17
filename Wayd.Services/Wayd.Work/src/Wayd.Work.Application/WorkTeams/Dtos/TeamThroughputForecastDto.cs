@@ -4,14 +4,14 @@ using Wayd.Work.Application.WorkItems.Dtos;
 namespace Wayd.Work.Application.WorkTeams.Dtos;
 
 /// <summary>
-/// How many backlog work items a team will finish from <see cref="ForecastStart"/> through
-/// <see cref="TargetDate"/>.
+/// How many backlog work items a team will finish from <c>forecastStart</c> through
+/// <c>targetDate</c>.
 /// </summary>
 public sealed record TeamThroughputForecastDto
 {
     /// <summary>
-    /// A <see cref="WorkItemForecastOutcome"/>: <see cref="WorkItemForecastOutcome.Forecast"/> or
-    /// <see cref="WorkItemForecastOutcome.NotEnoughHistory"/>.
+    /// Whether a forecast could be made: Forecast, or Not Enough History when the team has not
+    /// finished enough work recently to forecast from.
     /// </summary>
     public required SimpleNavigationDto Outcome { get; init; }
 
@@ -35,7 +35,7 @@ public sealed record TeamThroughputForecastDto
     public bool StartedWorkFirst { get; init; }
 
     /// <summary>
-    /// Simulated days, <see cref="ForecastStart"/> through <see cref="TargetDate"/> inclusive.
+    /// Simulated days, <c>forecastStart</c> through <c>targetDate</c> inclusive.
     /// </summary>
     public int Days { get; init; }
 

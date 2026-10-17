@@ -54,7 +54,7 @@ public sealed class RemoveTeamMembershipCommandHandler : ICommandHandler<RemoveT
             // it or the removal leaves no activity. Entry().State tracks that one entity, not its graph.
             _organizationDbContext.Entry(team).State = EntityState.Unchanged;
 
-            /// Cleans up deleted team memberships.  This is needed because of a bug in EF Core 7.x.
+            // Cleans up deleted team memberships.  This is needed because of a bug in EF Core 7.x.
             _organizationDbContext.Entry(result.Value).State = EntityState.Deleted;
 
             await _organizationDbContext.SaveChangesAsync(cancellationToken);

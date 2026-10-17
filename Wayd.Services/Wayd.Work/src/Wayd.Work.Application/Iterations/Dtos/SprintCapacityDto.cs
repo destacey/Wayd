@@ -33,13 +33,13 @@ public sealed record SprintCapacityDto
     /// </summary>
     public bool HasAllocations { get; init; }
 
-    /// <summary>The estimate <see cref="Scope"/> and <see cref="ExpectedScope"/> are in: the sprint's sizing method.</summary>
+    /// <summary>The estimate <c>scope</c> and <c>expectedScope</c> are in: the sprint's sizing method.</summary>
     public SizingMethod SizingMethod { get; init; }
 
     /// <summary>Which scope is set against the capacity: the work planned so far before the commitment point, the committed work after it.</summary>
     public SprintCapacityScopeBasis ScopeBasis { get; init; }
 
-    /// <summary>The scope, by count under Count and otherwise in <see cref="SizingMethod"/>. An item with no estimate adds nothing.</summary>
+    /// <summary>The scope, by count under Count and otherwise in <c>sizingMethod</c>. An item with no estimate adds nothing.</summary>
     public double Scope { get; init; }
 
     /// <summary>Whether the scope could be compared with what the capacity is expected to deliver, and if not, why.</summary>
@@ -56,9 +56,9 @@ public sealed record SprintCapacityDto
     /// </remarks>
     public double? ExpectedScope { get; init; }
 
-    /// <summary>How many completed sprints <see cref="ExpectedScope"/> was drawn from.</summary>
+    /// <summary>How many completed sprints <c>expectedScope</c> was drawn from.</summary>
     public int PriorSprints { get; init; }
 
-    /// <summary>Whether the scope is more than <see cref="ExpectedScope"/>. Never true for a completed sprint.</summary>
+    /// <summary>Whether the scope is more than <c>expectedScope</c>. Never true for a completed sprint.</summary>
     public bool IsOverCapacity { get; init; }
 }

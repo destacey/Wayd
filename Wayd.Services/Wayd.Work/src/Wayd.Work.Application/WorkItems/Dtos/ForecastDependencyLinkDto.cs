@@ -8,7 +8,7 @@ public sealed record ForecastDependencyLinkDto
     public required ForecastWorkItemDto Successor { get; init; }
 
     /// <summary>
-    /// Why the forecast left the dependency out: an <see cref="IgnoredDependencyReason"/>.
+    /// Why the forecast left the dependency out: Closes a Cycle or Predecessor Removed.
     /// </summary>
     public required SimpleNavigationDto Reason { get; init; }
 }

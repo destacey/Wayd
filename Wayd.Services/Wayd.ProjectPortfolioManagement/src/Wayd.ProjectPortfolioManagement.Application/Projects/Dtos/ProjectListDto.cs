@@ -11,7 +11,7 @@ public sealed record ProjectListDto
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the project.  This is an alternate key to the Id.
+    /// The project's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public required string Key { get; set; }
 
@@ -91,22 +91,27 @@ public sealed record ProjectListDto
     public ScoreSummaryDto? CurrentScore { get; set; }
 
     /// <summary>
-    /// The project's fractional rank sort key within its portfolio — the same value as the domain
-    /// <c>Project.Rank</c> (opaque; not the displayed position). Every project is ranked, so this is
-    /// always set. Used to order the ranking board and drive client-side reorder logic; not for display.
+    /// The project's fractional rank sort key within its portfolio: an opaque value, not the displayed
+    /// position. Every project is ranked, so this is always set. Sort ascending to order projects by rank;
+    /// not for display.
     /// </summary>
+    /// <remarks>
+    /// The same value as the domain <c>Project.Rank</c>; the client uses it to order the ranking board and
+    /// drive reorder logic.
+    /// </remarks>
     public double Rank { get; set; }
 
     /// <summary>
     /// The project's 1-based display position within its portfolio's ranking, derived at read time
-    /// from <see cref="Rank"/>. Null only when the result is not scoped to a single portfolio (a
+    /// from <c>rank</c>. Null only when the result is not scoped to a single portfolio (a
     /// cross-portfolio position would be meaningless).
     /// </summary>
     public int? Position { get; set; }
 
     /// <summary>
     /// Whether the current user can manage this project (record health checks, scores, etc.). True when
-    /// the user is an Owner or Manager of the project, its portfolio, or its program.
+    /// the user is an Owner or Manager of the project, its portfolio, or its program, or holds the
+    /// domain-wide PPM administrator grant. Sponsors and project Members are excluded.
     /// </summary>
     public bool CanManageProject { get; set; }
 

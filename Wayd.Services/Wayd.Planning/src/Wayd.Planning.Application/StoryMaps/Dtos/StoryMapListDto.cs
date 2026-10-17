@@ -5,7 +5,7 @@ using Wayd.Planning.Domain.Models.StoryMaps;
 namespace Wayd.Planning.Application.StoryMaps.Dtos;
 
 /// <summary>
-/// A row on the Story Maps list page: name, owner, and status.
+/// A Story Map summarised for lists: name, description, owner, and status, without its content.
 /// </summary>
 public sealed record StoryMapListDto : IMapFrom<StoryMap>
 {

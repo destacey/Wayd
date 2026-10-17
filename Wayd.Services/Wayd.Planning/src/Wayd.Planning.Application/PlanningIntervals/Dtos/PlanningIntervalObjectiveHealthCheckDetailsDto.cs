@@ -32,7 +32,7 @@ public sealed record PlanningIntervalObjectiveHealthCheckDetailsDto : IMapFrom<P
     public Instant ReportedOn { get; set; }
 
     /// <summary>
-    /// The expiration of the health check.
+    /// When the health check expires; from then on it is no longer the objective's current health check.
     /// </summary>
     public Instant Expiration { get; set; }
 

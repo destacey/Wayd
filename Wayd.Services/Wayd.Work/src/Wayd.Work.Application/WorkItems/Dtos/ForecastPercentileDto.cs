@@ -3,7 +3,7 @@
 public sealed record ForecastPercentileDto
 {
     /// <summary>
-    /// The share of trials, as a whole percent, that finished on or before <see cref="Date"/>.
+    /// The share of trials, as a whole percent, that finished on or before <c>date</c>.
     /// </summary>
     public required int Confidence { get; init; }
 

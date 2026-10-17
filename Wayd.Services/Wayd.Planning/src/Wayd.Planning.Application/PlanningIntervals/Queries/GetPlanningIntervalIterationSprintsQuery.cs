@@ -8,9 +8,8 @@ using Wayd.Planning.Application.PlanningIntervals.Dtos;
 namespace Wayd.Planning.Application.PlanningIntervals.Queries;
 
 /// <summary>
-/// Query to get iteration sprint mappings for a Planning Interval.
+/// Query to get iteration sprint mappings for a Planning Interval, optionally narrowed to one iteration.
 /// </summary>
-/// <param name="IterationId">Optional iteration ID to filter mappings.</param>
 public sealed record GetPlanningIntervalIterationSprintsQuery : IQuery<List<PlanningIntervalIterationSprintsDto>?>
 {
     public GetPlanningIntervalIterationSprintsQuery(string idOrKey, Guid? iterationId = null)

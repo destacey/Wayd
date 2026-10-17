@@ -7,13 +7,11 @@ namespace Wayd.Organization.Application.Teams.Dtos;
 
 public sealed record TeamListDto : IMapFrom<BaseTeam>
 {
-    /// <summary>Gets or sets the identifier.</summary>
-    /// <value>The identifier.</value>
+    /// <summary>The team's unique identifier.</summary>
     [Required]
     public Guid Id { get; set; }
 
-    /// <summary>Gets the key.</summary>
-    /// <value>The key.</value>
+    /// <summary>The team's numeric key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.</summary>
     [Required]
     public int Key { get; set; }
 
@@ -23,18 +21,16 @@ public sealed record TeamListDto : IMapFrom<BaseTeam>
     [Required]
     public required string Name { get; set; }
 
-    /// <summary>Gets the code.</summary>
-    /// <value>The code.</value>
+    /// <summary>The team's short code, 2 to 10 characters, unique across teams and teams of teams.</summary>
     [Required]
     public required string Code { get; set; }
 
-    /// <summary>Gets the team type.</summary>
-    /// <value>The team type.</value>
+    /// <summary>The team type's display name: "Team" or "Team of Teams".</summary>
     [Required]
     public required string Type { get; set; }
 
     /// <summary>
-    /// Indicates whether the organization is active or not.  
+    /// Whether the team is active.
     /// </summary>
     [Required]
     public bool IsActive { get; set; }

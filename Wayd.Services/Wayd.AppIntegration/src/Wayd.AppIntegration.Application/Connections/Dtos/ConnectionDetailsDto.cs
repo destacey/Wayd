@@ -57,9 +57,9 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
     public bool IsValidConfiguration { get; set; }
 
     /// <summary>
-    /// Indicates whether the connection can currently sync.
-    /// Only applicable to syncable connections (Work Management connectors).
-    /// Requires: IsActive and IsValidConfiguration and HasActiveIntegrationObjects
+    /// Indicates whether the connection can currently sync: true when it is active, its configuration
+    /// is valid, and it has something to sync (for Azure DevOps, at least one active work process or workspace).
+    /// Null for connectors that do not sync, such as Azure OpenAI.
     /// </summary>
     public bool? CanSync { get; set; }
 

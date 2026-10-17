@@ -6,15 +6,12 @@ public sealed record WorkStatusDto : IMapFrom<WorkStatus>, IWorkStatusDto
 {
     public int Id { get; set; }
 
-    /// <summary>The name of the work status.  The name cannot be changed.</summary>
-    /// <value>The name.</value>
+    /// <summary>The name of the work status. It cannot be changed.</summary>
     public required string Name { get; set; }
 
-    /// <summary>The description of the work status.</summary>
-    /// <value>The description.</value>
+    /// <summary>The description of the work status; null when it has none.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Indicates whether the work status is active or not.</summary>
-    /// <value><c>true</c> if this instance is active; otherwise, <c>false</c>.</value>
+    /// <summary>Whether the work status is active.</summary>
     public bool IsActive { get; set; }
 }

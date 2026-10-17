@@ -35,7 +35,7 @@ public sealed record VersionDto : IMapFrom<Version>
     public Instant? CutAt { get; init; }
     public Instant? ReleasedAt { get; init; }
 
-    /// <summary>The version's current status.</summary>
+    /// <summary>The version's current status: the organization's name for it, its category and its well-known alias.</summary>
     public StatusNavigationDto Status { get; init; } = default!;
 
     /// <remarks>

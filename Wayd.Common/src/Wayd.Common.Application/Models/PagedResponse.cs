@@ -1,7 +1,7 @@
 namespace Wayd.Common.Application.Models;
 
 /// <summary>
-/// A standardized paged response model for API endpoints and query handlers.
+/// One page of results, with the paging position and the total across all pages.
 /// </summary>
 /// <typeparam name="T">The item type contained in the page.</typeparam>
 public sealed record PagedResponse<T>

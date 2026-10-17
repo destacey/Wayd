@@ -8,7 +8,7 @@ public sealed record StrategicInitiativeKpiDetailsDto : IMapFrom<StrategicInitia
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the KPI.  This is an alternate key to the Id.
+    /// The KPI's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public int Key { get; set; }
 
@@ -53,7 +53,7 @@ public sealed record StrategicInitiativeKpiDetailsDto : IMapFrom<StrategicInitia
     public string? Suffix { get; set; }
 
     /// <summary>
-    /// Gets the target direction for the KPI. This indicates whether the KPI is expected to increase or decrease.
+    /// Whether the KPI succeeds by increasing or by decreasing toward its target value.
     /// </summary>
     public KpiTargetDirection TargetDirection { get; set; }
 

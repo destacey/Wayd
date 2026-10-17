@@ -5,7 +5,7 @@ using NodaTime;
 namespace Wayd.Organization.Application.TeamsOfTeams.Dtos;
 
 /// <summary>
-/// Represents the operating model for a team of teams.
+/// How a team of teams works over a stretch of dates: the time zone its own rollups count days in.
 /// </summary>
 public sealed record TeamOfTeamsOperatingModelDetailsDto : IMapFrom<TeamOfTeamsOperatingModel>
 {

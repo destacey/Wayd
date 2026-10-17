@@ -4,7 +4,7 @@ using Wayd.Work.Application.WorkTeams.WorkDistribution;
 namespace Wayd.Work.Application.WorkTeams.Dtos;
 
 /// <summary>
-/// Where a team's completed work went from <see cref="From"/> to <see cref="To"/>, grouped by one dimension.
+/// Where a team's completed work went from <c>from</c> to <c>to</c>, grouped by one dimension.
 /// For a team of teams it covers every team beneath it, each placed where it sat on the day the work was done.
 /// </summary>
 /// <remarks>
@@ -32,7 +32,7 @@ public sealed record WorkDistributionSummaryDto
     /// <summary>Completed items from teams that sized in story points on the day each was done.</summary>
     public int ItemsInPointSizedTeams { get; init; }
 
-    /// <summary>Of <see cref="ItemsInPointSizedTeams"/>, those with story points; 0 is an estimate.</summary>
+    /// <summary>Of <c>itemsInPointSizedTeams</c>, those with story points; 0 is an estimate.</summary>
     public int EstimatedItems { get; init; }
 
     /// <summary>Estimated story points; filled-in points are reported separately.</summary>
@@ -94,7 +94,7 @@ public sealed record WorkDistributionGroupDto
     /// <summary>Percent of the measured total.</summary>
     public double Share { get; init; }
 
-    /// <summary>Work type groups only: the part of <see cref="Value"/> with no project.</summary>
+    /// <summary>Work type groups only: the part of <c>value</c> with no project.</summary>
     public double? NoProjectValue { get; init; }
 
     /// <summary>Work type groups only: percent of this group's value with no project.</summary>

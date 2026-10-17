@@ -17,7 +17,7 @@ public sealed record OperatingModelDefaultsDto
     public required string TimeZone { get; init; }
 
     /// <summary>
-    /// The name of the team of teams <see cref="TimeZone"/> was taken from, or null when it is the system default.
+    /// The name of the team of teams <c>timeZone</c> was taken from, or null when it is the system default.
     /// </summary>
     public string? TimeZoneSource { get; init; }
 

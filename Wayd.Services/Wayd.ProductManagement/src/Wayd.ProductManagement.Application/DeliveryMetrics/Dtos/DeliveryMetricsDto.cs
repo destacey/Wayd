@@ -15,10 +15,10 @@
 /// </remarks>
 public sealed record DeliveryMetricsDto
 {
-    /// <summary>The window these measures cover, inclusive of both ends.</summary>
+    /// <summary>The start of the window these measures cover, inclusive.</summary>
     public required Instant From { get; init; }
 
-    /// <summary>The end of the window.</summary>
+    /// <summary>The end of the window these measures cover, inclusive.</summary>
     public required Instant To { get; init; }
 
     public required DeploymentFrequencyDto DeploymentFrequency { get; init; }
@@ -49,7 +49,7 @@ public sealed record DeploymentFrequencyDto
 
     /// <summary>
     /// Deployments per day, or <c>null</c> when the window has no duration. Derived — a caller
-    /// combining windows should sum <see cref="Count"/> and <see cref="WindowDays"/> instead.
+    /// combining windows should sum <c>count</c> and <c>windowDays</c> instead.
     /// </summary>
     public double? PerDay => WindowDays > 0 ? Count / WindowDays : null;
 }

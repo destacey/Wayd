@@ -6,12 +6,10 @@ namespace Wayd.Planning.Application.Roadmaps.Dtos;
 
 public sealed record RoadmapListDto : IMapFrom<Roadmap>
 {
-    /// <summary>Gets or sets the identifier.</summary>
-    /// <value>The identifier.</value>
+    /// <summary>The roadmap's unique identifier.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Gets the key.</summary>
-    /// <value>The key.</value>
+    /// <summary>The roadmap's numeric key, an alternate to its id.</summary>
     public int Key { get; set; }
 
     /// <summary>

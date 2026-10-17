@@ -25,7 +25,7 @@ public sealed record AzureDevOpsWorkspaceTeamDto : IMapFrom<AzureDevOpsBoardsWor
     public Guid? BoardId { get; set; }
 
     /// <summary>
-    /// The unique identifier for the team within Wayd.
+    /// The id of the Wayd team mapped to this Azure DevOps team; null when the team is not mapped.
     /// </summary>
     public Guid? InternalTeamId { get; set; }
 }

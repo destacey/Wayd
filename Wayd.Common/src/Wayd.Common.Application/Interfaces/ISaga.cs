@@ -8,7 +8,7 @@ namespace Wayd.Common.Application.Interfaces;
 /// <code>
 /// saga  →  handlers  →  service  →  DbContext / domain
 /// </code>
-/// A saga is the only tier allowed to hold <see cref="Dispatching.IDispatcher"/>. That is the whole
+/// A saga is the only tier allowed to hold <see cref="IDispatcher"/>. That is the whole
 /// distinction from a service: a service does one job against the database and the domain and never
 /// dispatches, so the dependency graph below a handler stays a tree and no cycle among services is
 /// constructible. When a workflow needs several handlers run in order, it belongs here.

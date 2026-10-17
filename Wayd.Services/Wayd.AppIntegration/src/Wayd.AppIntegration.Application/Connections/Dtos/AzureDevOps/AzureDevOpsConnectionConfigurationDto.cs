@@ -4,26 +4,25 @@ namespace Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 
 public sealed record AzureDevOpsConnectionConfigurationDto : IMapFrom<AzureDevOpsBoardsConnectionConfiguration>
 {
-    /// <summary>Gets the organization.</summary>
-    /// <value>The Azure DevOps Organization name.</value>
+    /// <summary>The Azure DevOps organization name.</summary>
     public required string Organization { get; set; }
 
-    /// <summary>Gets the personal access token.</summary>
-    /// <value>The personal access token that enables access to Azure DevOps data.</value>
-    /// <remarks>Masked to a fixed-width placeholder when returned from the API.</remarks>
+    /// <summary>
+    /// The personal access token that grants access to the organization's Azure DevOps data.
+    /// Returned masked as a fixed-width placeholder.
+    /// </summary>
     public required string PersonalAccessToken { get; set; }
 
-    /// <summary>Gets the organization URL.</summary>
-    /// <value>The organization URL.</value>
+    /// <summary>The Azure DevOps organization URL, derived from the organization name.</summary>
     public required string OrganizationUrl { get; set; }
 
     /// <summary>
-    /// Gets or sets the work processes.
+    /// The Azure DevOps work processes discovered for the organization.
     /// </summary>
     public required List<AzureDevOpsWorkProcessDto> WorkProcesses { get; set; }
 
     /// <summary>
-    /// Gets or sets the workspaces.
+    /// The Azure DevOps projects discovered for the organization; each can be integrated as a Wayd workspace.
     /// </summary>
     public required List<AzureDevOpsWorkspaceDto> Workspaces { get; set; }
 

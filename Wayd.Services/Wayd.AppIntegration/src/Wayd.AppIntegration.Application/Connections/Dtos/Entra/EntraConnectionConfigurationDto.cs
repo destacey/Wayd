@@ -16,9 +16,8 @@ public sealed record EntraConnectionConfigurationDto : IMapFrom<EntraConnectionC
     public required string ClientId { get; set; }
 
     /// <summary>
-    /// The client secret for the Entra app registration.
+    /// The client secret for the Entra app registration. Returned masked as a fixed-width placeholder.
     /// </summary>
-    /// <remarks>Masked to a fixed-width placeholder when returned from the API.</remarks>
     public required string ClientSecret { get; set; }
 
     /// <summary>
@@ -32,7 +31,8 @@ public sealed record EntraConnectionConfigurationDto : IMapFrom<EntraConnectionC
     /// </summary>
     public bool IncludeDisabledUsers { get; set; }
 
-    /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
+    /// <summary>The employee field the sync uses to match a synced user to an existing employee.</summary>
+    /// <remarks>Each option is a uniquely-indexed Employee field; the sync upsert matches on it.</remarks>
     public EmployeeMatchProperty MatchBy { get; set; }
 
     /// <summary>

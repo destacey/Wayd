@@ -1,7 +1,7 @@
 ﻿namespace Wayd.Common.Application.Identity.OidcProviders.Dtos;
 
 /// <summary>
-/// Admin-facing detail DTO. Includes every editable field plus audit metadata.
+/// An OIDC identity provider's full configuration, as an administrator edits it.
 /// </summary>
 public sealed record OidcProviderDto
 {
@@ -24,7 +24,7 @@ public sealed record OidcProviderDto
 
     /// <summary>
     /// Whether auto-registration is restricted to users with a matching employee
-    /// record. Only meaningful when <see cref="AllowAutoRegistration"/> is true.
+    /// record. Only meaningful when <c>allowAutoRegistration</c> is true.
     /// </summary>
     public bool? RequireEmployeeRecord { get; set; }
 

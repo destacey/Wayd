@@ -41,6 +41,10 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
+        // Handlers that map with .Adapt<> read TypeAdapterConfig.GlobalSettings, which the host populates by
+        // scanning the application assembly at startup; without it a mapped field silently comes back default.
+        MapsterConfiguration.Ensure();
+
         _container = await SqlServerTestContainer.Start();
 
         var connectionString = _container.GetConnectionString();

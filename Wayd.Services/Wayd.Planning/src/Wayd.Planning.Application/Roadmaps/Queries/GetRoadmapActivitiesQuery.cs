@@ -30,8 +30,9 @@ public sealed class GetRoadmapActivitiesQueryHandler(IPlanningDbContext planning
         // omitted rather than run against a sentinel id.
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
+        // Tracked, unlike most reads: the tree is built from the Parent and Children navigations EF fixes up
+        // between the loaded rows, and a no-tracking query leaves every activity at the root.
         var roadmaps = _planningDbContext.Roadmaps
-            .AsNoTracking()
             .Where(request.IdOrKeyFilter);
 
         roadmaps = employeeId is { } managerId

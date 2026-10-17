@@ -17,7 +17,7 @@ A team carries three identifiers, and each tool accepts a specific one:
 
 Resolve a team name with `Teams_GetTeams`, which returns all three (active teams only unless `includeInactive: true`). A team of teams has a UUID `id` and a `code`; resolve it with `TeamsOfTeams_GetList`.
 
-Planning Interval tools take a different, PI-scoped team id — see the `wayd-pi` skill.
+Planning Interval tools take the same UUID `id` as their `teamId`; a team has no separate id within a PI. For which tools, see the `wayd-pi` skill.
 
 ## Activity history
 

@@ -34,8 +34,8 @@ interface ChartDatum {
 
 /**
  * The team's velocity in each period, oldest on the left. The current and
- * partial periods are drawn as outlined bars labelled with why, because they
- * are not averaged.
+ * partial periods are drawn as outlined bars, with why on the axis, because
+ * they are not averaged.
  */
 const TeamCadenceVelocityChart: FC<TeamCadenceVelocityChartProps> = ({
   metrics,
@@ -48,14 +48,18 @@ const TeamCadenceVelocityChart: FC<TeamCadenceVelocityChartProps> = ({
     .reverse()
     .flatMap((period) => {
       const velocity = periodVelocity(period, metrics, byCount)
+      const note = periodNote(period)
+      const starting = formatCalendarDate(period.start, 'MMM D')
       return velocity === null
         ? []
         : [
             {
-              period: formatCalendarDate(period.start, 'MMM D'),
+              // The state rides on the axis label: a label above the bar
+              // collides with the axis when the bar has no height.
+              period: note ? `${starting} (${note.toLowerCase()})` : starting,
               dates: periodDates(period),
               velocity,
-              note: periodNote(period),
+              note,
             },
           ]
     })
@@ -95,11 +99,6 @@ const TeamCadenceVelocityChart: FC<TeamCadenceVelocityChartProps> = ({
       fillOpacity: (datum: ChartDatum) => (datum.note ? 0.3 : 1),
       stroke: token.colorPrimary,
       lineWidth: (datum: ChartDatum) => (datum.note ? 1.5 : 0),
-    },
-    label: {
-      text: (datum: ChartDatum) => datum.note ?? '',
-      position: 'top',
-      style: { fill: token.colorTextSecondary, fontSize: 11 },
     },
   } as ColumnConfig
 

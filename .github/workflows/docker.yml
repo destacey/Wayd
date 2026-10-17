@@ -389,8 +389,9 @@ jobs:
               run: dotnet tool restore
 
             - name: Build for migrations
-              run: dotnet build Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj
+              # Release: a Debug build also regenerates the OpenAPI document and the clients, which migrations do not need.
+              run: dotnet build Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj -c Release
 
             - name: Run migrations
               run: |
-                  dotnet ef database update --connection "${{ steps.tfoutputs.outputs.sql_server_connection_string }}" --startup-project Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj --project Wayd.Infrastructure/src/Wayd.Infrastructure.Migrators.MSSQL/Wayd.Infrastructure.Migrators.MSSQL.csproj
+                  dotnet ef database update --no-build --configuration Release --connection "${{ steps.tfoutputs.outputs.sql_server_connection_string }}" --startup-project Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj --project Wayd.Infrastructure/src/Wayd.Infrastructure.Migrators.MSSQL/Wayd.Infrastructure.Migrators.MSSQL.csproj

@@ -109,6 +109,7 @@ Notes for logging a check:
 - `expiration` is an ISO 8601 UTC datetime and **must be in the future**.
 - `note` is optional, max 1024 characters.
 - The body redundantly requires `planningIntervalObjectiveId` in addition to the path `objectiveId` — they must match.
+- The objective must belong to the PI in the path `id`; on the three health-check tools a mismatch is refused as not found.
 - Logging a new check automatically expires the previously active check; only one non-expired check can exist at a time.
 
 ### Recommending and logging an objective health check (recipe)

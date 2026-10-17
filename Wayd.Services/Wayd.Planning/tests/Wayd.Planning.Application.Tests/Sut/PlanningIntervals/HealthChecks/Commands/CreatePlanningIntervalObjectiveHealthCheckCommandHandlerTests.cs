@@ -43,7 +43,7 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         _dbContext.AddPlanningIntervalObjective(objective);
 
         var command = new CreatePlanningIntervalObjectiveHealthCheckCommand(
-            objective.Id, HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), "all good");
+            objective.PlanningIntervalId, objective.Id, HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), "all good");
 
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -59,7 +59,7 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
     public async Task Handle_WhenObjectiveNotFound_ReturnsFailure()
     {
         var command = new CreatePlanningIntervalObjectiveHealthCheckCommand(
-            Guid.NewGuid(), HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
+            Guid.NewGuid(), Guid.NewGuid(), HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -67,6 +67,26 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenObjectiveIsInAnotherPlanningInterval_ReturnsFailure()
+    {
+        // Arrange
+        var objective = _objectiveFaker.Generate();
+        _dbContext.AddPlanningIntervalObjective(objective);
+
+        var command = new CreatePlanningIntervalObjectiveHealthCheckCommand(
+            Guid.NewGuid(), objective.Id, HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
+        objective.HealthChecks.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
@@ -79,7 +99,7 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         _dbContext.AddPlanningIntervalObjective(objective);
 
         var command = new CreatePlanningIntervalObjectiveHealthCheckCommand(
-            objective.Id, HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
+            objective.PlanningIntervalId, objective.Id, HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
 
         // Act — a refusal, not a business outcome; the handler throws so a caller that bypassed the
         // middleware (handlers are public for Wolverine codegen) cannot ignore it.
@@ -100,7 +120,7 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
 
         // Expiration in the past — domain method returns failure before persistence.
         var command = new CreatePlanningIntervalObjectiveHealthCheckCommand(
-            objective.Id, HealthStatus.Healthy, _now.Minus(Duration.FromMinutes(1)), null);
+            objective.PlanningIntervalId, objective.Id, HealthStatus.Healthy, _now.Minus(Duration.FromMinutes(1)), null);
 
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 

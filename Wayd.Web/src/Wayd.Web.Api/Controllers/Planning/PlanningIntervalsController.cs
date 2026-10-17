@@ -994,11 +994,15 @@ public class PlanningIntervalsController : ControllerBase
     [EndpointSummary("Get the full health check history for a planning interval objective, ordered newest first.")]
     [McpTool("PlanningIntervals_GetObjectiveHealthChecks", "List PI objective health checks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>>> GetObjectiveHealthChecks(Guid id, Guid objectiveId, CancellationToken cancellationToken)
     {
-        var healthChecks = await _dispatcher.Send(new GetPlanningIntervalObjectiveHealthChecksQuery(objectiveId), cancellationToken);
-        return Ok(healthChecks);
+        var healthChecks = await _dispatcher.Send(new GetPlanningIntervalObjectiveHealthChecksQuery(id, objectiveId), cancellationToken);
+
+        return healthChecks is not null
+            ? Ok(healthChecks)
+            : NotFound();
     }
 
     [HttpGet("{id}/objectives/{objectiveId}/health-checks/{healthCheckId}")]
@@ -1009,7 +1013,7 @@ public class PlanningIntervalsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PlanningIntervalObjectiveHealthCheckDetailsDto>> GetObjectiveHealthCheck(Guid id, Guid objectiveId, Guid healthCheckId, CancellationToken cancellationToken)
     {
-        var healthCheck = await _dispatcher.Send(new GetPlanningIntervalObjectiveHealthCheckQuery(objectiveId, healthCheckId), cancellationToken);
+        var healthCheck = await _dispatcher.Send(new GetPlanningIntervalObjectiveHealthCheckQuery(id, objectiveId, healthCheckId), cancellationToken);
 
         return healthCheck is not null
             ? Ok(healthCheck)
@@ -1028,7 +1032,7 @@ public class PlanningIntervalsController : ControllerBase
         if (objectiveId != request.PlanningIntervalObjectiveId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(objectiveId), nameof(request.PlanningIntervalObjectiveId), HttpContext));
 
-        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetObjectiveHealthCheck), new { id, objectiveId, healthCheckId = result.Value }, result.Value)

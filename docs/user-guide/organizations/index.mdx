@@ -125,7 +125,7 @@ It follows the same rules as a team's operating model: setting a new model from 
 
 The operating model affects what the team sees in the UI:
 - **Scrum teams** see a **Sprints** section and an **Active Sprint** indicator on their detail page
-- **Kanban teams** do not see sprint-related UI
+- **Kanban teams** do not see sprint-related UI; a Kanban team with a cadence sees a [Velocity report](#velocity-report) and an Overview card instead
 - The **Sizing Method** determines how work is measured in backlog views and metrics
 
 ### Team Members
@@ -240,6 +240,7 @@ The **Overview** section summarises the team at a glance:
 - Metric tiles for **Members**, **Backlog**, **Dependencies**, and **Open Risks**, each linking to the section it counts
 - **Active Team Sprint** — For Scrum teams, shows the current sprint with timeline progress, completion rate, velocity, in progress count, and average cycle time
 - **Sprint Metrics** — For teams that have used Scrum, the team's average velocity, predictability and say/do over its most recent completed standard sprints, each with its range. Select a card to open the [Sprint Metrics report](#sprint-metrics-report)
+- **Velocity** — For a Kanban team with a [cadence](#operating-model), its average velocity over its most recent cadence periods, with its range. Select the card to open the [Velocity report](#velocity-report)
 - **Members** — A card for each team member showing their name (links to their employee page) and roles. Cards are clickable and navigate to the employee's detail page.
 
 ### Members
@@ -381,6 +382,19 @@ A Team of Teams has the same report, showing the Start and End dates, Time Zone 
 Available from the **Reports** menu, the **Sprint Metrics** report shows the team's velocity, predictability and say/do over its most recent completed standard sprints: the average and range of each, every sprint's own values, and the sprints left out with the reason. Non-standard sprints, sprints with incomplete history and sprints with nothing committed are left out.
 
 See [Team Sprint Metrics](../work-management/sprints.mdx#team-sprint-metrics) for which sprints count, how the averages are worked out, and what happens when a team changes its sizing method.
+
+### Velocity (Report)
+
+> Only visible for teams whose current operating model has a cadence.
+
+Available from the **Reports** menu, the **Velocity** report shows a Kanban team's velocity over its [cadence](#operating-model): the work it completed in each recent period, as a chart and a table, and the average and range across them. Velocity is the requirement-level work that reached a done status in the period, by its done date, counted in the team's time zone; work closed as removed is not counted. A cadence is for reporting only, so there is no commitment and no predictability or say/do.
+
+- **Periods** — The current period comes first, then the ended ones, most recent first. Each period follows the cadence of the operating model it falls in, and stops where that model does.
+- **What is averaged** — Only ended, whole periods. The current period is marked **In progress**, and a period cut short where an operating model started or ended inside it is marked **Partial**; both are shown but not averaged.
+- **Window** — The report opens at the organization's sprint window from the [Sprint Metrics settings](../settings/index.mdx), as a number of ended periods. Choose another number of periods for this visit only.
+- **Unit** — Velocity is shown in the team's sizing method, or switch to **Count** to count work items. A period measured in an earlier sizing method shows no estimate, and is left out of the estimate average, because estimates in different units are never averaged. **Unestimated** is how many completed items had no value in the sizing method.
+
+A team of teams has no cadence. A [planning interval](../planning/planning-intervals.mdx) slices every team by its own iteration dates, whatever a team's cadence.
 
 ### Cycle Time Report (Report)
 

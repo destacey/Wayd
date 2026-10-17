@@ -39200,6 +39200,78 @@ export class TeamsClient {
     }
 
     /**
+     * Get the team's cadence velocity.
+     * @param periodWindow (optional) 
+     * @return OK
+     */
+    getCadenceMetrics(id: string, periodWindow?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamCadenceMetricsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/cadence-metrics?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (periodWindow !== undefined && periodWindow !== null)
+            url_ += "periodWindow=" + encodeURIComponent("" + periodWindow) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCadenceMetrics(_response);
+        });
+    }
+
+    protected processGetCadenceMetrics(response: AxiosResponse): Promise<TeamCadenceMetricsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCadenceMetricsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCadenceMetricsDto>(null as any);
+    }
+
+    /**
      * Get the functional organizaation chart for a given date.
      * @param asOfDate (optional) 
      * @return OK
@@ -48550,6 +48622,14 @@ export interface BulkTenantMigrationResult {
     stagedCount: number;
 }
 
+export interface CadenceVelocitySummaryDto {
+    average: number;
+    min: number;
+    max: number;
+    standardDeviation: number;
+    periods: number;
+}
+
 export interface ChangeEmployeeAllocationsRequest {
     /** The changes to make, applied together or not at all. Each sets what one team and role have over its date
 range and leaves the days outside it as they were. */
@@ -53496,6 +53576,30 @@ export interface TeamBacklogHealthDto {
     oversizedEstimate?: number | undefined;
     checks: BacklogHealthCheckDto[];
     workItems: BacklogHealthWorkItemDto[];
+}
+
+export interface TeamCadenceMetricsDto {
+    teamId: string;
+    periodWindow: number;
+    defaultPeriodWindow: number;
+    cadenceWeeks?: number | undefined;
+    sizingMethod: SizingMethod;
+    byCount?: CadenceVelocitySummaryDto | undefined;
+    byEstimate?: CadenceVelocitySummaryDto | undefined;
+    periods: TeamCadencePeriodDto[];
+}
+
+export interface TeamCadencePeriodDto {
+    start: string;
+    end: string;
+    sizingMethod: SizingMethod;
+    isPartial: boolean;
+    isCurrent: boolean;
+    inAverages: boolean;
+    inEstimateAverages: boolean;
+    completedCount: number;
+    completedEstimate: number;
+    unestimatedCount: number;
 }
 
 export interface TeamCapacityAllocationDto {

@@ -123,7 +123,8 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         Instant? done = null,
         Guid? parentId = null,
         Guid? projectId = null,
-        Guid? parentProjectId = null)
+        Guid? parentProjectId = null,
+        double? storyPoints = null)
     {
         var id = Guid.CreateVersion7();
         var number = _nextNumber++;
@@ -143,11 +144,11 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             INSERT INTO [Work].[WorkItems]
                 ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
                  [StatusCategory], [Created], [LastModified], [StackRank], [DoneTimestamp],
-                 [TeamId], [ParentId], [ProjectId], [ParentProjectId],
+                 [TeamId], [ParentId], [ProjectId], [ParentProjectId], [StoryPoints],
                  [SystemCreated], [SystemLastModified])
             VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId,
                     {category}, {created}, {created}, {stackRank}, {doneAt},
-                    {teamId}, {parentId}, {projectId}, {parentProjectId},
+                    {teamId}, {parentId}, {projectId}, {parentProjectId}, {storyPoints},
                     SYSUTCDATETIME(), SYSUTCDATETIME());
             """,
             cancellationToken);

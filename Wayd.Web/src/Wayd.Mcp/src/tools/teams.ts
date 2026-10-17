@@ -265,6 +265,41 @@ export const definitions: [string, McpToolDefinition][] = [
   ],
 
   [
+    'Teams_GetCadenceMetrics',
+    {
+      name: 'Teams_GetCadenceMetrics',
+      description: `Get a Kanban team's velocity over its reporting cadence (a length in weeks and an anchor date on its operating model; a Scrum team's sprints are its cadence, so use Teams_GetSprintMetrics for it). Returns \`periods\` (the current period first, then ended ones, most recent first), each with \`start\`, \`end\`, \`completedCount\`, \`completedEstimate\` in the period's \`sizingMethod\` and \`unestimatedCount\`, and the \`average\`, \`min\`, \`max\` and \`standardDeviation\` across averaged periods in \`byCount\` and \`byEstimate\` (the team's \`sizingMethod\` now; under Count it equals \`byCount\`). Velocity is Requirement-tier work that reached a Done-category status in the period, from done dates; Removed work is not counted. The current period (\`isCurrent\`) and periods cut short where an operating model starts or ends inside them (\`isPartial\`) are shown but left out of the averages; a period with \`inEstimateAverages: false\` was measured in another sizing method. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods and a null \`cadenceWeeks\`. Returns 404 for an id that is not a team's, including a team of teams. \`periodWindow\` is how many ended periods to measure over; omit it for the organization's setting, returned as \`defaultPeriodWindow\`.`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'Team ID (UUID) — not the integer key or the code.',
+          },
+          periodWindow: {
+            type: 'integer',
+            minimum: 3,
+            maximum: 12,
+            description:
+              "How many of the team's most recent ended cadence periods to measure over. Omit for the organization's sprint window.",
+          },
+        },
+        required: ['id'],
+      },
+      method: 'get',
+      pathTemplate: '/api/organization/teams/{id}/cadence-metrics',
+      executionParameters: [
+        { name: 'id', in: 'path' },
+        { name: 'periodWindow', in: 'query' },
+      ],
+      requestBodyContentType: undefined,
+      securityRequirements: [{ ApiKey: [] }],
+      annotations: { title: 'Get team cadence velocity' },
+    },
+  ],
+
+  [
     'Teams_GetTeamWorkDistribution',
     {
       name: 'Teams_GetTeamWorkDistribution',

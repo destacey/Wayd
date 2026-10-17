@@ -89,6 +89,14 @@ const TeamSprintMetricsReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const TeamCadenceMetricsReport = dynamic(
+  () =>
+    import('@/src/components/common/work/cadence-metrics').then((mod) => ({
+      default: mod.TeamCadenceMetricsReport,
+    })),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 const TeamBacklog = dynamic(
   () => import('@/src/app/organizations/teams/_components/team-backlog'),
   {
@@ -112,6 +120,7 @@ enum TeamTabs {
   WorkDistribution = 'work-distribution',
   ThroughputForecast = 'throughput-forecast',
   SprintMetrics = 'sprint-metrics',
+  Velocity = 'velocity',
   Activities = 'activities',
 }
 
@@ -167,6 +176,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const pathname = usePathname()
   const router = useRouter()
   const isScrumTeam = team?.operatingModel?.methodology === Methodology.Scrum
+  // A Kanban team reports velocity by its cadence; a Scrum team's sprints are its cadence.
+  const hasCadence = !!team?.operatingModel?.cadenceWeeks
 
   const { data: hasEverBeenScrum } = useGetTeamHasEverBeenScrumQuery(
     team?.id ?? '',
@@ -361,6 +372,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamThroughputForecastReport teamCode={team!.code} />
       case TeamTabs.SprintMetrics:
         return <TeamSprintMetricsReport teamId={team!.id!} />
+      case TeamTabs.Velocity:
+        return <TeamCadenceMetricsReport teamId={team!.id!} />
       case TeamTabs.WorkDistribution:
         return <WorkDistributionReport teamType="team" teamCode={team!.code} />
       case TeamTabs.Activities:
@@ -381,6 +394,12 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       router.replace(pathname, { scroll: false })
     }
   }, [activeTab, hasEverBeenScrum, router, pathname])
+
+  useEffect(() => {
+    if (activeTab === TeamTabs.Velocity && team && !hasCadence) {
+      router.replace(pathname, { scroll: false })
+    }
+  }, [activeTab, team, hasCadence, router, pathname])
 
   const sections: RecordSection[] = (() => {
     const items: RecordSection[] = [
@@ -414,6 +433,9 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             hideHeading: true,
           },
         ]
+      : []),
+    ...(hasCadence
+      ? [{ id: TeamTabs.Velocity, label: 'Velocity', hideHeading: true }]
       : []),
     {
       id: TeamTabs.CycleTimeReport,

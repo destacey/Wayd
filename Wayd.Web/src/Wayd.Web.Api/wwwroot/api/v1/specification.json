@@ -33462,6 +33462,75 @@
         ]
       }
     },
+    "/api/organization/teams/{id}/cadence-metrics": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get the team's cadence velocity.",
+        "description": "A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short by an operating model starting or ending inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.",
+        "operationId": "Teams_GetCadenceMetrics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "periodWindow",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCadenceMetricsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/organization/teams/functional-organization-chart": {
       "get": {
         "tags": [
@@ -42509,6 +42578,39 @@
             }
           },
           "stagedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CadenceVelocitySummaryDto": {
+        "required": [
+          "average",
+          "min",
+          "max",
+          "standardDeviation",
+          "periods"
+        ],
+        "type": "object",
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "min": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          },
+          "standardDeviation": {
+            "type": "number",
+            "format": "double"
+          },
+          "periods": {
             "type": "integer",
             "format": "int32"
           }
@@ -60126,6 +60228,114 @@
             "items": {
               "$ref": "#/components/schemas/BacklogHealthWorkItemDto"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeamCadenceMetricsDto": {
+        "required": [
+          "periods",
+          "teamId",
+          "periodWindow",
+          "defaultPeriodWindow",
+          "sizingMethod"
+        ],
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "periodWindow": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defaultPeriodWindow": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
+          "byCount": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CadenceVelocitySummaryDto"
+              }
+            ],
+            "nullable": true
+          },
+          "byEstimate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CadenceVelocitySummaryDto"
+              }
+            ],
+            "nullable": true
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCadencePeriodDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeamCadencePeriodDto": {
+        "required": [
+          "start",
+          "end",
+          "sizingMethod",
+          "isPartial",
+          "isCurrent",
+          "inAverages",
+          "inEstimateAverages",
+          "completedCount",
+          "completedEstimate",
+          "unestimatedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
+          "isPartial": {
+            "type": "boolean"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          },
+          "inAverages": {
+            "type": "boolean"
+          },
+          "inEstimateAverages": {
+            "type": "boolean"
+          },
+          "completedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedEstimate": {
+            "type": "number",
+            "format": "double"
+          },
+          "unestimatedCount": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

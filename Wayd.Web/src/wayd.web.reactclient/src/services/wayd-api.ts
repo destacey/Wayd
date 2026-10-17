@@ -53830,6 +53830,7 @@ export interface TeamOperatingModelListDto {
     id: string;
     methodology: Methodology;
     sizingMethod: SizingMethod;
+    timeZone: string;
     cadenceWeeks?: number | undefined;
     cadenceAnchor?: string | undefined;
 }

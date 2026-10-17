@@ -362,6 +362,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               isActive: team!.isActive,
             }}
             teamType="Team"
+            timeZone={team!.operatingModel?.timeZone}
             cadence={
               team!.operatingModel?.cadenceWeeks &&
               team!.operatingModel.cadenceAnchor

@@ -248,6 +248,33 @@ describe('TeamCapacity', () => {
     expect(from <= today && today <= to).toBe(true)
   })
 
+  it("takes today in the team's zone, not the viewer's", () => {
+    // Arrange — noon UTC on Sunday 18 October is already Monday 19 October in
+    // Auckland, ahead of any viewer zone in the Americas or UTC
+    jest.useFakeTimers({ advanceTimers: true })
+    jest.setSystemTime(new Date('2026-10-18T12:00:00Z'))
+
+    try {
+      // Act
+      render(
+        <TeamCapacity
+          team={team}
+          teamType="Team"
+          timeZone="Pacific/Auckland"
+          cadence={{ weeks: 2, anchor: '2026-10-05' }}
+        />,
+      )
+
+      // Assert
+      expect(mockCapacityArgs.mock.calls[0][0]).toMatchObject({
+        from: '2026-10-19',
+        to: '2026-11-01',
+      })
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
   it('lists each allocation and capacity by role with a non-delivery line', () => {
     renderSection()
 

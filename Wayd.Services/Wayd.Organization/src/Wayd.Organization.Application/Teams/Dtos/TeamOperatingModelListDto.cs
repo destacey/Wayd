@@ -29,6 +29,12 @@ public sealed record TeamOperatingModelListDto : IMapFrom<TeamOperatingModel>
     public SizingMethod SizingMethod { get; set; }
 
     /// <summary>
+    /// The IANA id of the time zone the team's days are counted in, which decides what day it is for the team.
+    /// </summary>
+    [Required]
+    public string TimeZone { get; set; } = null!;
+
+    /// <summary>
     /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
     /// </summary>
     public int? CadenceWeeks { get; set; }

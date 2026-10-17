@@ -21,6 +21,7 @@ import {
   isApiError,
   parseCalendarDate,
   toCalendarDate,
+  calendarDateInZone,
   todayCalendarDate,
 } from '@/src/utils'
 import {
@@ -68,6 +69,11 @@ interface Props {
   teamType: CapacityTeamType
   /** A Kanban team's reporting cadence: the section opens on its current period, not the current month. */
   cadence?: CapacityCadence
+  /**
+   * The IANA zone the team's days are counted in, so the default range is the
+   * team's current month or period, not the viewer's. The viewer's zone when absent.
+   */
+  timeZone?: string
 }
 
 /** Which form is open, and for which row of the grid. */
@@ -83,8 +89,10 @@ type OpenForm =
  * the person's allocations. A team of teams also shows the teams beneath it,
  * read-only, and its totals include them.
  */
-const TeamCapacity = ({ team, teamType, cadence }: Props) => {
-  const today = todayCalendarDate()
+const TeamCapacity = ({ team, teamType, cadence, timeZone }: Props) => {
+  const today = timeZone
+    ? calendarDateInZone(new Date(), timeZone)
+    : todayCalendarDate()
   const currentMonth = monthOf(today)
   const currentPeriod = cadence ? cadencePeriodOf(today, cadence) : undefined
   const [range, setRange] = useState<CapacityRange>(

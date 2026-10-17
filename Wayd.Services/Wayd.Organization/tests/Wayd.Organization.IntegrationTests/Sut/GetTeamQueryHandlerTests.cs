@@ -30,7 +30,7 @@ public sealed class GetTeamQueryHandlerTests(SqlServerDbContextFixture fixture)
         if (cadence is not null)
         {
             var model = team.OperatingModels.Single();
-            team.CorrectOperatingModel(model.Id, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday,
+            team.CorrectOperatingModel(model.Id, Methodology.Kanban, SizingMethod.Count, "America/Chicago", 1, WorkingWeek.MondayToFriday,
                 null, cadence, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
         }
 
@@ -60,6 +60,7 @@ public sealed class GetTeamQueryHandlerTests(SqlServerDbContextFixture fixture)
         result.Should().NotBeNull();
         result!.OperatingModel.CadenceWeeks.Should().Be(2);
         result.OperatingModel.CadenceAnchor.Should().Be(ActiveDate);
+        result.OperatingModel.TimeZone.Should().Be("America/Chicago");
     }
 
     [Fact]

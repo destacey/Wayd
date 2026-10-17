@@ -61325,7 +61325,8 @@
         "required": [
           "id",
           "methodology",
-          "sizingMethod"
+          "sizingMethod",
+          "timeZone"
         ],
         "type": "object",
         "properties": {
@@ -61338,6 +61339,10 @@
           },
           "sizingMethod": {
             "$ref": "#/components/schemas/SizingMethod"
+          },
+          "timeZone": {
+            "minLength": 1,
+            "type": "string"
           },
           "cadenceWeeks": {
             "type": "integer",

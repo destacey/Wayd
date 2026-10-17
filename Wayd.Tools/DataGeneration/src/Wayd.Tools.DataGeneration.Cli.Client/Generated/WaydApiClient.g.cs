@@ -104144,6 +104144,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TimeZone { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
         public int? CadenceWeeks { get; set; } = default!;
 

@@ -5,7 +5,10 @@ using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Organization.Application.EmployeeCapacities.Dtos;
 
-/// <summary>When an employee is away from every team they are allocated to, and the holidays they take.</summary>
+/// <summary>
+/// When an employee is away from every team they are allocated to, the holidays they take, and how long their
+/// working day is.
+/// </summary>
 public sealed record EmployeeTimeAwayDto
 {
     /// <summary>
@@ -15,10 +18,16 @@ public sealed record EmployeeTimeAwayDto
     public required bool CanManage { get; set; }
 
     /// <summary>
-    /// How many hours a working day has, from the system settings, so a share of a day can be read and entered in
-    /// hours: 25% of an 8-hour day is 2 hours.
+    /// How many hours the employee's working day has, their own or else the system's, so a share of their day can
+    /// be read and entered in hours: 25% of an 8-hour day is 2 hours, of a 4-hour day 1 hour.
     /// </summary>
     public required decimal WorkingDayHours { get; set; }
+
+    /// <summary>The hours of the employee's own working day, or null when they have the system's.</summary>
+    public decimal? OwnWorkingDayHours { get; set; }
+
+    /// <summary>How many hours the system's working day has, from the scheduling settings.</summary>
+    public required decimal SystemWorkingDayHours { get; set; }
 
     /// <summary>
     /// The holiday calendar the employee follows instead of the system default, or null when they follow the

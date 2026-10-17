@@ -7,8 +7,9 @@ using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 
 /// <summary>
-/// An employee's time away in date order, with the holiday calendar they take. Null when the employee does
-/// not exist. The reason for each stretch is left out unless the caller may manage the employee's time away.
+/// An employee's time away in date order, with the holiday calendar they take and their working day. Null when
+/// the employee does not exist. The reason for each stretch is left out unless the caller may manage the
+/// employee's time away.
 /// </summary>
 public sealed record GetEmployeeTimeAwayQuery(Guid EmployeeId) : IQuery<EmployeeTimeAwayDto?>;
 
@@ -31,12 +32,20 @@ public sealed class GetEmployeeTimeAwayQueryHandler(
 
         var canManage = await _currentPrincipal.CanManageTimeAway(_organizationDbContext, employeeId, cancellationToken);
 
-        var calendar = await (
+        var own = await (
             from capacity in _organizationDbContext.EmployeeCapacities
             where capacity.Id == employeeId
-            join holidayCalendar in _organizationDbContext.HolidayCalendars on capacity.HolidayCalendarId equals holidayCalendar.Id
-            select new { holidayCalendar.Id, holidayCalendar.Key, holidayCalendar.Name })
+            join holidayCalendar in _organizationDbContext.HolidayCalendars on capacity.HolidayCalendarId equals holidayCalendar.Id into calendars
+            from holidayCalendar in calendars.DefaultIfEmpty()
+            select new
+            {
+                Calendar = holidayCalendar == null ? null : NavigationDto.Create(holidayCalendar.Id, holidayCalendar.Key, holidayCalendar.Name),
+                capacity.WorkingDayHours,
+            })
             .FirstOrDefaultAsync(cancellationToken);
+
+        var ownWorkingDayHours = own?.WorkingDayHours;
+        var systemWorkingDayHours = (await _schedulingSettings.Get(cancellationToken)).WorkingDayHours;
 
         var entries = await _organizationDbContext.EmployeeTimeAway
             .Where(t => t.EmployeeId == employeeId)
@@ -56,8 +65,10 @@ public sealed class GetEmployeeTimeAwayQueryHandler(
         return new EmployeeTimeAwayDto
         {
             CanManage = canManage,
-            WorkingDayHours = (await _schedulingSettings.Get(cancellationToken)).WorkingDayHours,
-            HolidayCalendar = calendar is null ? null : NavigationDto.Create(calendar.Id, calendar.Key, calendar.Name),
+            WorkingDayHours = ownWorkingDayHours ?? systemWorkingDayHours,
+            OwnWorkingDayHours = ownWorkingDayHours,
+            SystemWorkingDayHours = systemWorkingDayHours,
+            HolidayCalendar = own?.Calendar,
             Entries = entries,
         };
     }

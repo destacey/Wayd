@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.EmployeeCapacities.Commands;
 using Wayd.Organization.Domain.Models;
 
@@ -55,4 +56,24 @@ public sealed record ChangeEmployeeHolidayCalendarRequest
     /// system default.
     /// </summary>
     public Guid? HolidayCalendarId { get; set; }
+}
+
+/// <summary>Sets how many hours an employee's working day has instead of the system's.</summary>
+public sealed record ChangeEmployeeWorkingDayHoursRequest
+{
+    /// <summary>
+    /// The hours of the employee's working day, from 1 to 24 with at most two decimal places, such as 4 for
+    /// someone contracted for half days; or null to give them the system's.
+    /// </summary>
+    public decimal? WorkingDayHours { get; set; }
+}
+
+public sealed class ChangeEmployeeWorkingDayHoursRequestValidator : CustomValidator<ChangeEmployeeWorkingDayHoursRequest>
+{
+    public ChangeEmployeeWorkingDayHoursRequestValidator()
+    {
+        RuleFor(r => r.WorkingDayHours)
+            .InclusiveBetween(SchedulingSettings.MinWorkingDayHours, SchedulingSettings.MaxWorkingDayHours)
+            .PrecisionScale(2 + SchedulingSettings.WorkingDayHoursDecimals, SchedulingSettings.WorkingDayHoursDecimals, ignoreTrailingZeros: true);
+    }
 }

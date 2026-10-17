@@ -7,10 +7,10 @@ public sealed class SchedulingSettingsValidator : AbstractValidator<SchedulingSe
     public const int MaxCommitmentGraceDays = 14;
 
     /// <summary>The fewest hours a working day may have.</summary>
-    public const decimal MinWorkingDayHours = 1m;
+    public const decimal MinWorkingDayHours = SchedulingSettings.MinWorkingDayHours;
 
     /// <summary>The most hours a working day may have.</summary>
-    public const decimal MaxWorkingDayHours = 24m;
+    public const decimal MaxWorkingDayHours = SchedulingSettings.MaxWorkingDayHours;
 
     public SchedulingSettingsValidator()
     {

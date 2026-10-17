@@ -194,6 +194,8 @@ public class EmployeeCapacityConfig : IEntityTypeConfiguration<EmployeeCapacity>
         // that each fit within 100% could both save and together exceed it.
         builder.Property(c => c.Revision).IsConcurrencyToken();
 
+        builder.Property(c => c.WorkingDayHours).HasPrecision(4, 2);
+
         builder.HasMany(c => c.Allocations)
             .WithOne()
             .HasForeignKey(a => a.EmployeeId)

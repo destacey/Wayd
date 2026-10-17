@@ -557,6 +557,83 @@ public class EmployeeCapacityTests
     }
 
     [Fact]
+    public void ChangeWorkingDayHours_SetsTheHoursAndRaisesEventWithBothEnds()
+    {
+        // Arrange
+        var capacity = EmployeeCapacity.Create(Guid.NewGuid());
+        capacity.ChangeWorkingDayHours(6m, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        capacity.ClearDomainEvents();
+
+        // Act
+        var result = capacity.ChangeWorkingDayHours(4.5m, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.WorkingDayHours.Should().Be(4.5m);
+        capacity.Revision.Should().Be(2);
+        var raised = capacity.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<EmployeeWorkingDayHoursChangedEvent>().Subject;
+        raised.Id.Should().Be(capacity.Id);
+        raised.PreviousWorkingDayHours.Should().Be(6m);
+        raised.WorkingDayHours.Should().Be(4.5m);
+        raised.Timestamp.Should().Be(Now);
+    }
+
+    [Fact]
+    public void ChangeWorkingDayHours_ToNone_GivesThemTheSystems()
+    {
+        // Arrange
+        var capacity = EmployeeCapacity.Create(Guid.NewGuid());
+        capacity.ChangeWorkingDayHours(4m, EventActor.System, Now);
+        capacity.ClearDomainEvents();
+
+        // Act
+        var result = capacity.ChangeWorkingDayHours(null, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.WorkingDayHours.Should().BeNull();
+        var raised = capacity.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<EmployeeWorkingDayHoursChangedEvent>().Subject;
+        raised.PreviousWorkingDayHours.Should().Be(4m);
+        raised.WorkingDayHours.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeWorkingDayHours_ToTheSameHours_ChangesNothing()
+    {
+        // Arrange
+        var capacity = EmployeeCapacity.Create(Guid.NewGuid());
+        capacity.ChangeWorkingDayHours(4m, EventActor.System, Now);
+        capacity.ClearDomainEvents();
+
+        // Act
+        var result = capacity.ChangeWorkingDayHours(4.00m, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.Revision.Should().Be(1);
+        capacity.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("0.5")]
+    [InlineData("24.25")]
+    [InlineData("4.125")]
+    public void ChangeWorkingDayHours_OutsideTheHoursADayMayHave_FailsAndChangesNothing(string hours)
+    {
+        // Arrange
+        var capacity = EmployeeCapacity.Create(Guid.NewGuid());
+
+        // Act
+        var result = capacity.ChangeWorkingDayHours(decimal.Parse(hours, System.Globalization.CultureInfo.InvariantCulture), EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        capacity.WorkingDayHours.Should().BeNull();
+        capacity.Revision.Should().Be(0);
+        capacity.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void RecordTimeAway_AddsTheTimeAwayAndRaisesEventWithoutTheReason()
     {
         // Arrange

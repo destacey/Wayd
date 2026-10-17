@@ -211,14 +211,74 @@ public class AvailabilityCalculatorTests
         timeAway.Should().Equal(earlier, later);
     }
 
+    [Fact]
+    public void PersonDaysAndOwnWorkingDayHours_ForSomeoneWithTheirOwnWorkingDay_ScaleByIt()
+    {
+        // Arrange
+        var calculator = Calculator(lengths: new WorkingDayLengths(7.5m, new Dictionary<Guid, decimal> { [Employee] = 3m }));
+
+        // Act
+        var personDays = calculator.PersonDays(Employee, 0.5m);
+        var hours = calculator.OwnWorkingDayHours(Employee);
+
+        // Assert
+        personDays.Should().Be(0.2m);
+        hours.Should().Be(3m);
+    }
+
+    [Fact]
+    public void PersonDaysAndOwnWorkingDayHours_ForSomeoneWithoutTheirOwn_AreUnscaledAndNone()
+    {
+        // Arrange
+        var calculator = Calculator(lengths: new WorkingDayLengths(7.5m, new Dictionary<Guid, decimal> { [Guid.NewGuid()] = 3m }));
+
+        // Act
+        var personDays = calculator.PersonDays(Employee, 0.5m);
+        var hours = calculator.OwnWorkingDayHours(Employee);
+
+        // Assert
+        personDays.Should().Be(0.5m);
+        hours.Should().BeNull();
+    }
+
+    [Fact]
+    public void PersonDays_ForAShareThatNeverTerminates_KeepsTenDecimalPlaces()
+    {
+        // Arrange — 4 hours of a 7.5-hour day is 0.5333…
+        var calculator = Calculator(lengths: new WorkingDayLengths(7.5m, new Dictionary<Guid, decimal> { [Employee] = 4m }));
+
+        // Act
+        var personDays = calculator.PersonDays(Employee, 1m);
+
+        // Assert
+        personDays.Should().Be(0.5333333333m);
+    }
+
+    [Fact]
+    public void Available_ForSomeoneWithTheirOwnWorkingDay_IsStillAShareOfTheirDay()
+    {
+        // Arrange
+        var calculator = Calculator(
+            timeAway: [new TimeAwaySpan(Employee, Day, Day, 50)],
+            lengths: new WorkingDayLengths(8m, new Dictionary<Guid, decimal> { [Employee] = 4m }));
+
+        // Act
+        var available = calculator.Available(Employee, OnTheTeamsCalendar);
+
+        // Assert
+        available.Should().Be(0.5m);
+    }
+
     private static AvailabilityCalculator Calculator(
         Dictionary<Guid, Guid>? calendars = null,
         Dictionary<Guid, LocalDate[]>? holidays = null,
         Guid? defaultCalendarId = null,
-        TimeAwaySpan[]? timeAway = null) =>
+        TimeAwaySpan[]? timeAway = null,
+        WorkingDayLengths? lengths = null) =>
         new(
             calendars ?? [],
             (holidays ?? []).ToDictionary(c => c.Key, c => (IReadOnlySet<LocalDate>)c.Value.ToHashSet()),
             defaultCalendarId,
-            timeAway ?? []);
+            timeAway ?? [],
+            lengths);
 }

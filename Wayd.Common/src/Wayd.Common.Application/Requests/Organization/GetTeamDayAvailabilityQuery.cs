@@ -17,7 +17,10 @@ namespace Wayd.Common.Application.Requests.Organization;
 public sealed record GetTeamDayAvailabilityQuery(Guid TeamId, LocalDate From, LocalDate To)
     : IQuery<IReadOnlyDictionary<LocalDate, TeamDayAvailability>?>;
 
-/// <summary>A team's delivery capacity on one day, in people: 1 is one person allocated in full.</summary>
+/// <summary>
+/// A team's delivery capacity on one day, in person-days: 1 is one person allocated in full whose working day is
+/// the system's, and a 4-hour part-timer allocated in full is 0.5 against an 8-hour one.
+/// </summary>
 /// <param name="Allocated">The time allocated to the team that day in roles that count toward delivery capacity. Above zero.</param>
 /// <param name="Available">The part of it that is there, after holidays and time away.</param>
 public sealed record TeamDayAvailability(decimal Allocated, decimal Available)

@@ -110,6 +110,8 @@ public sealed class OpenApiSpecificationTests
     [InlineData("CreateStrategicInitiativeKpiRequest", "prefix", "maxLength", 8)]
     [InlineData("ImportProjectTaskRequest", "progress", "maximum", 100)]
     [InlineData("UpdateSchedulingSettingsRequest", "workingDayHours", "maximum", 24)]
+    [InlineData("ChangeEmployeeWorkingDayHoursRequest", "workingDayHours", "minimum", 1)]
+    [InlineData("ChangeEmployeeWorkingDayHoursRequest", "workingDayHours", "maximum", 24)]
     public void BoundOnAnOptionalField_IsPublished(string schemaName, string property, string keyword, int expected)
     {
         // Arrange

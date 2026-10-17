@@ -23,10 +23,11 @@ public sealed record TeamCapacityPlanDto
     public required IReadOnlyList<LocalDate> Days { get; set; }
 
     /// <summary>
-    /// The days of <c>days</c> the whole team is off, as asked for, such as a sprint's team days off. Nobody
-    /// is counted on them, so they add nothing to <c>capacity</c> or to any day's person-days.
+    /// The days of <c>days</c> the whole team is off for some or all of, as asked for, such as a sprint's team
+    /// days off, in date order. Each takes its <c>percentOff</c> of everyone's time that day, already left out of
+    /// <c>capacity</c> and of each day's person-days: a full day off adds nothing to either.
     /// </summary>
-    public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
+    public IReadOnlyList<TeamDayOffDto> TeamDaysOff { get; set; } = [];
 
     /// <summary>Everyone with time allocated to the team in the range, in the same order as <c>capacity.people</c>.</summary>
     public required IReadOnlyList<TeamCapacityPlanPersonDto> People { get; set; }
@@ -90,6 +91,9 @@ public sealed record TeamCapacityPlanDayDto
     /// <summary>The share of the person's time allocated, from 1 to 100.</summary>
     public required int Percent { get; set; }
 
-    /// <summary>What it is worth, in person-days, after the holidays the person takes and their time away.</summary>
+    /// <summary>
+    /// What it is worth, in person-days, after the holidays the person takes, their time away and the team's
+    /// day off.
+    /// </summary>
     public required decimal PersonDays { get; set; }
 }

@@ -74,7 +74,7 @@ public sealed class GetSprintCapacityQueryHandler(
             .Where(s => s.Id != sprint.Id && s.Start >= earliest && s.End <= end)
             .Where(s => sizingMethod == SizingMethod.Count || s.SizingMethod == sizingMethod)];
 
-        // Each sprint's team days off are days nobody worked, as its ideal line has them.
+        // Each sprint's team days off take their share of everyone's day, as its ideal line has them.
         List<Guid> priorIds = [.. prior.Select(s => s.Id)];
         var priorDaysOff = (await _workDbContext.Iterations
             .Where(i => priorIds.Contains(i.Id))

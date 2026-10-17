@@ -9,8 +9,13 @@ import { Divider, Flex, Typography } from 'antd'
 import {
   calendarDaysBetween,
   formatCalendarDate,
+  isFullDayOff,
   sprintActiveDays,
 } from '@/src/utils'
+import {
+  DEFAULT_WORKING_DAY_HOURS,
+  timeAwayLabel,
+} from '@/src/app/organizations/_components/time-away/time-away-duration'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 
@@ -88,7 +93,11 @@ const SprintFacts = ({ sprint }: SprintFactsProps) => {
         {sprint.teamDaysOff.length > 0 && (
           <LabeledContent label="Team days off">
             {sprint.teamDaysOff
-              .map((d) => formatCalendarDate(d, 'ddd, MMM D'))
+              .map((d) =>
+                isFullDayOff(d)
+                  ? formatCalendarDate(d.date, 'ddd, MMM D')
+                  : `${formatCalendarDate(d.date, 'ddd, MMM D')} (${timeAwayLabel(d.percentOff, sprint.workingDayHours || DEFAULT_WORKING_DAY_HOURS).toLowerCase()})`,
+              )
               .join('; ')}
           </LabeledContent>
         )}

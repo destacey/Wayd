@@ -242,7 +242,7 @@ describe('CapacityPlanGrid on a team day off', () => {
         editing={false}
         edits={{}}
         onEditRow={jest.fn()}
-        teamDaysOff={['2027-02-04']}
+        teamDaysOff={[{ date: '2027-02-04', percentOff: 100 }]}
       />,
     )
 
@@ -254,7 +254,35 @@ describe('CapacityPlanGrid on a team day off', () => {
       'Team day off',
     )
     expect(screen.getByTestId('cell-ada|-d:2027-02-03')).not.toHaveTextContent(
-      'Team day off',
+      'Team',
+    )
+  })
+
+  it('says how much of a part day the team is off', async () => {
+    render(
+      <CapacityPlanGrid
+        rows={[ROW]}
+        weeks={WEEKS}
+        editing={false}
+        edits={{}}
+        onEditRow={jest.fn()}
+        workingDayHours={8}
+        teamDaysOff={[
+          { date: '2027-02-03', percentOff: 50 },
+          { date: '2027-02-04', percentOff: 25 },
+        ]}
+      />,
+    )
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: /Expand week of Feb 3/ })[0],
+    )
+
+    expect(screen.getByTestId('cell-ada|-d:2027-02-03')).toHaveTextContent(
+      'Team off half day',
+    )
+    expect(screen.getByTestId('cell-ada|-d:2027-02-04')).toHaveTextContent(
+      'Team off 2 h',
     )
   })
 })

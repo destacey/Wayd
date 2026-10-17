@@ -48,6 +48,7 @@ public sealed class GetSprintQueryHandler(
             return null;
 
         var details = sprint.Adapt<SprintDetailsDto>();
+        details.WorkingDayHours = (await _schedulingSettings.Get(cancellationToken)).WorkingDayHours;
         var now = _dateTimeProvider.Now;
 
         var sprintTypes = await _dispatcher.ResolveSprintTypes([sprint], cancellationToken);

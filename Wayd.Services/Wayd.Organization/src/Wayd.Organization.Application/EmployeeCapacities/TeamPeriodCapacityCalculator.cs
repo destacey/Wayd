@@ -1,5 +1,6 @@
 using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 
 namespace Wayd.Organization.Application.EmployeeCapacities;
 
@@ -18,8 +19,8 @@ public static class TeamPeriodCapacityCalculator
     /// <param name="teamDays">The working days of the team and every team beneath it, by team id, over that range.</param>
     /// <param name="allocationsByTeam">The allocations to the team and every team beneath it, by team id.</param>
     /// <param name="teamDaysOff">
-    /// Days each team is off, by team id, applied wherever that team is counted. A period's own days off apply to
-    /// <paramref name="teamId"/> alone.
+    /// Days each team is off for some or all of, by team id, applied wherever that team is counted. A period's own
+    /// days off apply to <paramref name="teamId"/> alone.
     /// </param>
     public static IReadOnlyList<TeamPeriodCapacity> Calculate(
         Guid teamId,
@@ -28,18 +29,13 @@ public static class TeamPeriodCapacityCalculator
         IReadOnlyDictionary<Guid, IReadOnlyList<TeamDay>> teamDays,
         ILookup<Guid, CapacityAllocation> allocationsByTeam,
         AvailabilityCalculator availability,
-        IReadOnlyDictionary<Guid, IReadOnlyList<LocalDate>>? teamDaysOff = null)
+        IReadOnlyDictionary<Guid, IReadOnlyList<TeamDayOff>>? teamDaysOff = null)
     {
         List<TeamPeriodCapacity> capacities = [];
-
-        // Looked up once a day per counted team, so held as sets.
-        Dictionary<Guid, HashSet<LocalDate>> ownDaysOffByTeam = (teamDaysOff ?? new Dictionary<Guid, IReadOnlyList<LocalDate>>())
-            .ToDictionary(team => team.Key, team => team.Value.ToHashSet());
 
         foreach (var period in periods)
         {
             HierarchyPeriod whole = new(period.Start, period.End);
-            HashSet<LocalDate> daysOff = [.. period.DaysOff ?? []];
             decimal allocated = 0, delivery = 0, away = 0;
             var hasAllocations = false;
 
@@ -53,11 +49,12 @@ public static class TeamPeriodCapacityCalculator
 
                 // The period's days off are the team asked for's own, so they never reach the teams beneath it;
                 // a team's own days off go wherever it is counted.
-                var ownDaysOff = ownDaysOffByTeam.GetValueOrDefault(countedTeamId) ?? [];
-                List<TeamDay> days = teamDays.TryGetValue(countedTeamId, out var all)
-                    ? [.. all.Where(d => within.Any(p => p.Includes(d.Date))
-                        && !(countedTeamId == teamId && daysOff.Contains(d.Date))
-                        && !ownDaysOff.Contains(d.Date))]
+                IEnumerable<TeamDayOff> daysOff = teamDaysOff?.GetValueOrDefault(countedTeamId) ?? [];
+                if (countedTeamId == teamId)
+                    daysOff = daysOff.Concat(period.DaysOff ?? []);
+
+                IReadOnlyList<TeamDay> days = teamDays.TryGetValue(countedTeamId, out var all)
+                    ? TeamDay.WithDaysOff(all.Where(d => within.Any(p => p.Includes(d.Date))), daysOff)
                     : [];
 
                 foreach (var allocation in allocationsByTeam[countedTeamId])

@@ -26766,7 +26766,7 @@
           "Sprints"
         ],
         "summary": "Set a sprint's team days off.",
-        "description": "Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.",
+        "description": "Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite, each with the `percentOff` of the working day (100, a full day, when left out). A day off takes its share of everyone's capacity that day, and the sprint's ideal burn-down drops that much less: flat on a full day off, half a day on a half day. Requires membership of the sprint's team or its team of teams.",
         "operationId": "Sprints_SetTeamDaysOff",
         "parameters": [
           {
@@ -26802,6 +26802,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -32062,7 +32072,7 @@
           "Teams"
         ],
         "summary": "Get the capacity of a team over a date range day by day, to plan against.",
-        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.",
         "operationId": "Teams_GetCapacityPlan",
         "parameters": [
           {
@@ -52574,10 +52584,9 @@
           "teamDaysOff": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "date"
+              "$ref": "#/components/schemas/TeamDayOffDto"
             },
-            "description": "The team's sprint days off in the planning interval, in date order: days the whole team is off, already\nleft out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup."
+            "description": "The team's sprint days off in the planning interval, in date order: days the whole team is off for some or\nall of, already left out of its capacity. Empty for a team of teams, whose teams' days off are left out of\nits rollup."
           }
         },
         "additionalProperties": false,
@@ -58055,10 +58064,9 @@
           "teamDaysOff": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "date"
+              "$ref": "#/components/schemas/SprintTeamDayOffRequest"
             },
-            "description": "The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list\nclears them. Holidays from the team's calendar and days outside its working week need not be listed."
+            "description": "The days within the sprint's planned dates that the whole team is off for some or all of, such as an\noffsite, each listed once. An empty list clears them. Holidays from the team's calendar and days outside\nits working week need not be listed."
           }
         },
         "additionalProperties": false,
@@ -58700,6 +58708,7 @@
           "end",
           "teamIsActive",
           "teamDaysOff",
+          "workingDayHours",
           "holidays",
           "workingDays",
           "sprintType",
@@ -58783,10 +58792,14 @@
           "teamDaysOff": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "date"
+              "$ref": "#/components/schemas/TeamDayOffDto"
             },
-            "description": "Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an\noffsite, in date order. Those managing the sprint (`canManageSprint`) can change them."
+            "description": "Days within the sprint the whole team is off for some or all of beyond its working week and holiday\ncalendar, such as an offsite, in date order. Those managing the sprint (`canManageSprint`) can change\nthem."
+          },
+          "workingDayHours": {
+            "type": "number",
+            "description": "How many hours a working day has, the system's scheduling setting: a team day off entered in hours is a\nshare of it.",
+            "format": "decimal"
           },
           "holidays": {
             "type": "array",
@@ -59523,6 +59536,27 @@
         },
         "additionalProperties": false,
         "description": "A sprint's scope summed by category. Committed and Added are measured with the estimate each item had when\nit came in; the outcomes with the estimate it had when it was last in the sprint."
+      },
+      "SprintTeamDayOffRequest": {
+        "required": [
+          "date",
+          "percentOff"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The day, within the sprint's planned dates.",
+            "format": "date"
+          },
+          "percentOff": {
+            "type": "integer",
+            "description": "The share of the working day the team is off, from 1 to 100; 100, a full day, when left out. A half-day\noffsite is 50: it takes half of everyone's capacity that day, and the ideal burn-down drops by half a day.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A day the whole team is off for some or all of."
       },
       "SprintType": {
         "enum": [
@@ -61985,7 +62019,7 @@
           },
           "personDays": {
             "type": "number",
-            "description": "What it is worth, in person-days, after the holidays the person takes and their time away.",
+            "description": "What it is worth, in person-days, after the holidays the person takes, their time away and the team's\nday off.",
             "format": "decimal"
           }
         },
@@ -62020,10 +62054,9 @@
           "teamDaysOff": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "date"
+              "$ref": "#/components/schemas/TeamDayOffDto"
             },
-            "description": "The days of `days` the whole team is off, as asked for, such as a sprint's team days off. Nobody\nis counted on them, so they add nothing to `capacity` or to any day's person-days."
+            "description": "The days of `days` the whole team is off for some or all of, as asked for, such as a sprint's team\ndays off, in date order. Each takes its `percentOff` of everyone's time that day, already left out of\n`capacity` and of each day's person-days: a full day off adds nothing to either."
           },
           "people": {
             "type": "array",
@@ -62366,6 +62399,27 @@
         },
         "additionalProperties": false,
         "description": "A stretch of days a person on the team is away, as their teammates see it: when and how much of each day,\nnever why."
+      },
+      "TeamDayOffDto": {
+        "required": [
+          "date",
+          "percentOff"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The day the team is off.",
+            "format": "date"
+          },
+          "percentOff": {
+            "type": "integer",
+            "description": "The share of the working day the team is off, from 1 to 100: 100 is a full day off.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A day the whole team is off for some or all of, beyond its working week and holidays, such as a sprint's\noffsite. It takes its share of everyone's capacity that day."
       },
       "TeamDetailsDto": {
         "required": [

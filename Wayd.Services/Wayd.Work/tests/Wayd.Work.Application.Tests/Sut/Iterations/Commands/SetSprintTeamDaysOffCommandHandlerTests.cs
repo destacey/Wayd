@@ -4,6 +4,7 @@ using Xunit;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Domain.Events.Planning.Iterations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Application.Iterations.Commands;
 using Wayd.Work.Application.Tests.Infrastructure;
 using static Wayd.Work.Application.Tests.Infrastructure.SprintLifecycleScenario;
@@ -34,11 +35,11 @@ public class SetSprintTeamDaysOffCommandHandlerTests : IDisposable
     public async Task Handle_ForATeamMember_SetsTheDaysOff()
     {
         // Act
-        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [Offsite]), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [new(Offsite)]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _scenario.Sprint1.TeamDaysOff.Should().Equal(Offsite);
+        _scenario.Sprint1.TeamDaysOff.Should().Equal(new TeamDayOff(Offsite));
         _scenario.Sprint1.DomainEvents.OfType<SprintTeamDaysOffChangedEvent>().Should().ContainSingle();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -50,7 +51,7 @@ public class SetSprintTeamDaysOffCommandHandlerTests : IDisposable
         _scenario.IsMember = false;
 
         // Act
-        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [Offsite]), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [new(Offsite)]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -66,18 +67,18 @@ public class SetSprintTeamDaysOffCommandHandlerTests : IDisposable
         _scenario.IsAdministrator = true;
 
         // Act
-        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [Offsite]), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [new(Offsite)]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _scenario.Sprint1.TeamDaysOff.Should().Equal(Offsite);
+        _scenario.Sprint1.TeamDaysOff.Should().Equal(new TeamDayOff(Offsite));
     }
 
     [Fact]
     public async Task Handle_WithADayOutsideTheSprint_FailsWithoutSaving()
     {
         // Act
-        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [Sprint2Start]), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new SetSprintTeamDaysOffCommand(_scenario.Sprint1.Id, [new(Sprint2Start)]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

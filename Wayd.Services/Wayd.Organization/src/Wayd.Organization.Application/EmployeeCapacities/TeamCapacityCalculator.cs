@@ -84,13 +84,13 @@ public static class TeamCapacityCalculator
 
     /// <summary>
     /// The person-days of one allocation that the person's time away takes: its percent of the share of each
-    /// covered day they are away. A holiday they take is not time away.
+    /// covered day they are away, of the share the team works. A holiday they take is not time away.
     /// </summary>
     /// <param name="end">The allocation's last day, or null when it has no end.</param>
     public static decimal AwayPersonDays(IReadOnlyCollection<TeamDay> teamDays, Guid employeeId, LocalDate start, LocalDate? end, int percent, AvailabilityCalculator availability) =>
         Covered(teamDays, start, end)
             .Where(day => !availability.IsHoliday(employeeId, day))
-            .Sum(day => availability.ShareAway(employeeId, day.Date)) * percent / Whole;
+            .Sum(day => availability.ShareAway(employeeId, day.Date) * day.ShareWorked) * percent / Whole;
 
     /// <summary>
     /// How much of a team's delivery capacity is there on each of <paramref name="days"/>, by day: the time

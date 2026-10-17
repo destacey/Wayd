@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NodaTime;
-using NodaTime.Text;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -11,6 +10,7 @@ using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Converters;
@@ -577,19 +577,19 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
         builder.Property(i => i.Started).IsConcurrencyToken();
         builder.Property(i => i.Completed).IsConcurrencyToken();
 
-        // A sprint holds a handful of days, read only with the sprint, so one ISO-date list column rather
-        // than a table.
+        // A sprint holds a handful of days, read only with the sprint, so one list column rather than a table:
+        // each day in TeamDayOff's text form, where a bare ISO date is a full day off.
         builder.Ignore(i => i.TeamDaysOff);
-        builder.Property<List<LocalDate>>("_teamDaysOff")
+        builder.Property<List<TeamDayOff>>("_teamDaysOff")
             .HasColumnName("TeamDaysOff")
             .HasColumnType("varchar(max)")
             .IsRequired()
             .HasConversion(
-                days => string.Join(',', days.Select(d => LocalDatePattern.Iso.Format(d))),
+                days => string.Join(',', days.Select(d => d.ToString())),
                 value => string.IsNullOrEmpty(value)
-                    ? new List<LocalDate>()
-                    : value.Split(',', StringSplitOptions.None).Select(d => LocalDatePattern.Iso.Parse(d).Value).ToList(),
-                new ValueComparer<List<LocalDate>>(
+                    ? new List<TeamDayOff>()
+                    : value.Split(',', StringSplitOptions.None).Select(TeamDayOff.Parse).ToList(),
+                new ValueComparer<List<TeamDayOff>>(
                     (a, b) => a!.SequenceEqual(b!),
                     days => days.Aggregate(0, (hash, d) => HashCode.Combine(hash, d)),
                     days => days.ToList()));

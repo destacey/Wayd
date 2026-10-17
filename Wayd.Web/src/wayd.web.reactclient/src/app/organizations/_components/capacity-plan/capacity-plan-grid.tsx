@@ -9,7 +9,13 @@ import {
   MinusSquareOutlined,
   PlusSquareOutlined,
 } from '@ant-design/icons'
-import { CalendarDate, formatCalendarDate } from '@/src/utils'
+import { TeamDayOffDto } from '@/src/services/wayd-api'
+import {
+  CalendarDate,
+  formatCalendarDate,
+  isFullDayOff,
+  teamDayOffOn,
+} from '@/src/utils'
 import {
   formatHours,
   hoursFor,
@@ -34,6 +40,7 @@ import {
   weekIsEdited,
   withCellEdit,
 } from './capacity-plan-data'
+import { teamDayOffLabel } from './team-days-off'
 import styles from './capacity-plan-grid.module.css'
 
 const { Text } = Typography
@@ -56,22 +63,23 @@ export interface CapacityPlanGridProps {
   workingDayHours?: number
   /** Opens the time away form for a row's person; absent to offer none. */
   onRecordTimeAway?: (row: PlanRow) => void
-  /** Days the whole team is off, which count for nothing. */
-  teamDaysOff?: CalendarDate[]
+  /** Days the whole team is off for some or all of, which count for that much less. */
+  teamDaysOff?: TeamDayOffDto[]
   isLoading?: boolean
 }
 
 /**
- * What a day cell says beneath its figure: a holiday the person takes, or
- * how long they are away. Nothing on an ordinary day.
+ * What a day cell says beneath its figure: the team's day off, a holiday the
+ * person takes, or how long they are away. Nothing on an ordinary day.
  */
 export function dayNote(
   row: PlanRow,
   day: CalendarDate,
   workingDayHours: number,
-  teamDaysOff: CalendarDate[] = [],
+  teamDaysOff: TeamDayOffDto[] = [],
 ): string | undefined {
-  if (teamDaysOff.includes(day)) return 'Team day off'
+  const teamDayOff = teamDayOffOn(teamDaysOff, day)
+  if (teamDayOff) return teamDayOffLabel(teamDayOff.percentOff, workingDayHours)
   const condition = row.conditionsByDate.get(day)
   if (condition?.isHoliday) return 'Holiday'
   if (condition && condition.percentAway > 0)
@@ -161,7 +169,10 @@ const CapacityPlanGrid = ({
     const className = [
       styles.cell,
       (cell.holidays > 0 && cell.holidays === days.length) ||
-      days.every((d) => teamDaysOff.includes(d))
+      days.every((d) => {
+        const teamDayOff = teamDayOffOn(teamDaysOff, d)
+        return teamDayOff !== undefined && isFullDayOff(teamDayOff)
+      })
         ? styles.holiday
         : '',
       cell.awayDays > 0 ? styles.away : '',

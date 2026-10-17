@@ -44,6 +44,7 @@ describe('timeAwayLabel', () => {
     [25, 8, '2 h'],
     [75, 8, '6 h'],
     [19, 8, '1.5 h'],
+    [1, 8, '0.08 h'],
   ])('reads %p%% of a %p-hour day as %p', (percent, hours, expected) => {
     expect(timeAwayLabel(percent, hours)).toBe(expected)
   })
@@ -67,5 +68,10 @@ describe('hours and percents', () => {
   it('shows time away to the nearest quarter hour', () => {
     expect(formatQuarterHours(1.52)).toBe('1.5')
     expect(formatQuarterHours(2.26)).toBe('2.25')
+  })
+
+  it('shows a share too small for a quarter hour rather than nothing', () => {
+    expect(formatQuarterHours(0.08)).toBe('0.08')
+    expect(formatQuarterHours(0)).toBe('0')
   })
 })

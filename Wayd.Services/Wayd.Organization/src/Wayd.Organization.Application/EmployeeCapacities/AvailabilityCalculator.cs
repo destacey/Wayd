@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 
 namespace Wayd.Organization.Application.EmployeeCapacities;
 
@@ -7,7 +8,27 @@ namespace Wayd.Organization.Application.EmployeeCapacities;
 /// The team's calendar that day, or null for the system default calendar. It decides the team's own working-day
 /// count, never a person's holidays.
 /// </param>
-public readonly record struct TeamDay(LocalDate Date, Guid? HolidayCalendarId);
+/// <param name="ShareWorked">
+/// The share of the day the team works, from 0 to 1: less than 1 on a part team day off, which takes that much of
+/// everyone's time.
+/// </param>
+public readonly record struct TeamDay(LocalDate Date, Guid? HolidayCalendarId, decimal ShareWorked = 1m)
+{
+    /// <summary>
+    /// <paramref name="days"/> with the team's <paramref name="daysOff"/> taken out of the share each is worked:
+    /// a full day off is kept at 0, so nobody is counted on it. A day listed twice takes the larger share off.
+    /// </summary>
+    public static IReadOnlyList<TeamDay> WithDaysOff(IEnumerable<TeamDay> days, IEnumerable<TeamDayOff> daysOff)
+    {
+        var shareWorked = daysOff
+            .GroupBy(d => d.Date)
+            .ToDictionary(day => day.Key, day => day.Min(d => d.ShareWorked));
+        if (shareWorked.Count == 0)
+            return [.. days];
+
+        return [.. days.Select(d => shareWorked.TryGetValue(d.Date, out var share) ? d with { ShareWorked = d.ShareWorked * share } : d)];
+    }
+}
 
 /// <summary>A stretch of days an employee is away, as the availability sums read it.</summary>
 /// <param name="PercentAway">The share of each day the employee is away, from 1 to 100.</param>
@@ -56,10 +77,10 @@ public sealed class AvailabilityCalculator
 
     /// <summary>
     /// The share of <paramref name="day"/> the employee is there for, from 0 to 1: 0 on a holiday in the
-    /// calendar they take, and otherwise 1 less the share of the day they are away.
+    /// calendar they take, and otherwise 1 less the share of the day they are away, of the share the team works.
     /// </summary>
     public decimal Available(Guid employeeId, TeamDay day) =>
-        IsHoliday(employeeId, day) ? 0m : 1m - ShareAway(employeeId, day.Date);
+        IsHoliday(employeeId, day) ? 0m : (1m - ShareAway(employeeId, day.Date)) * day.ShareWorked;
 
     /// <summary>
     /// Whether <paramref name="day"/> is a holiday for the employee: in the calendar assigned to them when they

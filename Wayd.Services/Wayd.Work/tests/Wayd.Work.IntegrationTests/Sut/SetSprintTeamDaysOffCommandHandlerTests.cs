@@ -32,7 +32,7 @@ public sealed class SetSprintTeamDaysOffCommandHandlerTests(SqlServerDbContextFi
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var sprintId = await SeedSprint(cancellationToken);
-        LocalDate[] daysOff = [SprintStart.PlusDays(8), SprintStart.PlusDays(4)];
+        TeamDayOff[] daysOff = [new(SprintStart.PlusDays(8), 25), new(SprintStart.PlusDays(4))];
 
         // Act
         await using (var accessor = new WaydDbContextAccessor(_fixture))
@@ -44,9 +44,56 @@ public sealed class SetSprintTeamDaysOffCommandHandlerTests(SqlServerDbContextFi
         // Assert
         await using var verify = new WaydDbContextAccessor(_fixture);
         var sprint = await verify.Context.Iterations.AsNoTracking().SingleAsync(i => i.Id == sprintId, cancellationToken);
-        sprint.TeamDaysOff.Should().Equal(SprintStart.PlusDays(4), SprintStart.PlusDays(8));
+        sprint.TeamDaysOff.Should().Equal(new TeamDayOff(SprintStart.PlusDays(4)), new TeamDayOff(SprintStart.PlusDays(8), 25));
         (await verify.Context.ActivityLogs.AnyAsync(a => a.AggregateId == sprintId && a.EventType == "SprintTeamDaysOffChangedEvent", cancellationToken))
             .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_ChangingOnlyADaysPercent_SavesTheNewPercent()
+    {
+        // Arrange — the change tracker must see a percent-only change as a change, or nothing is saved
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var sprintId = await SeedSprint(cancellationToken);
+        var day = SprintStart.PlusDays(4);
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            (await Handler(accessor).Handle(new SetSprintTeamDaysOffCommand(sprintId, [new(day, 50)]), cancellationToken))
+                .IsSuccess.Should().BeTrue();
+        }
+
+        // Act
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            var result = await Handler(accessor).Handle(new SetSprintTeamDaysOffCommand(sprintId, [new(day, 25)]), cancellationToken);
+            result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        }
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var sprint = await verify.Context.Iterations.AsNoTracking().SingleAsync(i => i.Id == sprintId, cancellationToken);
+        sprint.TeamDaysOff.Should().Equal(new TeamDayOff(day, 25));
+    }
+
+    [Fact]
+    public async Task TeamDaysOff_StoredAsBareDates_ReadBackAsFullDaysOff()
+    {
+        // Arrange — the column as it was written before part days existed
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var sprintId = await SeedSprint(cancellationToken);
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            await accessor.Context.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [Work].[Iterations] SET [TeamDaysOff] = '2026-09-18,2026-09-22' WHERE [Id] = {sprintId}",
+                cancellationToken);
+        }
+
+        // Act
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var sprint = await verify.Context.Iterations.AsNoTracking().SingleAsync(i => i.Id == sprintId, cancellationToken);
+
+        // Assert
+        sprint.TeamDaysOff.Should().Equal(new TeamDayOff(new LocalDate(2026, 9, 18), 100), new TeamDayOff(new LocalDate(2026, 9, 22), 100));
     }
 
     [Fact]
@@ -57,7 +104,7 @@ public sealed class SetSprintTeamDaysOffCommandHandlerTests(SqlServerDbContextFi
         var sprintId = await SeedSprint(cancellationToken);
         await using (var accessor = new WaydDbContextAccessor(_fixture))
         {
-            (await Handler(accessor).Handle(new SetSprintTeamDaysOffCommand(sprintId, [SprintStart.PlusDays(4)]), cancellationToken))
+            (await Handler(accessor).Handle(new SetSprintTeamDaysOffCommand(sprintId, [new(SprintStart.PlusDays(4))]), cancellationToken))
                 .IsSuccess.Should().BeTrue();
         }
 

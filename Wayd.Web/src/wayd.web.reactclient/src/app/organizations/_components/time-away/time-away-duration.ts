@@ -4,6 +4,9 @@ export type TimeAwayDuration = 'full' | 'half' | 'hours'
 const WHOLE_DAY = 100
 const HALF_DAY = 50
 
+/** The working-day length assumed until the system setting arrives, which defaults to the same. */
+export const DEFAULT_WORKING_DAY_HOURS = 8
+
 /** Hours to two decimal places at most, without trailing zeros: 5.6, not 5.60. */
 export const formatHours = (hours: number): string =>
   String(Number(hours.toFixed(2)))
@@ -11,9 +14,13 @@ export const formatHours = (hours: number): string =>
 /**
  * Hours to the nearest quarter hour, without trailing zeros: how time away,
  * which is entered in quarter hours, reads back from the share of the day kept.
+ * A share too small for a quarter hour, which only the API can set, reads to
+ * two decimal places rather than as nothing.
  */
-export const formatQuarterHours = (hours: number): string =>
-  String(Math.round(hours * 4) / 4)
+export const formatQuarterHours = (hours: number): string => {
+  const quarters = Math.round(hours * 4) / 4
+  return quarters === 0 && hours > 0 ? formatHours(hours) : String(quarters)
+}
 
 /** The hours a share of a working day comes to. */
 export const hoursFor = (percent: number, workingDayHours: number): number =>

@@ -1,9 +1,11 @@
 using Moq;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Models;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Domain.Models;
@@ -29,12 +31,13 @@ public sealed class GetPlanningIntervalCapacityQueryHandlerTests(SqlServerDbCont
     [Fact]
     public async Task Handle_GivesEachTeamItsCapacityForThePlanningIntervalAndEachIteration()
     {
-        // Arrange — a team with a sprint day off, and a team of teams with nobody allocated
+        // Arrange — a team with a sprint day off and a half day, and a team of teams with nobody allocated
         var ct = TestContext.Current.CancellationToken;
         var (intervalKey, team, teamOfTeams) = await Seed(ct);
         var dayOff = Start.PlusDays(2);
+        var halfDayOff = Start.PlusDays(3);
         var dispatcher = Dispatcher(
-            new Dictionary<Guid, IReadOnlyList<LocalDate>> { [team.Id] = [dayOff], [Guid.NewGuid()] = [Start] },
+            new Dictionary<Guid, IReadOnlyList<TeamDayOff>> { [team.Id] = [new(dayOff), new(halfDayOff, 50)], [Guid.NewGuid()] = [new(Start)] },
             (teamId, index) => teamId == team.Id ? 10m * (index + 1) : 0m);
 
         // Act
@@ -58,7 +61,9 @@ public sealed class GetPlanningIntervalCapacityQueryHandlerTests(SqlServerDbCont
             .Single(i => i.Arguments[0] is GetTeamsCapacityByPeriodQuery).Arguments[0];
         asked.Periods.Skip(1).Select(p => (p.Start, p.End))
             .Should().Equal(capacity.Iterations.Select(i => (i.Start, i.End)));
-        teamRow.TeamDaysOff.Should().Equal(dayOff);
+        teamRow.TeamDaysOff.Should().Equal(
+            new TeamDayOffDto { Date = dayOff, PercentOff = 100 },
+            new TeamDayOffDto { Date = halfDayOff, PercentOff = 50 });
 
         var groupRow = capacity.Teams[1];
         groupRow.HasAllocations.Should().BeFalse();
@@ -81,7 +86,7 @@ public sealed class GetPlanningIntervalCapacityQueryHandlerTests(SqlServerDbCont
         // Arrange — Organization answers the capacity read with null when the feature is off
         var ct = TestContext.Current.CancellationToken;
         var (intervalKey, _, _) = await Seed(ct);
-        var dispatcher = Dispatcher(new Dictionary<Guid, IReadOnlyList<LocalDate>>(), (_, _) => 0m);
+        var dispatcher = Dispatcher(new Dictionary<Guid, IReadOnlyList<TeamDayOff>>(), (_, _) => 0m);
         dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamsCapacityByPeriodQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyDictionary<Guid, IReadOnlyList<TeamPeriodCapacity>>?)null);
@@ -98,7 +103,7 @@ public sealed class GetPlanningIntervalCapacityQueryHandlerTests(SqlServerDbCont
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var dispatcher = Dispatcher(new Dictionary<Guid, IReadOnlyList<LocalDate>>(), (_, _) => 0m);
+        var dispatcher = Dispatcher(new Dictionary<Guid, IReadOnlyList<TeamDayOff>>(), (_, _) => 0m);
 
         // Act
         var capacity = await Handle(int.MaxValue, dispatcher.Object, ct);
@@ -129,7 +134,7 @@ public sealed class GetPlanningIntervalCapacityQueryHandlerTests(SqlServerDbCont
     /// in each period with <paramref name="delivery"/> by team id and period index.
     /// </summary>
     private static Mock<IDispatcher> Dispatcher(
-        IReadOnlyDictionary<Guid, IReadOnlyList<LocalDate>> daysOff,
+        IReadOnlyDictionary<Guid, IReadOnlyList<TeamDayOff>> daysOff,
         Func<Guid, int, decimal> delivery)
     {
         var dispatcher = new Mock<IDispatcher>();

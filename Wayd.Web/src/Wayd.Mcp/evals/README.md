@@ -74,5 +74,6 @@ The runner refuses to start when `harness.ts`, `scenario.ts`, `stub-server.ts` o
 ## Known limits
 
 - Claude Code's built-in skills are available in every run, with and without the Wayd skills.
+- Results depend on the Claude Code version as much as on the skills; each row records `claude_code_version`, so compare variants run on the same one. A Claude Code too old to recognize the model fails the run rather than score it — update Claude Code.
 - Runs are non-interactive (`claude -p`), and Claude Code's prompt for that mode may make an agent less inclined to stop and ask than it would be in a chat. That affects both conditions alike.
 - The tools come from this package's `build/`. When the npm package is retired, the stub needs the hosted server's tool list instead.

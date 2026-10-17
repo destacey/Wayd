@@ -117,6 +117,10 @@ function claude(args: string[], prompt: string, cwd: string): Promise<any[]> {
       const events = stdout.split('\n').filter((l) => l.trim().startsWith('{')).map((l) => JSON.parse(l));
       if (!events.some((e) => e.type === 'result')) {
         reject(new Error(`claude exited ${code} without a result: ${stderr.trim().slice(0, 500)}`));
+      } else if (stderr.includes('unrecognized_model')) {
+        // An older Claude Code runs a model it has no catalog entry for with guessed settings, so the run
+        // would measure that CLI as much as the skills.
+        reject(new Error(`this Claude Code does not recognize the model; update it: ${stderr.trim().slice(0, 300)}`));
       } else {
         resolve(events);
       }
@@ -157,6 +161,7 @@ export async function runCase(c: Case, ctx: RunContext) {
     const transcript: Turn[] = [];
     const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
     let model: string | undefined;
+    let claudeCodeVersion: string | undefined;
     let finalText = '';
     let stopReason: string | undefined;
     let costUsd = 0;
@@ -198,6 +203,7 @@ export async function runCase(c: Case, ctx: RunContext) {
       for (const e of events) {
         if (e.type === 'system' && e.subtype === 'init') {
           model ??= e.model;
+          claudeCodeVersion ??= e.claude_code_version;
           // A run whose condition did not take effect would score as a result; fail it as a harness error.
           const waydSkills = (e.skills ?? []).filter((s: string) => s.startsWith('wayd-')).length;
           if ((mode === 'none') !== (waydSkills === 0)) {
@@ -251,6 +257,7 @@ export async function runCase(c: Case, ctx: RunContext) {
       stop_reason: stopReason,
       calls,
       skillsLoaded: [...skillsLoaded],
+      claudeCodeVersion,
       costUsd,
       numTurns,
     };
@@ -279,6 +286,8 @@ export function perfFrom(c: Case, run: Run) {
     num_turns: run.numTurns,
     api_equiv_usd: Math.round(run.costUsd * 10000) / 10000,
     // What the grader read, kept on the row so `regrade.ts` can rescore it after a scenario's assertions change.
+    // Runs are only comparable on the same Claude Code, which shapes the agent as much as the skills do.
+    claude_code_version: run.claudeCodeVersion,
     calls: run.calls.map(({ tool, args, repliesBefore }) => ({ tool, args, repliesBefore })),
     final_text: run.output,
   };

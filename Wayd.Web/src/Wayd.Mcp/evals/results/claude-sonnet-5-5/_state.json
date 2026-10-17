@@ -61,6 +61,13 @@
     },
     "v4": {
       "skills": "preloaded"
+    },
+    "v5": {
+      "skills": "available",
+      "ref": "b3cf83566"
+    },
+    "v6": {
+      "skills": "available"
     }
   },
   "harness_sha": "a8af3861afc681a289029e4b7965e35e8638fb621ab591ad6490ee08c755cfe6"

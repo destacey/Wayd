@@ -27,7 +27,7 @@ Read tools accept an id or a key for both the initiative and the KPI. The two me
 
 ## Reading a KPI
 
-- **Check `targetDirection` before describing a trend.** `1=Increase`, `2=Decrease`. For a Decrease KPI (cost, defect count, cycle time) a falling value is improvement.
+- **Check `targetDirection` before describing a trend.** It is `Increase` or `Decrease`. For a Decrease KPI (cost, defect count, cycle time) a falling value is improvement.
 - **Report the supplied `progress`** rather than recomputing it from `startingValue`, `targetValue`, `actualValue`, and direction.
 - **`actualValue` is the measurement with the latest measurement date**, not the most recently entered one. A back-dated measurement does not change it.
 - **Include `prefix` and `suffix`** (`$`, `%`, `M`) when quoting a value.

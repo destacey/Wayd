@@ -41,7 +41,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Tasks_GetProjectTasks', {
     name: 'Tasks_GetProjectTasks',
     description: `Get a list of project tasks.`,
-    inputSchema: {"type":"object","properties":{"projectIdOrKey":{"type":"string"},"status":{"type":["number","null"],"format":"int32"},"parentId":{"type":["string","null"],"format":"uuid"}},"required":["projectIdOrKey"]},
+    inputSchema: {"type":"object","properties":{"projectIdOrKey":{"type":"string"},"status":{"type":["string","null"],"enum":["NotStarted","InProgress","Completed","Canceled"]},"parentId":{"type":["string","null"],"format":"uuid"}},"required":["projectIdOrKey"]},
     method: 'get',
     pathTemplate: '/api/ppm/projects/{projectIdOrKey}/tasks',
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"status","in":"query"},{"name":"parentId","in":"query"}],

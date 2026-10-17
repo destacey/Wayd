@@ -133,7 +133,7 @@ Record each with `Products_AddDependency`.
 - **Record the most specific product known** — the service that makes the call, not its platform.
   The read side rolls it up to every ancestor anyway, and a link on the platform cannot be rolled
   down.
-- **Strength has no default.** 1 Hard: the product stops working without it. 2 Soft: it degrades or
+- **Strength has no default.** `Hard`: the product stops working without it. `Soft`: it degrades or
   loses a feature but keeps working. Impact attribution reads this, so ask the person if they have not
   said rather than guessing.
 - **Interaction styles refine strength.** A Hard **synchronous** dependency caps the consumer's

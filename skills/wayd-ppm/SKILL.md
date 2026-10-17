@@ -39,15 +39,15 @@ Portfolio
 ```
 
 - **Project** — belongs to one portfolio and at most one program. Has a unique `key` (2–20 uppercase letters and digits), a committed timeline `start`/`end`, a status, an optional lifecycle, and an embedded current `healthCheck`. There is no project-level progress field; progress lives on stages and tasks.
-- **Lifecycle** — a reusable template of ordered stages, with a state `1=Proposed`, `2=Active`, `3=Archived`. Only Active lifecycles can be assigned. Through MCP a lifecycle can only be set at creation (`projectLifecycleId` on `Projects_Create`); otherwise it is assigned in the Wayd UI.
+- **Lifecycle** — a reusable template of ordered stages, with a state of `Proposed`, `Active` or `Archived`. Only Active lifecycles can be assigned. Through MCP a lifecycle can only be set at creation (`projectLifecycleId` on `Projects_Create`); otherwise it is assigned in the Wayd UI.
 - **Stage** — one stage of a project's plan, from its lifecycle, with its own status, `start`/`end`, and `progress`.
 - **Task** — type `Task` (planned `plannedStart`/`plannedEnd`, `progress` 0–100) or `Milestone` (a single `plannedDate`, no progress). Every task sits under a stage or under another task. Dependencies are finish-to-start.
 
 ## Common patterns
 
 - **Ids and keys.** A parameter named `idOrKey` (or `projectIdOrKey`, `taskIdOrKey`) accepts a UUID or a key. On portfolio, program, project, and task tools, a parameter named `id` takes a **UUID only** — this covers every record update, `Projects_GetStatusHistory`, and the stage, health-check, and scoring tools. Read the UUID off a read tool first.
-- **Status enums.** Status filters take integer arrays. Resolve the values first with `Portfolios_GetPortfolioStatuses`, `Programs_GetProgramStatuses`, `Projects_GetStatuses`, `Tasks_GetTaskStatuses`, or `StrategicInitiatives_GetStatuses`.
-- **Role filters.** `1=Sponsor`, `2=Owner`, `3=Manager`, `4=Member`, `5=Task Assignee`. There is no lookup tool for these.
+- **Status filters** take status names (`Active`, `Completed`, …), which each tool's schema lists. The status tools — `Portfolios_GetPortfolioStatuses`, `Programs_GetProgramStatuses`, `Projects_GetStatuses`, `Tasks_GetTaskStatuses`, `StrategicInitiatives_GetStatuses` — describe each one; its `code` is the name a filter takes.
+- **Role filters** take `Sponsor`, `Owner`, `Manager`, `Member` or `Assignee` (assigned a task on the project). There is no lookup tool for these.
 - **People are employee ids.** Role lists, task `assigneeIds`, `employeeId` filters, and people in activity payloads all take or return employee ids, never user ids. Resolve a name with `employee.id` from `Users_GetUsers` — see the `wayd-users` skill.
 - **Delivery leadership.** Changing a portfolio, program, or project — updates, status transitions, key and program changes — and writing project health checks require the caller to be an **Owner or Manager** of the record or of an ancestor (project ← program ← portfolio). Sponsors and Members do not qualify, and a permission alone is not enough. Strategic initiative transitions and task changes check permissions only. When a call is rejected as unauthorized, check the record's role lists before retrying.
 

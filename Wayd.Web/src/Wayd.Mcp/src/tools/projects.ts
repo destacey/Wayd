@@ -5,7 +5,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Projects_GetProjects', {
     name: 'Projects_GetProjects',
     description: `Get a list of projects. A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"portfolioId":{"type":["string","null"],"format":"uuid"},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee."},"employeeId":{"type":["string","null"],"format":"uuid","description":"The employee the role filter applies to. Omit for the caller's own linked employee."}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled","Approved"]}},"portfolioId":{"type":["string","null"],"format":"uuid"},"role":{"type":["array","null"],"items":{"type":"string","enum":["Sponsor","Owner","Manager","Member","Assignee"]},"description":"Project role filter. Assignee means the employee is assigned a task on the project."},"employeeId":{"type":["string","null"],"format":"uuid","description":"The employee the role filter applies to. Omit for the caller's own linked employee."}}},
     method: 'get',
     pathTemplate: '/api/ppm/projects',
     executionParameters: [{"name":"status","in":"query"},{"name":"portfolioId","in":"query"},{"name":"role","in":"query"},{"name":"employeeId","in":"query"}],
@@ -17,7 +17,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Projects_GetMyProjectsSummary', {
     name: 'Projects_GetMyProjectsSummary',
     description: `Get a summary of the current user's project involvement, as counts per role (total, sponsor, owner, manager, member, assignee). Scoped to the caller — no user parameter.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled","Approved"]}}}},
     method: 'get',
     pathTemplate: '/api/ppm/projects/my-summary',
     executionParameters: [{"name":"status","in":"query"}],
@@ -29,7 +29,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Projects_GetMyProjectsTaskMetrics', {
     name: 'Projects_GetMyProjectsTaskMetrics',
     description: `Get aggregated open-task counts across the current user's projects: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday). Scoped to the caller — no user parameter.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee."}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled","Approved"]}},"role":{"type":["array","null"],"items":{"type":"string","enum":["Sponsor","Owner","Manager","Member","Assignee"]},"description":"Project role filter. Assignee means the employee is assigned a task on the project."}}},
     method: 'get',
     pathTemplate: '/api/ppm/projects/my-task-metrics',
     executionParameters: [{"name":"status","in":"query"},{"name":"role","in":"query"}],
@@ -41,7 +41,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Projects_GetTaskMetrics', {
     name: 'Projects_GetTaskMetrics',
     description: `Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday). Pass employeeId for another person; omit it for the caller. On a project where the employee holds a leadership role (Sponsor, Owner or Manager) every task counts, otherwise only the tasks assigned to them.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee."},"employeeId":{"type":["string","null"],"format":"uuid","description":"The employee whose projects and tasks are counted. Omit for the caller's own linked employee."}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled","Approved"]}},"role":{"type":["array","null"],"items":{"type":"string","enum":["Sponsor","Owner","Manager","Member","Assignee"]},"description":"Project role filter. Assignee means the employee is assigned a task on the project."},"employeeId":{"type":["string","null"],"format":"uuid","description":"The employee whose projects and tasks are counted. Omit for the caller's own linked employee."}}},
     method: 'get',
     pathTemplate: '/api/ppm/projects/task-metrics',
     executionParameters: [{"name":"status","in":"query"},{"name":"role","in":"query"},{"name":"employeeId","in":"query"}],
@@ -185,7 +185,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Projects_GetProjectsPlanSummaries', {
     name: 'Projects_GetProjectsPlanSummaries',
     description: `Get plan summary metrics for multiple projects in one request, keyed by project ID. Prefer this over calling Projects_GetProjectPlanSummary once per project when surveying several projects. Counts the tasks the caller can see (every task where they lead the project, otherwise their own), or another employee's with employeeId, or every task on the projects with allTasks.`,
-    inputSchema: {"type":"object","properties":{"projectId":{"type":"array","items":{"type":"string","format":"uuid"},"description":"Project IDs (UUIDs only, not keys)."},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee."},"employeeId":{"type":["string","null"],"format":"uuid","description":"Count the tasks this employee can see instead of the caller's. Omit for the caller."},"allTasks":{"type":["boolean","null"],"description":"Count every task on the projects regardless of who can see them, for a portfolio or program view."}},"required":["projectId"]},
+    inputSchema: {"type":"object","properties":{"projectId":{"type":"array","items":{"type":"string","format":"uuid"},"description":"Project IDs (UUIDs only, not keys)."},"role":{"type":["array","null"],"items":{"type":"string","enum":["Sponsor","Owner","Manager","Member","Assignee"]},"description":"Project role filter. Assignee means the employee is assigned a task on the project."},"employeeId":{"type":["string","null"],"format":"uuid","description":"Count the tasks this employee can see instead of the caller's. Omit for the caller."},"allTasks":{"type":["boolean","null"],"description":"Count every task on the projects regardless of who can see them, for a portfolio or program view."}},"required":["projectId"]},
     method: 'get',
     pathTemplate: '/api/ppm/projects/plan-summaries',
     executionParameters: [{"name":"projectId","in":"query"},{"name":"role","in":"query"},{"name":"employeeId","in":"query"},{"name":"allTasks","in":"query"}],

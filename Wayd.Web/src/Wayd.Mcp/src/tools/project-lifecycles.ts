@@ -5,7 +5,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['ProjectLifecycles_GetProjectLifecycles', {
     name: 'ProjectLifecycles_GetProjectLifecycles',
     description: `Get a list of project lifecycles.`,
-    inputSchema: {"type":"object","properties":{"state":{"type":["number","null"],"format":"int32","description":"Lifecycle state filter. 1=Proposed, 2=Active, 3=Archived."}}},
+    inputSchema: {"type":"object","properties":{"state":{"type":["string","null"],"enum":["Proposed","Active","Archived"],"description":"Lifecycle state filter."}}},
     method: 'get',
     pathTemplate: '/api/ppm/project-lifecycles',
     executionParameters: [{"name":"state","in":"query"}],

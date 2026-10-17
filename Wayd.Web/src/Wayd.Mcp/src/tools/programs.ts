@@ -5,7 +5,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Programs_GetPrograms', {
     name: 'Programs_GetPrograms',
     description: `Get a list of programs. Optionally filter by status and/or portfolioId.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"portfolioId":{"type":["string","null"],"format":"uuid"}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled"]}},"portfolioId":{"type":["string","null"],"format":"uuid"}}},
     method: 'get',
     pathTemplate: '/api/ppm/programs',
     executionParameters: [{"name":"status","in":"query"},{"name":"portfolioId","in":"query"}],
@@ -41,7 +41,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Programs_GetProgramProjects', {
     name: 'Programs_GetProgramProjects',
     description: `Get a list of projects for a program. Optionally filter by status.`,
-    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}}},"required":["idOrKey"]},
+    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"string","enum":["Proposed","Active","Completed","Canceled","Approved"]}}},"required":["idOrKey"]},
     method: 'get',
     pathTemplate: '/api/ppm/programs/{idOrKey}/projects',
     executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],

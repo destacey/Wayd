@@ -55,7 +55,6 @@ public static class WaydOpenApiDocument
         options.AddOperationTransformer(new MediaTypeTransformer());
         options.AddOperationTransformer(new FormFileOperationTransformer());
         options.AddOperationTransformer(new CsvImportOperationTransformer());
-        options.AddOperationTransformer(new SwaggerHeaderOperationTransformer());
         options.AddOperationTransformer(new ParameterTransformer());
 
         options.AddDocumentTransformer(security);

@@ -18,6 +18,25 @@ public sealed record SetSprintTeamDaysOffRequest
     public IReadOnlyList<TeamDayOff> ToTeamDaysOff() => [.. TeamDaysOff.Select(d => new TeamDayOff(d.Date, d.PercentOff))];
 }
 
+public sealed class SetSprintTeamDaysOffRequestValidator : CustomValidator<SetSprintTeamDaysOffRequest>
+{
+    public SetSprintTeamDaysOffRequestValidator()
+    {
+        RuleLevelCascadeMode = CascadeMode.Stop;
+
+        RuleFor(r => r.TeamDaysOff)
+            .NotNull()
+            .Must(days => days.Where(d => d is not null).Select(d => d.Date).Distinct().Count() == days.Count(d => d is not null))
+                .WithMessage("Each team day off can be listed only once.");
+
+        RuleForEach(r => r.TeamDaysOff)
+            .NotNull()
+                .WithMessage("Each team day off must be a day with a date.")
+            .Must(d => TeamDayOff.IsValidPercent(d.PercentOff))
+                .WithMessage("A team day off must be off for 1 to 100 percent of the day.");
+    }
+}
+
 /// <summary>A day the whole team is off for some or all of.</summary>
 public sealed record SprintTeamDayOffRequest
 {

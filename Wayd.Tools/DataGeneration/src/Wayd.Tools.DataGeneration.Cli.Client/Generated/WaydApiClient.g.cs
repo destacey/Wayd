@@ -57264,6 +57264,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
                         {
                             var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
                             throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
@@ -104244,6 +104254,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class SprintTeamDayOffRequest
     {
 
+        /// <summary>
+        /// The day, within the sprint's planned dates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -106967,6 +106980,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class TeamDayOffDto
     {
 
+        /// <summary>
+        /// The day the team is off.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]

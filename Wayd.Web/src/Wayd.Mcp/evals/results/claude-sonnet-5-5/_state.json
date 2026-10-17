@@ -54,7 +54,14 @@
     },
     "v2": {
       "skills": "preloaded"
+    },
+    "v3": {
+      "skills": "preloaded",
+      "ref": "27ed23359"
+    },
+    "v4": {
+      "skills": "preloaded"
     }
   },
-  "harness_sha": "cf499c4766d900a2b5b544ada5485da0595b2b58e51e5146ecc9d94a3e0c5154"
+  "harness_sha": "a8af3861afc681a289029e4b7965e35e8638fb621ab591ad6490ee08c755cfe6"
 }

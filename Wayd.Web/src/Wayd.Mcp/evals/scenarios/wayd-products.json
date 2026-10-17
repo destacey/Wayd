@@ -4,7 +4,7 @@
     "skill": "wayd-products",
     "prompt": "Please tag the Northwind Billing API as Tier 1.",
     "replies": [
-      "Yes, go ahead."
+      "Yes, tag it Tier 1."
     ],
     "traps": [
       "confirm-destructive",
@@ -877,7 +877,7 @@
     "skill": "wayd-products",
     "prompt": "We decommissioned the uat-east environment last week and nothing deploys there anymore. Can you take it out of Wayd so people stop picking it as a deployment target?",
     "replies": [
-      "Yes, go ahead."
+      "Yes, retire it, but keep its deployment history."
     ],
     "traps": [
       "wrong-tool",

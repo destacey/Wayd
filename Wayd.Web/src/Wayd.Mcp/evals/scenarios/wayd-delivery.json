@@ -973,7 +973,7 @@
     "skill": "wayd-delivery",
     "prompt": "Please add the NWB-1110 package to the November billing release (2026.11) as well.",
     "replies": [
-      "Yes, go ahead."
+      "Yes, add NWB-1110 to 2026.11 and keep everything already in it."
     ],
     "traps": [
       "whole-record-overwrite",
@@ -1833,7 +1833,7 @@
     "skill": "wayd-delivery",
     "prompt": "Can you log the 3.5.0 release of the Northwind Billing API in Wayd? We cut it yesterday, the tag went out at 2026-10-16T18:05:00Z. It hasn't gone to production yet.",
     "replies": [
-      "Yes, go ahead."
+      "Yes, record 3.5.0 as cut at that time. It hasn't shipped yet."
     ],
     "traps": [
       "wrong-tool",

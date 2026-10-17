@@ -34,7 +34,7 @@ Each results directory's `_state.json` says how each variant offers the skills (
 | `available` | All nine skills installed; it must choose one itself, as in a user's Claude Code | Whether a skill is chosen, and whether it helps when it is |
 | `preloaded` | The opening message invokes the scenario's skill (`/wayd-ppm …`), as a user can | What the skill's content does, regardless of selection |
 
-`baseline` is `none`, `v1` is `available` and `v2` is `preloaded`, all with the skills at the commit where this evaluation was added. The `skill_loaded` column shows whether the scenario's skill was loaded. A skill variant runs with the skills as they are on disk, so a later skill change gets new variants (`v3`, `v4`, …), each added to `variants` with its mode and given a `change.md` whose first line names the change and its commit — that line is the description the report shows.
+`baseline` is `none`, `v1` is `available` and `v2` is `preloaded`, all with the skills at the commit where this evaluation was added. A variant can pin its skills to a commit with `ref` (`{ "skills": "preloaded", "ref": "27ed23359" }`), which installs `skills/` as it was there, so the version before a change can run beside the version after it on the same day. The `skill_loaded` column shows whether the scenario's skill was loaded. A skill variant runs with the skills as they are on disk, so a later skill change gets new variants (`v3`, `v4`, …), each added to `variants` with its mode and given a `change.md` whose first line names the change and its commit — that line is the description the report shows.
 
 Compare a skill change against the latest `v<N>` on the same model, not against `baseline`, and run both on the same day: rerun the previous variant into a new `v<N>` rather than reuse old rows. Claude Code tells the model today's date while the fixtures' dates are fixed, so a scenario can read differently weeks later — a current planning interval becomes a past one, an expiry date passes — and scores drift with no skill change. If drift appears, the fix is date placeholders resolved at run time.
 
@@ -66,7 +66,7 @@ The runner refuses to start when `harness.ts`, `scenario.ts`, `stub-server.ts` o
 - Write the prompt in a user's voice. Never name a tool or hint at the trap being probed.
 - Cover every call a correct run makes with a fixture, including lookups and other reasonable ways to find the same record. A non-zero `unfixtured_calls` in the results means a scenario is missing one.
 - Assert what a correct run must or must not do, and leave legitimate alternatives open. Prefer the arguments of the change itself over which read found the record. Give each assertion a `because`.
-- A change that needs the user's say-so gets a prompt that states the intent without approving it, a `"Yes, go ahead."` reply, and both `confirmedBefore` and `called` assertions.
+- A change that needs the user's say-so gets a prompt that states the intent without approving it, a reply that approves that change by name (`"Yes, rename it."`), and both `confirmedBefore` and `called` assertions. A bare "Yes" approves whatever the agent offered last — including an extra it volunteered, like deleting a record it had just retired.
 - Use invented data: names and emails at `acme.example`, freshly made UUIDs.
 
 `npm test` validates every scenario against the tools that ship, and fails a scenario that an idle run would pass.

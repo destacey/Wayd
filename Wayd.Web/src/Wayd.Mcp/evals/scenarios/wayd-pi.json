@@ -4,7 +4,7 @@
     "skill": "wayd-pi",
     "prompt": "Falcon's onboarding objective in PI 2026.4 needs to go to at risk. The identity provider integration slipped about two weeks, so verification won't be ready until early November. Have the check expire on October 30.",
     "replies": [
-      "Yes, go ahead."
+      "Yes, log that health check."
     ],
     "traps": [
       "confirm-destructive",

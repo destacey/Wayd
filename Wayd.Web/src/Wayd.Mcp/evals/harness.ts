@@ -6,9 +6,9 @@
  * `skills/` into the directory's `.claude/skills/`, so the agent has to choose and load a skill itself, as a
  * user's Claude Code would. Scripted replies continue the same session with `--resume`.
  */
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,7 +17,8 @@ import { grade, validate, type RecordedCall, type Scenario } from './scenario.js
 
 const evalsDir = dirname(fileURLToPath(import.meta.url));
 const scenariosDir = join(evalsDir, 'scenarios');
-const skillsDir = join(evalsDir, '../../../../skills');
+const repoRoot = join(evalsDir, '../../../..');
+const skillsDir = join(repoRoot, 'skills');
 const stubServer = join(evalsDir, 'stub-server.ts');
 
 /** One scenario as the runner sees it: `id`, `prompt` and `tags` are what the report shows. */
@@ -39,7 +40,22 @@ type SkillMode = 'none' | 'available' | 'preloaded';
 interface RunContext {
   model?: string;
   variant: string;
-  state: { effort?: string; variants?: Record<string, { skills?: SkillMode }> };
+  /** `ref` pins a variant's skills to a commit, so an older version can run beside a newer one. */
+  state: { effort?: string; variants?: Record<string, { skills?: SkillMode; ref?: string }> };
+}
+
+/** Writes the repository's `skills/` as of `ref` (or as on disk) into `target`. */
+function installSkills(target: string, ref: string | undefined) {
+  if (!ref) {
+    cpSync(skillsDir, target, { recursive: true });
+    return;
+  }
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: repoRoot, maxBuffer: 64 * 1024 * 1024 });
+  for (const path of git('ls-tree', '-r', '--name-only', ref, 'skills').toString().split('\n').filter(Boolean)) {
+    const file = join(target, path.slice('skills/'.length));
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, git('show', `${ref}:${path}`));
+  }
 }
 
 /** The variant's skill mode from `_state.json`; without an entry, `baseline` has none and others are available. */
@@ -133,7 +149,7 @@ export async function runCase(c: Case, ctx: RunContext) {
   const mode = skillMode(ctx);
   const work = mkdtempSync(join(tmpdir(), 'wayd-eval-'));
   try {
-    if (mode !== 'none') cpSync(skillsDir, join(work, '.claude', 'skills'), { recursive: true });
+    if (mode !== 'none') installSkills(join(work, '.claude', 'skills'), ctx.state.variants?.[ctx.variant]?.ref);
     const callLog = join(work, 'calls.jsonl');
     const sessionId = randomUUID();
     const opening = mode === 'preloaded' ? `/${c.scenario.skill} ${c.scenario.prompt}` : c.scenario.prompt;

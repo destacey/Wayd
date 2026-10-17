@@ -4,7 +4,7 @@
     "skill": "wayd-ppm",
     "prompt": "Can you rename the ATLAS project to \"Atlas Cloud Migration\"? The old name undersells what it's actually doing.",
     "replies": [
-      "Yes, go ahead."
+      "Yes, rename it."
     ],
     "traps": [
       "role-list-wipe",
@@ -1591,7 +1591,7 @@
     "skill": "wayd-ppm",
     "prompt": "Leadership has revived Harbor Analytics (HRBR) — we cancelled it back in August. Please reopen it and put it straight back to Active so the team can get going.",
     "replies": [
-      "Yes, go ahead."
+      "Yes, put it back to Proposed with that reason."
     ],
     "traps": [
       "status-prerequisite",
@@ -2158,7 +2158,7 @@
     "skill": "wayd-ppm",
     "prompt": "Nova's health needs updating — the payment gateway vendor just slipped their API delivery by three weeks, so it's at risk now. It should be looked at again by the end of the month.",
     "replies": [
-      "Yes, go ahead."
+      "Yes, log that health check."
     ],
     "traps": [
       "wrong-tool",

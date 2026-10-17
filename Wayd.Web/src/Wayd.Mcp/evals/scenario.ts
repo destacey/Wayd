@@ -84,7 +84,8 @@ export interface Scenario {
   /**
    * Scripted user replies, sent in order each time the agent ends its turn. The run ends when the agent ends
    * a turn with none left. A reply that approves a change belongs here, so the agent can be graded on
-   * whether it asked before acting.
+   * whether it asked before acting. Name what the reply approves ("Yes, rename it."): a bare "Yes" also
+   * approves anything else the agent offered, such as deleting a record it had just retired.
    */
   replies?: string[];
   traps?: Trap[];

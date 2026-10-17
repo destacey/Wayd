@@ -76,6 +76,9 @@ or retypes generated code:
 - **`x-position` and `x-name`** set the order of a client method's arguments and the name of its body
   argument, and the client calls them positionally.
 - **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`.
+- **Request bodies are `application/json`**, except file uploads (`multipart/form-data`) and JSON Patch
+  bodies: a `JsonPatchOperation[]` sent as `application/json-patch+json`, the only type a
+  `JsonPatchDocument<T>` action accepts unless its `[Consumes]` adds another.
 
 After a change to a transformer or an API model, read the `wayd-api.ts` diff a rebuild produces, and commit
 it with `specification.json`: `OpenApiDocumentTests` fails while the committed document differs from the one

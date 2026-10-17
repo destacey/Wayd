@@ -11,7 +11,7 @@ public sealed record StrategyListDto : IMapFrom<Strategy>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the strategy.  This is an alternate key to the Id.
+    /// The strategy's unique, human-readable number; an alternate key to <c>id</c>.
     /// </summary>
     public int Key { get; set; }
 

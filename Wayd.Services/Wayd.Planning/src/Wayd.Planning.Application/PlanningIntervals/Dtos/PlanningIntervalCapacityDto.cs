@@ -63,7 +63,7 @@ public sealed record PlanningIntervalTeamCapacityDto
     /// <summary>The team's capacity over the whole planning interval.</summary>
     public required PlanningIntervalCapacityFiguresDto Total { get; init; }
 
-    /// <summary>The team's capacity in each iteration, in the order of <see cref="PlanningIntervalCapacityDto.Iterations"/>.</summary>
+    /// <summary>The team's capacity in each iteration, in the same order as the planning interval's <c>iterations</c>.</summary>
     public required IReadOnlyList<PlanningIntervalCapacityFiguresDto> Iterations { get; init; }
 
     /// <summary>

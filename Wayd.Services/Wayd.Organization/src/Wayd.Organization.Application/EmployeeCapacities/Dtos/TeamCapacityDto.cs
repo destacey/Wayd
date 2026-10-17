@@ -33,7 +33,7 @@ public sealed record TeamCapacityDto
 
     /// <summary>
     /// The time allocated to the team that people's time away takes, in person-days. Already left out of
-    /// <see cref="AllocatedPersonDays"/>.
+    /// <c>allocatedPersonDays</c>.
     /// </summary>
     public required decimal AwayPersonDays { get; set; }
 
@@ -48,7 +48,7 @@ public sealed record TeamCapacityDto
 
     /// <summary>
     /// The allocated time by team member role, by role name with the time in no role last. The lines add up to
-    /// <see cref="AllocatedPersonDays"/>.
+    /// <c>allocatedPersonDays</c>.
     /// </summary>
     public required IReadOnlyList<TeamCapacityRoleDto> Roles { get; set; }
 
@@ -85,7 +85,7 @@ public sealed record TeamCapacityPersonDto
 
     /// <summary>
     /// The time allocated to the team that their time away takes, in person-days. Already left out of
-    /// <see cref="AllocatedPersonDays"/>.
+    /// <c>allocatedPersonDays</c>.
     /// </summary>
     public required decimal AwayPersonDays { get; set; }
 
@@ -97,7 +97,7 @@ public sealed record TeamCapacityPersonDto
 
     /// <summary>
     /// Their allocations to other teams that fall in the range, in date order: what
-    /// <see cref="ElsewherePersonDays"/> is made of, and where time can be moved from.
+    /// <c>elsewherePersonDays</c> is made of, and where time can be moved from.
     /// </summary>
     public required IReadOnlyList<EmployeeAllocationDto> ElsewhereAllocations { get; set; }
 }

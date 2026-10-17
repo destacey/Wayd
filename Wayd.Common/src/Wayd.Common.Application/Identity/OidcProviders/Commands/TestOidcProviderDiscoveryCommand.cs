@@ -10,10 +10,11 @@
 public sealed record TestOidcProviderDiscoveryCommand(Guid Id) : ICommand<TestOidcProviderDiscoveryResult>;
 
 /// <summary>
-/// On success: <c>Issuer</c> echoes the value from the discovery document so
-/// the admin can sanity-check it matches expectations. <c>JwksKeyCount</c>
-/// confirms the JWKS endpoint actually returned signing keys (zero would
-/// indicate a misconfigured provider that can never validate a token).
+/// Outcome of fetching an OIDC provider's discovery document. On success, <c>issuer</c>
+/// echoes the value from the discovery document so it can be checked against expectations,
+/// and <c>jwksKeyCount</c> is how many signing keys the JWKS endpoint returned (zero
+/// indicates a misconfigured provider that can never validate a token). On failure,
+/// <c>error</c> says what went wrong.
 /// </summary>
 public sealed record TestOidcProviderDiscoveryResult(
     bool Success,

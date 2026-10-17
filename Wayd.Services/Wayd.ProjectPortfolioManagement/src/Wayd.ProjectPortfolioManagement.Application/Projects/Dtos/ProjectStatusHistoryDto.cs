@@ -27,10 +27,13 @@ public sealed record ProjectStatusHistoryDto : IMapFrom<ProjectStatusHistory>
     public NavigationDto? ChangedBy { get; set; }
 
     /// <summary>
-    /// Whether the change was made by the system rather than a person. Resolved from the recorded user
-    /// account, not from the absence of <see cref="ChangedBy"/> — a signed-in user with no employee link
-    /// also has no employee on the row, and must not be reported as the system.
+    /// Whether the change was made by the system rather than a person. Use this, not a null
+    /// <c>changedBy</c>, to tell the two apart: a signed-in user with no employee link also has a null
+    /// <c>changedBy</c>.
     /// </summary>
+    /// <remarks>
+    /// Resolved from the recorded user account, so such a user is never reported as the system.
+    /// </remarks>
     public bool ChangedBySystem { get; set; }
 
     public Instant ChangedOn { get; set; }

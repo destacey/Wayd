@@ -53,17 +53,17 @@ public sealed record PlanningIntervalCalendarDto
     public required string Name { get; set; }
 
     /// <summary>
-    /// The Planning Interval Start Date.
+    /// The planning interval's first day.
     /// </summary>
     public required LocalDate Start { get; set; }
 
     /// <summary>
-    /// The Planning Interval End Date.
+    /// The planning interval's last day, included in it.
     /// </summary>
     public required LocalDate End { get; set; }
 
     /// <summary>
-    /// The Planning Interval Iteration Schedules.
+    /// The planning interval's iterations, each with its dates.
     /// </summary>
     public required List<LocalScheduleDto> IterationSchedules { get; set; }
 

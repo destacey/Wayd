@@ -4,14 +4,14 @@ using Wayd.Planning.Application.Models;
 namespace Wayd.Planning.Application.PlanningSprints.Dtos;
 
 /// <summary>
-/// A sprint as the Planning module's copy holds it, for views that list the sprints mapped to a PI.
+/// A sprint mapped to a planning interval, as listed in planning views.
 /// </summary>
 public sealed record PlanningSprintListDto : IMapFrom<PlanningSprint>
 {
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the sprint.  This is an alternate key to the Id.
+    /// The sprint's numeric key, an alternate to its id.
     /// </summary>
     public int Key { get; set; }
 
@@ -21,9 +21,11 @@ public sealed record PlanningSprintListDto : IMapFrom<PlanningSprint>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The sprint's state now. The copy does not hold it; the query that returns this DTO reads it from the
-    /// Work module.
+    /// The sprint's current state.
     /// </summary>
+    /// <remarks>
+    /// The Planning copy does not hold it; the query that returns this DTO reads it from the Work module.
+    /// </remarks>
     public required SimpleNavigationDto State { get; set; }
 
     /// <summary>
@@ -37,9 +39,11 @@ public sealed record PlanningSprintListDto : IMapFrom<PlanningSprint>
     public LocalDate End { get; set; }
 
     /// <summary>
-    /// When the sprint became Active, read from the Work module like <see cref="State"/>. Null for a sprint
-    /// whose team is not mapped.
+    /// When the sprint became Active. Null for a sprint whose team is not mapped.
     /// </summary>
+    /// <remarks>
+    /// Read from the Work module, like <see cref="State"/>.
+    /// </remarks>
     public Instant? ActiveFrom { get; set; }
 
     /// <summary>When the sprint stops being Active, exclusive.</summary>

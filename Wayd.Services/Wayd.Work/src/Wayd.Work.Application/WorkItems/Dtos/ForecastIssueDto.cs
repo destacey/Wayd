@@ -7,7 +7,7 @@ public sealed record ForecastIssueDto
     public required ForecastWorkItemDto WorkItem { get; init; }
 
     /// <summary>
-    /// A <see cref="ForecastIssueType"/>.
+    /// Why the work item could not be forecast: No Team, Not a Backlog Item or Not Enough History.
     /// </summary>
     public required SimpleNavigationDto Type { get; init; }
 }

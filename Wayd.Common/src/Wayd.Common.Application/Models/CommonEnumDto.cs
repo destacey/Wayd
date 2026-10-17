@@ -20,7 +20,7 @@ public record CommonEnumDto
 }
 
 /// <summary>
-/// One value of a closed set of options, carrying the stable <see cref="Code"/> that endpoints
+/// One value of a closed set of options, carrying the stable <c>code</c> that endpoints
 /// filtering on the set accept.
 /// </summary>
 /// <remarks>

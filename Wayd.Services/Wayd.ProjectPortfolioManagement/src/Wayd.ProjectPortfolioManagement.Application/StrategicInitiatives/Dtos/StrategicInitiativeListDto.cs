@@ -10,7 +10,7 @@ public sealed record StrategicInitiativeListDto : IMapFrom<StrategicInitiative>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the strategic initiative.  This is an alternate key to the Id.
+    /// The strategic initiative's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public int Key { get; set; }
 

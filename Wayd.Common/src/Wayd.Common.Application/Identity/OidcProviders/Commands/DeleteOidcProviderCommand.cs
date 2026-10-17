@@ -9,7 +9,10 @@
 public sealed record DeleteOidcProviderCommand(Guid Id) : ICommand<DeleteOidcProviderResult>;
 
 /// <summary>
-/// Result envelope so the controller can distinguish "deleted" from
-/// "blocked because N users still depend on this provider".
+/// Outcome of deleting an OIDC provider: either it was deleted, or deletion was refused
+/// because users still sign in through it, with how many active identities remain bound.
 /// </summary>
+/// <remarks>
+/// Lets the controller distinguish "deleted" from "blocked because N users still depend on this provider".
+/// </remarks>
 public sealed record DeleteOidcProviderResult(bool Deleted, int ActiveIdentityCount);

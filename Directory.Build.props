@@ -7,4 +7,13 @@
     <PropertyGroup>
         <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
     </PropertyGroup>
+    <!--
+      The API's OpenAPI document publishes the /// summaries of the DTOs and commands an Application project
+      defines, read from this documentation file. Set by name so a new Application project cannot leave its
+      models undescribed. CS1591 (no summary) and CS1573 (some parameters documented, not all) are left to review.
+    -->
+    <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Application'))">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591;1573</NoWarn>
+    </PropertyGroup>
 </Project>

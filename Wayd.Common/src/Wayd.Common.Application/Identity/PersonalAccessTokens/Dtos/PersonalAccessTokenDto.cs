@@ -4,8 +4,8 @@ using Wayd.Common.Domain.Identity;
 namespace Wayd.Common.Application.Identity.PersonalAccessTokens.Dtos;
 
 /// <summary>
-/// DTO for personal access token information.
-/// Note: The token value is NEVER included - it's only shown once at creation.
+/// A personal access token's metadata and status. The token value itself is never
+/// included; it is returned only once, when the token is created.
 /// </summary>
 public sealed record PersonalAccessTokenDto
 {

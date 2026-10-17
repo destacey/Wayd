@@ -87416,6 +87416,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class ActivityLogDto
     {
 
+        /// <summary>
+        /// The entry's key, used only to tell one row from another. It is not the id of the event the entry records.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public long Id { get; set; } = default!;
 
@@ -87466,9 +87469,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("summary")]
         public string? Summary { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the entry was raised on another record and is listed here because its event names this one.
+        /// <br/>`aggregateType` and `aggregateId` are then that other record.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isRelated")]
         public bool IsRelated { get; set; } = default!;
 
+        /// <summary>
+        /// The record a related entry was raised on. Null when the entry is not related, or when the record could
+        /// <br/>not be resolved, typically because it has since been removed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("raisedOn")]
         public NavigationDto? RaisedOn { get; set; } = default!;
 
@@ -87928,6 +87939,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Which authentication options are enabled on this deployment: whether local sign-in is
+    /// <br/>available, and the OIDC providers a client can sign in through. Available without authentication.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AuthProvidersResponse
     {
@@ -87991,22 +88006,38 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class AzureDevOpsConnectionConfigurationDto
     {
 
+        /// <summary>
+        /// The Azure DevOps organization name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("organization")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Organization { get; set; } = default!;
 
+        /// <summary>
+        /// The personal access token that grants access to the organization's Azure DevOps data.
+        /// <br/>Returned masked as a fixed-width placeholder.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personalAccessToken")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string PersonalAccessToken { get; set; } = default!;
 
+        /// <summary>
+        /// The Azure DevOps organization URL, derived from the organization name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("organizationUrl")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string OrganizationUrl { get; set; } = default!;
 
+        /// <summary>
+        /// The Azure DevOps work processes discovered for the organization.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workProcesses")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<AzureDevOpsWorkProcessDto> WorkProcesses { get; set; } = new System.Collections.ObjectModel.Collection<AzureDevOpsWorkProcessDto>();
 
+        /// <summary>
+        /// The Azure DevOps projects discovered for the organization; each can be integrated as a Wayd workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workspaces")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<AzureDevOpsWorkspaceDto> Workspaces { get; set; } = new System.Collections.ObjectModel.Collection<AzureDevOpsWorkspaceDto>();
@@ -88017,13 +88048,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class AzureDevOpsConnectionDetailsDto : ConnectionDetailsDto
     {
 
+        /// <summary>
+        /// The unique identifier for the external system that this connection connects to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("systemId")]
         public string? SystemId { get; set; } = default!;
 
+        /// <summary>
+        /// The configuration for the connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("configuration")]
         [System.ComponentModel.DataAnnotations.Required]
         public AzureDevOpsConnectionConfigurationDto Configuration { get; set; } = new AzureDevOpsConnectionConfigurationDto();
 
+        /// <summary>
+        /// The configuration for the teams associated with the connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamConfiguration")]
         [System.ComponentModel.DataAnnotations.Required]
         public AzureDevOpsTeamConfigurationDto TeamConfiguration { get; set; } = new AzureDevOpsTeamConfigurationDto();
@@ -88040,6 +88080,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class AzureDevOpsTeamConfigurationDto
     {
 
+        /// <summary>
+        /// Teams that are associated with the workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workspaceTeams")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<AzureDevOpsWorkspaceTeamDto> WorkspaceTeams { get; set; } = new System.Collections.ObjectModel.Collection<AzureDevOpsWorkspaceTeamDto>();
@@ -88094,21 +88137,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class AzureDevOpsWorkspaceTeamDto
     {
 
+        /// <summary>
+        /// The unique identifier for the workspace in the Azure DevOps system.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workspaceId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid WorkspaceId { get; set; } = default!;
 
+        /// <summary>
+        /// The unique identifier for the team in the Azure DevOps system.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid TeamId { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the team in the Azure DevOps system.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string TeamName { get; set; } = default!;
 
+        /// <summary>
+        /// The unique identifier for the board in the Azure DevOps system.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("boardId")]
         public System.Guid? BoardId { get; set; } = default!;
 
+        /// <summary>
+        /// The id of the Wayd team mapped to this Azure DevOps team; null when the team is not mapped.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("internalTeamId")]
         public System.Guid? InternalTeamId { get; set; } = default!;
 
@@ -88118,24 +88176,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class AzureOpenAIConnectionConfigurationDto
     {
 
+        /// <summary>
+        /// Azure OpenAI resource URL.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("baseUrl")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string BaseUrl { get; set; } = default!;
 
+        /// <summary>
+        /// The API key for the Azure OpenAI resource. Returned masked as a fixed-width placeholder.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("apiKey")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string ApiKey { get; set; } = default!;
 
+        /// <summary>
+        /// The OpenAI model deployment name to use for this connection (e.g. "gpt-4o")
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deploymentName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string DeploymentName { get; set; } = default!;
 
+        /// <summary>
+        /// Default temperature for AI responses (0.0 = deterministic, higher = more random)
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultTemperature")]
         public double DefaultTemperature { get; set; } = default!;
 
+        /// <summary>
+        /// Default maximum output tokens for AI responses
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultMaxOutputTokens")]
         public int DefaultMaxOutputTokens { get; set; } = default!;
 
+        /// <summary>
+        /// Indicates whether JSON mode is preferred for AI responses
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("jsonModePreferred")]
         public bool JsonModePreferred { get; set; } = default!;
 
@@ -88145,6 +88221,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class AzureOpenAIConnectionDetailsDto : ConnectionDetailsDto
     {
 
+        /// <summary>
+        /// The configuration for the Azure OpenAI connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("configuration")]
         [System.ComponentModel.DataAnnotations.Required]
         public AzureOpenAIConnectionConfigurationDto Configuration { get; set; } = new AzureOpenAIConnectionConfigurationDto();
@@ -88210,6 +88289,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string GroupName { get; set; } = default!;
 
+        /// <summary>
+        /// Whether this type can be registered as a recurring job. Every type can be run on demand
+        /// <br/>regardless of this value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isSchedulable")]
         public bool IsSchedulable { get; set; } = default!;
 
@@ -88219,17 +88302,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class BacklogHealthCheckDto
     {
 
+        /// <summary>
+        /// The backlog health check this result is for, such as Runway, Net Flow, Stale or Aging WIP.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("check")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Check { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// Whether the check was graded: Assessed, Not Enough History or Not Applicable.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Outcome { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The check's grade: Healthy, At Risk or Unhealthy; null when the check was not assessed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("grade")]
         public SimpleNavigationDto? Grade { get; set; } = default!;
 
+        /// <summary>
+        /// Runway weeks, the Net Flow ratio or the WIP Load for those checks; for every other check, the
+        /// <br/>percent (0 to 100) of the work items in scope that were flagged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public double? Value { get; set; } = default!;
 
@@ -88307,6 +88403,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A work item on a team's backlog, with the backlog health checks that flagged it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class BacklogHealthWorkItemDto
     {
@@ -88351,6 +88450,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("project")]
         public WorkProjectNavigationDto? Project { get; set; } = default!;
 
+        /// <summary>
+        /// The item's estimate in the team's sizing method; null when it has none, or when the team sizes by count.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("estimate")]
         public double? Estimate { get; set; } = default!;
 
@@ -88368,15 +88470,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("externalViewWorkItemUrl")]
         public string? ExternalViewWorkItemUrl { get; set; } = default!;
 
+        /// <summary>
+        /// The item's position in the team's backlog, 1 being the next to be worked.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rank")]
         public int Rank { get; set; } = default!;
 
+        /// <summary>
+        /// The checks that flagged the item, as `BacklogHealthCheck` values.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("flags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SimpleNavigationDto> Flags { get; set; } = new System.Collections.ObjectModel.Collection<SimpleNavigationDto>();
 
     }
 
+    /// <summary>
+    /// Per-user outcome of a bulk staging run. `stagedUserIds` are the users whose
+    /// <br/>migration was staged; `skipped` lists the ones that no longer qualified, each with
+    /// <br/>a human-readable reason. Eligibility is re-checked on the server, so a submitted list
+    /// <br/>that has gone stale shows up as skipped users.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class BulkTenantMigrationResult
     {
@@ -88394,22 +88508,40 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Velocity across a team's averaged periods.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CadenceVelocitySummaryDto
     {
 
+        /// <summary>
+        /// The mean of the periods' values, not a ratio of pooled totals.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("average")]
         public double Average { get; set; } = default!;
 
+        /// <summary>
+        /// The lowest period's value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min")]
         public double Min { get; set; } = default!;
 
+        /// <summary>
+        /// The highest period's value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max")]
         public double Max { get; set; } = default!;
 
+        /// <summary>
+        /// The population standard deviation of the periods' values.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("standardDeviation")]
         public double StandardDeviation { get; set; } = default!;
 
+        /// <summary>
+        /// How many periods were averaged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("periods")]
         public int Periods { get; set; } = default!;
 
@@ -88446,16 +88578,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The share of production deployments that failed or were rolled back.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ChangeFailureRateDto
     {
 
+        /// <summary>
+        /// Completed production deployments in the window — the denominator.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totalDeployments")]
         public int TotalDeployments { get; set; } = default!;
 
+        /// <summary>
+        /// Those that failed or were rolled back — the numerator.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("failedDeployments")]
         public int FailedDeployments { get; set; } = default!;
 
+        /// <summary>
+        /// The failure share from 0 to 1, or `null` when nothing deployed. Null is "no deployments to
+        /// <br/>judge", which is not the same as a rate of zero.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rate")]
         public double? Rate { get; set; } = default!;
 
@@ -88638,6 +88783,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One value of a closed set of options, carrying the stable `code` that endpoints
+    /// <br/>filtering on the set accept.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CommonEnumDtoOfRoadmapState : CommonEnumDto
     {
@@ -88649,6 +88798,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One value of a closed set of options, carrying the stable `code` that endpoints
+    /// <br/>filtering on the set accept.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CommonEnumDtoOfSprintType : CommonEnumDto
     {
@@ -88660,6 +88813,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One value of a closed set of options, carrying the stable `code` that endpoints
+    /// <br/>filtering on the set accept.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CommonEnumDtoOfStrategicThemeState : CommonEnumDto
     {
@@ -88671,6 +88828,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One value of a closed set of options, carrying the stable `code` that endpoints
+    /// <br/>filtering on the set accept.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CommonEnumDtoOfStrategyStatus : CommonEnumDto
     {
@@ -88682,6 +88843,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One value of a closed set of options, carrying the stable `code` that endpoints
+    /// <br/>filtering on the set accept.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CommonEnumDtoOfTimeAwayReason : CommonEnumDto
     {
@@ -88693,6 +88858,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One value of a closed set of options, carrying the stable `code` that endpoints
+    /// <br/>filtering on the set accept.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CommonEnumDtoOfVisionState : CommonEnumDto
     {
@@ -88729,36 +88898,66 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class ConnectionDetailsDto
     {
 
+        /// <summary>
+        /// The unique identifier for the connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The connection description.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The type of connector for the connection. This value cannot be changed once set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("connector")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Connector { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The capabilities this connection's connector supports, each with its display category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("capabilities")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ConnectorCapabilityDto> Capabilities { get; set; } = new System.Collections.ObjectModel.Collection<ConnectorCapabilityDto>();
 
+        /// <summary>
+        /// Indicates whether the connection is active or not. Inactive connections are not included in operations.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// A flag indicating whether the connection configuration is valid.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isValidConfiguration")]
         public bool IsValidConfiguration { get; set; } = default!;
 
+        /// <summary>
+        /// Indicates whether the connection can currently sync: true when it is active, its configuration
+        /// <br/>is valid, and it has something to sync (for Azure DevOps, at least one active work process or workspace).
+        /// <br/>Null for connectors that do not sync, such as Azure OpenAI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canSync")]
         public bool? CanSync { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// Outcome of the connection's most recent init probe: whether it could authenticate and read the
+    /// <br/>fields Wayd requires, and the organization types it discovered.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ConnectionInitResult
     {
@@ -88794,31 +88993,59 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class ConnectionListDto
     {
 
+        /// <summary>
+        /// The unique identifier for the connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The unique identifier for the external system that this connection connects to.
+        /// <br/>Null when the connector has no external system identifier, such as Entra, Workday, or Azure OpenAI,
+        /// <br/>and for an Azure DevOps connection whose identifier has not been resolved yet.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("systemId")]
         public string? SystemId { get; set; } = default!;
 
+        /// <summary>
+        /// The type of connector for the connection. This value cannot be changed once set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("connector")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Connector { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The capabilities this connection's connector supports, each with its display category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("capabilities")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ConnectorCapabilityDto> Capabilities { get; set; } = new System.Collections.ObjectModel.Collection<ConnectorCapabilityDto>();
 
+        /// <summary>
+        /// Indicates whether the connection is active or not. Inactive connections are not included in operations.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// A flag indicating whether the connection configuration is valid.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isValidConfiguration")]
         public bool IsValidConfiguration { get; set; } = default!;
 
+        /// <summary>
+        /// Indicates whether the connection can currently sync: true when it is active, its configuration
+        /// <br/>is valid, and it has something to sync (for Azure DevOps, at least one active work process or workspace).
+        /// <br/>Null for connectors that do not sync, such as Azure OpenAI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canSync")]
         public bool? CanSync { get; set; } = default!;
 
@@ -88842,6 +89069,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A capability a connector supports, with the display category it is grouped under.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ConnectorCapabilityDto
     {
@@ -88853,6 +89083,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The display category grouping this capability (e.g. "Work Management"); "Other" when the capability has no category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Category { get; set; } = default!;
@@ -88873,6 +89106,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The capabilities this connector supports, each with its display category. Multi-surface
+        /// <br/>connectors can support more than one capability while still using one connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("capabilities")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ConnectorCapabilityDto> Capabilities { get; set; } = new System.Collections.ObjectModel.Collection<ConnectorCapabilityDto>();
@@ -89490,6 +89727,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The newly created personal access token, including its plaintext value.
+    /// <br/>This is the only time the plaintext token is returned; store it now, as it cannot be retrieved later.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreatePersonalAccessTokenResult
     {
@@ -91003,19 +91244,34 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// How long a cut version waited before it shipped.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CutToReleasedDto
     {
 
+        /// <summary>
+        /// Mean days from cut to release, or `null` where nothing measurable shipped.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("averageDays")]
         public double? AverageDays { get; set; } = default!;
 
+        /// <summary>
+        /// How many of the window's releases could be measured.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("measuredCount")]
         public int MeasuredCount { get; set; } = default!;
 
+        /// <summary>
+        /// Releases in the window, measurable or not.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedCount")]
         public int ReleasedCount { get; set; } = default!;
 
+        /// <summary>
+        /// The same mean over the window immediately before this one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("previousAverageDays")]
         public double? PreviousAverageDays { get; set; } = default!;
 
@@ -91046,21 +91302,44 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Cycle-time rollup over a set of completed work items.
+    /// <br/>Carries the underlying count and total so consumers can aggregate across
+    /// <br/>scopes without average-of-averages bias: sum `workItemsCount` and
+    /// <br/>`totalCycleTimeDays` across summaries, then divide the total by the count.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CycleTimeSummary
     {
 
+        /// <summary>
+        /// Number of completed work items that contributed to this summary: items
+        /// <br/>with both an activated and a done timestamp, done after activated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workItemsCount")]
         public int WorkItemsCount { get; set; } = default!;
 
+        /// <summary>
+        /// Sum of cycle times in days across the contributing items.
+        /// <br/>0 when `workItemsCount` is 0; treat that count, not this field,
+        /// <br/>as the sign that there is no data.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totalCycleTimeDays")]
         public double TotalCycleTimeDays { get; set; } = default!;
 
+        /// <summary>
+        /// Mean cycle time in days, or null when there are no contributing items.
+        /// <br/>To combine summaries, sum `workItemsCount` and `totalCycleTimeDays`
+        /// <br/>rather than averaging this value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("averageCycleTimeDays")]
         public double? AverageCycleTimeDays { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// Releases on one day.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DailyReleaseCountDto
     {
@@ -91073,6 +91352,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("released")]
         public int Released { get; set; } = default!;
 
+        /// <summary>
+        /// How many of that day's versions have since been withdrawn.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("withdrawn")]
         public int Withdrawn { get; set; } = default!;
 
@@ -91217,6 +91499,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Outcome of deleting an OIDC provider: either it was deleted, or deletion was refused
+    /// <br/>because users still sign in through it, with how many active identities remain bound.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeleteOidcProviderResult
     {
@@ -91229,14 +91515,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The delivery measures over one window.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeliveryMetricsDto
     {
 
+        /// <summary>
+        /// The start of the window these measures cover, inclusive.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset From { get; set; } = default!;
 
+        /// <summary>
+        /// The end of the window these measures cover, inclusive.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset To { get; set; } = default!;
@@ -91249,12 +91544,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public ChangeFailureRateDto ChangeFailureRate { get; set; } = new ChangeFailureRateDto();
 
+        /// <summary>
+        /// The measures this module cannot compute yet, each with the reason.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unavailable")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<UnavailableMetricDto> Unavailable { get; set; } = new System.Collections.ObjectModel.Collection<UnavailableMetricDto>();
 
     }
 
+    /// <summary>
+    /// Version activity over a window, for one product subtree or the whole catalog.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeliveryOverviewDto
     {
@@ -91271,12 +91572,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public CutToReleasedDto CutToReleased { get; set; } = new CutToReleasedDto();
 
+        /// <summary>
+        /// The catalog subtree in scope, in reading order, one row per node.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activity")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProductActivityDto> Activity { get; set; } = new System.Collections.ObjectModel.Collection<ProductActivityDto>();
 
     }
 
+    /// <summary>
+    /// What kind of record an event happened to.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum DeliveryRecordKind
     {
@@ -91289,13 +91596,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// What the figures cover.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeliveryScopeDto
     {
 
+        /// <summary>
+        /// The selected node, or `null` for the whole catalog.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
         public NavigationDto? Product { get; set; } = default!;
 
+        /// <summary>
+        /// How many nodes in scope can have versions cut against them.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasableNodeCount")]
         public int ReleasableNodeCount { get; set; } = default!;
 
@@ -91357,6 +91673,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One release or package reaching one environment.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeploymentDto
     {
@@ -91368,21 +91687,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The version deployed, when this deployment carries a single version. Its `name` is the
+        /// <br/>version number, which is what a reader identifies it by.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public NavigationDto? Version { get; set; } = default!;
 
+        /// <summary>
+        /// The package deployed, when several components shipped as one unit. Exactly one of this and
+        /// <br/>`version` is set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("package")]
         public NavigationDto? Package { get; set; } = default!;
 
+        /// <summary>
+        /// The environment reached.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("environment")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Environment { get; set; } = default!;
 
+        /// <summary>
+        /// The environment's category as it stood when this deployment ran.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("environmentCategory")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EnvironmentCategory>))]
         public EnvironmentCategory EnvironmentCategory { get; set; } = default!;
 
+        /// <summary>
+        /// The build that actually shipped. Free text, never parsed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("artifactId")]
         public string? ArtifactId { get; set; } = default!;
 
@@ -91390,29 +91725,52 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset StartedAt { get; set; } = default!;
 
+        /// <summary>
+        /// When it reached a terminal outcome, or null while still in flight.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completedAt")]
         public System.DateTimeOffset? CompletedAt { get; set; } = default!;
 
+        /// <summary>
+        /// Why it failed or was rolled back, where someone recorded a reason.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         public string? Reason { get; set; } = default!;
 
+        /// <summary>
+        /// The deployment's current status: the organization's name for it, its category and its well-known alias.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
+        /// <summary>
+        /// The well-known meaning of the outcome. Metrics read this rather than the status name, so a
+        /// <br/>renamed outcome still counts.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProductStatusAlias>))]
         public ProductStatusAlias Outcome { get; set; } = default!;
 
+        /// <summary>
+        /// Whether this deployment has finished, however it finished.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isComplete")]
         public bool IsComplete { get; set; } = default!;
 
+        /// <summary>
+        /// Whether it counts toward change failure rate. A failure before production is a failure that was
+        /// <br/>prevented, so only production counts.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isChangeFailure")]
         public bool IsChangeFailure { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A deployment target.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeploymentEnvironmentDto
     {
@@ -91428,32 +91786,59 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What kind of target this is. Every delivery measure scoped to production counts on this rather
+        /// <br/>than on the name, which is free text and endlessly varied.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EnvironmentCategory>))]
         public EnvironmentCategory Category { get; set; } = default!;
 
+        /// <summary>
+        /// Position in a progressive rollout, lowest first. Environments sharing a ring are deployed to
+        /// <br/>together; the value carries no meaning beyond ordering.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ringOrder")]
         public int RingOrder { get; set; } = default!;
 
+        /// <summary>
+        /// Whether this environment can still be deployed into.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// How many deployments have targeted it, so a caller can see what deactivating would affect.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deploymentCount")]
         public int DeploymentCount { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// How often production deployments completed over the window.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeploymentFrequencyDto
     {
 
+        /// <summary>
+        /// Production deployments that reached their environment in the window.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("count")]
         public int Count { get; set; } = default!;
 
+        /// <summary>
+        /// Days the window spans, so a caller can recompute the rate over any period.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("windowDays")]
         public double WindowDays { get; set; } = default!;
 
+        /// <summary>
+        /// Deployments per day, or `null` when the window has no duration. Derived — a caller
+        /// <br/>combining windows should sum `count` and `windowDays` instead.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("perDay")]
         public double? PerDay { get; set; } = default!;
 
@@ -91485,6 +91870,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One Workday organization of a given organization type.
+    /// <br/>`reference` is the organization's stable Workday WID, used for exclusion matching.
+    /// <br/>`displayName` is its human-friendly name (or descriptor).
+    /// <br/>`referenceId` is the tenant-defined business code (e.g. "ENG-001", "COMP-EMEA"), shown as
+    /// <br/>secondary context to tell apart two organizations with the same name; null when the tenant has none.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DiscoveredOrg
     {
@@ -91501,6 +91893,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One Workday organization type discovered by the connection's init probe, with how many
+    /// <br/>organizations of that type the tenant has.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DiscoveredOrgType
     {
@@ -91557,6 +91953,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A share of an employee's time given to a team, in one role, for a stretch of days.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EmployeeAllocationDto
     {
@@ -91565,25 +91964,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The team or team of teams the time is given to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("team")]
-        [System.ComponentModel.DataAnnotations.Required]
         public TeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The team member role the time is spent in, or null when none was chosen.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public NavigationDto? Role { get; set; } = default!;
 
+        /// <summary>
+        /// The first day of the allocation.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the allocation, or null when it has no end.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The share of the employee's time, from 1 to 100.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percent")]
         public int Percent { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the caller may change this team's allocations.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;
 
@@ -91593,85 +92009,154 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class EmployeeDetailsDto
     {
 
+        /// <summary>
+        /// The employee's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's short numeric key, unique across employees.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// First and last name, for display.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("displayName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string DisplayName { get; set; } = default!;
 
+        /// <summary>
+        /// The complete name: title, first, middle and last names, and suffix, where present.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("fullName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string FullName { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's first name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("firstName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string FirstName { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's middle name, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("middleName")]
         public string? MiddleName { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's last name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string LastName { get; set; } = default!;
 
+        /// <summary>
+        /// Name suffix such as "Jr." or "III", or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("suffix")]
         public string? Suffix { get; set; } = default!;
 
+        /// <summary>
+        /// Personal title such as "Dr." or "Ms.", or null when none is recorded. Not the job title.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public string? Title { get; set; } = default!;
 
+        /// <summary>
+        /// The employee number assigned by the source system.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeNumber")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string EmployeeNumber { get; set; } = default!;
 
+        /// <summary>
+        /// When the employee was hired, or null when unknown.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hireDate")]
         public System.DateTimeOffset? HireDate { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's primary work email address.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Email { get; set; } = default!;
 
+        /// <summary>
+        /// Every work address this person is known by, `email` included as the primary. Used to match them
+        /// <br/>against systems still referencing an address they have moved away from.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("emails")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeEmailDto> Emails { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeEmailDto>();
 
+        /// <summary>
+        /// The employee's job title, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("jobTitle")]
         public string? JobTitle { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's department, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("department")]
         public string? Department { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's office location, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("officeLocation")]
         public string? OfficeLocation { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("manager")]
         public EmployeeNavigationDto? Manager { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the employee is currently active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form, preserved verbatim from the source system; null when not provided.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeType")]
         public string? EmployeeType { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// One work address on an employee. Only work addresses are recorded — home and personal addresses are
+    /// <br/>filtered out at the connector.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EmployeeEmailDto
     {
 
+        /// <summary>
+        /// The address entry's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The work email address.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Email { get; set; } = default!;
 
+        /// <summary>
+        /// Whether this is the employee's primary address — the one the employee's `email` field
+        /// <br/>carries and that the rest of the app resolves against. Exactly one address per employee has this.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isPrimary")]
         public bool IsPrimary { get; set; } = default!;
 
@@ -91681,57 +92166,102 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class EmployeeListDto
     {
 
+        /// <summary>
+        /// The employee's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's short numeric key, unique across employees.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// First and last name, for display.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("displayName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string DisplayName { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's first name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("firstName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string FirstName { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's middle name, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("middleName")]
         public string? MiddleName { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's last name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string LastName { get; set; } = default!;
 
+        /// <summary>
+        /// Name suffix such as "Jr." or "III", or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("suffix")]
         public string? Suffix { get; set; } = default!;
 
+        /// <summary>
+        /// Personal title such as "Dr." or "Ms.", or null when none is recorded. Not the job title.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public string? Title { get; set; } = default!;
 
+        /// <summary>
+        /// The employee number assigned by the source system.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeNumber")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string EmployeeNumber { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's primary work email address.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Email { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's job title, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("jobTitle")]
         public string? JobTitle { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's department, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("department")]
         public string? Department { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's office location, or null when none is recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("officeLocation")]
         public string? OfficeLocation { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("manager")]
         public EmployeeNavigationDto? Manager { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the employee is currently active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form; null when not provided.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeType")]
         public string? EmployeeType { get; set; } = default!;
 
@@ -91755,46 +92285,83 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// When an employee is away from every team they are allocated to, and the holidays they take.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EmployeeTimeAwayDto
     {
 
+        /// <summary>
+        /// Whether the caller may record, change and remove this employee's time away: the employee, anyone they
+        /// <br/>report up to, and a time away administrator. Each stretch's reason is given only when this is true.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;
 
+        /// <summary>
+        /// How many hours a working day has, from the system settings, so a share of a day can be read and entered in
+        /// <br/>hours: 25% of an 8-hour day is 2 hours.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
         public decimal WorkingDayHours { get; set; } = default!;
 
+        /// <summary>
+        /// The holiday calendar the employee follows instead of the system default, or null when they follow the
+        /// <br/>system default.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendar")]
         public NavigationDto? HolidayCalendar { get; set; } = default!;
 
+        /// <summary>
+        /// The stretches of time away, in date order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("entries")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeTimeAwayEntryDto> Entries { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeTimeAwayEntryDto>();
 
     }
 
+    /// <summary>
+    /// A stretch of days an employee is away for all or part of each day.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EmployeeTimeAwayEntryDto
     {
 
+        /// <summary>
+        /// The id of the stretch, which the change and remove requests take.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The first day away.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last day away.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The share of each day the employee is away, from 1 to 100.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percentAway")]
         public int PercentAway { get; set; } = default!;
 
+        /// <summary>
+        /// Why the employee is away. Null unless the caller is the employee, someone they report up to, or a time
+        /// <br/>away administrator.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TimeAwayReason>))]
         public TimeAwayReason? Reason { get; set; } = default!;
@@ -91864,29 +92431,51 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class EntraConnectionConfigurationDto
     {
 
+        /// <summary>
+        /// The Entra ID (Azure AD) tenant identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tenantId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string TenantId { get; set; } = default!;
 
+        /// <summary>
+        /// The application (client) identifier for the Entra app registration used to call Microsoft Graph.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("clientId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string ClientId { get; set; } = default!;
 
+        /// <summary>
+        /// The client secret for the Entra app registration. Returned masked as a fixed-width placeholder.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("clientSecret")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string ClientSecret { get; set; } = default!;
 
+        /// <summary>
+        /// Optional Entra group object ID to scope the user query to. When null, all member users in
+        /// <br/>the tenant are queried.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allUsersGroupObjectId")]
         public string? AllUsersGroupObjectId { get; set; } = default!;
 
+        /// <summary>
+        /// When true, users with disabled accounts are also included in the sync.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("includeDisabledUsers")]
         public bool IncludeDisabledUsers { get; set; } = default!;
 
+        /// <summary>
+        /// The employee field the sync uses to match a synced user to an existing employee.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("matchBy")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EmployeeMatchProperty>))]
         public EmployeeMatchProperty MatchBy { get; set; } = default!;
 
+        /// <summary>
+        /// When true, names that come back from Entra in all-caps are title-cased before storage.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("normalizeNameCasing")]
         public bool NormalizeNameCasing { get; set; } = default!;
 
@@ -91896,6 +92485,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class EntraConnectionDetailsDto : ConnectionDetailsDto
     {
 
+        /// <summary>
+        /// The configuration for the Entra connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("configuration")]
         [System.ComponentModel.DataAnnotations.Required]
         public EntraConnectionConfigurationDto Configuration { get; set; } = new EntraConnectionConfigurationDto();
@@ -91929,6 +92521,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// What one environment is running right now, derived from its deployments rather than stored.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EnvironmentRolloutDto
     {
@@ -91944,17 +92539,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What kind of target this is.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EnvironmentCategory>))]
         public EnvironmentCategory Category { get; set; } = default!;
 
+        /// <summary>
+        /// Position in a progressive rollout, lowest first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ringOrder")]
         public int RingOrder { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the environment can still be deployed into.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// Everything currently live here, one entry per product. Empty where nothing has ever succeeded
+        /// <br/>into it, which is a complete answer rather than missing data.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("running")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<RolloutItemDto> Running { get; set; } = new System.Collections.ObjectModel.Collection<RolloutItemDto>();
@@ -92022,14 +92630,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Exchanges a token issued by an external OIDC provider for a Wayd JWT. The server
+    /// <br/>validates `subjectToken` against the named provider and returns a Wayd JWT
+    /// <br/>carrying the user's permission claims.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ExchangeTokenCommand
     {
 
+        /// <summary>
+        /// Provider name — e.g., `"MicrosoftEntraId"`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Provider { get; set; } = default!;
 
+        /// <summary>
+        /// The token issued by the external provider, to be exchanged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("subjectToken")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string SubjectToken { get; set; } = default!;
@@ -92043,24 +92662,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the expenditure category (e.g., "Opex", "Capex", "Hybrid", etc.).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// Detailed description of what qualifies under this expenditure category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// Tracks the lifecycle of the category (e.g., Proposed, Active, Archived).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// Defines whether the expenditure is treated as capitalizable.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isCapitalizable")]
         public bool IsCapitalizable { get; set; } = default!;
 
+        /// <summary>
+        /// Defines whether the expenditure requires asset depreciation tracking.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("requiresDepreciation")]
         public bool RequiresDepreciation { get; set; } = default!;
 
+        /// <summary>
+        /// Reporting codes or financial classifications for the expenditure category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("accountingCode")]
         public string? AccountingCode { get; set; } = default!;
 
@@ -92073,20 +92710,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the expenditure category (e.g., "Opex", "Capex", "Hybrid", etc.).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// Tracks the lifecycle of the category (e.g., Proposed, Active, Archived).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// Defines whether the expenditure is treated as capitalizable.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isCapitalizable")]
         public bool IsCapitalizable { get; set; } = default!;
 
+        /// <summary>
+        /// Defines whether the expenditure requires asset depreciation tracking.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("requiresDepreciation")]
         public bool RequiresDepreciation { get; set; } = default!;
 
+        /// <summary>
+        /// Reporting codes or financial classifications for the expenditure category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("accountingCode")]
         public string? AccountingCode { get; set; } = default!;
 
@@ -92099,6 +92751,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the expenditure category (e.g., "Opex", "Capex", "Hybrid", etc.).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
@@ -92109,6 +92764,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One external system user and the employee it resolves to, for the connection's People tab.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ExternalIdentityMappingDto
     {
@@ -92117,29 +92775,47 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The external system's stable identifier for this person.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("externalId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string ExternalId { get; set; } = default!;
 
+        /// <summary>
+        /// The email address the external system reports for this person; null when it reports none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("displayName")]
         public string? DisplayName { get; set; } = default!;
 
+        /// <summary>
+        /// The person's account handle in the external system; identifies them when there is no email.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("handle")]
         public string? Handle { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
         public System.Guid? EmployeeId { get; set; } = default!;
 
+        /// <summary>
+        /// The mapped employee's first and last name; null when the identity is not mapped to an employee.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeName")]
         public string? EmployeeName { get; set; } = default!;
 
+        /// <summary>
+        /// The mapping status: Unmapped, AutoMatched, ManuallyMapped, or Ignored.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
+        /// <summary>
+        /// When a sync last saw this identity on a work item.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastSeen")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset LastSeen { get; set; } = default!;
@@ -92243,6 +92919,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public ForecastWorkItemDto Successor { get; set; } = new ForecastWorkItemDto();
 
+        /// <summary>
+        /// The share of trials (0 to 1) in which waiting on the predecessor made the successor
+        /// <br/>finish later than its own backlog position allowed. Null when the successor cannot be
+        /// <br/>forecast.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("shareOfTrialsSettingFinish")]
         public double? ShareOfTrialsSettingFinish { get; set; } = default!;
 
@@ -92260,6 +92941,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public ForecastWorkItemDto Successor { get; set; } = new ForecastWorkItemDto();
 
+        /// <summary>
+        /// Why the forecast left the dependency out: Closes a Cycle or Predecessor Removed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Reason { get; set; } = new SimpleNavigationDto();
@@ -92288,6 +92972,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public ForecastWorkItemDto WorkItem { get; set; } = new ForecastWorkItemDto();
 
+        /// <summary>
+        /// Why the work item could not be forecast: No Team, Not a Backlog Item or Not Enough History.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Type { get; set; } = new SimpleNavigationDto();
@@ -92298,15 +92985,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class ForecastPercentileDto
     {
 
+        /// <summary>
+        /// The share of trials, as a whole percent, that finished on or before `date`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("confidence")]
         public int Confidence { get; set; } = default!;
 
+        /// <summary>
+        /// Null when that many trials did not finish within the forecast horizon.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Date { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A team whose throughput a forecast drew on, and the history it was sampled from: whole UTC
+    /// <br/>days, inclusive.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ForecastTeamDto
     {
@@ -92352,6 +93049,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The status a transition moved out of, as it was called at the time.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class FrozenStatusDto
     {
@@ -92481,6 +93181,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A holiday calendar with its holidays.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class HolidayCalendarDetailsDto
     {
@@ -92499,21 +93202,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// Whether this is the system default, used by every team operating model that names no calendar.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isDefault")]
         public bool IsDefault { get; set; } = default!;
 
+        /// <summary>
+        /// How many team operating models name this calendar. A calendar in use cannot be deleted.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("operatingModelCount")]
         public int OperatingModelCount { get; set; } = default!;
 
+        /// <summary>
+        /// How many employees follow this calendar instead of the system default. A calendar in use cannot be deleted.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeCount")]
         public int EmployeeCount { get; set; } = default!;
 
+        /// <summary>
+        /// The holidays, in date order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidays")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<HolidayDto> Holidays { get; set; } = new System.Collections.ObjectModel.Collection<HolidayDto>();
 
     }
 
+    /// <summary>
+    /// A holiday calendar in a list.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class HolidayCalendarListDto
     {
@@ -92532,14 +93250,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// How many holidays the calendar holds, across all years.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCount")]
         public int HolidayCount { get; set; } = default!;
 
+        /// <summary>
+        /// Whether this is the system default, used by every team operating model that names no calendar.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isDefault")]
         public bool IsDefault { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A day off in a holiday calendar.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class HolidayDto
     {
@@ -92591,6 +93318,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// What an admin decided about one external identity.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum IdentityMappingAction
     {
@@ -92621,6 +93351,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One kind of import the caller may see.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportDefinitionDto
     {
@@ -93146,6 +93879,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One import run, as the person who submitted it sees it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportProcessDto
     {
@@ -93219,14 +93955,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;
 
+        /// <summary>
+        /// Rows neither applied nor rejected — what a resume would pick up.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unappliedRowCount")]
         public int UnappliedRowCount { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the run has finished, so a caller polling it knows when to stop.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isTerminal")]
         public bool IsTerminal { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A page of runs, with the total so a UI can page without a second call.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportProcessPageDto
     {
@@ -93246,6 +93991,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One row's outcome.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportProcessRowDto
     {
@@ -93280,6 +94028,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A page of row outcomes, with the total so a UI can page without a second call.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportProcessRowPageDto
     {
@@ -94620,6 +95371,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The moments from `earliest` to `latest`, both included. A null
+    /// <br/>`latest` means the window runs up to now, whenever the caller acts.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class InstantWindowDto
     {
@@ -94793,6 +95548,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The job lifecycle states background jobs can be listed by.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum JobStateFilter
     {
@@ -95647,6 +96405,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Summary of the current user's project involvement, with counts per role.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class MyProjectsSummaryDto
     {
@@ -95725,6 +96486,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An OIDC identity provider's full configuration, as an administrator edits it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class OidcProviderDto
     {
@@ -95770,17 +96534,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isEnabled")]
         public bool IsEnabled { get; set; } = default!;
 
+        /// <summary>
+        /// Whether first-time sign-ins through this provider auto-create an account.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowAutoRegistration")]
         public bool AllowAutoRegistration { get; set; } = default!;
 
+        /// <summary>
+        /// Whether auto-registration is restricted to users with a matching employee
+        /// <br/>record. Only meaningful when `allowAutoRegistration` is true.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("requireEmployeeRecord")]
         public bool? RequireEmployeeRecord { get; set; } = default!;
 
+        /// <summary>
+        /// Role id assigned to auto-created users. Null when auto-registration is
+        /// <br/>disabled (a default role is required whenever it's enabled).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultRoleId")]
         public string? DefaultRoleId { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// Public-facing metadata for one registered OIDC provider. Exactly the fields
+    /// <br/>a generic OIDC client (oidc-client-ts, etc.) needs to bootstrap a sign-in.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class OidcProviderInfo
     {
@@ -95811,6 +96590,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An OIDC identity provider as it appears in the list of providers.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class OidcProviderListItemDto
     {
@@ -95852,20 +96634,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The values a new operating model is pre-filled with. They are suggestions only: a saved model never reads
+    /// <br/>through to its parent or to the system settings.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class OperatingModelDefaultsDto
     {
 
+        /// <summary>
+        /// The IANA id of the parent team of teams' time zone on the start date, or the system default when the
+        /// <br/>team had no parent with an operating model then.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         [System.ComponentModel.DataAnnotations.Required]
         public string TimeZone { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the team of teams `timeZone` was taken from, or null when it is the system default.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZoneSource")]
         public string? TimeZoneSource { get; set; } = default!;
 
+        /// <summary>
+        /// The system default commitment grace period in days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("commitmentGraceDays")]
         public int CommitmentGraceDays { get; set; } = default!;
 
+        /// <summary>
+        /// The system default working days, Monday first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         [System.ComponentModel.DataAnnotations.Required]
@@ -95873,6 +96672,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A team or team of teams in the functional organization chart, with the units beneath it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class OrganizationalUnitDto
     {
@@ -95941,6 +96743,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One page of results, with the paging position and the total across all pages.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PagedResponseOfActivityLogDto
     {
@@ -95969,6 +96774,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A user on the provider with a staged-but-not-yet-completed tenant migration.
+    /// <br/>`sourceTenantId` is the user's current tenant; `targetTenantId` is the staged
+    /// <br/>destination they'll rebind to on their next sign-in.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PendingTenantMigrationDto
     {
@@ -95983,6 +96793,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
+        /// <summary>
+        /// The tenant of the user's active sign-in identity, or null when the user has no active identity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sourceTenantId")]
         public string? SourceTenantId { get; set; } = default!;
 
@@ -95995,6 +96808,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A personal access token's metadata and status. The token value itself is never
+    /// <br/>included; it is returned only once, when the token is created.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PersonalAccessTokenDto
     {
@@ -96035,26 +96852,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningHealthCheckDto
     {
 
+        /// <summary>
+        /// The id of the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The status of the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The employee who reported the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reportedBy")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto ReportedBy { get; set; } = default!;
 
+        /// <summary>
+        /// The timestamp of when the health check was reported.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reportedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ReportedOn { get; set; } = default!;
 
+        /// <summary>
+        /// When the health check expires; from then on it is no longer the current health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expiration")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Expiration { get; set; } = default!;
 
+        /// <summary>
+        /// The note for the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         public string? Note { get; set; } = default!;
 
@@ -96064,72 +96898,123 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalCalendarDto
     {
 
+        /// <summary>
+        /// The Planning Interval Id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The Planning Interval Key.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The Planning Interval Name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's first day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's last day, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's iterations, each with its dates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("iterationSchedules")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<LocalScheduleDto> IterationSchedules { get; set; } = new System.Collections.ObjectModel.Collection<LocalScheduleDto>();
 
     }
 
+    /// <summary>
+    /// The capacity of each team in a planning interval, for the whole planning interval and for each of its
+    /// <br/>iterations by the planning interval's own dates, whatever a team's sprint length or cadence. Worked out when
+    /// <br/>read from the teams' allocations; never stored.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalCapacityDto
     {
 
+        /// <summary>
+        /// The planning interval's first day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's last day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's iterations, in date order: the columns each team's capacity is read over.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("iterations")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PlanningIntervalCapacityIterationDto> Iterations { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalCapacityIterationDto>();
 
+        /// <summary>
+        /// The teams in the planning interval, teams before teams of teams and then by code. A team of teams is
+        /// <br/>counted as its rollup, so a team beneath it that is also in the planning interval is counted in both rows.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teams")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PlanningIntervalTeamCapacityDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalTeamCapacityDto>();
 
     }
 
+    /// <summary>
+    /// A team's capacity over a run of days, in person-days, after holidays, time away and team days off.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalCapacityFiguresDto
     {
 
+        /// <summary>
+        /// The time allocated in every role.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
         public decimal AllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of it in roles that count toward delivery capacity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
         public decimal DeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The allocated time that people's time away takes, already left out of the other two.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("awayPersonDays")]
         public decimal AwayPersonDays { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// An iteration of a planning interval, as a capacity column.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalCapacityIterationDto
     {
@@ -96138,6 +97023,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The iteration's key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
@@ -96145,15 +97033,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The iteration's category, such as Development or Innovation and Planning.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Category { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The iteration's first day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The iteration's last day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -96165,34 +97062,60 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalDetailsDto
     {
 
+        /// <summary>
+        /// The planning interval's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's numeric key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the planning interval.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's description; null when none is set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's first day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's last day, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The current state of the Planning Interval.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// Whether the planning interval's objectives are locked. While locked, objectives cannot be added or
+        /// <br/>deleted, and an update keeps each objective's stored name and stretch flag, ignoring new values without
+        /// <br/>an error; its description, status, progress and dates stay editable.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("objectivesLocked")]
         public bool ObjectivesLocked { get; set; } = default!;
 
@@ -96224,31 +97147,52 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalIterationDetailsDto
     {
 
+        /// <summary>
+        /// The primary identifier of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The alternate key of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration state.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string State { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Category { get; set; } = new SimpleNavigationDto();
@@ -96263,31 +97207,52 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalIterationListDto
     {
 
+        /// <summary>
+        /// The primary identifier of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The alternate key of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration state.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string State { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Category { get; set; } = new SimpleNavigationDto();
@@ -96384,35 +97349,59 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A planning interval iteration with the team sprints mapped to it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalIterationSprintsDto
     {
 
+        /// <summary>
+        /// The primary identifier of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The alternate key of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the PI iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The PI iteration category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Category { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The sprints mapped to this iteration; empty when none are mapped.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprints")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PlanningSprintListDto> Sprints { get; set; } = new System.Collections.ObjectModel.Collection<PlanningSprintListDto>();
@@ -96462,27 +97451,45 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalListDto
     {
 
+        /// <summary>
+        /// The planning interval's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's numeric key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the planning interval.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's first day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval's last day, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The current state of the Planning Interval.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
@@ -96532,24 +97539,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalObjectiveDetailsDto
     {
 
+        /// <summary>
+        /// The objective's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The objective's numeric key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the objective.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description of the objective.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The objective's status.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The objective's current health check; null when it has none that has not expired.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("healthCheck")]
         public PlanningHealthCheckDto? HealthCheck { get; set; } = default!;
 
@@ -96564,21 +97589,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public PlanningTeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The objective's type.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Type { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The day work on the objective is planned to start; null when not set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? StartDate { get; set; } = default!;
 
+        /// <summary>
+        /// The day the objective is targeted to be done by; null when not set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
+        /// <summary>
+        /// When the objective moved to a closed status; null while it is open.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("closedDate")]
         public System.DateTimeOffset? ClosedDate { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the objective is a stretch objective rather than a committed one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isStretch")]
         public bool IsStretch { get; set; } = default!;
 
@@ -96588,30 +97628,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalObjectiveHealthCheckDetailsDto
     {
 
+        /// <summary>
+        /// The id of the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The id of the parent planning interval objective.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("planningIntervalObjectiveId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid PlanningIntervalObjectiveId { get; set; } = default!;
 
+        /// <summary>
+        /// The status of the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The employee who reported the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reportedBy")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto ReportedBy { get; set; } = default!;
 
+        /// <summary>
+        /// The timestamp of when the health check was reported.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reportedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ReportedOn { get; set; } = default!;
 
+        /// <summary>
+        /// When the health check expires; from then on it is no longer the objective's current health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expiration")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Expiration { get; set; } = default!;
 
+        /// <summary>
+        /// The note for the health check.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         public string? Note { get; set; } = default!;
 
@@ -96708,21 +97768,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class PlanningIntervalObjectiveListDto
     {
 
+        /// <summary>
+        /// The objective's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The objective's numeric key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the objective.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The objective's status.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The objective's current health check; null when it has none that has not expired.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("healthCheck")]
         public PlanningHealthCheckDto? HealthCheck { get; set; } = default!;
 
@@ -96737,21 +97812,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
         public double Progress { get; set; } = default!;
 
+        /// <summary>
+        /// The objective's type.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Type { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The day work on the objective is planned to start; null when not set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? StartDate { get; set; } = default!;
 
+        /// <summary>
+        /// The day the objective is targeted to be done by; null when not set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the objective is a stretch objective rather than a committed one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isStretch")]
         public bool IsStretch { get; set; } = default!;
 
+        /// <summary>
+        /// The order of the Objective compared to other Objectives in the same context.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int? Order { get; set; } = default!;
 
@@ -96789,6 +97879,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One team's capacity across a planning interval.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalTeamCapacityDto
     {
@@ -96797,20 +97890,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public PlanningTeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the team is active; an inactive team's allocations can no longer be added to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// Whether anyone is allocated to the team, or to a team beneath a team of teams, at any time in the planning
+        /// <br/>interval. A team with no one has nothing to plan with, rather than no time.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hasAllocations")]
         public bool HasAllocations { get; set; } = default!;
 
+        /// <summary>
+        /// The team's capacity over the whole planning interval.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("total")]
         [System.ComponentModel.DataAnnotations.Required]
         public PlanningIntervalCapacityFiguresDto Total { get; set; } = new PlanningIntervalCapacityFiguresDto();
 
+        /// <summary>
+        /// The team's capacity in each iteration, in the same order as the planning interval's `iterations`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("iterations")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PlanningIntervalCapacityFiguresDto> Iterations { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalCapacityFiguresDto>();
 
+        /// <summary>
+        /// The team's sprint days off in the planning interval, in date order: days the whole team is off, already
+        /// <br/>left out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
@@ -96872,6 +97982,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("predictability")]
         public double? Predictability { get; set; } = default!;
 
+        /// <summary>
+        /// Count of non-stretch (committed) objectives for this team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("regularObjectivesCount")]
         public int RegularObjectivesCount { get; set; } = default!;
 
@@ -96932,6 +98045,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A sprint mapped to a planning interval, as listed in planning views.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningSprintListDto
     {
@@ -96940,33 +98056,57 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's numeric key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's current state.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The first planned day of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last planned day of the sprint, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// When the sprint became Active. Null for a sprint whose team is not mapped.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeFrom")]
         public System.DateTimeOffset? ActiveFrom { get; set; } = default!;
 
+        /// <summary>
+        /// When the sprint stops being Active, exclusive.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeUntil")]
         public System.DateTimeOffset? ActiveUntil { get; set; } = default!;
 
+        /// <summary>
+        /// The IANA time zone the sprint's days are counted in: its team's.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         public string? TimeZone { get; set; } = default!;
 
@@ -97204,13 +98344,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Score breakdown for a portfolio's ranking board: the portfolio's current scoring model definition
+    /// <br/>plus, per project, the criterion ratings and output values from that project's current score — but
+    /// <br/>only when the current score was produced by the portfolio's current model. Projects scored under a
+    /// <br/>different or older model, or not yet scored, are left out.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PortfolioRankingScoreboardDto
     {
 
+        /// <summary>
+        /// The portfolio's current scoring model definition, or null if no model is assigned.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scoringModel")]
         public ScoringModelDetailsDto? ScoringModel { get; set; } = default!;
 
+        /// <summary>
+        /// Per-project score breakdown for the current model; projects with no current-model score are omitted.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projects")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProjectRankingScoreDto> Projects { get; set; } = new System.Collections.ObjectModel.Collection<ProjectRankingScoreDto>();
@@ -97247,6 +98399,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One node of the catalog subtree, with its releases day by day.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductActivityDto
     {
@@ -97255,35 +98410,60 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Product { get; set; } = default!;
 
+        /// <summary>
+        /// How far beneath the scope's root this node sits, so the view can indent without walking the
+        /// <br/>tree a second time. Zero for a node at the top of the scope.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("depth")]
         public int Depth { get; set; } = default!;
 
+        /// <summary>
+        /// Whether versions can be cut against this node.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isReleasable")]
         public bool IsReleasable { get; set; } = default!;
 
+        /// <summary>
+        /// Days with at least one release. A day with none is absent rather than zero.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<DailyReleaseCountDto> Days { get; set; } = new System.Collections.ObjectModel.Collection<DailyReleaseCountDto>();
 
+        /// <summary>
+        /// The product's releases across the whole window.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totalReleased")]
         public int TotalReleased { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A product's dependencies in both directions, rolled up across everything beneath it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductDependenciesDto
     {
 
+        /// <summary>
+        /// Links from the product, or anything beneath it, to products outside it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dependsOn")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProductDependencyDto> DependsOn { get; set; } = new System.Collections.ObjectModel.Collection<ProductDependencyDto>();
 
+        /// <summary>
+        /// Links from products outside it to the product, or anything beneath it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("usedBy")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProductDependencyDto> UsedBy { get; set; } = new System.Collections.ObjectModel.Collection<ProductDependencyDto>();
 
     }
 
+    /// <summary>
+    /// One product depending on another over a period.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductDependencyDto
     {
@@ -97292,12 +98472,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The product that has the dependency.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Product { get; set; } = default!;
 
+        /// <summary>
+        /// The product depended on.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dependsOnProduct")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto DependsOnProduct { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("strength")]
@@ -97305,6 +98489,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DependencyStrength>))]
         public DependencyStrength Strength { get; set; } = default!;
 
+        /// <summary>
+        /// How the product reaches the one it depends on, both where it calls and subscribes, or `null`
+        /// <br/>where nobody has recorded it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("interactionStyles")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         public System.Collections.Generic.ICollection<InteractionStyle>? InteractionStyles { get; set; } = default!;
@@ -97312,25 +98500,40 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The day the dependency began.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startsOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset StartsOn { get; set; } = default!;
 
+        /// <summary>
+        /// The last day the dependency held, or `null` while it still holds.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("endsOn")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? EndsOn { get; set; } = default!;
 
+        /// <summary>
+        /// Everything `product` sits inside, from its root down to its parent.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("productPath")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> ProductPath { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
+        /// <summary>
+        /// Everything `dependsOnProduct` sits inside, from its root down to its parent.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dependsOnProductPath")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> DependsOnProductPath { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
     }
 
+    /// <summary>
+    /// A product node as a list or detail row.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductDto
     {
@@ -97352,16 +98555,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("externalId")]
         public string? ExternalId { get; set; } = default!;
 
+        /// <summary>
+        /// The node's type, which decides whether releases can be cut against it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Type { get; set; } = default!;
 
+        /// <summary>
+        /// Whether releases can be cut against this node.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isReleasable")]
         public bool IsReleasable { get; set; } = default!;
 
+        /// <summary>
+        /// The parent node, or `null` for a root.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parent")]
         public NavigationDto? Parent { get; set; } = default!;
 
+        /// <summary>
+        /// The node's current lifecycle status.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
@@ -97411,6 +98625,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A tag axis and the tags on it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductTagCategoryDto
     {
@@ -97429,15 +98646,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// Whether a product can carry several tags from this axis.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsMany")]
         public bool AllowsMany { get; set; } = default!;
 
+        /// <summary>
+        /// Display position when presenting the axes. Presentation only.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
+        /// <summary>
+        /// Whether products can still be tagged along this axis.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// Platform-seeded axes are read-only: they cannot be edited or deleted.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
 
@@ -97487,11 +98716,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// How many products currently carry this tag, so a caller can see what deactivating would affect.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("productCount")]
         public int ProductCount { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A product type as a catalog row.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductTypeDto
     {
@@ -97510,18 +98745,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// Whether releases can be cut against nodes of this type.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isReleasable")]
         public bool IsReleasable { get; set; } = default!;
 
+        /// <summary>
+        /// Display position when presenting the catalog. Presentation only.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
+        /// <summary>
+        /// Whether new products can still be created with this type.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// Platform-seeded types are read-only: deactivate rather than delete or edit.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
 
+        /// <summary>
+        /// How many products currently carry this type. Lets a caller see what deactivating would affect.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("productCount")]
         public int ProductCount { get; set; } = default!;
 
@@ -97535,49 +98785,87 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The program's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// A detailed description of the program's purpose and scope.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The current status of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The program start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The program end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio associated with this program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Portfolio { get; set; } = default!;
 
+        /// <summary>
+        /// The sponsors of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("programSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProgramSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("programOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProgramOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The managers of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("programManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProgramManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The strategic themes associated with this program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> StrategicThemes { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
+        /// <summary>
+        /// Whether the current user may manage this program — change its status, edit its details, or assign
+        /// <br/>its roles. True when the user is an Owner or Manager of the program or of its parent portfolio, or
+        /// <br/>holds the domain-wide PPM administrator grant. Sponsors are excluded.
+        /// <br/>A hint for which actions to offer; the server enforces the same rule on every change.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManageProgram")]
         public bool CanManageProgram { get; set; } = default!;
 
@@ -97591,41 +98879,70 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The program's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The current status of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The program start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The program end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio associated with this program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Portfolio { get; set; } = default!;
 
+        /// <summary>
+        /// The sponsors of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("programSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProgramSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("programOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProgramOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The managers of the program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("programManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProgramManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The strategic themes associated with this program.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> StrategicThemes { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
@@ -97657,6 +98974,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The status's stable name, as status filters accept it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProgramStatus>))]
@@ -97686,94 +99006,178 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The project's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// A concise summary of what the project delivers and its scope.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The strategic justification for the project — why it should be funded.
+        /// <br/>Captures the problem being solved or opportunity being pursued and the strategic rationale.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("businessCase")]
         public string? BusinessCase { get; set; } = default!;
 
+        /// <summary>
+        /// The specific, measurable outcomes expected upon successful delivery.
+        /// <br/>Examples: revenue growth, cost savings, compliance achievement, efficiency improvements.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expectedBenefits")]
         public string? ExpectedBenefits { get; set; } = default!;
 
+        /// <summary>
+        /// The current status of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The expenditure category associated with the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expenditureCategory")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto ExpenditureCategory { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The project start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The project end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio associated with this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Portfolio { get; set; } = default!;
 
+        /// <summary>
+        /// The program associated with this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("program")]
         public NavigationDto? Program { get; set; } = default!;
 
+        /// <summary>
+        /// The sponsors of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The managers of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The members of the project team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectMembers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectMembers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The strategic themes associated with this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> StrategicThemes { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
+        /// <summary>
+        /// The strategic initiatives this project is supporting.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicInitiatives")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> StrategicInitiatives { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
+        /// <summary>
+        /// The project lifecycle assigned to this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectLifecycle")]
         public DescriptiveNavigationDto? ProjectLifecycle { get; set; } = default!;
 
+        /// <summary>
+        /// The project stages, ordered by display order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stages")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProjectStageListDto> Stages { get; set; } = new System.Collections.ObjectModel.Collection<ProjectStageListDto>();
 
+        /// <summary>
+        /// The current (non-expired) health check for this project, or null if none exists.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("healthCheck")]
         public ProjectHealthCheckDto? HealthCheck { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the current user can manage this project (record health checks, scores, and other
+        /// <br/>delivery-management actions). True when the user is an Owner or Manager of the project, its
+        /// <br/>portfolio, or its program, or holds the domain-wide PPM administrator grant. Sponsors and project
+        /// <br/>Members are excluded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManageProject")]
         public bool CanManageProject { get; set; } = default!;
 
+        /// <summary>
+        /// The earlier statuses this project can be reverted to right now, in lifecycle order; empty when it is
+        /// <br/>already at the start of its lifecycle or meets no target's requirements — a project cancelled from
+        /// <br/>Proposed with no lifecycle or dates offers nothing. Each listed status is a revert the server will
+        /// <br/>accept, provided the caller can manage the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("backwardStatusTargets")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<LifecycleNavigationDto> BackwardStatusTargets { get; set; } = new System.Collections.ObjectModel.Collection<LifecycleNavigationDto>();
 
+        /// <summary>
+        /// The scoring model assigned to the project's portfolio, or null if scoring is not enabled.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioScoringModel")]
         public NavigationDto? PortfolioScoringModel { get; set; } = default!;
 
+        /// <summary>
+        /// A summary of the project's most recent score, or null if it has not been scored.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("currentScore")]
         public ScoreSummaryDto? CurrentScore { get; set; } = default!;
 
+        /// <summary>
+        /// The project's fractional rank sort key within its portfolio: an opaque value, not the displayed
+        /// <br/>position. Every project is ranked from creation. Sort ascending to order projects by rank; not for
+        /// <br/>display.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rank")]
         public double Rank { get; set; } = default!;
 
@@ -97978,72 +99382,134 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The project's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The current status of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The project start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The project end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio associated with this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Portfolio { get; set; } = default!;
 
+        /// <summary>
+        /// The program associated with this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("program")]
         public NavigationDto? Program { get; set; } = default!;
 
+        /// <summary>
+        /// The sponsors of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The managers of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The members of the project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectMembers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> ProjectMembers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The strategic themes associated with this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> StrategicThemes { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
+        /// <summary>
+        /// The project lifecycle assigned to this project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectLifecycle")]
         public NavigationDto? ProjectLifecycle { get; set; } = default!;
 
+        /// <summary>
+        /// The project stages, ordered by display order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stages")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProjectStageListDto> Stages { get; set; } = new System.Collections.ObjectModel.Collection<ProjectStageListDto>();
 
+        /// <summary>
+        /// The current (non-expired) health check for this project, or null if none exists.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("healthCheck")]
         public ProjectHealthCheckSummaryDto? HealthCheck { get; set; } = default!;
 
+        /// <summary>
+        /// The denormalised summary of the project's most recent score, or null if it has not been scored.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("currentScore")]
         public ScoreSummaryDto? CurrentScore { get; set; } = default!;
 
+        /// <summary>
+        /// The project's fractional rank sort key within its portfolio: an opaque value, not the displayed
+        /// <br/>position. Every project is ranked, so this is always set. Sort ascending to order projects by rank;
+        /// <br/>not for display.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rank")]
         public double Rank { get; set; } = default!;
 
+        /// <summary>
+        /// The project's 1-based display position within its portfolio's ranking, derived at read time
+        /// <br/>from `rank`. Null only when the result is not scoped to a single portfolio (a
+        /// <br/>cross-portfolio position would be meaningless).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("position")]
         public int? Position { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the current user can manage this project (record health checks, scores, etc.). True when
+        /// <br/>the user is an Owner or Manager of the project, its portfolio, or its program, or holds the
+        /// <br/>domain-wide PPM administrator grant. Sponsors and project Members are excluded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManageProject")]
         public bool CanManageProject { get; set; } = default!;
 
@@ -98070,6 +99536,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Unified DTO for the project plan tree that includes both stages and tasks as nodes.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectPlanNodeDto
     {
@@ -98078,6 +99547,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The type of node: "Stage" or "Task".
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("nodeType")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string NodeType { get; set; } = default!;
@@ -98093,6 +99565,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
+        /// <summary>
+        /// The Work Breakdown Structure code (e.g., "1" for stages, "1.1.2" for tasks).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("wbs")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Wbs { get; set; } = default!;
@@ -98112,47 +99587,86 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> Assignees { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The child nodes (tasks under a stage, or sub-tasks under a task).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("children")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProjectPlanNodeDto> Children { get; set; } = new System.Collections.ObjectModel.Collection<ProjectPlanNodeDto>();
 
+        /// <summary>
+        /// The task key (e.g., "PROJ-123"). Null for stage nodes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public string? Key { get; set; } = default!;
 
+        /// <summary>
+        /// The task type (Task or Milestone). Null for stage nodes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public SimpleNavigationDto? Type { get; set; } = default!;
 
+        /// <summary>
+        /// The task priority. Null for stage nodes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("priority")]
         public SimpleNavigationDto? Priority { get; set; } = default!;
 
+        /// <summary>
+        /// The parent task ID. Null for root tasks and stage nodes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]
         public System.Guid? ParentId { get; set; } = default!;
 
+        /// <summary>
+        /// The stage ID this task belongs to. Null for stage nodes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectStageId")]
         public System.Guid? ProjectStageId { get; set; } = default!;
 
+        /// <summary>
+        /// The milestone planned date. Null for non-milestone tasks and stage nodes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("plannedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? PlannedDate { get; set; } = default!;
 
+        /// <summary>
+        /// The estimated effort in hours. Null for stage nodes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// Summary metrics for a project's plan, computed from leaf tasks.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectPlanSummaryDto
     {
 
+        /// <summary>
+        /// Tasks past their end date that are Not Started or In Progress.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("overdue")]
         public int Overdue { get; set; } = default!;
 
+        /// <summary>
+        /// Tasks due by end of this week (Saturday) that are Not Started or In Progress.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dueThisWeek")]
         public int DueThisWeek { get; set; } = default!;
 
+        /// <summary>
+        /// Tasks due next week (Sunday through Saturday) that are Not Started or In Progress.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("upcoming")]
         public int Upcoming { get; set; } = default!;
 
+        /// <summary>
+        /// Total number of leaf tasks in the project plan.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totalLeafTasks")]
         public int TotalLeafTasks { get; set; } = default!;
 
@@ -98166,36 +99680,66 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// A detailed description of the portfolio’s purpose.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The status of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The scoring model assigned to the portfolio, or null if scoring is not enabled.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scoringModel")]
         public NavigationDto? ScoringModel { get; set; } = default!;
 
+        /// <summary>
+        /// The sponsors of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> PortfolioSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> PortfolioOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The managers of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> PortfolioManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// Whether the current user may manage this portfolio — change its status, edit its details, or assign
+        /// <br/>its roles. True when the user is an Owner or Manager of the portfolio, or holds the domain-wide PPM
+        /// <br/>administrator grant. Sponsors are excluded.
+        /// <br/>A hint for which actions to offer; the server enforces the same rule on every change.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManagePortfolio")]
         public bool CanManagePortfolio { get; set; } = default!;
 
@@ -98209,29 +99753,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The status of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The sponsors of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> PortfolioSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> PortfolioOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The managers of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> PortfolioManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
@@ -98246,6 +99811,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the portfolio.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
@@ -98280,6 +99848,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The status's stable name, as status filters accept it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProjectPortfolioStatus>))]
@@ -98301,6 +99872,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A single project's current-model score breakdown for the ranking board.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectRankingScoreDto
     {
@@ -98309,16 +99883,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ProjectId { get; set; } = default!;
 
+        /// <summary>
+        /// Criterion ratings from the current-model score; empty when there is no matching score.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ratings")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProjectScoreRatingDto> Ratings { get; set; } = new System.Collections.ObjectModel.Collection<ProjectScoreRatingDto>();
 
+        /// <summary>
+        /// Output values from the current-model score; empty when there is no matching score.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outputs")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProjectScoreOutputDto> Outputs { get; set; } = new System.Collections.ObjectModel.Collection<ProjectScoreOutputDto>();
 
     }
 
+    /// <summary>
+    /// The full frozen snapshot of a recorded project score, including every criterion rating and computed
+    /// <br/>output value as they were at scoring time.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectScoreDetailsDto
     {
@@ -98418,6 +100002,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A history-list view of a recorded project score: the headline values without the full rating
+    /// <br/>breakdown.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectScoreSummaryDto
     {
@@ -98456,16 +100044,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// What is needed to record a score for a project: the assigned model's definition (its criteria and
+    /// <br/>rating scales), whether that model is archived, and the project's current score (to seed a re-score).
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectScoringContextDto
     {
 
+        /// <summary>
+        /// The assigned scoring model's definition (criteria, scales, outputs). Null when the portfolio has
+        /// <br/>no model assigned.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scoringModel")]
         public ScoringModelDetailsDto? ScoringModel { get; set; } = default!;
 
+        /// <summary>
+        /// True when the assigned model is no longer active (archived). Scoring still works, but the form
+        /// <br/>should warn and nudge an admin to assign a newer model.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scoringModelArchived")]
         public bool ScoringModelArchived { get; set; } = default!;
 
+        /// <summary>
+        /// The project's current score, or null if it has never been scored. Used to seed a re-score.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("currentScore")]
         public ProjectScoreDetailsDto? CurrentScore { get; set; } = default!;
 
@@ -98543,16 +100146,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Aggregated task metrics across the projects an employee is involved in.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectsTaskMetricsDto
     {
 
+        /// <summary>
+        /// Open tasks past their planned end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("overdue")]
         public int Overdue { get; set; } = default!;
 
+        /// <summary>
+        /// Open tasks due by end of this week (Saturday).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dueThisWeek")]
         public int DueThisWeek { get; set; } = default!;
 
+        /// <summary>
+        /// Open tasks due next week (Sunday through Saturday).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("upcoming")]
         public int Upcoming { get; set; } = default!;
 
@@ -98586,6 +100201,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The status's stable name, as status filters accept it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProjectStatus>))]
@@ -98619,16 +100237,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ProjectId { get; set; } = default!;
 
+        /// <summary>
+        /// The status the project moved out of, or null when the project entered its initial state.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("fromStatus")]
         public LifecycleNavigationDto? FromStatus { get; set; } = default!;
 
+        /// <summary>
+        /// The status the project moved into.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("toStatus")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto ToStatus { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The employee who made the change, or null when it was made by the system or by a user with no
+        /// <br/>employee link at the time.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("changedBy")]
         public NavigationDto? ChangedBy { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the change was made by the system rather than a person. Use this, not a null
+        /// <br/>`changedBy`, to tell the two apart: a signed-in user with no employee link also has a null
+        /// <br/>`changedBy`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("changedBySystem")]
         public bool ChangedBySystem { get; set; } = default!;
 
@@ -98636,6 +100269,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ChangedOn { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the row was recorded as the transition happened or reconstructed from the audit trail.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("source")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Source { get; set; } = new SimpleNavigationDto();
@@ -98645,78 +100281,138 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Detailed DTO for a project task with full information including assignments.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectTaskDto
     {
 
+        /// <summary>
+        /// The unique identifier of the task.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The task key in the format {ProjectCode}-{Number} (e.g., "APOLLO-1").
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Key { get; set; } = default!;
 
+        /// <summary>
+        /// The unique identifier of the parent project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ProjectId { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the task.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// A detailed description of the task.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The task type (Task or Milestone).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Type { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The current status of the task.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The priority of the task.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("priority")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Priority { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The assignees of the project task.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("assignees")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> Assignees { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The progress of the task as a percentage (0 to 100).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
         public decimal Progress { get; set; } = default!;
 
+        /// <summary>
+        /// The order of the task within its parent.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
+        /// <summary>
+        /// The unique identifier of the parent task (null for root tasks).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]
         public System.Guid? ParentId { get; set; } = default!;
 
+        /// <summary>
+        /// The unique identifier of the project stage this task belongs to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectStageId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ProjectStageId { get; set; } = default!;
 
+        /// <summary>
+        /// The parent task navigation information.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parent")]
         public ProjectTaskNavigationDto? Parent { get; set; } = default!;
 
+        /// <summary>
+        /// The planned start date for regular tasks.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("plannedStart")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? PlannedStart { get; set; } = default!;
 
+        /// <summary>
+        /// The planned end date for regular tasks.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("plannedEnd")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? PlannedEnd { get; set; } = default!;
 
+        /// <summary>
+        /// The planned date for milestones.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("plannedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? PlannedDate { get; set; } = default!;
 
+        /// <summary>
+        /// The estimated effort in hours.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// Represents an object's ID and task key (e.g., "APOLLO-1").
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectTaskIdAndKey
     {
@@ -98731,6 +100427,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Lightweight DTO for a project task in list views.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectTaskListDto
     {
@@ -98763,10 +100462,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Priority { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The assignees of the project task.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("assignees")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> Assignees { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The progress of the task as a percentage (0 to 100).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
         public decimal Progress { get; set; } = default!;
 
@@ -98796,6 +100501,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Navigation DTO for a project task.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectTaskNavigationDto
     {
@@ -98833,22 +100541,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Represents a team member on a project with their roles, assigned stages, and active workload.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectTeamMemberDto
     {
 
+        /// <summary>
+        /// The employee on the project team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employee")]
-        [System.ComponentModel.DataAnnotations.Required]
         public EmployeeNavigationDto Employee { get; set; } = default!;
 
+        /// <summary>
+        /// The project roles assigned to this team member (e.g., Sponsor, Owner, Manager, Member).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roles")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> Roles { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// The names of the stages this team member is assigned to, ordered by stage order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("assignedStages")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> AssignedStages { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// The number of active leaf tasks (Not Started or In Progress) assigned to this team member.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeWorkItemCount")]
         public int ActiveWorkItemCount { get; set; } = default!;
 
@@ -98878,6 +100600,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One thing that happened to a version or a package, most recent first.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RecentDeliveryEventDto
     {
@@ -98889,34 +100614,58 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("recordKey")]
         public int RecordKey { get; set; } = default!;
 
+        /// <summary>
+        /// Which record this happened to, so a caller knows where the link goes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DeliveryRecordKind>))]
         public DeliveryRecordKind Kind { get; set; } = default!;
 
+        /// <summary>
+        /// The product the version was cut against. Null for a package, which spans several.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
         public NavigationDto? Product { get; set; } = default!;
 
+        /// <summary>
+        /// The version number, or the package's own version. Free text, never parsed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Label { get; set; } = default!;
 
+        /// <summary>
+        /// The status reached, as the organization named it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string StatusName { get; set; } = default!;
 
+        /// <summary>
+        /// The well-known meaning of that status.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("alias")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProductStatusAlias>))]
         public ProductStatusAlias Alias { get; set; } = default!;
 
+        /// <summary>
+        /// When the record moved into this status.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("changedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ChangedOn { get; set; } = default!;
 
+        /// <summary>
+        /// When the record shipped, where it has shipped.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
+        /// <summary>
+        /// How many components the package shipped. Null for a version.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("componentCount")]
         public int? ComponentCount { get; set; } = default!;
 
@@ -99013,6 +100762,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// What was announced to customers, and the versions and packages that carried it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ReleaseDto
     {
@@ -99024,9 +100776,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The product this release is announced under, or `null` where it spans product lines.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
         public NavigationDto? Product { get; set; } = default!;
 
+        /// <summary>
+        /// The release's own version label. Free text, never parsed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Version { get; set; } = default!;
@@ -99034,9 +100792,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string? Name { get; set; } = default!;
 
+        /// <summary>
+        /// Product notes, written for customers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("notes")]
         public string? Notes { get; set; } = default!;
 
+        /// <summary>
+        /// A manual ordering override, used only where chronology misleads.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sequence")]
         public long? Sequence { get; set; } = default!;
 
@@ -99048,20 +100812,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
+        /// <summary>
+        /// The release's current status: the organization's name for it, its category and its well-known alias.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
+        /// <summary>
+        /// The versions this release announces directly, outside any package.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("versions")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ReleaseVersionDto> Versions { get; set; } = new System.Collections.ObjectModel.Collection<ReleaseVersionDto>();
 
+        /// <summary>
+        /// The packages this release shipped.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("packages")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ReleasePackageSummaryDto> Packages { get; set; } = new System.Collections.ObjectModel.Collection<ReleasePackageSummaryDto>();
 
     }
 
+    /// <summary>
+    /// How often versions shipped.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ReleaseFrequencyDto
     {
@@ -99075,6 +100851,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("perWeek")]
         public double PerWeek { get; set; } = default!;
 
+        /// <summary>
+        /// The same measure over the window immediately before this one, or `null` where nothing
+        /// <br/>shipped then.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("previousPerWeek")]
         public double? PreviousPerWeek { get; set; } = default!;
 
@@ -99084,17 +100864,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class ReleasePackageComponentDto
     {
 
+        /// <summary>
+        /// The component this entry is for.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Product { get; set; } = default!;
 
+        /// <summary>
+        /// The version record this line came from, where one was recorded. Its `name` is that
+        /// <br/>version's number, which may differ from `version` if the manifest was hand-authored.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("versionRecord")]
         public NavigationDto? VersionRecord { get; set; } = default!;
 
+        /// <summary>
+        /// The component version in this package. Free text, never parsed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Version { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the component changed in this package or was carried forward unchanged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ManifestEntryKind>))]
@@ -99102,6 +100894,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A coordinated shipment of several component releases.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ReleasePackageDto
     {
@@ -99113,6 +100908,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The package's own version, distinct from any component's. Free text, never parsed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Version { get; set; } = default!;
@@ -99127,6 +100925,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
+        /// <summary>
+        /// The package's current status: the organization's name for it, its category and its well-known alias.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
@@ -99137,30 +100938,49 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One package a release shipped.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ReleasePackageSummaryDto
     {
 
+        /// <summary>
+        /// The package. Its `name` is the package version.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("package")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Package { get; set; } = default!;
 
+        /// <summary>
+        /// When that package shipped, or `null` while it has not.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// One version a release announces directly.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ReleaseVersionDto
     {
 
+        /// <summary>
+        /// The version record. Its `name` is the version number.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("version")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Version { get; set; } = default!;
 
+        /// <summary>
+        /// The product that version was cut against.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
         public NavigationDto? Product { get; set; } = default!;
 
+        /// <summary>
+        /// When that version shipped, or `null` while it has not.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
@@ -99465,13 +101285,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// How a resume left the run.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ResumedImport
     {
 
+        /// <summary>
+        /// Rows that will be attempted.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("queuedRowCount")]
         public int QueuedRowCount { get; set; } = default!;
 
+        /// <summary>
+        /// Rows that cannot be, because the retention sweep took their data.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("skippedRowCount")]
         public int SkippedRowCount { get; set; } = default!;
 
@@ -99725,16 +101554,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapActivityDetailsDto : RoadmapItemDetailsDto
     {
 
+        /// <summary>
+        /// The Roadmap Activity start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap Activity end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The order of the Roadmap Activity within its parent.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
@@ -99748,16 +101586,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapActivityListDto : RoadmapItemListDto
     {
 
+        /// <summary>
+        /// The Roadmap Activity start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap Activity end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The order of the Roadmap Activity within its parent.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
@@ -99785,17 +101632,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapColorDto
     {
 
+        /// <summary>
+        /// The color, as a hex code (e.g. "#4096FF").
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Color { get; set; } = default!;
 
+        /// <summary>
+        /// The caption describing what the color represents on this Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The order of the color within the Roadmap's configured colors.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
+        /// <summary>
+        /// Whether this is the default color applied to activities that have no color of their own.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isDefault")]
         public bool IsDefault { get; set; } = default!;
 
@@ -99805,42 +101664,72 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapDetailsDto
     {
 
+        /// <summary>
+        /// The roadmap's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The roadmap's numeric key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description of the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibility")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Visibility { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The state of the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The managers of the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roadmapManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> RoadmapManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The colors configured on the Roadmap, ordered by their configured order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("colors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<RoadmapColorDto> Colors { get; set; } = new System.Collections.ObjectModel.Collection<RoadmapColorDto>();
@@ -99855,28 +101744,49 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapItemDetailsDto
     {
 
+        /// <summary>
+        /// The roadmap item Id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The roadmap Id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roadmapId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid RoadmapId { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the roadmap item.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description of the roadmap item.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The type of roadmap item.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Type { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The parent roadmap activity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parent")]
         public RoadmapActivityNavigationDto? Parent { get; set; } = default!;
 
+        /// <summary>
+        /// The color of the roadmap item. Must be a valid hex color code.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         public string? Color { get; set; } = default!;
 
@@ -99890,25 +101800,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapItemListDto
     {
 
+        /// <summary>
+        /// The roadmap item Id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The roadmap Id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roadmapId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid RoadmapId { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the roadmap item.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The type of roadmap item.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Type { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The parent roadmap activity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parent")]
         public RoadmapActivityNavigationDto? Parent { get; set; } = default!;
 
+        /// <summary>
+        /// The color of the roadmap item. Must be a valid hex color code.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         public string? Color { get; set; } = default!;
 
@@ -99918,38 +101846,65 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapListDto
     {
 
+        /// <summary>
+        /// The roadmap's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The roadmap's numeric key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibility")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Visibility { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The state of the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The color of the Roadmap. Must be a valid hex color code.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         public string? Color { get; set; } = default!;
 
+        /// <summary>
+        /// The managers of the Roadmap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roadmapManagers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> RoadmapManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
@@ -99960,6 +101915,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapMilestoneDetailsDto : RoadmapItemDetailsDto
     {
 
+        /// <summary>
+        /// The Roadmap Milestone date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -99971,6 +101929,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapMilestoneListDto : RoadmapItemListDto
     {
 
+        /// <summary>
+        /// The Roadmap Milestone date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -100000,11 +101961,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapTimeboxDetailsDto : RoadmapItemDetailsDto
     {
 
+        /// <summary>
+        /// The Roadmap Timebox start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap Timebox end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -100016,11 +101983,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class RoadmapTimeboxListDto : RoadmapItemListDto
     {
 
+        /// <summary>
+        /// The Roadmap Timebox start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The Roadmap Timebox end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -100087,10 +102060,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One product currently live in an environment, and the deployment that put it there.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RolloutItemDto
     {
 
+        /// <summary>
+        /// The deployment this was read from, so a caller can open the record behind the answer.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deploymentId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid DeploymentId { get; set; } = default!;
@@ -100098,27 +102077,47 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("deploymentKey")]
         public int DeploymentKey { get; set; } = default!;
 
+        /// <summary>
+        /// The product running.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Product { get; set; } = default!;
 
+        /// <summary>
+        /// The version record, where one is recorded in Wayd.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public NavigationDto? Version { get; set; } = default!;
 
+        /// <summary>
+        /// The version as it should be read, whether or not a version record backs it. Free text.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("versionLabel")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string VersionLabel { get; set; } = default!;
 
+        /// <summary>
+        /// The package that carried it, where it arrived inside one rather than on its own.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("package")]
         public NavigationDto? Package { get; set; } = default!;
 
+        /// <summary>
+        /// The build that actually shipped, where one was recorded. Free text, never parsed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("artifactId")]
         public string? ArtifactId { get; set; } = default!;
 
+        /// <summary>
+        /// When it reached the environment.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deployedAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset DeployedAt { get; set; } = default!;
 
+        /// <summary>
+        /// Whether a later deployment touching this product failed or was rolled back here.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hasFailedAttemptSince")]
         public bool HasFailedAttemptSince { get; set; } = default!;
 
@@ -100174,14 +102173,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("defaultCommitmentGraceDays")]
         public int DefaultCommitmentGraceDays { get; set; } = default!;
 
+        /// <summary>
+        /// The days of the week new team operating models work, Monday first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultWorkingDays")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IsoDayOfWeek> DefaultWorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
 
+        /// <summary>
+        /// The holiday calendar of every team operating model that has none of its own, or null for none. Carries its
+        /// <br/>name, so someone who may view the settings but not list the calendars still sees which it is.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultHolidayCalendar")]
         public NavigationDto? DefaultHolidayCalendar { get; set; } = default!;
 
+        /// <summary>
+        /// How many hours a working day has, which time away entered in hours is a share of.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
         public decimal WorkingDayHours { get; set; } = default!;
 
@@ -100227,6 +102236,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A summary of a project's current score: the score, when it was recorded, who recorded it, and the
+    /// <br/>scoring model used.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ScoreSummaryDto
     {
@@ -100242,6 +102255,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ScoringModelId { get; set; } = default!;
 
+        /// <summary>
+        /// The employee who recorded the score. May be null if the scorer is not found.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scoredBy")]
         public EmployeeNavigationDto? ScoredBy { get; set; } = default!;
 
@@ -100359,6 +102375,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The result of evaluating a scoring model against a set of supplied criterion values. Carries every
+    /// <br/>output value (in evaluation order) plus the primary score, so callers can preview formula results.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ScoringModelEvaluationDto
     {
@@ -100470,6 +102490,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A single named output value produced by an evaluation.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ScoringModelOutputValueDto
     {
@@ -101099,9 +103122,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
 
+        /// <summary>
+        /// The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effort")]
         public double? Effort { get; set; } = default!;
 
+        /// <summary>
+        /// The size estimate, the CMMI process's requirement estimate; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("size")]
         public double? Size { get; set; } = default!;
 
@@ -101114,71 +103143,126 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A sprint's burn-up and burn-down, worked out from work item history: its scope and completed work at the
+    /// <br/>commitment point, at the end of each of its days in the team's zone, and at the effective end — or now, for
+    /// <br/>a sprint that has not ended. Counts and estimates both, so a viewer can switch unit without refetching.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintBurnDto
     {
 
+        /// <summary>
+        /// The sprint the burn is of.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid SprintId { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate the burn is measured in: its team's sizing method on the sprint's planned start, or Count
+        /// <br/>for a sprint with no team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// The commitment point, where the burn and its ideal line start.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effectiveStart")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset EffectiveStart { get; set; } = default!;
 
+        /// <summary>
+        /// The effective end, where the ideal line reaches zero.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effectiveEnd")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset EffectiveEnd { get; set; } = default!;
 
+        /// <summary>
+        /// The IANA zone the sprint's days are counted in.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string TimeZone { get; set; } = default!;
 
+        /// <summary>
+        /// Whether a workspace holding the sprint's work has not had its history read through to the end, so the
+        /// <br/>burn may be missing changes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("historyIncomplete")]
         public bool HistoryIncomplete { get; set; } = default!;
 
+        /// <summary>
+        /// The work committed at the commitment point, where the ideal burn-down line starts.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("committed")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Committed { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// The readings, in time order; empty before the commitment point.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("points")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintBurnPointDto> Points { get; set; } = new System.Collections.ObjectModel.Collection<SprintBurnPointDto>();
 
+        /// <summary>
+        /// The ideal burn-down over the whole sprint, however much has passed: points at the commitment point, the
+        /// <br/>start of each day in the team's zone, and the effective end, joined by straight lines. It falls only on
+        /// <br/>the days the team works — its working week, less holidays and team days off — and stays flat on the rest.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ideal")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintIdealPointDto> Ideal { get; set; } = new System.Collections.ObjectModel.Collection<SprintIdealPointDto>();
 
     }
 
+    /// <summary>
+    /// One reading of a sprint's burn.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintBurnPointDto
     {
 
+        /// <summary>
+        /// When the reading was taken.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset At { get; set; } = default!;
 
+        /// <summary>
+        /// The team's calendar day the reading closes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("day")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Day { get; set; } = default!;
 
+        /// <summary>
+        /// The work in scope at the reading.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scope")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Scope { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// The part of the scope in a Done- or Removed-category status at the reading.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completed")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Completed { get; set; } = new SprintScopeMeasureDto();
 
     }
 
+    /// <summary>
+    /// A sprint's capacity over its planned dates, in person-days, beside its scope and what that capacity is
+    /// <br/>expected to deliver. Worked out when read from the team's allocations and recent sprints; never stored.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintCapacityDto
     {
@@ -101187,52 +103271,94 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid SprintId { get; set; } = default!;
 
+        /// <summary>
+        /// The first planned day of the sprint, which the capacity is counted from.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last planned day of the sprint, which the capacity is counted to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team over the sprint's planned dates in every role, in person-days, after holidays and time away.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
         public decimal AllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of it in roles that count toward delivery capacity, in person-days. What the scope is set against.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
         public decimal DeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The allocated time that people's time away takes, in person-days; already left out of the other two.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("awayPersonDays")]
         public decimal AwayPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// Whether anyone is allocated to the team on any of the sprint's planned dates, whatever holidays, time away
+        /// <br/>and team days off leave of it. False is a team that does not plan capacity, rather than one whose people
+        /// <br/>are all away.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hasAllocations")]
         public bool HasAllocations { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate `scope` and `expectedScope` are in: the sprint's sizing method.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// Which scope is set against the capacity: the work planned so far before the commitment point, the committed work after it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scopeBasis")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintCapacityScopeBasis>))]
         public SprintCapacityScopeBasis ScopeBasis { get; set; } = default!;
 
+        /// <summary>
+        /// The scope, by count under Count and otherwise in `sizingMethod`. An item with no estimate adds nothing.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scope")]
         public double Scope { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the scope could be compared with what the capacity is expected to deliver, and if not, why.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintCapacityOutcome>))]
         public SprintCapacityOutcome Outcome { get; set; } = default!;
 
+        /// <summary>
+        /// What the capacity is expected to deliver, in the scope's unit: the team's velocity per person-day of
+        /// <br/>delivery capacity over its recent completed sprints, times this sprint's. Null unless compared.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expectedScope")]
         public double? ExpectedScope { get; set; } = default!;
 
+        /// <summary>
+        /// How many completed sprints `expectedScope` was drawn from.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("priorSprints")]
         public int PriorSprints { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the scope is more than `expectedScope`. Never true for a completed sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isOverCapacity")]
         public bool IsOverCapacity { get; set; } = default!;
 
@@ -101276,22 +103402,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's state now, worked out from its actual and default dates when read.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The first planned day of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last planned day of the sprint, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -101301,84 +103442,165 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public WorkTeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the sprint's team is active. An inactive team's allocations can no longer be added to, so its
+        /// <br/>capacity plan is read-only.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamIsActive")]
         public bool TeamIsActive { get; set; } = default!;
 
+        /// <summary>
+        /// When the team started the sprint, if it did.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("started")]
         public System.DateTimeOffset? Started { get; set; } = default!;
 
+        /// <summary>
+        /// When the team completed the sprint, if it did.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completed")]
         public System.DateTimeOffset? Completed { get; set; } = default!;
 
+        /// <summary>
+        /// When the sprint became Active: `started`, or by default the start of its first planned day
+        /// <br/>in `timeZone`, never before the previous sprint ended. `state` is Future before
+        /// <br/>it. Null for a sprint whose team is not mapped or that has no planned dates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeFrom")]
         public System.DateTimeOffset? ActiveFrom { get; set; } = default!;
 
+        /// <summary>
+        /// When the sprint stops being Active, exclusive: `completed`, or by default the end of its last
+        /// <br/>planned day, cut to the next sprint's start where the two overlap. A sprint that runs to the end of a day
+        /// <br/>ends at the next midnight, so its last day is the one before.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeUntil")]
         public System.DateTimeOffset? ActiveUntil { get; set; } = default!;
 
+        /// <summary>
+        /// The IANA time zone the sprint's planned days are counted in: its team's on the planned start.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         public string? TimeZone { get; set; } = default!;
 
+        /// <summary>
+        /// Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
+        /// <br/>offsite, in date order. Those managing the sprint (`canManageSprint`) can change them.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
+        /// <summary>
+        /// The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
+        /// <br/>the team names none: days the team is already off, so never a team day off. Empty without a team or dates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidays")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.DateTimeOffset> Holidays { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
+        /// <summary>
+        /// The days of the week the team works during the sprint, from its operating model on the sprint's planned
+        /// <br/>start. Empty without a team or dates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
 
+        /// <summary>
+        /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
+        /// <br/>the team's sprint metrics. Worked out when read: see `sprintTypeSource`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintType")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintType>))]
         public SprintType SprintType { get; set; } = default!;
 
+        /// <summary>
+        /// Where `sprintType` came from: the team, the mapped planning interval iteration's category,
+        /// <br/>or the default. Those managing the sprint (`canManageSprint`) can set or clear the team's.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintTypeSource")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintTypeSource>))]
         public SprintTypeSource SprintTypeSource { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the source system plans this sprint to overlap the team's previous sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("overlapsPreviousSprint")]
         public bool OverlapsPreviousSprint { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the source system plans this sprint to overlap the team's next sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("overlapsNextSprint")]
         public bool OverlapsNextSprint { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the caller may start, complete or reopen the sprint: a member of its team or team of teams
+        /// <br/>holding the permission, or an administrator.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManageSprint")]
         public bool CanManageSprint { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the sprint's lifecycle allows starting it now, whoever asks.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canStart")]
         public bool CanStart { get; set; } = default!;
 
+        /// <summary>
+        /// The moments the sprint can be recorded as started, now or earlier. Null when it can't be started.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startWindow")]
         public InstantWindowDto? StartWindow { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the sprint's lifecycle allows completing it now, whoever asks.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canComplete")]
         public bool CanComplete { get; set; } = default!;
 
+        /// <summary>
+        /// The moments the sprint can be recorded as completed, now or earlier. Null when it can't be completed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completeWindow")]
         public InstantWindowDto? CompleteWindow { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the sprint's lifecycle allows reopening it now, whoever asks.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canReopen")]
         public bool CanReopen { get; set; } = default!;
 
+        /// <summary>
+        /// Another sprint of the team that is still open, which starting this one completes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("openSprint")]
         public NavigationDto? OpenSprint { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A point on a sprint's ideal burn-down.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintIdealPointDto
     {
 
+        /// <summary>
+        /// When the point falls.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset At { get; set; } = default!;
 
+        /// <summary>
+        /// The share of the committed work still expected to remain: 1 at the commitment point, 0 at the effective
+        /// <br/>end. Multiply by the committed work in either unit.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("remaining")]
         public double Remaining { get; set; } = default!;
 
@@ -101392,22 +103614,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's state now, worked out from its actual and default dates when read.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The first planned day of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last planned day of the sprint, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -101417,17 +103654,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public WorkTeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// When the team started the sprint, if it did.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("started")]
         public System.DateTimeOffset? Started { get; set; } = default!;
 
+        /// <summary>
+        /// When the team completed the sprint, if it did.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completed")]
         public System.DateTimeOffset? Completed { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
+        /// <br/>the team's sprint metrics. Worked out when read: see `sprintTypeSource`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintType")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintType>))]
         public SprintType SprintType { get; set; } = default!;
 
+        /// <summary>
+        /// Where `sprintType` came from: the team, the mapped planning interval iteration's category,
+        /// <br/>or the default.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintTypeSource")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintTypeSource>))]
@@ -101435,16 +103686,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A sprint's velocity, predictability and say/do in one unit.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintMetricFiguresDto
     {
 
+        /// <summary>
+        /// What was completed while in the sprint, including work completed as Removed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("velocity")]
         public double Velocity { get; set; } = default!;
 
+        /// <summary>
+        /// Velocity ÷ committed, up to 1; null when there is no commitment in this unit.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("predictability")]
         public double? Predictability { get; set; } = default!;
 
+        /// <summary>
+        /// Completed of committed ÷ committed; null when there is no commitment in this unit.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sayDo")]
         public double? SayDo { get; set; } = default!;
 
@@ -101469,6 +103732,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class SprintMetricsSettingsDto
     {
 
+        /// <summary>
+        /// How many of a team's most recent completed standard sprints its velocity, predictability and say/do
+        /// <br/>are averaged over.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintWindow")]
         public int SprintWindow { get; set; } = default!;
 
@@ -101578,6 +103845,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Each metric summarized across the sprints that have a value for it; null when none has.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintMetricSummariesDto
     {
@@ -101593,76 +103863,143 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One metric across a team's sprints.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintMetricSummaryDto
     {
 
+        /// <summary>
+        /// The mean of the sprints' values, not a ratio of their pooled totals.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("average")]
         public double Average { get; set; } = default!;
 
+        /// <summary>
+        /// The lowest sprint's value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min")]
         public double Min { get; set; } = default!;
 
+        /// <summary>
+        /// The highest sprint's value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max")]
         public double Max { get; set; } = default!;
 
+        /// <summary>
+        /// The population standard deviation of the sprints' values.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("standardDeviation")]
         public double StandardDeviation { get; set; } = default!;
 
+        /// <summary>
+        /// How many sprints had a value for this metric.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprints")]
         public int Sprints { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// What a sprint committed to and what became of it, worked out from work item history between the sprint's
+    /// <br/>effective start and end. Only requirement-tier work counts. A sprint that has not ended is measured up to
+    /// <br/>now, and one that has not reached its commitment point has no scope yet.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintScopeDto
     {
 
+        /// <summary>
+        /// The sprint the scope is of.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid SprintId { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate the report is measured in: its team's sizing method on the sprint's planned start, or
+        /// <br/>Count for a sprint with no team. Under Count every estimate equals its item count.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// The commitment point: what was in the sprint here is committed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effectiveStart")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset EffectiveStart { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the effective start is the team's recorded start rather than the default.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startIsActual")]
         public bool StartIsActual { get; set; } = default!;
 
+        /// <summary>
+        /// The effective end: what is in the sprint here is completed or carried over.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effectiveEnd")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset EffectiveEnd { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the effective end is the team's recorded completion rather than the default.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("endIsActual")]
         public bool EndIsActual { get; set; } = default!;
 
+        /// <summary>
+        /// The start of the sprint's last day. Unfinished work moved to the team's next sprint from here on is
+        /// <br/>carried over; before it, descoped.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastDay")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset LastDay { get; set; } = default!;
 
+        /// <summary>
+        /// The IANA zone the sprint's days are counted in.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string TimeZone { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the sprint has a team. A sprint with none is counted in the system default zone and grace
+        /// <br/>period, by item count.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hasTeam")]
         public bool HasTeam { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the history of a workspace holding the sprint's work has not yet been read through to the end.
+        /// <br/>The figures are then unreliable, and a full sync completes them.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("historyIncomplete")]
         public bool HistoryIncomplete { get; set; } = default!;
 
+        /// <summary>
+        /// The items summed by category.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totals")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeTotalsDto Totals { get; set; } = new SprintScopeTotalsDto();
 
+        /// <summary>
+        /// The ideal burn-down from the commitment point to the effective end, which the sprint's health measures
+        /// <br/>progress against: falling only on the days the team works. The same line as the sprint burn's.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ideal")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintIdealPointDto> Ideal { get; set; } = new System.Collections.ObjectModel.Collection<SprintIdealPointDto>();
 
+        /// <summary>
+        /// Each requirement-tier work item that was in the sprint's scope, in backlog order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("items")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintScopeItemDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<SprintScopeItemDto>();
@@ -101681,45 +104018,80 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A work item that was in the sprint's scope, as it is now, with how it came in and what became of it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintScopeItemDto
     {
 
+        /// <summary>
+        /// The work item as it is now; its current sprint may be another one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workItem")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintBacklogItemDto WorkItem { get; set; } = new SprintBacklogItemDto();
 
+        /// <summary>
+        /// Whether the item was committed or added.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("entry")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintScopeEntry>))]
         public SprintScopeEntry Entry { get; set; } = default!;
 
+        /// <summary>
+        /// What became of the item: completed, completed as Removed, carried over, descoped or remaining.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintScopeOutcome>))]
         public SprintScopeOutcome Outcome { get; set; } = default!;
 
+        /// <summary>
+        /// When an added item was added to the sprint; null for a committed one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("addedAt")]
         public System.DateTimeOffset? AddedAt { get; set; } = default!;
 
+        /// <summary>
+        /// When the item was last removed from the sprint — moved to another iteration or out of the requirement
+        /// <br/>tier; not when it reached a Removed status. Null if it was still in at the effective end, or is still
+        /// <br/>in a sprint that has not ended.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("removedAt")]
         public System.DateTimeOffset? RemovedAt { get; set; } = default!;
 
+        /// <summary>
+        /// The item's estimate when it was committed or added.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("entryEstimate")]
         public double? EntryEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// The item's estimate when it was last in the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outcomeEstimate")]
         public double? OutcomeEstimate { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// How many items, and how much estimate, fall in one category. A missing estimate adds nothing.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintScopeMeasureDto
     {
 
+        /// <summary>
+        /// The number of items.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("count")]
         public int Count { get; set; } = default!;
 
+        /// <summary>
+        /// The sum of their estimates in the report's sizing method.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("estimate")]
         public double Estimate { get; set; } = default!;
 
@@ -101746,58 +104118,110 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A sprint's scope summed by category. Committed and Added are measured with the estimate each item had when
+    /// <br/>it came in; the outcomes with the estimate it had when it was last in the sprint.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintScopeTotalsDto
     {
 
+        /// <summary>
+        /// Every item that was in scope, measured like the outcomes: the sum of Completed, Carried Over, Descoped
+        /// <br/>and Remaining. By count it also equals Committed plus Added; by estimate it need not, since an item
+        /// <br/>re-estimated during the sprint comes in at one estimate and leaves at another.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("total")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Total { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Items in the sprint at its commitment point, at their estimate then.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("committed")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Committed { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Items that entered the sprint after its commitment point, at their estimate when added.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("added")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Added { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Completed items, including those completed as Removed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completed")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Completed { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// The part of `completed` completed as Removed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("removed")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Removed { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Unfinished items still in the sprint at its effective end, or moved to the team's next sprint on or
+        /// <br/>after its last day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("carriedOver")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto CarriedOver { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Unfinished items taken out of the sprint before its last day, or on it for somewhere other than the
+        /// <br/>team's next sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("descoped")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Descoped { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Unfinished work still in a sprint that has not ended.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("remaining")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto Remaining { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Committed items that were completed, measured with their committed estimate so it compares with
+        /// <br/>`committed`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completedOfCommitted")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintScopeMeasureDto CompletedOfCommitted { get; set; } = new SprintScopeMeasureDto();
 
+        /// <summary>
+        /// Completed of committed ÷ committed, by item count; null when nothing was committed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sayDoCount")]
         public double? SayDoCount { get; set; } = default!;
 
+        /// <summary>
+        /// Completed of committed ÷ committed, by estimate; null when the committed work had no estimate.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sayDoEstimate")]
         public double? SayDoEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// Completed ÷ committed by item count, up to 1: how much of what the team committed to it delivered,
+        /// <br/>letting finished added work stand in for committed work. Null when nothing was committed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("predictabilityCount")]
         public double? PredictabilityCount { get; set; } = default!;
 
+        /// <summary>
+        /// Completed ÷ committed by estimate, up to 1; null when the committed work had no estimate.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("predictabilityEstimate")]
         public double? PredictabilityEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// Items with no value in the sprint's estimate when they were last in the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unestimated")]
         public int Unestimated { get; set; } = default!;
 
@@ -101815,6 +104239,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A sprint type, with the code a sprint carries and the request to set one accepts.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintTypeDto : CommonEnumDtoOfSprintType
     {
@@ -101836,6 +104263,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Work item metrics for a single sprint, as item counts and as estimates in the sprint's sizing method. Only
+    /// <br/>requirement-tier work counts: tasks are left out, and bugs count only where the process puts them at the
+    /// <br/>requirement level.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SprintWorkItemMetricsDto
     {
@@ -101844,6 +104276,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid SprintId { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate the sprint is measured in: its team's sizing method on the sprint's planned start, or
+        /// <br/>Count for a sprint with no team. Under Count every estimate equals its item count.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
@@ -101852,6 +104288,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
+        /// <summary>
+        /// The sum of every item's estimate in `sizingMethod`; unestimated items add nothing.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
         public double TotalEstimate { get; set; } = default!;
 
@@ -101873,9 +104312,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("notStartedEstimate")]
         public double NotStartedEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// Items with no value in `sizingMethod`. An estimate of 0 is an estimate.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
         public int UnestimatedWorkItems { get; set; } = default!;
 
+        /// <summary>
+        /// Cycle-time rollup for the sprint. Carries count and total so callers can
+        /// <br/>aggregate across sprints without average-of-averages bias.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cycleTime")]
         [System.ComponentModel.DataAnnotations.Required]
         public CycleTimeSummary CycleTime { get; set; } = new CycleTimeSummary();
@@ -102032,6 +104478,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The status a record currently holds, as a reader needs it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StatusNavigationDto
     {
@@ -102040,15 +104489,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// What the status was called when the record last moved. Frozen, so renaming a status does not
+        /// <br/>rewrite what past records read as.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
 
+        /// <summary>
+        /// The well-known meaning the status carries, as the consuming module's alias value, or
+        /// <br/>`0` when it carries none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("alias")]
         public int Alias { get; set; } = default!;
 
@@ -102077,50 +104537,84 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Where one status would send its records.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StatusRemapEntryDto
     {
 
+        /// <summary>
+        /// The status records currently hold.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required]
         public WorkflowStatusDto From { get; set; } = new WorkflowStatusDto();
 
+        /// <summary>
+        /// The status they would move to, or null when nothing could be chosen for them.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         public WorkflowStatusDto? To { get; set; } = default!;
 
+        /// <summary>
+        /// Why this row was matched — Alias, Name, Category, or Unresolved.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("matchedBy")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string MatchedBy { get; set; } = default!;
 
+        /// <summary>
+        /// How many records currently hold this status.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("recordCount")]
         public int RecordCount { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// How each status of the current workflow would land in the target, before anything is committed.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StatusRemapPreviewDto
     {
 
+        /// <summary>
+        /// The workflow the scope is on now.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto From { get; set; } = default!;
 
+        /// <summary>
+        /// The workflow it would move to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto To { get; set; } = default!;
 
+        /// <summary>
+        /// One entry per status of the current workflow, in display order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("entries")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<StatusRemapEntryDto> Entries { get; set; } = new System.Collections.ObjectModel.Collection<StatusRemapEntryDto>();
 
+        /// <summary>
+        /// Whether every status already has a target. The domain refuses an incomplete remap.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isComplete")]
         public bool IsComplete { get; set; } = default!;
 
+        /// <summary>
+        /// How many records the reassignment would move.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("affectedRecordCount")]
         public int AffectedRecordCount { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// One status change from a record's history, as a reader needs it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StatusTransitionDto
     {
@@ -102129,30 +104623,54 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// Orders the history as it actually happened.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sequence")]
         public int Sequence { get; set; } = default!;
 
+        /// <summary>
+        /// The status moved out of, or `null` when the record entered its initial status.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("fromStatus")]
         public FrozenStatusDto? FromStatus { get; set; } = default!;
 
+        /// <summary>
+        /// The status moved into.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("toStatus")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto ToStatus { get; set; } = new StatusNavigationDto();
 
+        /// <summary>
+        /// The workflow that governed this change.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workflowId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid WorkflowId { get; set; } = default!;
 
+        /// <summary>
+        /// The mechanism that made the change — a user, an import, a sync, the platform.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("actorKind")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto ActorKind { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The person who made the change, or `null` when none can be named.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("changedBy")]
         public NavigationDto? ChangedBy { get; set; } = default!;
 
+        /// <summary>
+        /// The account behind the change, where there was one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("changedByUser")]
         public UserNavigationDto? ChangedByUser { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the platform made the change on its own behalf.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("changedBySystem")]
         public bool ChangedBySystem { get; set; } = default!;
 
@@ -102160,11 +104678,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ChangedOn { get; set; } = default!;
 
+        /// <summary>
+        /// Why the change was made, where a reason was recorded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         public string? Reason { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A workflow with its statuses and what may currently be done to it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StatusWorkflowDetailsDto
     {
@@ -102201,10 +104725,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowStatusDto> Statuses { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowStatusDto>();
 
+        /// <summary>
+        /// The required aliases this workflow does not yet carry, named rather than numbered.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("missingRequiredAliases")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> MissingRequiredAliases { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// Whether the statuses may be restructured — Draft, and not platform-seeded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
         public bool CanEdit { get; set; } = default!;
 
@@ -102216,6 +104746,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A workflow as it appears in the list.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StatusWorkflowListDto
     {
@@ -102234,6 +104767,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The kind of record this workflow governs.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required]
         public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
@@ -102248,6 +104784,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("statusCount")]
         public int StatusCount { get; set; } = default!;
 
+        /// <summary>
+        /// Whether any scope currently uses this workflow. Archiving is refused while it does.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isAssigned")]
         public bool IsAssigned { get; set; } = default!;
 
@@ -102288,6 +104827,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The full Story Map: its goals (each with steps and tasks), swim lanes, and personas.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StoryMapDetailsDto
     {
@@ -102352,6 +104894,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A Story Map summarised for lists: name, description, owner, and status, without its content.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StoryMapListDto
     {
@@ -102513,37 +105058,63 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The strategic initiative's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// A detailed explanation of what the strategic initiative aims to achieve.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The status of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The strategic initiative start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The strategic initiative end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio associated with this strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Portfolio { get; set; } = default!;
 
+        /// <summary>
+        /// The sponsors of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicInitiativeSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> StrategicInitiativeSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicInitiativeOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> StrategicInitiativeOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
@@ -102617,39 +105188,72 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The KPI's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the KPI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description detailing what the KPI measures.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The starting (baseline) value of the KPI. Used to track progress relative to where the KPI began.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startingValue")]
         public double? StartingValue { get; set; } = default!;
 
+        /// <summary>
+        /// The target value that defines success for the KPI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetValue")]
         public double TargetValue { get; set; } = default!;
 
+        /// <summary>
+        /// The actual value of the KPI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("actualValue")]
         public double? ActualValue { get; set; } = default!;
 
+        /// <summary>
+        /// The progress towards the KPI target, calculated based on the starting value, actual value, target value, and target direction.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
         public double? Progress { get; set; } = default!;
 
+        /// <summary>
+        /// An optional prefix symbol displayed before the numeric value (e.g. "$").
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("prefix")]
         public string? Prefix { get; set; } = default!;
 
+        /// <summary>
+        /// An optional suffix symbol displayed after the numeric value (e.g. "%", "M").
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("suffix")]
         public string? Suffix { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the KPI succeeds by increasing or by decreasing toward its target value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDirection")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KpiTargetDirection>))]
         public KpiTargetDirection TargetDirection { get; set; } = default!;
 
+        /// <summary>
+        /// The display order of the KPI within its strategic initiative. Lower values appear first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
@@ -102663,36 +105267,66 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The KPI's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the KPI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The starting (baseline) value of the KPI. Used to track progress relative to where the KPI began.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startingValue")]
         public double? StartingValue { get; set; } = default!;
 
+        /// <summary>
+        /// The target value that defines success for the KPI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetValue")]
         public double TargetValue { get; set; } = default!;
 
+        /// <summary>
+        /// The actual value of the KPI.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("actualValue")]
         public double? ActualValue { get; set; } = default!;
 
+        /// <summary>
+        /// The progress towards the KPI target, calculated based on the starting value, actual value, target value, and target direction.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
         public double? Progress { get; set; } = default!;
 
+        /// <summary>
+        /// An optional prefix symbol displayed before the numeric value (e.g. "$").
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("prefix")]
         public string? Prefix { get; set; } = default!;
 
+        /// <summary>
+        /// An optional suffix symbol displayed after the numeric value (e.g. "%", "M").
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("suffix")]
         public string? Suffix { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the KPI succeeds by increasing or by decreasing toward its target value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDirection")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KpiTargetDirection>))]
         public KpiTargetDirection TargetDirection { get; set; } = default!;
 
+        /// <summary>
+        /// The display order of the KPI within its strategic initiative. Lower values appear first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
@@ -102730,33 +105364,56 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The strategic initiative's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The status of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public LifecycleNavigationDto Status { get; set; } = new LifecycleNavigationDto();
 
+        /// <summary>
+        /// The strategic initiative start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The strategic initiative end date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio associated with this strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Portfolio { get; set; } = default!;
 
+        /// <summary>
+        /// The sponsors of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicInitiativeSponsors")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> StrategicInitiativeSponsors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        /// <summary>
+        /// The owners of the strategic initiative.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicInitiativeOwners")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> StrategicInitiativeOwners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
@@ -102794,6 +105451,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The status's stable name, as status filters accept it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StrategicInitiativeStatus>))]
@@ -102819,21 +105479,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class StrategicThemeDetailsDto
     {
 
+        /// <summary>
+        /// The unique identifier of the strategic theme.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The strategic theme's unique, human-readable number; an alternate key to `id`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the strategic theme, highlighting its focus or priority.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// A detailed description of the strategic theme and its importance.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The current lifecycle state of the strategic theme.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
@@ -102844,17 +105519,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class StrategicThemeListDto
     {
 
+        /// <summary>
+        /// The unique identifier of the strategic theme.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The strategic theme's unique, human-readable number; an alternate key to `id`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the strategic theme, highlighting its focus or priority.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The current lifecycle state of the strategic theme.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
@@ -102865,14 +105552,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class StrategicThemeOptionDto
     {
 
+        /// <summary>
+        /// The unique identifier of the strategic theme.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the strategic theme, highlighting its focus or priority.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The current lifecycle state of the strategic theme.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string State { get; set; } = default!;
@@ -102904,29 +105600,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class StrategyDetailsDto
     {
 
+        /// <summary>
+        /// The unique identifier of the strategy.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The strategy's unique, human-readable number; an alternate key to `id`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The concise statement describing the strategy and its purpose or focus area.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// A detailed description of the strategy.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The current status of the strategy (e.g., Draft, Active, Completed, Archived).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The date when the strategy was initiated or became active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The date when the strategy was completed, archived, or ended.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
@@ -102937,25 +105654,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class StrategyListDto
     {
 
+        /// <summary>
+        /// The unique identifier of the strategy.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The strategy's unique, human-readable number; an alternate key to `id`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The concise statement describing the strategy and its purpose or focus area.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The current status of the strategy (e.g., Draft, Active, Completed, Archived).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The date when the strategy was initiated or became active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// The date when the strategy was completed, archived, or ended.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
@@ -103069,6 +105804,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("errorMessage")]
         public string? ErrorMessage { get; set; } = default!;
 
+        /// <summary>
+        /// Connector-specific per-run details as a JSON string. The shape varies by connector
+        /// <br/>category: work-sync runs carry an array of workspace details, people-sync runs carry a
+        /// <br/>single employees summary object.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("detailsJson")]
         public string? DetailsJson { get; set; } = default!;
 
@@ -103234,48 +105974,84 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Allocations a team could start from: its members, in the roles they hold, at what is left of their time.
+    /// <br/>Nothing in it is saved.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamAllocationProposalDto
     {
 
+        /// <summary>
+        /// The first day the proposed allocations would cover.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset From { get; set; } = default!;
 
+        /// <summary>
+        /// One row per member and role, by member name and then role name. A member who already has time on the
+        /// <br/>team on `from` has no rows.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rows")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamAllocationProposalRowDto> Rows { get; set; } = new System.Collections.ObjectModel.Collection<TeamAllocationProposalRowDto>();
 
     }
 
+    /// <summary>
+    /// A proposed allocation of a member's time to the team in one role.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamAllocationProposalRowDto
     {
 
+        /// <summary>
+        /// The member whose time is proposed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employee")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Employee { get; set; } = default!;
 
+        /// <summary>
+        /// The team member role the member holds.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Role { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the role's time adds to the team's delivery capacity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
         public bool CountsTowardDeliveryCapacity { get; set; } = default!;
 
+        /// <summary>
+        /// The last day the proposed allocation would cover: the day before the member's next allocation to the
+        /// <br/>team, so that one is left as it is. Null, for no end, when they have none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// What is left of the member's time across all teams, from 0 to 100: 100 less their most allocated day
+        /// <br/>from the proposal's `from` to this row's `end`. Zero means they have none to give.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("remainingPercent")]
         public int RemainingPercent { get; set; } = default!;
 
+        /// <summary>
+        /// The share proposed for this role, from 0 to 100: the member's remaining time split evenly between the
+        /// <br/>roles they hold on the team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percent")]
         public int Percent { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A team's backlog graded against a set of thresholds.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamBacklogHealthDto
     {
@@ -103284,10 +106060,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public WorkTeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The thresholds the backlog was graded against: the defaults, with any the caller overrode.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("thresholds")]
         [System.ComponentModel.DataAnnotations.Required]
         public BacklogHealthThresholds Thresholds { get; set; } = new BacklogHealthThresholds();
 
+        /// <summary>
+        /// Days of history, ending yesterday (UTC), that throughput, cycle time and net flow were measured over.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
         public int LookbackDays { get; set; } = default!;
 
@@ -103301,6 +106083,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
 
+        /// <summary>
+        /// The team's sizing method today, which every estimate in the report is in. A team that sizes by count has
+        /// <br/>no estimates, so its estimate checks are not applicable.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
@@ -103309,6 +106095,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
+        /// <summary>
+        /// The sum of the open work items' estimates in `sizingMethod`; under Count, the number of items.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
         public double TotalEstimate { get; set; } = default!;
 
@@ -103318,24 +106107,46 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("activeWorkItems")]
         public int ActiveWorkItems { get; set; } = default!;
 
+        /// <summary>
+        /// Backlog work items the team completed in the lookback window.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("itemsCompleted")]
         public int ItemsCompleted { get; set; } = default!;
 
+        /// <summary>
+        /// Backlog work items created for the team in the lookback window and not since removed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("itemsCreated")]
         public int ItemsCreated { get; set; } = default!;
 
+        /// <summary>
+        /// The completed work items the history needs before the checks that measure the team against its own past are graded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("minimumItemsCompleted")]
         public int MinimumItemsCompleted { get; set; } = default!;
 
+        /// <summary>
+        /// The team's members, or null when the team is not known to the organization.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("memberCount")]
         public int? MemberCount { get; set; } = default!;
 
+        /// <summary>
+        /// The number of top-ranked work items the readiness checks looked at.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("readinessWindowWorkItems")]
         public int ReadinessWindowWorkItems { get; set; } = default!;
 
+        /// <summary>
+        /// The cycle time, in days, an active work item is flagged beyond. Null without enough history.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("agingWipDays")]
         public double? AgingWipDays { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate, in `sizingMethod`, a work item is flagged as oversized above. Null without
+        /// <br/>enough history, or when the team sizes by count.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("oversizedEstimate")]
         public double? OversizedEstimate { get; set; } = default!;
 
@@ -103343,88 +106154,161 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<BacklogHealthCheckDto> Checks { get; set; } = new System.Collections.ObjectModel.Collection<BacklogHealthCheckDto>();
 
+        /// <summary>
+        /// Every open backlog work item, first-ranked first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workItems")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<BacklogHealthWorkItemDto> WorkItems { get; set; } = new System.Collections.ObjectModel.Collection<BacklogHealthWorkItemDto>();
 
     }
 
+    /// <summary>
+    /// A Kanban team's velocity over its reporting cadence: what it completed in each recent period, from done dates,
+    /// <br/>and the average and spread across them. Worked out when read, and never stored. There is no commitment, so no
+    /// <br/>predictability or say/do.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCadenceMetricsDto
     {
 
+        /// <summary>
+        /// The team the metrics are of.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid TeamId { get; set; } = default!;
 
+        /// <summary>
+        /// How many ended periods the window holds when full: the number asked for, or else int TeamCadenceMetricsDto.DefaultPeriodWindow.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("periodWindow")]
         public int PeriodWindow { get; set; } = default!;
 
+        /// <summary>
+        /// The organization's window, from the sprint metrics setting, which team pages are measured over.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultPeriodWindow")]
         public int DefaultPeriodWindow { get; set; } = default!;
 
+        /// <summary>
+        /// The length in weeks of the team's cadence now, or null when it has none. A team can have periods from an
+        /// <br/>earlier cadence while having none now.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
         public int? CadenceWeeks { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate is measured in: the team's sizing method now. Under Count
+        /// <br/>CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate equals CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByCount.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// Velocity by item count across the ended, whole periods; null when there are none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("byCount")]
         public CadenceVelocitySummaryDto? ByCount { get; set; } = default!;
 
+        /// <summary>
+        /// Velocity in SizingMethod TeamCadenceMetricsDto.SizingMethod across the ended, whole periods measured in it; null when there are
+        /// <br/>none. Estimates in different units are never averaged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("byEstimate")]
         public CadenceVelocitySummaryDto? ByEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// The current period, if any, then up to int TeamCadenceMetricsDto.PeriodWindow ended periods, most recent first. Empty
+        /// <br/>for a team that has never had a cadence.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("periods")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCadencePeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<TeamCadencePeriodDto>();
 
     }
 
+    /// <summary>
+    /// What a team completed in one of its reporting periods.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCadencePeriodDto
     {
 
+        /// <summary>
+        /// The period's first day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The period's last day, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate the period's work is measured in: its operating model's sizing method.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the period is shorter than its cadence, because an operating model began or ended inside it.
+        /// <br/>Partial periods are left out of the averages.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isPartial")]
         public bool IsPartial { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the period has not ended yet. The current period is left out of the averages.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
         public bool IsCurrent { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the period counts toward the averages: it has ended and is whole.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inAverages")]
         public bool InAverages { get; set; } = default!;
 
+        /// <summary>
+        /// Whether double TeamCadencePeriodDto.CompletedEstimate counts toward the estimate averages.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inEstimateAverages")]
         public bool InEstimateAverages { get; set; } = default!;
 
+        /// <summary>
+        /// How many Requirement-tier items reached a Done-category status in the period.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completedCount")]
         public int CompletedCount { get; set; } = default!;
 
+        /// <summary>
+        /// The completed items' estimates in SizingMethod TeamCadencePeriodDto.SizingMethod; under Count, the count.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
         public double CompletedEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// Completed items with no value in SizingMethod TeamCadencePeriodDto.SizingMethod, which add nothing to double TeamCadencePeriodDto.CompletedEstimate.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unestimatedCount")]
         public int UnestimatedCount { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// An allocation of a person's time to the team.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityAllocationDto
     {
@@ -103433,80 +106317,147 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The team member role the time is spent in, or null when none was chosen.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public NavigationDto? Role { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the allocation adds to the team's delivery capacity. True when it has no role.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
         public bool CountsTowardDeliveryCapacity { get; set; } = default!;
 
+        /// <summary>
+        /// The first day of the allocation, which may be before the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the allocation, or null when it has no end. It may be after the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The share of the person's time, from 1 to 100.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percent")]
         public int Percent { get; set; } = default!;
 
+        /// <summary>
+        /// What the allocation is worth over the team's working days in the range, in person-days, after the
+        /// <br/>holidays the person takes and their time away.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personDays")]
         public decimal PersonDays { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A team's capacity over a date range, from the time people are allocated to it, the days it works, and when
+    /// <br/>each of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityDto
     {
 
+        /// <summary>
+        /// The first day of the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset From { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
 
+        /// <summary>
+        /// The team's working days in the range: days in its working week that are not holidays in its calendar.
+        /// <br/>Each person's person-days follow the calendar assigned to them, or the system default, so they may be
+        /// <br/>there on more or fewer of them.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
         public int WorkingDays { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team in every role that people are there for, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
         public decimal AllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of the allocated time in roles that count toward delivery capacity, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
         public decimal DeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team that people's time away takes, in person-days. Already left out of
+        /// <br/>`allocatedPersonDays`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("awayPersonDays")]
         public decimal AwayPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the caller may change this team's allocations.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;
 
+        /// <summary>
+        /// How many hours a working day has, from the system settings, so person-days and a share of a day can be read
+        /// <br/>in hours.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
         public decimal WorkingDayHours { get; set; } = default!;
 
+        /// <summary>
+        /// The allocated time by team member role, by role name with the time in no role last. The lines add up to
+        /// <br/>`allocatedPersonDays`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roles")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityRoleDto> Roles { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRoleDto>();
 
+        /// <summary>
+        /// Everyone with time allocated to the team in the range, by name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("people")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPersonDto>();
 
     }
 
+    /// <summary>
+    /// A run of days a team counts toward a rollup, both inclusive.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityPeriodDto
     {
 
+        /// <summary>
+        /// The first day of the run.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the run.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -103514,6 +106465,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One person's time on a team over a date range.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityPersonDto
     {
@@ -103522,32 +106476,58 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Employee { get; set; } = default!;
 
+        /// <summary>
+        /// Their time allocated to the team in every role, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
         public decimal AllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of it in roles that count toward delivery capacity, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
         public decimal DeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// Their time allocated to other teams on this team's working days, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("elsewherePersonDays")]
         public decimal ElsewherePersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team that their time away takes, in person-days. Already left out of
+        /// <br/>`allocatedPersonDays`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("awayPersonDays")]
         public decimal AwayPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// Their time away that falls in the range, in date order: when, and how much of each day.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeAway")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityTimeAwayDto> TimeAway { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityTimeAwayDto>();
 
+        /// <summary>
+        /// Their allocations to the team that fall in the range, in date order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocations")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityAllocationDto> Allocations { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityAllocationDto>();
 
+        /// <summary>
+        /// Their allocations to other teams that fall in the range, in date order: what
+        /// <br/>`elsewherePersonDays` is made of, and where time can be moved from.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("elsewhereAllocations")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeAllocationDto> ElsewhereAllocations { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeAllocationDto>();
 
     }
 
+    /// <summary>
+    /// A person's time in one role on one of the team's working days.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityPlanDayDto
     {
@@ -103557,36 +106537,63 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Date { get; set; } = default!;
 
+        /// <summary>
+        /// The share of the person's time allocated, from 1 to 100.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percent")]
         public int Percent { get; set; } = default!;
 
+        /// <summary>
+        /// What it is worth, in person-days, after the holidays the person takes and their time away.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personDays")]
         public decimal PersonDays { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A team's capacity over a date range day by day, to plan against: the capacity totals, and for each person
+    /// <br/>their time in each role on each of the team's working days, beside what else decides it that day.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityPlanDto
     {
 
+        /// <summary>
+        /// The team's capacity totals over the range, the same as the team capacity request returns.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("capacity")]
         [System.ComponentModel.DataAnnotations.Required]
         public TeamCapacityDto Capacity { get; set; } = new TeamCapacityDto();
 
+        /// <summary>
+        /// The days of the team's working week in the range, in date order, holidays included. The person-days of
+        /// <br/>each day already leave out the holidays each person takes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.DateTimeOffset> Days { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
+        /// <summary>
+        /// The days of `days` the whole team is off, as asked for, such as a sprint's team days off. Nobody
+        /// <br/>is counted on them, so they add nothing to `capacity` or to any day's person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
+        /// <summary>
+        /// Everyone with time allocated to the team in the range, in the same order as `capacity.people`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("people")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPlanPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanPersonDto>();
 
     }
 
+    /// <summary>
+    /// What else decides a person's time on one of the team's working days.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityPlanPersonDayDto
     {
@@ -103596,179 +106603,324 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Date { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the day is a holiday in the calendar the person takes.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isHoliday")]
         public bool IsHoliday { get; set; } = default!;
 
+        /// <summary>
+        /// The share of the day the person is away, from 0 to 100. Never why.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percentAway")]
         public int PercentAway { get; set; } = default!;
 
+        /// <summary>
+        /// The share of the person's time allocated to other teams that day, from 0 to 100.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("elsewherePercent")]
         public int ElsewherePercent { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// One person's time on a team, day by day.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityPlanPersonDto
     {
 
+        /// <summary>
+        /// The employee's id, matching `employee.id` of an entry in `capacity.people`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid EmployeeId { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the caller may record, change and remove this person's time away: the person, anyone they report up
+        /// <br/>to, and a time away administrator.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManageTimeAway")]
         public bool CanManageTimeAway { get; set; } = default!;
 
+        /// <summary>
+        /// The working days on which something besides their allocation here decides their time: a holiday, time
+        /// <br/>away, or time allocated to other teams. A day left out has none of these.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPlanPersonDayDto> Days { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanPersonDayDto>();
 
+        /// <summary>
+        /// Their time in each team member role, by role name with the time in no role last.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rows")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPlanRowDto> Rows { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanRowDto>();
 
     }
 
+    /// <summary>
+    /// A person's time on a team in one team member role, day by day.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityPlanRowDto
     {
 
+        /// <summary>
+        /// The team member role, or null for time allocated in no role.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public NavigationDto? Role { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the role's time adds to the team's delivery capacity. True for time in no role.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
         public bool CountsTowardDeliveryCapacity { get; set; } = default!;
 
+        /// <summary>
+        /// The working days with time allocated in the role, in date order. A day left out has none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPlanDayDto> Days { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanDayDto>();
 
     }
 
+    /// <summary>
+    /// The time allocated to a team in one team member role over a date range.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityRoleDto
     {
 
+        /// <summary>
+        /// The team member role, or null for time allocated in no role.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public NavigationDto? Role { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the role's time adds to the team's delivery capacity. True for time in no role.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
         public bool CountsTowardDeliveryCapacity { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated in the role, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personDays")]
         public decimal PersonDays { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A team of teams' capacity over a date range with the teams beneath it rolled up: the time allocated to it
+    /// <br/>directly, plus the time allocated to each team beneath it on the days that team was in the hierarchy.
+    /// <br/>Capacity is in person-days: one person allocated in full for one working day of the team they are allocated to.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityRollupDto
     {
 
+        /// <summary>
+        /// The first day of the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset From { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team of teams and to every team beneath it, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
         public decimal AllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of `allocatedPersonDays` in roles that count toward delivery capacity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
         public decimal DeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team of teams itself, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("directAllocatedPersonDays")]
         public decimal DirectAllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of `directAllocatedPersonDays` in roles that count toward delivery capacity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("directDeliveryPersonDays")]
         public decimal DirectDeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// How many different people have an allocation to the team of teams or to a team beneath it on the days it
+        /// <br/>counts. Someone allocated at more than one level is one person. An allocation that falls on none of
+        /// <br/>the team's working days still counts its person, at no person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("people")]
         public int People { get; set; } = default!;
 
+        /// <summary>
+        /// The allocated time across the team of teams and every team beneath it by team member role, by role name
+        /// <br/>with the time in no role last. The lines add up to `allocatedPersonDays`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roles")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityRoleDto> Roles { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRoleDto>();
 
+        /// <summary>
+        /// The teams directly beneath the team of teams in the range, by name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("children")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityRollupNodeDto> Children { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRollupNodeDto>();
 
     }
 
+    /// <summary>
+    /// The capacity of a team or team of teams beneath the one a rollup is for, over the days it was in that hierarchy.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityRollupNodeDto
     {
 
+        /// <summary>
+        /// The team or team of teams this node is for.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("team")]
-        [System.ComponentModel.DataAnnotations.Required]
         public TeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The days of the range the team counts for, in date order: those its membership of its parent covers,
+        /// <br/>less any its parent was itself out of the hierarchy.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("periods")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPeriodDto>();
 
+        /// <summary>
+        /// The team's own working days within `periods`. A team of teams has the system default
+        /// <br/>working week and holidays.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
         public int WorkingDays { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team and to every team beneath it, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
         public decimal AllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of `allocatedPersonDays` in roles that count toward delivery capacity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
         public decimal DeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The time allocated to the team itself, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("directAllocatedPersonDays")]
         public decimal DirectAllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of `directAllocatedPersonDays` in roles that count toward delivery capacity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("directDeliveryPersonDays")]
         public decimal DirectDeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// Everyone with an allocation to the team itself within `periods`, by name, including anyone
+        /// <br/>whose allocation falls on none of its working days there.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("people")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityRollupPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRollupPersonDto>();
 
+        /// <summary>
+        /// The teams directly beneath this one within `periods`, by name. Empty for a team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("children")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityRollupNodeDto> Children { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityRollupNodeDto>();
 
     }
 
+    /// <summary>
+    /// One person's time on a team beneath the one a rollup is for.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityRollupPersonDto
     {
 
+        /// <summary>
+        /// The person allocated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employee")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Employee { get; set; } = default!;
 
+        /// <summary>
+        /// Their time allocated to the team in every role on the days it counts, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
         public decimal AllocatedPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// The part of it in roles that count toward delivery capacity, in person-days.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
         public decimal DeliveryPersonDays { get; set; } = default!;
 
+        /// <summary>
+        /// Their allocations to the team that fall on the days it counts, in date order. Each one's
+        /// <br/>`personDays` is over those days only.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allocations")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityAllocationDto> Allocations { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityAllocationDto>();
 
     }
 
+    /// <summary>
+    /// A stretch of days a person on the team is away, as their teammates see it: when and how much of each day,
+    /// <br/>never why.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityTimeAwayDto
     {
 
+        /// <summary>
+        /// The first day away, which may be before the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last day away, which may be after the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The share of each day the person is away, from 1 to 100.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percentAway")]
         public int PercentAway { get; set; } = default!;
 
@@ -103778,43 +106930,76 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class TeamDetailsDto
     {
 
+        /// <summary>
+        /// The team's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The team's numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The team's short code, 2 to 10 characters, unique across teams and teams of teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Code { get; set; } = default!;
 
+        /// <summary>
+        /// The team's description, or null when it has none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The team type's display name: "Team" or "Team of Teams".
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Type { get; set; } = default!;
 
+        /// <summary>
+        /// The date the team became active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeDate")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset ActiveDate { get; set; } = default!;
 
+        /// <summary>
+        /// The date the team became inactive, or null while it is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inactiveDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? InactiveDate { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the team is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// The team of teams the team belongs to today, or null when it belongs to none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamOfTeams")]
         public TeamNavigationDto? TeamOfTeams { get; set; } = default!;
 
+        /// <summary>
+        /// The current operating model of the team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("operatingModel")]
         [System.ComponentModel.DataAnnotations.Required]
         public TeamOperatingModelListDto OperatingModel { get; set; } = new TeamOperatingModelListDto();
@@ -103825,25 +107010,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class TeamListDto
     {
 
+        /// <summary>
+        /// The team's unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The team's numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The team's short code, 2 to 10 characters, unique across teams and teams of teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Code { get; set; } = default!;
 
+        /// <summary>
+        /// The team type's display name: "Team" or "Team of Teams".
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Type { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the team is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
@@ -103914,6 +107117,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// Whether time allocated to a team in this role adds to the team's delivery capacity.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
         public bool CountsTowardDeliveryCapacity { get; set; } = default!;
 
@@ -103968,40 +107174,70 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class TeamOfTeamsDetailsDto
     {
 
+        /// <summary>
+        /// The team of teams' unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The team of teams' numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the team of teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The team of teams' short code, 2 to 10 characters, unique across teams and teams of teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Code { get; set; } = default!;
 
+        /// <summary>
+        /// The team of teams' description, or null when it has none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The team type's display name: "Team" or "Team of Teams".
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Type { get; set; } = default!;
 
+        /// <summary>
+        /// The date the team of teams became active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeDate")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset ActiveDate { get; set; } = default!;
 
+        /// <summary>
+        /// The date the team of teams became inactive, or null while it is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inactiveDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? InactiveDate { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the team of teams is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// The team of teams this one belongs to today, or null when it belongs to none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamOfTeams")]
         public TeamNavigationDto? TeamOfTeams { get; set; } = default!;
 
@@ -104011,25 +107247,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class TeamOfTeamsListDto
     {
 
+        /// <summary>
+        /// The team of teams' unique identifier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The team of teams' numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the team of teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The team of teams' short code, 2 to 10 characters, unique across teams and teams of teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Code { get; set; } = default!;
 
+        /// <summary>
+        /// The team type's display name: "Team" or "Team of Teams".
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Type { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the team of teams is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
@@ -104038,162 +107292,285 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// How a team of teams works over a stretch of dates: the time zone its own rollups count days in.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamOfTeamsOperatingModelDetailsDto
     {
 
+        /// <summary>
+        /// The identifier of the operating model.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The identifier of the team of teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid TeamId { get; set; } = default!;
 
+        /// <summary>
+        /// The start date of the operating model.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The end date of the operating model. Null indicates the model is current.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The IANA id of the time zone the team of teams' own rollups count days in.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         [System.ComponentModel.DataAnnotations.Required]
         public string TimeZone { get; set; } = default!;
 
+        /// <summary>
+        /// Indicates whether this operating model is current (has no end date).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
         public bool IsCurrent { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday
+    /// <br/>calendar and, for a Kanban team, reporting cadence.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamOperatingModelDetailsDto
     {
 
+        /// <summary>
+        /// The identifier of the operating model.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The identifier of the team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid TeamId { get; set; } = default!;
 
+        /// <summary>
+        /// The start date of the operating model.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The end date of the operating model. Null indicates the model is current.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
 
+        /// <summary>
+        /// The methodology the team uses (e.g., Scrum, Kanban).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("methodology")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Methodology>))]
         public Methodology Methodology { get; set; } = default!;
 
+        /// <summary>
+        /// The sizing method the team uses (e.g., StoryPoints, Count).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// The IANA id of the time zone the team's days are counted in.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         [System.ComponentModel.DataAnnotations.Required]
         public string TimeZone { get; set; } = default!;
 
+        /// <summary>
+        /// How many days after a sprint's planned start its commitment is taken, when the team does not start it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("commitmentGraceDays")]
         public int CommitmentGraceDays { get; set; } = default!;
 
+        /// <summary>
+        /// The days of the week the team works, Monday first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IsoDayOfWeek> WorkingDays { get; set; } = new System.Collections.ObjectModel.Collection<IsoDayOfWeek>();
 
+        /// <summary>
+        /// The holiday calendar whose holidays the team takes off, or null for the system default calendar.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendar")]
         public NavigationDto? HolidayCalendar { get; set; } = default!;
 
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
         public int? CadenceWeeks { get; set; } = default!;
 
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+        /// <br/>int? TeamOperatingModelDetailsDto.CadenceWeeks is.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
+        /// <summary>
+        /// Indicates whether this operating model is current (has no end date).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
         public bool IsCurrent { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are
+    /// <br/>counted in, and its reporting cadence.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamOperatingModelListDto
     {
 
+        /// <summary>
+        /// The identifier of the operating model.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The methodology the team uses (e.g., Scrum, Kanban).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("methodology")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Methodology>))]
         public Methodology Methodology { get; set; } = default!;
 
+        /// <summary>
+        /// The sizing method the team uses (e.g., StoryPoints, Count).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// The IANA id of the time zone the team's days are counted in, which decides what day it is for the team.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         [System.ComponentModel.DataAnnotations.Required]
         public string TimeZone { get; set; } = default!;
 
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
         public int? CadenceWeeks { get; set; } = default!;
 
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+        /// <br/>int? TeamOperatingModelListDto.CadenceWeeks is.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
     }
 
+    /// <summary>
+    /// A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's
+    /// <br/>values, their average and their spread. Worked out when read from work item history, and never stored.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamSprintMetricsDto
     {
 
+        /// <summary>
+        /// The team the metrics are of.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid TeamId { get; set; } = default!;
 
+        /// <summary>
+        /// How many sprints the window holds when full: the number asked for, or else `defaultSprintWindow`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintWindow")]
         public int SprintWindow { get; set; } = default!;
 
+        /// <summary>
+        /// The organization's sprint window, from the system settings, which team pages are measured over.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultSprintWindow")]
         public int DefaultSprintWindow { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate `byEstimate` is measured in: the team's sizing method now. Under Count
+        /// <br/>`byEstimate` equals `byCount`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// Each metric by item count, across every counted sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("byCount")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintMetricSummariesDto ByCount { get; set; } = new SprintMetricSummariesDto();
 
+        /// <summary>
+        /// Each metric in `sizingMethod`, across the counted sprints measured in it. A sprint measured
+        /// <br/>in another estimate is left out: estimates in different units are never averaged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("byEstimate")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintMetricSummariesDto ByEstimate { get; set; } = new SprintMetricSummariesDto();
 
+        /// <summary>
+        /// The sprints counted, most recent first. Fewer than `sprintWindow` when the team has too few
+        /// <br/>usable sprints among its most recent completed ones.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprints")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamSprintMetricsSprintDto> Sprints { get; set; } = new System.Collections.ObjectModel.Collection<TeamSprintMetricsSprintDto>();
 
+        /// <summary>
+        /// The completed sprints passed over while filling the window, most recent first, each with why it was left
+        /// <br/>out. Sprints older than the window reaches are not listed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("excluded")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamSprintMetricsExcludedSprintDto> Excluded { get; set; } = new System.Collections.ObjectModel.Collection<TeamSprintMetricsExcludedSprintDto>();
 
     }
 
+    /// <summary>
+    /// A completed sprint left out of its team's sprint metrics.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamSprintMetricsExcludedSprintDto
     {
@@ -104202,6 +107579,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
@@ -104209,16 +107589,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The first planned day of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last planned day of the sprint, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// Why the sprint is left out: it is non-standard, its history is incomplete, or nothing was committed to it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SprintMetricsExclusion>))]
@@ -104226,6 +107615,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A sprint counted in its team's sprint metrics, with its own values.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamSprintMetricsSprintDto
     {
@@ -104234,6 +107626,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's key, an alternate to its id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
@@ -104241,38 +107636,65 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The first planned day of the sprint.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last planned day of the sprint, included in it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate the sprint was measured in: its team's sizing method on the sprint's planned start.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// Whether `byEstimate` counts toward the report's estimate averages. False when the team has
+        /// <br/>since changed its sizing method, so this sprint's estimates are in another unit.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inEstimateAverages")]
         public bool InEstimateAverages { get; set; } = default!;
 
+        /// <summary>
+        /// The sprint's values by item count.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("byCount")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintMetricFiguresDto ByCount { get; set; } = new SprintMetricFiguresDto();
 
+        /// <summary>
+        /// The sprint's values in its own `sizingMethod`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("byEstimate")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintMetricFiguresDto ByEstimate { get; set; } = new SprintMetricFiguresDto();
 
     }
 
+    /// <summary>
+    /// How many backlog work items a team will finish from `forecastStart` through
+    /// <br/>`targetDate`.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamThroughputForecastDto
     {
 
+        /// <summary>
+        /// Whether a forecast could be made: Forecast, or Not Enough History when the team has not
+        /// <br/>finished enough work recently to forecast from.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Outcome { get; set; } = new SimpleNavigationDto();
@@ -104281,6 +107703,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public ForecastTeamDto Team { get; set; } = new ForecastTeamDto();
 
+        /// <summary>
+        /// The first simulated day (UTC).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("forecastStart")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -104291,15 +107716,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset TargetDate { get; set; } = default!;
 
+        /// <summary>
+        /// Days of history the team's throughput was sampled from.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
         public int LookbackDays { get; set; } = default!;
 
+        /// <summary>
+        /// Whether active backlog items were counted ahead of proposed ones.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startedWorkFirst")]
         public bool StartedWorkFirst { get; set; } = default!;
 
+        /// <summary>
+        /// Simulated days, `forecastStart` through `targetDate` inclusive.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         public int Days { get; set; } = default!;
 
+        /// <summary>
+        /// The team's open backlog work items today.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("backlogWorkItems")]
         public int BacklogWorkItems { get; set; } = default!;
 
@@ -104335,6 +107772,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Where a team's completed work went from `from` to `to`, grouped by one dimension.
+    /// <br/>For a team of teams it covers every team beneath it, each placed where it sat on the day the work was done.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamWorkDistributionDto
     {
@@ -104361,6 +107802,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkDistributionGroupDto> Groups { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionGroupDto>();
 
+        /// <summary>
+        /// The team hierarchy, pre-ordered from the requested team, each placed under its latest parent in the window.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teams")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkDistributionTeamRowDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionTeamRowDto>();
@@ -104371,6 +107815,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A user eligible to be bulk-migrated off a given source tenant: bound to the
+    /// <br/>provider via an active identity on that tenant, with no migration already pending.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TenantMigrationCandidateDto
     {
@@ -104443,6 +107891,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Outcome of fetching an OIDC provider's discovery document. On success, `issuer`
+    /// <br/>echoes the value from the discovery document so it can be checked against expectations,
+    /// <br/>and `jwksKeyCount` is how many signing keys the JWKS endpoint returned (zero
+    /// <br/>indicates a misconfigured provider that can never validate a token). On failure,
+    /// <br/>`error` says what went wrong.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TestOidcProviderDiscoveryResult
     {
@@ -104489,12 +107944,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class ThroughputPercentileDto
     {
 
+        /// <summary>
+        /// The share of trials, as a whole percent, that finished at least `workItems` work items.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("confidence")]
         public int Confidence { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("workItems")]
         public int WorkItems { get; set; } = default!;
 
+        /// <summary>
+        /// The backlog item that many items down, first-ranked first: work down to and including it
+        /// <br/>is done at this confidence. Null when nothing is, or when the count runs past the backlog.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("throughWorkItem")]
         public ForecastWorkItemDto? ThroughWorkItem { get; set; } = default!;
 
@@ -104518,6 +107980,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A reason for time away, with the code a stretch of time away carries and the requests accept.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TimeAwayReasonDto : CommonEnumDtoOfTimeAwayReason
     {
@@ -104528,10 +107993,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class TimeZoneDto
     {
 
+        /// <summary>
+        /// The IANA time zone id, e.g. "America/Chicago".
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Id { get; set; } = default!;
 
+        /// <summary>
+        /// The zone's offset from UTC right now, e.g. "-05:00". Changes with daylight saving time.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("currentOffset")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string CurrentOffset { get; set; } = default!;
@@ -104571,14 +108042,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A measure this module does not compute yet, and why.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UnavailableMetricDto
     {
 
+        /// <summary>
+        /// The measure's name, as a reader would recognise it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("metric")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Metric { get; set; } = default!;
 
+        /// <summary>
+        /// What is missing before it can be computed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Reason { get; set; } = default!;
@@ -107107,6 +110587,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("pendingMigrationProviderId")]
         public string? PendingMigrationProviderId { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the user has an identity they can sign in with. False for an admin-created
+        /// <br/>Entra user who has not yet signed in.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hasActiveIdentity")]
         public bool HasActiveIdentity { get; set; } = default!;
 
@@ -107217,6 +110701,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One live sign-in shown on the account's Sessions tab. Carries no token or hash — everything
+    /// <br/>here is display detail plus the id needed to revoke the row.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UserSessionResponse
     {
@@ -107260,6 +110748,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A version of one product.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class VersionDto
     {
@@ -107271,10 +110762,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// The product this version is for.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("product")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Product { get; set; } = default!;
 
+        /// <summary>
+        /// The version as the organization writes it. Free text, never parsed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("number")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Number { get; set; } = default!;
@@ -107285,6 +110781,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("notes")]
         public string? Notes { get; set; } = default!;
 
+        /// <summary>
+        /// A manual ordering override, used only where chronology misleads.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sequence")]
         public long? Sequence { get; set; } = default!;
 
@@ -107298,6 +110797,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
+        /// <summary>
+        /// The version's current status: the organization's name for it, its category and its well-known alias.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
@@ -107314,24 +110816,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class VisionDto
     {
 
+        /// <summary>
+        /// The unique identifier of the vision.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The vision's unique, human-readable number; an alternate key to `id`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
+        /// <summary>
+        /// A concise statement describing the vision of the organization.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The current lifecycle state of the vision: Proposed, Active, or Archived.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// When the vision became active and started guiding the organization; null while it is proposed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// When the vision was archived; null until it is archived.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         public System.DateTimeOffset? End { get; set; } = default!;
 
@@ -107410,74 +110930,142 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class WorkdayConnectionConfigurationDto
     {
 
+        /// <summary>
+        /// The Workday Web Services WSDL URL entered for the connection. The service host, tenant alias,
+        /// <br/>and version are derived from it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("wsdlUrl")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string WsdlUrl { get; set; } = default!;
 
+        /// <summary>
+        /// The Workday service host, derived from `wsdlUrl`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("serviceHost")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string ServiceHost { get; set; } = default!;
 
+        /// <summary>
+        /// The Workday tenant alias, derived from `wsdlUrl`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tenantAlias")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string TenantAlias { get; set; } = default!;
 
+        /// <summary>
+        /// The Workday Web Services (WWS) version, derived from `wsdlUrl`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("wsdlVersion")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string WsdlVersion { get; set; } = default!;
 
+        /// <summary>
+        /// The username of the Workday Integration System User (ISU) the connection signs in as.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isuUsername")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string IsuUsername { get; set; } = default!;
 
+        /// <summary>
+        /// The Integration System User password. Returned masked as a fixed-width placeholder.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isuPassword")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string IsuPassword { get; set; } = default!;
 
+        /// <summary>
+        /// Which Workday worker identifier the sync uses to identify each worker.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workerKey")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkdayWorkerKey>))]
         public WorkdayWorkerKey WorkerKey { get; set; } = default!;
 
+        /// <summary>
+        /// When true, terminated/inactive workers are also returned by the sync.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("includeInactive")]
         public bool IncludeInactive { get; set; } = default!;
 
+        /// <summary>
+        /// The employee field the sync uses to match a worker to an existing employee.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("matchBy")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EmployeeMatchProperty>))]
         public EmployeeMatchProperty MatchBy { get; set; } = default!;
 
+        /// <summary>
+        /// When true, the probe and sync accept Workday's `User_ID` as the work email when
+        /// <br/>`Contact_Data` is missing, provided it parses as a valid email address.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("useUserIdAsEmailFallback")]
         public bool UseUserIdAsEmailFallback { get; set; } = default!;
 
+        /// <summary>
+        /// When true, sync reads `Preferred_Name_Data` in preference to `Legal_Name_Data`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("usePreferredName")]
         public bool UsePreferredName { get; set; } = default!;
 
+        /// <summary>
+        /// When true, names that come back from Workday in all-caps are title-cased before storage.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("normalizeNameCasing")]
         public bool NormalizeNameCasing { get; set; } = default!;
 
+        /// <summary>
+        /// Workday `Organization_Type_ID` whose organization sets each employee's department.
+        /// <br/>Null when department sync is turned off.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("departmentOrganizationTypeId")]
         public string? DepartmentOrganizationTypeId { get; set; } = default!;
 
+        /// <summary>
+        /// The organization types discovered during the most recent init probe; the choices for
+        /// <br/>`departmentOrganizationTypeId`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("discoveredOrgTypes")]
         public System.Collections.Generic.ICollection<WorkdayOrgTypeDto>? DiscoveredOrgTypes { get; set; } = default!;
 
+        /// <summary>
+        /// Rules that filter workers out of the sync. Each rule names an `Organization_Type_ID`
+        /// <br/>plus the WID of an organization of that type; workers whose `Worker_Organization_Data`
+        /// <br/>references that WID are excluded from the sync. Empty by default.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("orgExclusions")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkdayOrgExclusionDto> OrgExclusions { get; set; } = new System.Collections.ObjectModel.Collection<WorkdayOrgExclusionDto>();
 
+        /// <summary>
+        /// UTC timestamp of the most recent init probe; null when no probe has run.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastInitAt")]
         public System.DateTimeOffset? LastInitAt { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the most recent init probe succeeded.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastInitSucceeded")]
         public bool LastInitSucceeded { get; set; } = default!;
 
+        /// <summary>
+        /// Required fields the ISU could not read during the most recent probe.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastInitMissingFields")]
         public System.Collections.Generic.ICollection<string>? LastInitMissingFields { get; set; } = default!;
 
+        /// <summary>
+        /// Non-fatal observations from the most recent probe.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastInitWarnings")]
         public System.Collections.Generic.ICollection<string>? LastInitWarnings { get; set; } = default!;
 
+        /// <summary>
+        /// The authentication error the most recent probe reported. Null when it reported none, which does not mean
+        /// <br/>the credentials are valid: a probe that could not reach Workday, timed out or failed for another reason
+        /// <br/>also leaves it null. Read it with `lastInitSucceeded`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastInitAuthError")]
         public string? LastInitAuthError { get; set; } = default!;
 
@@ -107487,6 +111075,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class WorkdayConnectionDetailsDto : ConnectionDetailsDto
     {
 
+        /// <summary>
+        /// The configuration for the Workday connection.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("configuration")]
         [System.ComponentModel.DataAnnotations.Required]
         public WorkdayConnectionConfigurationDto Configuration { get; set; } = new WorkdayConnectionConfigurationDto();
@@ -107499,6 +111090,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One admin-configured exclusion rule for the Workday sync.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkdayOrgExclusionDto
     {
@@ -107536,6 +111130,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One entry in the org-type catalog discovered by the init probe.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkdayOrgTypeDto
     {
@@ -107571,6 +111168,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public double Value { get; set; } = default!;
 
+        /// <summary>
+        /// Percent of the row's measured total.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("share")]
         public double Share { get; set; } = default!;
 
@@ -107628,6 +111228,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class WorkDistributionGroupDto
     {
 
+        /// <summary>
+        /// Stable within a response; cells and periods refer to groups by position, not by this.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Id { get; set; } = default!;
@@ -107637,6 +111240,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkDistributionGroupKind>))]
         public WorkDistributionGroupKind Kind { get; set; } = default!;
 
+        /// <summary>
+        /// The portfolio, program, project or theme's id; null for work types and gap groups.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("recordId")]
         public System.Guid? RecordId { get; set; } = default!;
 
@@ -107647,12 +111253,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// For a program or project group: the portfolio it belongs to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
         public NavigationDto? Portfolio { get; set; } = default!;
 
+        /// <summary>
+        /// For a project group: its program, when it has one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("program")]
         public NavigationDto? Program { get; set; } = default!;
 
+        /// <summary>
+        /// Keys of the projects whose work landed in this group, ordered.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectKeys")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> ProjectKeys { get; set; } = new System.Collections.ObjectModel.Collection<string>();
@@ -107669,15 +111284,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("filledStoryPoints")]
         public double FilledStoryPoints { get; set; } = default!;
 
+        /// <summary>
+        /// The group's total in the requested measure.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public double Value { get; set; } = default!;
 
+        /// <summary>
+        /// Percent of the measured total.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("share")]
         public double Share { get; set; } = default!;
 
+        /// <summary>
+        /// Work type groups only: the part of `value` with no project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("noProjectValue")]
         public double? NoProjectValue { get; set; } = default!;
 
+        /// <summary>
+        /// Work type groups only: percent of this group's value with no project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
         public double? NoProjectShare { get; set; } = default!;
 
@@ -107740,6 +111367,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<double> Values { get; set; } = new System.Collections.ObjectModel.Collection<double>();
 
+        /// <summary>
+        /// Percent of the period's measured total, per group.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("shares")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<double> Shares { get; set; } = new System.Collections.ObjectModel.Collection<double>();
@@ -107756,31 +111386,58 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("itemsCompleted")]
         public int ItemsCompleted { get; set; } = default!;
 
+        /// <summary>
+        /// Completed items from teams that sized in story points on the day each was done.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("itemsInPointSizedTeams")]
         public int ItemsInPointSizedTeams { get; set; } = default!;
 
+        /// <summary>
+        /// Of `itemsInPointSizedTeams`, those with story points; 0 is an estimate.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("estimatedItems")]
         public int EstimatedItems { get; set; } = default!;
 
+        /// <summary>
+        /// Estimated story points; filled-in points are reported separately.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double StoryPoints { get; set; } = default!;
 
+        /// <summary>
+        /// Items whose estimate was filled from their team's average, in whatever unit the team sized in.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("filledItems")]
         public int FilledItems { get; set; } = default!;
 
+        /// <summary>
+        /// The story points filled in; fills in other units are not story points and are left out.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("filledStoryPoints")]
         public double FilledStoryPoints { get; set; } = default!;
 
+        /// <summary>
+        /// Teams (not teams of teams) that completed work in the window.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamsIncluded")]
         public int TeamsIncluded { get; set; } = default!;
 
+        /// <summary>
+        /// Teams whose work the measure leaves out: under story points, teams that size by anything else.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("excludedTeams")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkDistributionTeamReferenceDto> ExcludedTeams { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionTeamReferenceDto>();
 
+        /// <summary>
+        /// Items with no project in their ancestry.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("noProjectItems")]
         public int NoProjectItems { get; set; } = default!;
 
+        /// <summary>
+        /// Percent of the measured total with no project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
         public double NoProjectShare { get; set; } = default!;
 
@@ -107829,6 +111486,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("level")]
         public int Level { get; set; } = default!;
 
+        /// <summary>
+        /// True when the row completed work but the measure counts none of it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("excluded")]
         public bool Excluded { get; set; } = default!;
 
@@ -107848,6 +111508,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkDistributionCellDto> Cells { get; set; } = new System.Collections.ObjectModel.Collection<WorkDistributionCellDto>();
 
+        /// <summary>
+        /// Work type dimension only: percent of this row's value with no project.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
         public double? NoProjectShare { get; set; } = default!;
 
@@ -107869,6 +111532,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Which workflow a scope's records currently use.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkflowAssignmentDto
     {
@@ -107881,11 +111547,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
 
+        /// <summary>
+        /// Null for the organization-wide default, which is the only scope in use today.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scopeId")]
         public System.Guid? ScopeId { get; set; } = default!;
 
+        /// <summary>
+        /// The workflow this scope's records use.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workflow")]
-        [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Workflow { get; set; } = default!;
 
     }
@@ -107921,6 +111592,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An owner type, as referenced from a workflow or an assignment.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkflowOwnerNavigationDto
     {
@@ -107935,6 +111609,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An owner type and the vocabulary its workflows are built from.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkflowOwnerTypeDto
     {
@@ -107947,10 +111624,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string DisplayName { get; set; } = default!;
 
+        /// <summary>
+        /// Every alias this owner type recognises.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("aliases")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowAliasDto> Aliases { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowAliasDto>();
 
+        /// <summary>
+        /// The aliases a workflow must carry before it can be published.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("requiredAliases")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<int> RequiredAliases { get; set; } = new System.Collections.ObjectModel.Collection<int>();
@@ -107981,6 +111664,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// One status within a workflow.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkflowStatusDto
     {
@@ -107996,13 +111682,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The rollup this status belongs to, as id and display name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Category { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The well-known meaning, or zero for none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("alias")]
         public int Alias { get; set; } = default!;
 
+        /// <summary>
+        /// The alias in the module's vocabulary, or null when it carries none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("aliasName")]
         public string? AliasName { get; set; } = default!;
 
@@ -108077,9 +111772,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
 
+        /// <summary>
+        /// The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effort")]
         public double? Effort { get; set; } = default!;
 
+        /// <summary>
+        /// The size estimate, the CMMI process's requirement estimate; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("size")]
         public double? Size { get; set; } = default!;
 
@@ -108172,9 +111873,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
 
+        /// <summary>
+        /// The level-of-effort estimate, often set on features and epics for longer-term planning; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effort")]
         public double? Effort { get; set; } = default!;
 
+        /// <summary>
+        /// The size estimate, the CMMI process's requirement estimate; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("size")]
         public double? Size { get; set; } = default!;
 
@@ -108237,42 +111944,81 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class WorkItemForecastDto
     {
 
+        /// <summary>
+        /// Whether a forecast could be made: Forecast, Done, Not Enough History, Blocked by Dependency,
+        /// <br/>Cannot Forecast or Nothing Remaining. Only Forecast fills the percentiles and histogram.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Outcome { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The first simulated day (UTC): a trial that finishes on its first day finishes on this date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("forecastStart")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset ForecastStart { get; set; } = default!;
 
+        /// <summary>
+        /// Days of history the teams' throughput was sampled from.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
         public int LookbackDays { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the forecast ignored dependencies, as a what-if.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ignoreDependencies")]
         public bool IgnoreDependencies { get; set; } = default!;
 
+        /// <summary>
+        /// Whether active backlog items were counted ahead of proposed ones.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startedWorkFirst")]
         public bool StartedWorkFirst { get; set; } = default!;
 
+        /// <summary>
+        /// The 1-based position in its team's backlog, when the forecast is for a single open backlog
+        /// <br/>work item.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("backlogPosition")]
         public int? BacklogPosition { get; set; } = default!;
 
+        /// <summary>
+        /// The open backlog work items the forecast is for. A backlog work item counts itself; a
+        /// <br/>portfolio work item counts its open backlog descendants.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("remainingWorkItems")]
         public int RemainingWorkItems { get; set; } = default!;
 
+        /// <summary>
+        /// Remaining work items left out because they could not be forecast (see `issues`
+        /// <br/>for why). A forecast with exclusions is a lower bound.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("excludedWorkItems")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ForecastWorkItemDto> ExcludedWorkItems { get; set; } = new System.Collections.ObjectModel.Collection<ForecastWorkItemDto>();
 
+        /// <summary>
+        /// Every team whose throughput the forecast drew on, including predecessors' teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teams")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ForecastTeamDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<ForecastTeamDto>();
 
+        /// <summary>
+        /// The date the work is due, when there is one: an objective's target date or its planning
+        /// <br/>interval's end, or a project's planned end.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
+        /// <summary>
+        /// The share of trials (0 to 1) that finished on or before `targetDate`. Null
+        /// <br/>without a target date or a forecast.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("chanceOfFinishingByTargetDate")]
         public double? ChanceOfFinishingByTargetDate { get; set; } = default!;
 
@@ -108294,10 +112040,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ForecastDependencyInfluenceDto> Dependencies { get; set; } = new System.Collections.ObjectModel.Collection<ForecastDependencyInfluenceDto>();
 
+        /// <summary>
+        /// Dependencies left out of the forecast, each with its `reason`:
+        /// <br/>it closed a cycle, or its predecessor was removed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ignoredDependencies")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ForecastDependencyLinkDto> IgnoredDependencies { get; set; } = new System.Collections.ObjectModel.Collection<ForecastDependencyLinkDto>();
 
+        /// <summary>
+        /// Why the work item, or something it depends on, could not be forecast or is only a lower bound.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("issues")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ForecastIssueDto> Issues { get; set; } = new System.Collections.ObjectModel.Collection<ForecastIssueDto>();
@@ -108354,9 +112107,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
 
+        /// <summary>
+        /// The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("effort")]
         public double? Effort { get; set; } = default!;
 
+        /// <summary>
+        /// The size estimate, the CMMI process's requirement estimate; null when unestimated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("size")]
         public double? Size { get; set; } = default!;
 
@@ -108421,6 +112180,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Progress data for a collection of work items.  Work items with a status category of Proposed, Active, and Done are counted.  Work items with a status category of Removed are not included
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkItemProgressRollupDto
     {
@@ -108695,13 +112457,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the work status. It cannot be changed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description of the work status; null when it has none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the work status is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
@@ -108728,17 +112499,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the work type.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description of the work type.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The work type level name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("level")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Level { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// Indicates whether the work type is active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
@@ -108751,17 +112534,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the work type level.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The description of the work type level; null when it has none.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The tier the level belongs to: Portfolio, Requirement, Task or Other.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tier")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Tier { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The level's position within its tier; levels sort by it in ascending order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
@@ -108774,14 +112569,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        /// <summary>
+        /// The name of the work type.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The work type level name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("level")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Level { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// The work type tier.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tier")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Tier { get; set; } = new SimpleNavigationDto();

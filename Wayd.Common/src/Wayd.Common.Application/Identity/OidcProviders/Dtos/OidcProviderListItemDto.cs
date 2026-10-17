@@ -2,10 +2,12 @@
 
 
 /// <summary>
-/// Compact list row. Same fields as the detail DTO; kept as a separate type so
-/// the API contract is explicit and the listing endpoint stays stable if the
-/// detail shape grows fields later.
+/// An OIDC identity provider as it appears in the list of providers.
 /// </summary>
+/// <remarks>
+/// Kept separate from the detail DTO so the API contract is explicit and the listing
+/// endpoint stays stable if the detail shape grows fields later.
+/// </remarks>
 public sealed record OidcProviderListItemDto
 {
     public Guid Id { get; set; }

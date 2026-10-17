@@ -20,13 +20,13 @@ public sealed record TeamCapacityRollupDto
     /// <summary>The time allocated to the team of teams and to every team beneath it, in person-days.</summary>
     public required decimal AllocatedPersonDays { get; set; }
 
-    /// <summary>The part of <see cref="AllocatedPersonDays"/> in roles that count toward delivery capacity.</summary>
+    /// <summary>The part of <c>allocatedPersonDays</c> in roles that count toward delivery capacity.</summary>
     public required decimal DeliveryPersonDays { get; set; }
 
     /// <summary>The time allocated to the team of teams itself, in person-days.</summary>
     public required decimal DirectAllocatedPersonDays { get; set; }
 
-    /// <summary>The part of <see cref="DirectAllocatedPersonDays"/> in roles that count toward delivery capacity.</summary>
+    /// <summary>The part of <c>directAllocatedPersonDays</c> in roles that count toward delivery capacity.</summary>
     public required decimal DirectDeliveryPersonDays { get; set; }
 
     /// <summary>
@@ -38,7 +38,7 @@ public sealed record TeamCapacityRollupDto
 
     /// <summary>
     /// The allocated time across the team of teams and every team beneath it by team member role, by role name
-    /// with the time in no role last. The lines add up to <see cref="AllocatedPersonDays"/>.
+    /// with the time in no role last. The lines add up to <c>allocatedPersonDays</c>.
     /// </summary>
     public required IReadOnlyList<TeamCapacityRoleDto> Roles { get; set; }
 
@@ -61,7 +61,7 @@ public sealed record TeamCapacityRollupNodeDto
     public required IReadOnlyList<TeamCapacityPeriodDto> Periods { get; set; }
 
     /// <summary>
-    /// The team's own working days within <see cref="Periods"/>. A team of teams has the system default
+    /// The team's own working days within <c>periods</c>. A team of teams has the system default
     /// working week and holidays.
     /// </summary>
     public required int WorkingDays { get; set; }
@@ -69,22 +69,22 @@ public sealed record TeamCapacityRollupNodeDto
     /// <summary>The time allocated to the team and to every team beneath it, in person-days.</summary>
     public required decimal AllocatedPersonDays { get; set; }
 
-    /// <summary>The part of <see cref="AllocatedPersonDays"/> in roles that count toward delivery capacity.</summary>
+    /// <summary>The part of <c>allocatedPersonDays</c> in roles that count toward delivery capacity.</summary>
     public required decimal DeliveryPersonDays { get; set; }
 
     /// <summary>The time allocated to the team itself, in person-days.</summary>
     public required decimal DirectAllocatedPersonDays { get; set; }
 
-    /// <summary>The part of <see cref="DirectAllocatedPersonDays"/> in roles that count toward delivery capacity.</summary>
+    /// <summary>The part of <c>directAllocatedPersonDays</c> in roles that count toward delivery capacity.</summary>
     public required decimal DirectDeliveryPersonDays { get; set; }
 
     /// <summary>
-    /// Everyone with an allocation to the team itself within <see cref="Periods"/>, by name, including anyone
+    /// Everyone with an allocation to the team itself within <c>periods</c>, by name, including anyone
     /// whose allocation falls on none of its working days there.
     /// </summary>
     public required IReadOnlyList<TeamCapacityRollupPersonDto> People { get; set; }
 
-    /// <summary>The teams directly beneath this one within <see cref="Periods"/>, by name. Empty for a team.</summary>
+    /// <summary>The teams directly beneath this one within <c>periods</c>, by name. Empty for a team.</summary>
     public required IReadOnlyList<TeamCapacityRollupNodeDto> Children { get; set; }
 }
 

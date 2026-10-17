@@ -4,12 +4,10 @@ namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
 
 public sealed record PlanningIntervalListDto
 {
-    /// <summary>Gets or sets the identifier.</summary>
-    /// <value>The identifier.</value>
+    /// <summary>The planning interval's unique identifier.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Gets the key.</summary>
-    /// <value>The key.</value>
+    /// <summary>The planning interval's numeric key, an alternate to its id.</summary>
     public int Key { get; set; }
 
     /// <summary>
@@ -17,12 +15,10 @@ public sealed record PlanningIntervalListDto
     /// </summary>
     public required string Name { get; set; }
 
-    /// <summary>Planning Interval start date</summary>
-    /// <value>The start.</value>
+    /// <summary>The planning interval's first day.</summary>
     public LocalDate Start { get; set; }
 
-    /// <summary>Planning Interval end date</summary>
-    /// <value>The end.</value>
+    /// <summary>The planning interval's last day, included in it.</summary>
     public LocalDate End { get; set; }
 
     /// <summary>

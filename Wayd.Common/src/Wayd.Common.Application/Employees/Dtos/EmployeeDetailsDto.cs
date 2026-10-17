@@ -6,81 +6,68 @@ namespace Wayd.Common.Application.Employees.Dtos;
 
 public sealed record EmployeeDetailsDto : IMapFrom<Employee>
 {
-    /// <summary>Gets the identifier.</summary>
-    /// <value>The identifier.</value>
+    /// <summary>The employee's unique identifier.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Gets the key.</summary>
-    /// <value>The key.</value>
+    /// <summary>The employee's short numeric key, unique across employees.</summary>
     public int Key { get; set; }
 
-    /// <summary>Gets the display name.</summary>
-    /// <value>The display name.</value>
+    /// <summary>First and last name, for display.</summary>
     public required string DisplayName { get; set; }
 
-    /// <summary>Gets the full name.</summary>
-    /// <value>The full name.</value>
+    /// <summary>The complete name: title, first, middle and last names, and suffix, where present.</summary>
     public required string FullName { get; set; }
 
-    /// <summary>Gets the first name.</summary>
-    /// <value>The first name.</value>
+    /// <summary>The employee's first name.</summary>
     public required string FirstName { get; set; }
 
-    /// <summary>Gets the middle name.</summary>
-    /// <value>The middle name.</value>
+    /// <summary>The employee's middle name, or null when none is recorded.</summary>
     public string? MiddleName { get; set; }
 
-    /// <summary>Gets the last name.</summary>
-    /// <value>The last name.</value>
+    /// <summary>The employee's last name.</summary>
     public required string LastName { get; set; }
 
-    /// <summary>Gets the suffix.</summary>
-    /// <value>The suffix.</value>
+    /// <summary>Name suffix such as "Jr." or "III", or null when none is recorded.</summary>
     public string? Suffix { get; set; }
 
-    /// <summary>Gets the employee's personal title.</summary>
-    /// <value>The title.</value>
+    /// <summary>Personal title such as "Dr." or "Ms.", or null when none is recorded. Not the job title.</summary>
     public string? Title { get; set; }
 
-    /// <summary>Gets the employee number.</summary>
-    /// <value>The employee number.</value>
+    /// <summary>The employee number assigned by the source system.</summary>
     public required string EmployeeNumber { get; set; }
 
-    /// <summary>Gets the hire date.</summary>
-    /// <value>The hire date.</value>
+    /// <summary>When the employee was hired, or null when unknown.</summary>
     public Instant? HireDate { get; set; }
 
-    /// <summary>Gets the email.</summary>
-    /// <value>The email.</value>
+    /// <summary>The employee's primary work email address.</summary>
     public required string Email { get; set; }
 
     /// <summary>
-    /// Every work address this person is known by, <see cref="Email"/> included as the primary. Populated
-    /// by the active people connector (or the employee import) and used to match them against systems
-    /// still referencing an address they have moved away from.
+    /// Every work address this person is known by, <c>email</c> included as the primary. Used to match them
+    /// against systems still referencing an address they have moved away from.
     /// </summary>
+    /// <remarks>
+    /// Populated by the active people connector (or the employee import).
+    /// </remarks>
     public List<EmployeeEmailDto> Emails { get; set; } = [];
 
-    /// <summary>Gets the job title.</summary>
-    /// <value>The job title.</value>
+    /// <summary>The employee's job title, or null when none is recorded.</summary>
     public string? JobTitle { get; set; }
 
-    /// <summary>Gets the department.</summary>
-    /// <value>The department.</value>
+    /// <summary>The employee's department, or null when none is recorded.</summary>
     public string? Department { get; set; }
 
-    /// <summary>Gets the office location.</summary>
-    /// <value>The office location.</value>
+    /// <summary>The employee's office location, or null when none is recorded.</summary>
     public string? OfficeLocation { get; set; }
 
     public EmployeeNavigationDto? Manager { get; set; }
 
     /// <summary>
-    /// Indicates whether the employee is active or not.
+    /// Whether the employee is currently active.
     /// </summary>
     public bool IsActive { get; set; }
 
-    /// <summary>Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form; preserved verbatim from the connector.</summary>
+    /// <summary>Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form, preserved verbatim from the source system; null when not provided.</summary>
     public string? EmployeeType { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)

@@ -11,7 +11,7 @@ public sealed record ProjectDetailsDto
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the project.  This is an alternate key to the Id.
+    /// The project's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public required string Key { get; set; }
 
@@ -115,18 +115,24 @@ public sealed record ProjectDetailsDto
     /// <summary>
     /// Whether the current user can manage this project (record health checks, scores, and other
     /// delivery-management actions). True when the user is an Owner or Manager of the project, its
-    /// portfolio, or its program. May be elevated by a second-pass portfolio/program check in the
-    /// query handler.
+    /// portfolio, or its program, or holds the domain-wide PPM administrator grant. Sponsors and project
+    /// Members are excluded.
     /// </summary>
+    /// <remarks>
+    /// May be elevated by a second-pass portfolio/program check in the query handler.
+    /// </remarks>
     public bool CanManageProject { get; set; }
 
     /// <summary>
     /// The earlier statuses this project can be reverted to right now, in lifecycle order; empty when it is
-    /// already at the start of its lifecycle or meets no target's requirements. Computed server-side by the
-    /// aggregate itself, so the actions offered cannot drift from the transitions that will actually be
-    /// accepted — a project cancelled from Proposed with no lifecycle or dates offers nothing.
+    /// already at the start of its lifecycle or meets no target's requirements — a project cancelled from
+    /// Proposed with no lifecycle or dates offers nothing. Each listed status is a revert the server will
+    /// accept, provided the caller can manage the project.
     /// </summary>
     /// <remarks>
+    /// Computed by the aggregate's own rule, so the actions offered cannot drift from the transitions that
+    /// will actually be accepted.
+    ///
     /// Populated by <see cref="ResolveBackwardStatusTargets"/>, not by the mapping — it is empty on a DTO
     /// straight out of the projection.
     ///
@@ -165,10 +171,14 @@ public sealed record ProjectDetailsDto
     public ScoreSummaryDto? CurrentScore { get; set; }
 
     /// <summary>
-    /// The project's fractional rank sort key within its portfolio — the same value as the domain
-    /// <c>Project.Rank</c> (opaque; not the displayed position). Every project is ranked from creation.
-    /// Used to order the ranking board and drive client-side reorder logic; not for display.
+    /// The project's fractional rank sort key within its portfolio: an opaque value, not the displayed
+    /// position. Every project is ranked from creation. Sort ascending to order projects by rank; not for
+    /// display.
     /// </summary>
+    /// <remarks>
+    /// The same value as the domain <c>Project.Rank</c>; the client uses it to order the ranking board and
+    /// drive reorder logic.
+    /// </remarks>
     public double Rank { get; set; }
 
     /// <summary>

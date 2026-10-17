@@ -10,7 +10,7 @@ public sealed record ProgramDetailsDto : IMapFrom<Program>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the program.  This is an alternate key to the Id.
+    /// The program's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public int Key { get; set; }
 
@@ -20,7 +20,7 @@ public sealed record ProgramDetailsDto : IMapFrom<Program>
     public required string Name { get; set; }
 
     /// <summary>
-    /// A detailed description of the programs's purpose and scope.
+    /// A detailed description of the program's purpose and scope.
     /// </summary>
     public required string Description { get; set; }
 
@@ -68,12 +68,12 @@ public sealed record ProgramDetailsDto : IMapFrom<Program>
     /// Whether the current user may manage this program — change its status, edit its details, or assign
     /// its roles. True when the user is an Owner or Manager of the program or of its parent portfolio, or
     /// holds the domain-wide PPM administrator grant. Sponsors are excluded.
-    /// <para>
-    /// This is a UI hint only; the aggregate enforces the same rule. It is false when the DTO is produced
-    /// by the parameterless global mapping, so callers that need it must use
-    /// <see cref="CreateTypeAdapterConfig"/>.
-    /// </para>
+    /// A hint for which actions to offer; the server enforces the same rule on every change.
     /// </summary>
+    /// <remarks>
+    /// The aggregate enforces the same rule. It is false when the DTO is produced by the parameterless
+    /// global mapping, so callers that need it must use <see cref="CreateTypeAdapterConfig"/>.
+    /// </remarks>
     public bool CanManageProgram { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)

@@ -3,11 +3,13 @@
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;
 
 /// <summary>
-/// The data the record-score form needs when it opens: the assigned model's definition (for rendering
-/// the rating inputs), whether that model is archived (to warn), and the project's current score (to
-/// seed a re-score). Display and authorization for the score card live on the project DTO; this context
-/// is fetched lazily only when the form is launched.
+/// What is needed to record a score for a project: the assigned model's definition (its criteria and
+/// rating scales), whether that model is archived, and the project's current score (to seed a re-score).
 /// </summary>
+/// <remarks>
+/// Display and authorization for the score card live on the project DTO; this context is fetched
+/// lazily only when the record-score form is launched.
+/// </remarks>
 public sealed record ProjectScoringContextDto
 {
     /// <summary>

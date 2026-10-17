@@ -5,7 +5,7 @@ namespace Wayd.ProductManagement.Application.ProductTypes.Queries;
 /// <summary>
 /// The product type catalog.
 /// </summary>
-/// <param name="isActive">
+/// <param name="IsActive">
 /// Narrows to active or inactive types. Null returns both — a settings screen manages what a picker
 /// would hide.
 /// </param>

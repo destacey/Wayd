@@ -62,11 +62,11 @@ public sealed record ProductDependencyDto
     /// <summary>The last day the dependency held, or <c>null</c> while it still holds.</summary>
     public LocalDate? EndsOn { get; init; }
 
-    /// <summary>Everything <see cref="Product"/> sits inside, from its root down to its parent.</summary>
+    /// <summary>Everything <c>product</c> sits inside, from its root down to its parent.</summary>
     /// <inheritdoc cref="DependsOnProductPath" path="/remarks"/>
     public IReadOnlyList<NavigationDto> ProductPath { get; init; } = [];
 
-    /// <summary>Everything <see cref="DependsOnProduct"/> sits inside, from its root down to its parent.</summary>
+    /// <summary>Everything <c>dependsOnProduct</c> sits inside, from its root down to its parent.</summary>
     /// <remarks>
     /// Where each end sits in the catalog, which the ends alone cannot say: a row carrying "Accounts API"
     /// does not tell a reader whether that is a child of the product being read or a service of some other

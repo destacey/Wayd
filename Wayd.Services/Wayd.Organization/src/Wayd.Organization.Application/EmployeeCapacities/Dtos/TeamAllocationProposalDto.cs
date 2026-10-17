@@ -14,7 +14,7 @@ public sealed record TeamAllocationProposalDto
 
     /// <summary>
     /// One row per member and role, by member name and then role name. A member who already has time on the
-    /// team on <see cref="From"/> has no rows.
+    /// team on <c>from</c> has no rows.
     /// </summary>
     public required IReadOnlyList<TeamAllocationProposalRowDto> Rows { get; set; }
 }
@@ -39,7 +39,7 @@ public sealed record TeamAllocationProposalRowDto
 
     /// <summary>
     /// What is left of the member's time across all teams, from 0 to 100: 100 less their most allocated day
-    /// from <see cref="TeamAllocationProposalDto.From"/> to <see cref="End"/>. Zero means they have none to give.
+    /// from the proposal's <c>from</c> to this row's <c>end</c>. Zero means they have none to give.
     /// </summary>
     public required int RemainingPercent { get; set; }
 

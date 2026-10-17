@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkTeams.Dtos;
 public sealed record ThroughputPercentileDto
 {
     /// <summary>
-    /// The share of trials, as a whole percent, that finished at least <see cref="WorkItems"/>.
+    /// The share of trials, as a whole percent, that finished at least <c>workItems</c> work items.
     /// </summary>
     public required int Confidence { get; init; }
 

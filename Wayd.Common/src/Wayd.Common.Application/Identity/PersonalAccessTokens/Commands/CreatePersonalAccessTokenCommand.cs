@@ -9,8 +9,8 @@ namespace Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
 public sealed record CreatePersonalAccessTokenCommand(string Name, Instant ExpiresAt) : ICommand<CreatePersonalAccessTokenResult>;
 
 /// <summary>
-/// Response DTO containing the created token details including the plaintext token.
-/// This is the ONLY time the plaintext token is returned.
+/// The newly created personal access token, including its plaintext value.
+/// This is the only time the plaintext token is returned; store it now, as it cannot be retrieved later.
 /// </summary>
 public sealed record CreatePersonalAccessTokenResult(Guid Id, string Name, string Token, Instant ExpiresAt);
 

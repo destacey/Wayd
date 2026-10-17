@@ -7,8 +7,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.Workday;
 /// <summary>
 /// Re-runs the init probe against an existing Workday connection. Triggered by the admin from the
 /// connection detail page ("Test Connection" button). Updates the connection's
-/// <see cref="Wayd.AppIntegration.Domain.Models.Workday.WorkdayConnectionConfiguration.LastInit*"/>
-/// fields and <see cref="Wayd.AppIntegration.Domain.Models.Connection.IsValidConfiguration"/>.
+/// <c>LastInit*</c> fields on <see cref="Wayd.AppIntegration.Domain.Models.Workday.WorkdayConnectionConfiguration"/> and <see cref="Wayd.AppIntegration.Domain.Models.Connection.IsValidConfiguration"/>.
 /// </summary>
 public sealed record InitWorkdayConnectionCommand(Guid Id) : ICommand<ConnectionInitResult>;
 

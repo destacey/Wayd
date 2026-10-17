@@ -4,7 +4,7 @@ using Wayd.Planning.Application.PlanningSprints.Dtos;
 namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
 
 /// <summary>
-/// DTO for Planning Interval iteration with its mapped sprints.
+/// A planning interval iteration with the team sprints mapped to it.
 /// </summary>
 public sealed record PlanningIntervalIterationSprintsDto : IMapFrom<PlanningIntervalIteration>
 {
@@ -39,7 +39,7 @@ public sealed record PlanningIntervalIterationSprintsDto : IMapFrom<PlanningInte
     public required SimpleNavigationDto Category { get; set; }
 
     /// <summary>
-    /// List of sprints mapped to this PI iteration.
+    /// The sprints mapped to this iteration; empty when none are mapped.
     /// </summary>
     public List<PlanningSprintListDto> Sprints { get; set; } = [];
 

@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.HealthChecks;
 
 /// <summary>
 /// EF-translatable expressions for querying <see cref="ProjectHealthCheck"/> entities.
-/// These encode the same rules as the domain methods (e.g. <see cref="ProjectHealthCheck.IsExpired"/>)
+/// These encode the same rules as the domain methods (e.g. <see cref="Wayd.Common.Domain.Models.HealthChecks.HealthCheckBase.IsExpired(NodaTime.Instant)"/>)
 /// in a form that can be pushed to the database rather than evaluated in memory.
 /// </summary>
 internal static class ProjectHealthCheckExpressions

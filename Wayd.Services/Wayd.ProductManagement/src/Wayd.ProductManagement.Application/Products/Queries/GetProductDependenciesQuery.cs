@@ -12,11 +12,12 @@ namespace Wayd.ProductManagement.Application.Products.Queries;
 /// What a product depends on and what depends on it, rolled up across its subtree, or <c>null</c> when the
 /// product does not exist.
 /// </summary>
-/// <param name="IncludeEnded">
-/// Ended links are left out by default. They still count for the period they held, but no longer hold.
-/// </param>
 public sealed record GetProductDependenciesQuery : IQuery<ProductDependenciesDto?>
 {
+    /// <param name="idOrKey">The product's id or key.</param>
+    /// <param name="includeEnded">
+    /// Ended links are left out by default. They still count for the period they held, but no longer hold.
+    /// </param>
     public GetProductDependenciesQuery(IdOrKey idOrKey, bool includeEnded = false)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Product>();

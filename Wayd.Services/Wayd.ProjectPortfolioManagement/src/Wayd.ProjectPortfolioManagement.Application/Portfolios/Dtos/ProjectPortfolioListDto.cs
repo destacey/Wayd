@@ -10,7 +10,7 @@ public sealed record ProjectPortfolioListDto : IMapFrom<ProjectPortfolio>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the portfolio.  This is an alternate key to the Id.
+    /// The portfolio's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public int Key { get; set; }
 

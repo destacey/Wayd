@@ -1,12 +1,13 @@
 ﻿namespace Wayd.Common.Application.Identity.Tokens;
 
 /// <summary>
-/// Advertises which authentication options are enabled on this deployment.
-/// Returned by <c>GET /api/auth/providers</c> so the unauthenticated frontend
-/// can render the right login UI and construct the right OIDC client per
-/// provider. Anonymous and cheap.
+/// Which authentication options are enabled on this deployment: whether local sign-in is
+/// available, and the OIDC providers a client can sign in through. Available without authentication.
 /// </summary>
 /// <remarks>
+/// Returned by <c>GET /api/auth/providers</c> so the unauthenticated frontend can render the
+/// right login UI and construct the right OIDC client per provider.
+///
 /// No secrets in this response — <c>ClientId</c> is the public OAuth client
 /// identifier (always client-visible in any OIDC SPA flow), and
 /// <c>AllowedTenantIds</c> is intentionally NOT exposed because it's a

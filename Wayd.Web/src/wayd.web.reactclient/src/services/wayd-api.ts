@@ -48275,6 +48275,7 @@ export enum ActivityCategory {
 }
 
 export interface ActivityLogDto {
+    /** The entry's key, used only to tell one row from another. It is not the id of the event the entry records. */
     id: number;
     eventType: string;
     category: ActivityCategory;
@@ -48288,7 +48289,11 @@ export interface ActivityLogDto {
     eventVersion: string;
     payload: string;
     summary?: string | undefined;
+    /** Whether the entry was raised on another record and is listed here because its event names this one.
+`aggregateType` and `aggregateId` are then that other record. */
     isRelated: boolean;
+    /** The record a related entry was raised on. Null when the entry is not related, or when the record could
+not be resolved, typically because it has since been removed. */
     raisedOn?: NavigationDto | undefined;
 }
 
@@ -48444,6 +48449,7 @@ export interface AuditDto {
     primaryKey?: string | undefined;
 }
 
+/** Which authentication options are enabled on this deployment: whether local sign-in is available, and the OIDC providers a client can sign in through. Available without authentication. */
 export interface AuthProvidersResponse {
     local: boolean;
     oidc: OidcProviderInfo[];
@@ -48466,39 +48472,70 @@ export interface AzdoWorkspaceTeamMappingRequest {
 }
 
 export interface AzureDevOpsConnectionConfigurationDto {
+    /** The Azure DevOps organization name. */
     organization: string;
+    /** The personal access token that grants access to the organization's Azure DevOps data.
+Returned masked as a fixed-width placeholder. */
     personalAccessToken: string;
+    /** The Azure DevOps organization URL, derived from the organization name. */
     organizationUrl: string;
+    /** The Azure DevOps work processes discovered for the organization. */
     workProcesses: AzureDevOpsWorkProcessDto[];
+    /** The Azure DevOps projects discovered for the organization; each can be integrated as a Wayd workspace. */
     workspaces: AzureDevOpsWorkspaceDto[];
 }
 
 export interface ConnectionDetailsDto {
+    /** The unique identifier for the connection. */
     id: string;
+    /** The name of the connection. */
     name: string;
+    /** The connection description. */
     description?: string | undefined;
+    /** The type of connector for the connection. This value cannot be changed once set. */
     connector: SimpleNavigationDto;
+    /** The capabilities this connection's connector supports, each with its display category. */
     capabilities: ConnectorCapabilityDto[];
+    /** Indicates whether the connection is active or not. Inactive connections are not included in operations. */
     isActive: boolean;
+    /** A flag indicating whether the connection configuration is valid. */
     isValidConfiguration: boolean;
+    /** Indicates whether the connection can currently sync: true when it is active, its configuration
+is valid, and it has something to sync (for Azure DevOps, at least one active work process or workspace).
+Null for connectors that do not sync, such as Azure OpenAI. */
     canSync?: boolean | undefined;
     $type: string;
 }
 
 export interface AzureDevOpsConnectionDetailsDto extends ConnectionDetailsDto {
+    /** The unique identifier for the external system that this connection connects to. */
     systemId?: string | undefined;
+    /** The configuration for the connection. */
     configuration: AzureDevOpsConnectionConfigurationDto;
+    /** The configuration for the teams associated with the connection. */
     teamConfiguration: AzureDevOpsTeamConfigurationDto;
 }
 
 export interface ConnectionListDto {
+    /** The unique identifier for the connection. */
     id: string;
+    /** The name of the connection. */
     name: string;
+    /** The unique identifier for the external system that this connection connects to.
+Null when the connector has no external system identifier, such as Entra, Workday, or Azure OpenAI,
+and for an Azure DevOps connection whose identifier has not been resolved yet. */
     systemId?: string | undefined;
+    /** The type of connector for the connection. This value cannot be changed once set. */
     connector: SimpleNavigationDto;
+    /** The capabilities this connection's connector supports, each with its display category. */
     capabilities: ConnectorCapabilityDto[];
+    /** Indicates whether the connection is active or not. Inactive connections are not included in operations. */
     isActive: boolean;
+    /** A flag indicating whether the connection configuration is valid. */
     isValidConfiguration: boolean;
+    /** Indicates whether the connection can currently sync: true when it is active, its configuration
+is valid, and it has something to sync (for Azure DevOps, at least one active work process or workspace).
+Null for connectors that do not sync, such as Azure OpenAI. */
     canSync?: boolean | undefined;
     $type: string;
 }
@@ -48507,6 +48544,7 @@ export interface AzureDevOpsConnectionListDto extends ConnectionListDto {
 }
 
 export interface AzureDevOpsTeamConfigurationDto {
+    /** Teams that are associated with the workspace. */
     workspaceTeams: AzureDevOpsWorkspaceTeamDto[];
 }
 
@@ -48526,23 +48564,35 @@ export interface AzureDevOpsWorkspaceDto {
 }
 
 export interface AzureDevOpsWorkspaceTeamDto {
+    /** The unique identifier for the workspace in the Azure DevOps system. */
     workspaceId: string;
+    /** The unique identifier for the team in the Azure DevOps system. */
     teamId: string;
+    /** The name of the team in the Azure DevOps system. */
     teamName: string;
+    /** The unique identifier for the board in the Azure DevOps system. */
     boardId?: string | undefined;
+    /** The id of the Wayd team mapped to this Azure DevOps team; null when the team is not mapped. */
     internalTeamId?: string | undefined;
 }
 
 export interface AzureOpenAIConnectionConfigurationDto {
+    /** Azure OpenAI resource URL. */
     baseUrl: string;
+    /** The API key for the Azure OpenAI resource. Returned masked as a fixed-width placeholder. */
     apiKey: string;
+    /** The OpenAI model deployment name to use for this connection (e.g. "gpt-4o") */
     deploymentName: string;
+    /** Default temperature for AI responses (0.0 = deterministic, higher = more random) */
     defaultTemperature: number;
+    /** Default maximum output tokens for AI responses */
     defaultMaxOutputTokens: number;
+    /** Indicates whether JSON mode is preferred for AI responses */
     jsonModePreferred: boolean;
 }
 
 export interface AzureOpenAIConnectionDetailsDto extends ConnectionDetailsDto {
+    /** The configuration for the Azure OpenAI connection. */
     configuration: AzureOpenAIConnectionConfigurationDto;
 }
 
@@ -48565,13 +48615,20 @@ export interface BackgroundJobTypeDto {
     description?: string | undefined;
     order: number;
     groupName: string;
+    /** Whether this type can be registered as a recurring job. Every type can be run on demand
+regardless of this value. */
     isSchedulable: boolean;
 }
 
 export interface BacklogHealthCheckDto {
+    /** The backlog health check this result is for, such as Runway, Net Flow, Stale or Aging WIP. */
     check: SimpleNavigationDto;
+    /** Whether the check was graded: Assessed, Not Enough History or Not Applicable. */
     outcome: SimpleNavigationDto;
+    /** The check's grade: Healthy, At Risk or Unhealthy; null when the check was not assessed. */
     grade?: SimpleNavigationDto | undefined;
+    /** Runway weeks, the Net Flow ratio or the WIP Load for those checks; for every other check, the
+percent (0 to 100) of the work items in scope that were flagged. */
     value?: number | undefined;
     flagged?: number | undefined;
     inScope?: number | undefined;
@@ -48595,6 +48652,7 @@ export interface BacklogHealthThresholds {
     wipLoadUnhealthy: number;
 }
 
+/** A work item on a team's backlog, with the backlog health checks that flagged it. */
 export interface BacklogHealthWorkItemDto {
     id: string;
     key: string;
@@ -48607,26 +48665,36 @@ export interface BacklogHealthWorkItemDto {
     sprint?: WorkIterationNavigationDto | undefined;
     assignedTo?: EmployeeNavigationDto | undefined;
     project?: WorkProjectNavigationDto | undefined;
+    /** The item's estimate in the team's sizing method; null when it has none, or when the team sizes by count. */
     estimate?: number | undefined;
     created: Date;
     lastModified: Date;
     activated?: Date | undefined;
     externalViewWorkItemUrl?: string | undefined;
+    /** The item's position in the team's backlog, 1 being the next to be worked. */
     rank: number;
+    /** The checks that flagged the item, as `BacklogHealthCheck` values. */
     flags: SimpleNavigationDto[];
 }
 
+/** Per-user outcome of a bulk staging run. `stagedUserIds` are the users whose migration was staged; `skipped` lists the ones that no longer qualified, each with a human-readable reason. Eligibility is re-checked on the server, so a submitted list that has gone stale shows up as skipped users. */
 export interface BulkTenantMigrationResult {
     stagedUserIds: string[];
     skipped: SkippedUser[];
     stagedCount: number;
 }
 
+/** Velocity across a team's averaged periods. */
 export interface CadenceVelocitySummaryDto {
+    /** The mean of the periods' values, not a ratio of pooled totals. */
     average: number;
+    /** The lowest period's value. */
     min: number;
+    /** The highest period's value. */
     max: number;
+    /** The population standard deviation of the periods' values. */
     standardDeviation: number;
+    /** How many periods were averaged. */
     periods: number;
 }
 
@@ -48643,9 +48711,14 @@ system default. */
     holidayCalendarId?: string | undefined;
 }
 
+/** The share of production deployments that failed or were rolled back. */
 export interface ChangeFailureRateDto {
+    /** Completed production deployments in the window — the denominator. */
     totalDeployments: number;
+    /** Those that failed or were rolled back — the numerator. */
     failedDeployments: number;
+    /** The failure share from 0 to 1, or `null` when nothing deployed. Null is "no deployments to
+judge", which is not the same as a rate of zero. */
     rate?: number | undefined;
 }
 
@@ -48713,26 +48786,32 @@ export interface CommonEnumDto {
     order: number;
 }
 
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfRoadmapState extends CommonEnumDto {
     code: RoadmapState;
 }
 
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfSprintType extends CommonEnumDto {
     code: SprintType;
 }
 
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfStrategicThemeState extends CommonEnumDto {
     code: StrategicThemeState;
 }
 
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfStrategyStatus extends CommonEnumDto {
     code: StrategyStatus;
 }
 
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfTimeAwayReason extends CommonEnumDto {
     code: TimeAwayReason;
 }
 
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfVisionState extends CommonEnumDto {
     code: VisionState;
 }
@@ -48744,6 +48823,7 @@ in the sprint's completion window, which the sprint details report. */
     completedAt?: Date | undefined;
 }
 
+/** Outcome of the connection's most recent init probe: whether it could authenticate and read the fields Wayd requires, and the organization types it discovered. */
 export interface ConnectionInitResult {
     isValid: boolean;
     workersProbed: number;
@@ -48760,9 +48840,11 @@ export enum Connector {
     Workday = "Workday",
 }
 
+/** A capability a connector supports, with the display category it is grouped under. */
 export interface ConnectorCapabilityDto {
     id: number;
     name: string;
+    /** The display category grouping this capability (e.g. "Work Management"); "Other" when the capability has no category. */
     category: string;
 }
 
@@ -48770,6 +48852,8 @@ export interface ConnectorListDto {
     id: number;
     name: string;
     description?: string | undefined;
+    /** The capabilities this connector supports, each with its display category. Multi-surface
+connectors can support more than one capability while still using one connection. */
     capabilities: ConnectorCapabilityDto[];
 }
 
@@ -48970,6 +49054,7 @@ export interface CreatePersonalAccessTokenRequest {
     expiresAt: Date;
 }
 
+/** The newly created personal access token, including its plaintext value. This is the only time the plaintext token is returned; store it now, as it cannot be retrieved later. */
 export interface CreatePersonalAccessTokenResult {
     id: string;
     name: string;
@@ -49464,10 +49549,15 @@ export interface CurrentJobCountsResponse {
     servers: number;
 }
 
+/** How long a cut version waited before it shipped. */
 export interface CutToReleasedDto {
+    /** Mean days from cut to release, or `null` where nothing measurable shipped. */
     averageDays?: number | undefined;
+    /** How many of the window's releases could be measured. */
     measuredCount: number;
+    /** Releases in the window, measurable or not. */
     releasedCount: number;
+    /** The same mean over the window immediately before this one. */
     previousAverageDays?: number | undefined;
 }
 
@@ -49481,15 +49571,26 @@ clock, because cutting is often recorded after the fact. Required unless the dep
     cutDate?: string | undefined;
 }
 
+/** Cycle-time rollup over a set of completed work items. Carries the underlying count and total so consumers can aggregate across scopes without average-of-averages bias: sum `workItemsCount` and `totalCycleTimeDays` across summaries, then divide the total by the count. */
 export interface CycleTimeSummary {
+    /** Number of completed work items that contributed to this summary: items
+with both an activated and a done timestamp, done after activated. */
     workItemsCount: number;
+    /** Sum of cycle times in days across the contributing items.
+0 when `workItemsCount` is 0; treat that count, not this field,
+as the sign that there is no data. */
     totalCycleTimeDays: number;
+    /** Mean cycle time in days, or null when there are no contributing items.
+To combine summaries, sum `workItemsCount` and `totalCycleTimeDays`
+rather than averaging this value. */
     averageCycleTimeDays?: number | undefined;
 }
 
+/** Releases on one day. */
 export interface DailyReleaseCountDto {
     date: string;
     released: number;
+    /** How many of that day's versions have since been withdrawn. */
     withdrawn: number;
 }
 
@@ -49541,33 +49642,44 @@ export interface DeadLetterMessagesResponse {
     items: DeadLetterMessageResponse[];
 }
 
+/** Outcome of deleting an OIDC provider: either it was deleted, or deletion was refused because users still sign in through it, with how many active identities remain bound. */
 export interface DeleteOidcProviderResult {
     deleted: boolean;
     activeIdentityCount: number;
 }
 
+/** The delivery measures over one window. */
 export interface DeliveryMetricsDto {
+    /** The start of the window these measures cover, inclusive. */
     from: Date;
+    /** The end of the window these measures cover, inclusive. */
     to: Date;
     deploymentFrequency: DeploymentFrequencyDto;
     changeFailureRate: ChangeFailureRateDto;
+    /** The measures this module cannot compute yet, each with the reason. */
     unavailable: UnavailableMetricDto[];
 }
 
+/** Version activity over a window, for one product subtree or the whole catalog. */
 export interface DeliveryOverviewDto {
     scope: DeliveryScopeDto;
     frequency: ReleaseFrequencyDto;
     cutToReleased: CutToReleasedDto;
+    /** The catalog subtree in scope, in reading order, one row per node. */
     activity: ProductActivityDto[];
 }
 
+/** What kind of record an event happened to. */
 export enum DeliveryRecordKind {
     Version = "Version",
     ReleasePackage = "ReleasePackage",
 }
 
+/** What the figures cover. */
 export interface DeliveryScopeDto {
+    /** The selected node, or `null` for the whole catalog. */
     product?: NavigationDto | undefined;
+    /** How many nodes in scope can have versions cut against them. */
     releasableNodeCount: number;
 }
 
@@ -49589,36 +49701,64 @@ export enum DependencyStrength {
     Soft = "Soft",
 }
 
+/** One release or package reaching one environment. */
 export interface DeploymentDto {
     id: string;
     key: number;
+    /** The version deployed, when this deployment carries a single version. Its `name` is the
+version number, which is what a reader identifies it by. */
     version?: NavigationDto | undefined;
+    /** The package deployed, when several components shipped as one unit. Exactly one of this and
+`version` is set. */
     package?: NavigationDto | undefined;
+    /** The environment reached. */
     environment: NavigationDto;
+    /** The environment's category as it stood when this deployment ran. */
     environmentCategory: EnvironmentCategory;
+    /** The build that actually shipped. Free text, never parsed. */
     artifactId?: string | undefined;
     startedAt: Date;
+    /** When it reached a terminal outcome, or null while still in flight. */
     completedAt?: Date | undefined;
+    /** Why it failed or was rolled back, where someone recorded a reason. */
     reason?: string | undefined;
+    /** The deployment's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+    /** The well-known meaning of the outcome. Metrics read this rather than the status name, so a
+renamed outcome still counts. */
     outcome: ProductStatusAlias;
+    /** Whether this deployment has finished, however it finished. */
     isComplete: boolean;
+    /** Whether it counts toward change failure rate. A failure before production is a failure that was
+prevented, so only production counts. */
     isChangeFailure: boolean;
 }
 
+/** A deployment target. */
 export interface DeploymentEnvironmentDto {
     id: string;
     key: number;
     name: string;
+    /** What kind of target this is. Every delivery measure scoped to production counts on this rather
+than on the name, which is free text and endlessly varied. */
     category: EnvironmentCategory;
+    /** Position in a progressive rollout, lowest first. Environments sharing a ring are deployed to
+together; the value carries no meaning beyond ordering. */
     ringOrder: number;
+    /** Whether this environment can still be deployed into. */
     isActive: boolean;
+    /** How many deployments have targeted it, so a caller can see what deactivating would affect. */
     deploymentCount: number;
 }
 
+/** How often production deployments completed over the window. */
 export interface DeploymentFrequencyDto {
+    /** Production deployments that reached their environment in the window. */
     count: number;
+    /** Days the window spans, so a caller can recompute the rate over any period. */
     windowDays: number;
+    /** Deployments per day, or `null` when the window has no duration. Derived — a caller
+combining windows should sum `count` and `windowDays` instead. */
     perDay?: number | undefined;
 }
 
@@ -49632,12 +49772,14 @@ export interface DescriptiveNavigationDtoOfGuidAndInteger {
 export interface DescriptiveNavigationDto extends DescriptiveNavigationDtoOfGuidAndInteger {
 }
 
+/** One Workday organization of a given organization type. `reference` is the organization's stable Workday WID, used for exclusion matching. `displayName` is its human-friendly name (or descriptor). `referenceId` is the tenant-defined business code (e.g. "ENG-001", "COMP-EMEA"), shown as secondary context to tell apart two organizations with the same name; null when the tenant has none. */
 export interface DiscoveredOrg {
     reference: string;
     displayName?: string | undefined;
     referenceId?: string | undefined;
 }
 
+/** One Workday organization type discovered by the connection's init probe, with how many organizations of that type the tenant has. */
 export interface DiscoveredOrgType {
     typeId: string;
     displayName?: string | undefined;
@@ -49657,60 +49799,106 @@ export interface EmployeeAllocationChangeRequest {
     percent: number;
 }
 
+/** A share of an employee's time given to a team, in one role, for a stretch of days. */
 export interface EmployeeAllocationDto {
     id: string;
+    /** The team or team of teams the time is given to. */
     team: TeamNavigationDto;
+    /** The team member role the time is spent in, or null when none was chosen. */
     role?: NavigationDto | undefined;
+    /** The first day of the allocation. */
     start: string;
+    /** The last day of the allocation, or null when it has no end. */
     end?: string | undefined;
+    /** The share of the employee's time, from 1 to 100. */
     percent: number;
+    /** Whether the caller may change this team's allocations. */
     canManage: boolean;
 }
 
 export interface EmployeeDetailsDto {
+    /** The employee's unique identifier. */
     id: string;
+    /** The employee's short numeric key, unique across employees. */
     key: number;
+    /** First and last name, for display. */
     displayName: string;
+    /** The complete name: title, first, middle and last names, and suffix, where present. */
     fullName: string;
+    /** The employee's first name. */
     firstName: string;
+    /** The employee's middle name, or null when none is recorded. */
     middleName?: string | undefined;
+    /** The employee's last name. */
     lastName: string;
+    /** Name suffix such as "Jr." or "III", or null when none is recorded. */
     suffix?: string | undefined;
+    /** Personal title such as "Dr." or "Ms.", or null when none is recorded. Not the job title. */
     title?: string | undefined;
+    /** The employee number assigned by the source system. */
     employeeNumber: string;
+    /** When the employee was hired, or null when unknown. */
     hireDate?: Date | undefined;
+    /** The employee's primary work email address. */
     email: string;
+    /** Every work address this person is known by, `email` included as the primary. Used to match them
+against systems still referencing an address they have moved away from. */
     emails: EmployeeEmailDto[];
+    /** The employee's job title, or null when none is recorded. */
     jobTitle?: string | undefined;
+    /** The employee's department, or null when none is recorded. */
     department?: string | undefined;
+    /** The employee's office location, or null when none is recorded. */
     officeLocation?: string | undefined;
     manager?: EmployeeNavigationDto | undefined;
+    /** Whether the employee is currently active. */
     isActive: boolean;
+    /** Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form, preserved verbatim from the source system; null when not provided. */
     employeeType?: string | undefined;
 }
 
+/** One work address on an employee. Only work addresses are recorded — home and personal addresses are filtered out at the connector. */
 export interface EmployeeEmailDto {
+    /** The address entry's unique identifier. */
     id: string;
+    /** The work email address. */
     email: string;
+    /** Whether this is the employee's primary address — the one the employee's `email` field
+carries and that the rest of the app resolves against. Exactly one address per employee has this. */
     isPrimary: boolean;
 }
 
 export interface EmployeeListDto {
+    /** The employee's unique identifier. */
     id: string;
+    /** The employee's short numeric key, unique across employees. */
     key: number;
+    /** First and last name, for display. */
     displayName: string;
+    /** The employee's first name. */
     firstName: string;
+    /** The employee's middle name, or null when none is recorded. */
     middleName?: string | undefined;
+    /** The employee's last name. */
     lastName: string;
+    /** Name suffix such as "Jr." or "III", or null when none is recorded. */
     suffix?: string | undefined;
+    /** Personal title such as "Dr." or "Ms.", or null when none is recorded. Not the job title. */
     title?: string | undefined;
+    /** The employee number assigned by the source system. */
     employeeNumber: string;
+    /** The employee's primary work email address. */
     email: string;
+    /** The employee's job title, or null when none is recorded. */
     jobTitle?: string | undefined;
+    /** The employee's department, or null when none is recorded. */
     department?: string | undefined;
+    /** The employee's office location, or null when none is recorded. */
     officeLocation?: string | undefined;
     manager?: EmployeeNavigationDto | undefined;
+    /** Whether the employee is currently active. */
     isActive: boolean;
+    /** Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form; null when not provided. */
     employeeType?: string | undefined;
 }
 
@@ -49731,18 +49919,33 @@ export interface NavigationDto extends NavigationDtoOfGuidAndInteger {
 export interface EmployeeNavigationDto extends NavigationDto {
 }
 
+/** When an employee is away from every team they are allocated to, and the holidays they take. */
 export interface EmployeeTimeAwayDto {
+    /** Whether the caller may record, change and remove this employee's time away: the employee, anyone they
+report up to, and a time away administrator. Each stretch's reason is given only when this is true. */
     canManage: boolean;
+    /** How many hours a working day has, from the system settings, so a share of a day can be read and entered in
+hours: 25% of an 8-hour day is 2 hours. */
     workingDayHours: number;
+    /** The holiday calendar the employee follows instead of the system default, or null when they follow the
+system default. */
     holidayCalendar?: NavigationDto | undefined;
+    /** The stretches of time away, in date order. */
     entries: EmployeeTimeAwayEntryDto[];
 }
 
+/** A stretch of days an employee is away for all or part of each day. */
 export interface EmployeeTimeAwayEntryDto {
+    /** The id of the stretch, which the change and remove requests take. */
     id: string;
+    /** The first day away. */
     start: string;
+    /** The last day away. */
     end: string;
+    /** The share of each day the employee is away, from 1 to 100. */
     percentAway: number;
+    /** Why the employee is away. Null unless the caller is the employee, someone they report up to, or a time
+away administrator. */
     reason?: TimeAwayReason | undefined;
 }
 
@@ -49767,16 +49970,25 @@ future. */
 }
 
 export interface EntraConnectionConfigurationDto {
+    /** The Entra ID (Azure AD) tenant identifier. */
     tenantId: string;
+    /** The application (client) identifier for the Entra app registration used to call Microsoft Graph. */
     clientId: string;
+    /** The client secret for the Entra app registration. Returned masked as a fixed-width placeholder. */
     clientSecret: string;
+    /** Optional Entra group object ID to scope the user query to. When null, all member users in
+the tenant are queried. */
     allUsersGroupObjectId?: string | undefined;
+    /** When true, users with disabled accounts are also included in the sync. */
     includeDisabledUsers: boolean;
+    /** The employee field the sync uses to match a synced user to an existing employee. */
     matchBy: EmployeeMatchProperty;
+    /** When true, names that come back from Entra in all-caps are title-cased before storage. */
     normalizeNameCasing: boolean;
 }
 
 export interface EntraConnectionDetailsDto extends ConnectionDetailsDto {
+    /** The configuration for the Entra connection. */
     configuration: EntraConnectionConfigurationDto;
 }
 
@@ -49791,13 +50003,19 @@ export enum EnvironmentCategory {
     Other = "Other",
 }
 
+/** What one environment is running right now, derived from its deployments rather than stored. */
 export interface EnvironmentRolloutDto {
     id: string;
     key: number;
     name: string;
+    /** What kind of target this is. */
     category: EnvironmentCategory;
+    /** Position in a progressive rollout, lowest first. */
     ringOrder: number;
+    /** Whether the environment can still be deployed into. */
     isActive: boolean;
+    /** Everything currently live here, one entry per product. Empty where nothing has ever succeeded
+into it, which is a complete answer rather than missing data. */
     running: RolloutItemDto[];
 }
 
@@ -49823,45 +50041,67 @@ export enum EventActorKind {
     Anonymous = "Anonymous",
 }
 
+/** Exchanges a token issued by an external OIDC provider for a Wayd JWT. The server validates `subjectToken` against the named provider and returns a Wayd JWT carrying the user's permission claims. */
 export interface ExchangeTokenCommand {
+    /** Provider name — e.g., `"MicrosoftEntraId"`. */
     provider: string;
+    /** The token issued by the external provider, to be exchanged. */
     subjectToken: string;
 }
 
 export interface ExpenditureCategoryDetailsDto {
     id: number;
+    /** The name of the expenditure category (e.g., "Opex", "Capex", "Hybrid", etc.). */
     name: string;
+    /** Detailed description of what qualifies under this expenditure category. */
     description: string;
+    /** Tracks the lifecycle of the category (e.g., Proposed, Active, Archived). */
     state: SimpleNavigationDto;
+    /** Defines whether the expenditure is treated as capitalizable. */
     isCapitalizable: boolean;
+    /** Defines whether the expenditure requires asset depreciation tracking. */
     requiresDepreciation: boolean;
+    /** Reporting codes or financial classifications for the expenditure category. */
     accountingCode?: string | undefined;
 }
 
 export interface ExpenditureCategoryListDto {
     id: number;
+    /** The name of the expenditure category (e.g., "Opex", "Capex", "Hybrid", etc.). */
     name: string;
+    /** Tracks the lifecycle of the category (e.g., Proposed, Active, Archived). */
     state: SimpleNavigationDto;
+    /** Defines whether the expenditure is treated as capitalizable. */
     isCapitalizable: boolean;
+    /** Defines whether the expenditure requires asset depreciation tracking. */
     requiresDepreciation: boolean;
+    /** Reporting codes or financial classifications for the expenditure category. */
     accountingCode?: string | undefined;
 }
 
 export interface ExpenditureCategoryOptionDto {
     id: number;
+    /** The name of the expenditure category (e.g., "Opex", "Capex", "Hybrid", etc.). */
     name: string;
     state: string;
 }
 
+/** One external system user and the employee it resolves to, for the connection's People tab. */
 export interface ExternalIdentityMappingDto {
     id: string;
+    /** The external system's stable identifier for this person. */
     externalId: string;
+    /** The email address the external system reports for this person; null when it reports none. */
     email?: string | undefined;
     displayName?: string | undefined;
+    /** The person's account handle in the external system; identifies them when there is no email. */
     handle?: string | undefined;
     employeeId?: string | undefined;
+    /** The mapped employee's first and last name; null when the identity is not mapped to an employee. */
     employeeName?: string | undefined;
+    /** The mapping status: Unmapped, AutoMatched, ManuallyMapped, or Ignored. */
     status: string;
+    /** When a sync last saw this identity on a work item. */
     lastSeen: Date;
 }
 
@@ -49897,12 +50137,16 @@ export interface FeatureFlagListDto {
 export interface ForecastDependencyInfluenceDto {
     predecessor: ForecastWorkItemDto;
     successor: ForecastWorkItemDto;
+    /** The share of trials (0 to 1) in which waiting on the predecessor made the successor
+finish later than its own backlog position allowed. Null when the successor cannot be
+forecast. */
     shareOfTrialsSettingFinish?: number | undefined;
 }
 
 export interface ForecastDependencyLinkDto {
     predecessor: ForecastWorkItemDto;
     successor: ForecastWorkItemDto;
+    /** Why the forecast left the dependency out: Closes a Cycle or Predecessor Removed. */
     reason: SimpleNavigationDto;
 }
 
@@ -49913,14 +50157,18 @@ export interface ForecastHistogramBucketDto {
 
 export interface ForecastIssueDto {
     workItem: ForecastWorkItemDto;
+    /** Why the work item could not be forecast: No Team, Not a Backlog Item or Not Enough History. */
     type: SimpleNavigationDto;
 }
 
 export interface ForecastPercentileDto {
+    /** The share of trials, as a whole percent, that finished on or before `date`. */
     confidence: number;
+    /** Null when that many trials did not finish within the forecast horizon. */
     date?: string | undefined;
 }
 
+/** A team whose throughput a forecast drew on, and the history it was sampled from: whole UTC days, inclusive. */
 export interface ForecastTeamDto {
     team: WorkTeamNavigationDto;
     from: string;
@@ -49935,6 +50183,7 @@ export interface ForecastWorkItemDto {
     title: string;
 }
 
+/** The status a transition moved out of, as it was called at the time. */
 export interface FrozenStatusDto {
     id: string;
     name: string;
@@ -49980,26 +50229,35 @@ export interface HealthStatusDto {
     order: number;
 }
 
+/** A holiday calendar with its holidays. */
 export interface HolidayCalendarDetailsDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
+    /** Whether this is the system default, used by every team operating model that names no calendar. */
     isDefault: boolean;
+    /** How many team operating models name this calendar. A calendar in use cannot be deleted. */
     operatingModelCount: number;
+    /** How many employees follow this calendar instead of the system default. A calendar in use cannot be deleted. */
     employeeCount: number;
+    /** The holidays, in date order. */
     holidays: HolidayDto[];
 }
 
+/** A holiday calendar in a list. */
 export interface HolidayCalendarListDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
+    /** How many holidays the calendar holds, across all years. */
     holidayCount: number;
+    /** Whether this is the system default, used by every team operating model that names no calendar. */
     isDefault: boolean;
 }
 
+/** A day off in a holiday calendar. */
 export interface HolidayDto {
     id: string;
     date: string;
@@ -50029,6 +50287,7 @@ export interface HttpValidationProblemDetails extends ProblemDetails {
     [key: string]: any;
 }
 
+/** What an admin decided about one external identity. */
 export enum IdentityMappingAction {
     Map = "Map",
     Ignore = "Ignore",
@@ -50041,6 +50300,7 @@ export enum ImportAtomicity {
     PerGroup = "PerGroup",
 }
 
+/** One kind of import the caller may see. */
 export interface ImportDefinitionDto {
     key: string;
     displayName: string;
@@ -50217,6 +50477,7 @@ hand-authored file still works. */
     endDate?: string | undefined;
 }
 
+/** One import run, as the person who submitted it sees it. */
 export interface ImportProcessDto {
     id: string;
     importType: string;
@@ -50238,10 +50499,13 @@ export interface ImportProcessDto {
     failedRowCount: number;
     error?: string | undefined;
     canManage: boolean;
+    /** Rows neither applied nor rejected — what a resume would pick up. */
     unappliedRowCount: number;
+    /** Whether the run has finished, so a caller polling it knows when to stop. */
     isTerminal: boolean;
 }
 
+/** A page of runs, with the total so a UI can page without a second call. */
 export interface ImportProcessPageDto {
     processes: ImportProcessDto[];
     totalCount: number;
@@ -50249,6 +50513,7 @@ export interface ImportProcessPageDto {
     pageSize: number;
 }
 
+/** One row's outcome. */
 export interface ImportProcessRowDto {
     id: string;
     importId: string;
@@ -50260,6 +50525,7 @@ export interface ImportProcessRowDto {
     attemptedOn?: Date | undefined;
 }
 
+/** A page of row outcomes, with the total so a UI can page without a second call. */
 export interface ImportProcessRowPageDto {
     rows: ImportProcessRowDto[];
     totalCount: number;
@@ -50700,6 +50966,7 @@ export interface InitWorkspaceIntegrationRequest {
     externalViewWorkItemUrlTemplate?: string | undefined;
 }
 
+/** The moments from `earliest` to `latest`, both included. A null `latest` means the window runs up to now, whenever the caller acts. */
 export interface InstantWindowDto {
     earliest: Date;
     latest?: Date | undefined;
@@ -50760,6 +51027,7 @@ export interface JobsResponse {
     items: JobSummaryResponse[];
 }
 
+/** The job lifecycle states background jobs can be listed by. */
 export enum JobStateFilter {
     Processing = "Processing",
     Scheduled = "Scheduled",
@@ -51055,6 +51323,7 @@ export interface MoveVersionTargetDateRequest {
     targetDate?: string | undefined;
 }
 
+/** Summary of the current user's project involvement, with counts per role. */
 export interface MyProjectsSummaryDto {
     totalCount: number;
     sponsorCount: number;
@@ -51075,6 +51344,7 @@ export interface ObjectIdAndKey {
     key: number;
 }
 
+/** An OIDC identity provider's full configuration, as an administrator edits it. */
 export interface OidcProviderDto {
     id: string;
     name: string;
@@ -51087,11 +51357,17 @@ export interface OidcProviderDto {
     allowedTenantIds?: string[] | undefined;
     clockSkewSeconds: number;
     isEnabled: boolean;
+    /** Whether first-time sign-ins through this provider auto-create an account. */
     allowAutoRegistration: boolean;
+    /** Whether auto-registration is restricted to users with a matching employee
+record. Only meaningful when `allowAutoRegistration` is true. */
     requireEmployeeRecord?: boolean | undefined;
+    /** Role id assigned to auto-created users. Null when auto-registration is
+disabled (a default role is required whenever it's enabled). */
     defaultRoleId?: string | undefined;
 }
 
+/** Public-facing metadata for one registered OIDC provider. Exactly the fields a generic OIDC client (oidc-client-ts, etc.) needs to bootstrap a sign-in. */
 export interface OidcProviderInfo {
     name: string;
     displayName: string;
@@ -51101,6 +51377,7 @@ export interface OidcProviderInfo {
     scopes: string[];
 }
 
+/** An OIDC identity provider as it appears in the list of providers. */
 export interface OidcProviderListItemDto {
     id: string;
     name: string;
@@ -51115,13 +51392,20 @@ export enum OidcProviderType {
     GenericOidc = "GenericOidc",
 }
 
+/** The values a new operating model is pre-filled with. They are suggestions only: a saved model never reads through to its parent or to the system settings. */
 export interface OperatingModelDefaultsDto {
+    /** The IANA id of the parent team of teams' time zone on the start date, or the system default when the
+team had no parent with an operating model then. */
     timeZone: string;
+    /** The name of the team of teams `timeZone` was taken from, or null when it is the system default. */
     timeZoneSource?: string | undefined;
+    /** The system default commitment grace period in days. */
     commitmentGraceDays: number;
+    /** The system default working days, Monday first. */
     workingDays: IsoDayOfWeek[];
 }
 
+/** A team or team of teams in the functional organization chart, with the units beneath it. */
 export interface OrganizationalUnitDto {
     id: string;
     key: number;
@@ -51144,6 +51428,7 @@ export interface OutputInput {
     isPrimary: boolean;
 }
 
+/** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfActivityLogDto {
     items: ActivityLogDto[];
     pageNumber: number;
@@ -51154,15 +51439,18 @@ export interface PagedResponseOfActivityLogDto {
     hasNextPage: boolean;
 }
 
+/** A user on the provider with a staged-but-not-yet-completed tenant migration. `sourceTenantId` is the user's current tenant; `targetTenantId` is the staged destination they'll rebind to on their next sign-in. */
 export interface PendingTenantMigrationDto {
     userId: string;
     userName?: string | undefined;
     email?: string | undefined;
+    /** The tenant of the user's active sign-in identity, or null when the user has no active identity. */
     sourceTenantId?: string | undefined;
     targetTenantId: string;
     stagedAt?: Date | undefined;
 }
 
+/** A personal access token's metadata and status. The token value itself is never included; it is returned only once, when the token is created. */
 export interface PersonalAccessTokenDto {
     id: string;
     name: string;
@@ -51176,53 +51464,90 @@ export interface PersonalAccessTokenDto {
 }
 
 export interface PlanningHealthCheckDto {
+    /** The id of the health check. */
     id: string;
+    /** The status of the health check. */
     status: SimpleNavigationDto;
+    /** The employee who reported the health check. */
     reportedBy: NavigationDto;
+    /** The timestamp of when the health check was reported. */
     reportedOn: Date;
+    /** When the health check expires; from then on it is no longer the current health check. */
     expiration: Date;
+    /** The note for the health check. */
     note?: string | undefined;
 }
 
 export interface PlanningIntervalCalendarDto {
+    /** The Planning Interval Id. */
     id: string;
+    /** The Planning Interval Key. */
     key: number;
+    /** The Planning Interval Name. */
     name: string;
+    /** The planning interval's first day. */
     start: string;
+    /** The planning interval's last day, included in it. */
     end: string;
+    /** The planning interval's iterations, each with its dates. */
     iterationSchedules: LocalScheduleDto[];
 }
 
+/** The capacity of each team in a planning interval, for the whole planning interval and for each of its iterations by the planning interval's own dates, whatever a team's sprint length or cadence. Worked out when read from the teams' allocations; never stored. */
 export interface PlanningIntervalCapacityDto {
+    /** The planning interval's first day. */
     start: string;
+    /** The planning interval's last day. */
     end: string;
+    /** The planning interval's iterations, in date order: the columns each team's capacity is read over. */
     iterations: PlanningIntervalCapacityIterationDto[];
+    /** The teams in the planning interval, teams before teams of teams and then by code. A team of teams is
+counted as its rollup, so a team beneath it that is also in the planning interval is counted in both rows. */
     teams: PlanningIntervalTeamCapacityDto[];
 }
 
+/** A team's capacity over a run of days, in person-days, after holidays, time away and team days off. */
 export interface PlanningIntervalCapacityFiguresDto {
+    /** The time allocated in every role. */
     allocatedPersonDays: number;
+    /** The part of it in roles that count toward delivery capacity. */
     deliveryPersonDays: number;
+    /** The allocated time that people's time away takes, already left out of the other two. */
     awayPersonDays: number;
 }
 
+/** An iteration of a planning interval, as a capacity column. */
 export interface PlanningIntervalCapacityIterationDto {
     id: string;
+    /** The iteration's key, an alternate to its id. */
     key: number;
     name: string;
+    /** The iteration's category, such as Development or Innovation and Planning. */
     category: SimpleNavigationDto;
+    /** The iteration's first day. */
     start: string;
+    /** The iteration's last day. */
     end: string;
 }
 
 export interface PlanningIntervalDetailsDto {
+    /** The planning interval's unique identifier. */
     id: string;
+    /** The planning interval's numeric key, an alternate to its id. */
     key: number;
+    /** The name of the planning interval. */
     name: string;
+    /** The planning interval's description; null when none is set. */
     description?: string | undefined;
+    /** The planning interval's first day. */
     start: string;
+    /** The planning interval's last day, included in it. */
     end: string;
+    /** The current state of the Planning Interval. */
     state: SimpleNavigationDto;
+    /** Whether the planning interval's objectives are locked. While locked, objectives cannot be added or
+deleted, and an update keeps each objective's stored name and stretch flag, ignoring new values without
+an error; its description, status, progress and dates stay editable. */
     objectivesLocked: boolean;
     predictability?: number | undefined;
 }
@@ -51235,23 +51560,37 @@ export interface PlanningIntervalIterationCategoryDto {
 }
 
 export interface PlanningIntervalIterationDetailsDto {
+    /** The primary identifier of the PI iteration. */
     id: string;
+    /** The alternate key of the PI iteration. */
     key: number;
+    /** The name of the PI iteration. */
     name: string;
+    /** The PI iteration start date. */
     start: string;
+    /** The PI iteration end date. */
     end: string;
+    /** The PI iteration state. */
     state: string;
+    /** The PI iteration category. */
     category: SimpleNavigationDto;
     planningInterval: NavigationDto;
 }
 
 export interface PlanningIntervalIterationListDto {
+    /** The primary identifier of the PI iteration. */
     id: string;
+    /** The alternate key of the PI iteration. */
     key: number;
+    /** The name of the PI iteration. */
     name: string;
+    /** The PI iteration start date. */
     start: string;
+    /** The PI iteration end date. */
     end: string;
+    /** The PI iteration state. */
     state: string;
+    /** The PI iteration category. */
     category: SimpleNavigationDto;
 }
 
@@ -51284,13 +51623,21 @@ added, so the estimate totals are null too and only the counts roll up. */
     sprintMetrics: SprintMetricsSummary[];
 }
 
+/** A planning interval iteration with the team sprints mapped to it. */
 export interface PlanningIntervalIterationSprintsDto {
+    /** The primary identifier of the PI iteration. */
     id: string;
+    /** The alternate key of the PI iteration. */
     key: number;
+    /** The name of the PI iteration. */
     name: string;
+    /** The PI iteration start date. */
     start: string;
+    /** The PI iteration end date. */
     end: string;
+    /** The PI iteration category. */
     category: SimpleNavigationDto;
+    /** The sprints mapped to this iteration; empty when none are mapped. */
     sprints: PlanningSprintListDto[];
 }
 
@@ -51307,11 +51654,17 @@ export interface PlanningIntervalIterationUpsertRequest {
 }
 
 export interface PlanningIntervalListDto {
+    /** The planning interval's unique identifier. */
     id: string;
+    /** The planning interval's numeric key, an alternate to its id. */
     key: number;
+    /** The name of the planning interval. */
     name: string;
+    /** The planning interval's first day. */
     start: string;
+    /** The planning interval's last day, included in it. */
     end: string;
+    /** The current state of the Planning Interval. */
     state: SimpleNavigationDto;
 }
 
@@ -51328,29 +51681,47 @@ export interface PlanningIntervalMetricsResponse {
 }
 
 export interface PlanningIntervalObjectiveDetailsDto {
+    /** The objective's unique identifier. */
     id: string;
+    /** The objective's numeric key, an alternate to its id. */
     key: number;
+    /** The name of the objective. */
     name: string;
+    /** The description of the objective. */
     description?: string | undefined;
+    /** The objective's status. */
     status: SimpleNavigationDto;
+    /** The objective's current health check; null when it has none that has not expired. */
     healthCheck?: PlanningHealthCheckDto | undefined;
     progress: number;
     planningInterval: NavigationDto;
     team: PlanningTeamNavigationDto;
+    /** The objective's type. */
     type: SimpleNavigationDto;
+    /** The day work on the objective is planned to start; null when not set. */
     startDate?: string | undefined;
+    /** The day the objective is targeted to be done by; null when not set. */
     targetDate?: string | undefined;
+    /** When the objective moved to a closed status; null while it is open. */
     closedDate?: Date | undefined;
+    /** Whether the objective is a stretch objective rather than a committed one. */
     isStretch: boolean;
 }
 
 export interface PlanningIntervalObjectiveHealthCheckDetailsDto {
+    /** The id of the health check. */
     id: string;
+    /** The id of the parent planning interval objective. */
     planningIntervalObjectiveId: string;
+    /** The status of the health check. */
     status: SimpleNavigationDto;
+    /** The employee who reported the health check. */
     reportedBy: NavigationDto;
+    /** The timestamp of when the health check was reported. */
     reportedOn: Date;
+    /** When the health check expires; from then on it is no longer the objective's current health check. */
     expiration: Date;
+    /** The note for the health check. */
     note?: string | undefined;
 }
 
@@ -51383,18 +51754,28 @@ export interface PlanningIntervalObjectiveHealthCheckDto {
 }
 
 export interface PlanningIntervalObjectiveListDto {
+    /** The objective's unique identifier. */
     id: string;
+    /** The objective's numeric key, an alternate to its id. */
     key: number;
+    /** The name of the objective. */
     name: string;
+    /** The objective's status. */
     status: SimpleNavigationDto;
+    /** The objective's current health check; null when it has none that has not expired. */
     healthCheck?: PlanningHealthCheckDto | undefined;
     planningInterval: NavigationDto;
     team: PlanningTeamNavigationDto;
     progress: number;
+    /** The objective's type. */
     type: SimpleNavigationDto;
+    /** The day work on the objective is planned to start; null when not set. */
     startDate?: string | undefined;
+    /** The day the objective is targeted to be done by; null when not set. */
     targetDate?: string | undefined;
+    /** Whether the objective is a stretch objective rather than a committed one. */
     isStretch: boolean;
+    /** The order of the Objective compared to other Objectives in the same context. */
     order?: number | undefined;
 }
 
@@ -51410,12 +51791,20 @@ export interface PlanningIntervalPredictabilityDto {
     teamPredictabilities: PlanningIntervalTeamPredictabilityDto[];
 }
 
+/** One team's capacity across a planning interval. */
 export interface PlanningIntervalTeamCapacityDto {
     team: PlanningTeamNavigationDto;
+    /** Whether the team is active; an inactive team's allocations can no longer be added to. */
     isActive: boolean;
+    /** Whether anyone is allocated to the team, or to a team beneath a team of teams, at any time in the planning
+interval. A team with no one has nothing to plan with, rather than no time. */
     hasAllocations: boolean;
+    /** The team's capacity over the whole planning interval. */
     total: PlanningIntervalCapacityFiguresDto;
+    /** The team's capacity in each iteration, in the same order as the planning interval's `iterations`. */
     iterations: PlanningIntervalCapacityFiguresDto[];
+    /** The team's sprint days off in the planning interval, in date order: days the whole team is off, already
+left out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup. */
     teamDaysOff: string[];
 }
 
@@ -51436,6 +51825,7 @@ export interface PlanningIntervalTeamMetrics {
 export interface PlanningIntervalTeamPredictabilityDto {
     team: PlanningTeamNavigationDto;
     predictability?: number | undefined;
+    /** Count of non-stretch (committed) objectives for this team. */
     regularObjectivesCount: number;
     stretchObjectivesCount: number;
     completedObjectivesCount: number;
@@ -51457,15 +51847,24 @@ export interface PlanningIntervalTeamResponse {
     teamOfTeams?: TeamNavigationDto | undefined;
 }
 
+/** A sprint mapped to a planning interval, as listed in planning views. */
 export interface PlanningSprintListDto {
     id: string;
+    /** The sprint's numeric key, an alternate to its id. */
     key: number;
+    /** The name of the sprint. */
     name: string;
+    /** The sprint's current state. */
     state: SimpleNavigationDto;
+    /** The first planned day of the sprint. */
     start: string;
+    /** The last planned day of the sprint, included in it. */
     end: string;
+    /** When the sprint became Active. Null for a sprint whose team is not mapped. */
     activeFrom?: Date | undefined;
+    /** When the sprint stops being Active, exclusive. */
     activeUntil?: Date | undefined;
+    /** The IANA time zone the sprint's days are counted in: its team's. */
     timeZone?: string | undefined;
     team: PlanningTeamNavigationDto;
 }
@@ -51548,46 +51947,72 @@ export interface PokerVoteDto {
     submittedOn: Date;
 }
 
+/** Score breakdown for a portfolio's ranking board: the portfolio's current scoring model definition plus, per project, the criterion ratings and output values from that project's current score — but only when the current score was produced by the portfolio's current model. Projects scored under a different or older model, or not yet scored, are left out. */
 export interface PortfolioRankingScoreboardDto {
+    /** The portfolio's current scoring model definition, or null if no model is assigned. */
     scoringModel?: ScoringModelDetailsDto | undefined;
+    /** Per-project score breakdown for the current model; projects with no current-model score are omitted. */
     projects: ProjectRankingScoreDto[];
 }
 
+/** One node of the catalog subtree, with its releases day by day. */
 export interface ProductActivityDto {
     product: NavigationDto;
+    /** How far beneath the scope's root this node sits, so the view can indent without walking the
+tree a second time. Zero for a node at the top of the scope. */
     depth: number;
+    /** Whether versions can be cut against this node. */
     isReleasable: boolean;
+    /** Days with at least one release. A day with none is absent rather than zero. */
     days: DailyReleaseCountDto[];
+    /** The product's releases across the whole window. */
     totalReleased: number;
 }
 
+/** A product's dependencies in both directions, rolled up across everything beneath it. */
 export interface ProductDependenciesDto {
+    /** Links from the product, or anything beneath it, to products outside it. */
     dependsOn: ProductDependencyDto[];
+    /** Links from products outside it to the product, or anything beneath it. */
     usedBy: ProductDependencyDto[];
 }
 
+/** One product depending on another over a period. */
 export interface ProductDependencyDto {
     id: string;
+    /** The product that has the dependency. */
     product: NavigationDto;
+    /** The product depended on. */
     dependsOnProduct: NavigationDto;
     strength: DependencyStrength;
+    /** How the product reaches the one it depends on, both where it calls and subscribes, or `null`
+where nobody has recorded it. */
     interactionStyles?: InteractionStyle[] | undefined;
     description?: string | undefined;
+    /** The day the dependency began. */
     startsOn: string;
+    /** The last day the dependency held, or `null` while it still holds. */
     endsOn?: string | undefined;
+    /** Everything `product` sits inside, from its root down to its parent. */
     productPath: NavigationDto[];
+    /** Everything `dependsOnProduct` sits inside, from its root down to its parent. */
     dependsOnProductPath: NavigationDto[];
 }
 
+/** A product node as a list or detail row. */
 export interface ProductDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
     externalId?: string | undefined;
+    /** The node's type, which decides whether releases can be cut against it. */
     type: NavigationDto;
+    /** Whether releases can be cut against this node. */
     isReleasable: boolean;
+    /** The parent node, or `null` for a root. */
     parent?: NavigationDto | undefined;
+    /** The node's current lifecycle status. */
     status: StatusNavigationDto;
     tags: ProductTagDto[];
 }
@@ -51606,14 +52031,19 @@ export enum ProductStatusAlias {
     RolledBack = "RolledBack",
 }
 
+/** A tag axis and the tags on it. */
 export interface ProductTagCategoryDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
+    /** Whether a product can carry several tags from this axis. */
     allowsMany: boolean;
+    /** Display position when presenting the axes. Presentation only. */
     order: number;
+    /** Whether products can still be tagged along this axis. */
     isActive: boolean;
+    /** Platform-seeded axes are read-only: they cannot be edited or deleted. */
     isSystem: boolean;
     tags: ProductTagOptionDto[];
 }
@@ -51630,48 +52060,80 @@ export interface ProductTagOptionDto {
     name: string;
     description?: string | undefined;
     isActive: boolean;
+    /** How many products currently carry this tag, so a caller can see what deactivating would affect. */
     productCount: number;
 }
 
+/** A product type as a catalog row. */
 export interface ProductTypeDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
+    /** Whether releases can be cut against nodes of this type. */
     isReleasable: boolean;
+    /** Display position when presenting the catalog. Presentation only. */
     order: number;
+    /** Whether new products can still be created with this type. */
     isActive: boolean;
+    /** Platform-seeded types are read-only: deactivate rather than delete or edit. */
     isSystem: boolean;
+    /** How many products currently carry this type. Lets a caller see what deactivating would affect. */
     productCount: number;
 }
 
 export interface ProgramDetailsDto {
     id: string;
+    /** The program's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the program. */
     name: string;
+    /** A detailed description of the program's purpose and scope. */
     description: string;
+    /** The current status of the program. */
     status: LifecycleNavigationDto;
+    /** The program start date. */
     start?: string | undefined;
+    /** The program end date. */
     end?: string | undefined;
+    /** The portfolio associated with this program. */
     portfolio: NavigationDto;
+    /** The sponsors of the program. */
     programSponsors: EmployeeNavigationDto[];
+    /** The owners of the program. */
     programOwners: EmployeeNavigationDto[];
+    /** The managers of the program. */
     programManagers: EmployeeNavigationDto[];
+    /** The strategic themes associated with this program. */
     strategicThemes: NavigationDto[];
+    /** Whether the current user may manage this program — change its status, edit its details, or assign
+its roles. True when the user is an Owner or Manager of the program or of its parent portfolio, or
+holds the domain-wide PPM administrator grant. Sponsors are excluded.
+A hint for which actions to offer; the server enforces the same rule on every change. */
     canManageProgram: boolean;
 }
 
 export interface ProgramListDto {
     id: string;
+    /** The program's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the program. */
     name: string;
+    /** The current status of the program. */
     status: LifecycleNavigationDto;
+    /** The program start date. */
     start?: string | undefined;
+    /** The program end date. */
     end?: string | undefined;
+    /** The portfolio associated with this program. */
     portfolio: NavigationDto;
+    /** The sponsors of the program. */
     programSponsors: EmployeeNavigationDto[];
+    /** The owners of the program. */
     programOwners: EmployeeNavigationDto[];
+    /** The managers of the program. */
     programManagers: EmployeeNavigationDto[];
+    /** The strategic themes associated with this program. */
     strategicThemes: NavigationDto[];
 }
 
@@ -51684,6 +52146,7 @@ export enum ProgramStatus {
 
 export interface ProgramStatusDto {
     id: number;
+    /** The status's stable name, as status filters accept it. */
     code: ProgramStatus;
     name: string;
     description?: string | undefined;
@@ -51693,30 +52156,65 @@ export interface ProgramStatusDto {
 
 export interface ProjectDetailsDto {
     id: string;
+    /** The project's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: string;
+    /** The name of the project. */
     name: string;
+    /** A concise summary of what the project delivers and its scope. */
     description: string;
+    /** The strategic justification for the project — why it should be funded.
+Captures the problem being solved or opportunity being pursued and the strategic rationale. */
     businessCase?: string | undefined;
+    /** The specific, measurable outcomes expected upon successful delivery.
+Examples: revenue growth, cost savings, compliance achievement, efficiency improvements. */
     expectedBenefits?: string | undefined;
+    /** The current status of the project. */
     status: LifecycleNavigationDto;
+    /** The expenditure category associated with the project. */
     expenditureCategory: SimpleNavigationDto;
+    /** The project start date. */
     start?: string | undefined;
+    /** The project end date. */
     end?: string | undefined;
+    /** The portfolio associated with this project. */
     portfolio: NavigationDto;
+    /** The program associated with this project. */
     program?: NavigationDto | undefined;
+    /** The sponsors of the project. */
     projectSponsors: EmployeeNavigationDto[];
+    /** The owners of the project. */
     projectOwners: EmployeeNavigationDto[];
+    /** The managers of the project. */
     projectManagers: EmployeeNavigationDto[];
+    /** The members of the project team. */
     projectMembers: EmployeeNavigationDto[];
+    /** The strategic themes associated with this project. */
     strategicThemes: NavigationDto[];
+    /** The strategic initiatives this project is supporting. */
     strategicInitiatives: NavigationDto[];
+    /** The project lifecycle assigned to this project. */
     projectLifecycle?: DescriptiveNavigationDto | undefined;
+    /** The project stages, ordered by display order. */
     stages: ProjectStageListDto[];
+    /** The current (non-expired) health check for this project, or null if none exists. */
     healthCheck?: ProjectHealthCheckDto | undefined;
+    /** Whether the current user can manage this project (record health checks, scores, and other
+delivery-management actions). True when the user is an Owner or Manager of the project, its
+portfolio, or its program, or holds the domain-wide PPM administrator grant. Sponsors and project
+Members are excluded. */
     canManageProject: boolean;
+    /** The earlier statuses this project can be reverted to right now, in lifecycle order; empty when it is
+already at the start of its lifecycle or meets no target's requirements — a project cancelled from
+Proposed with no lifecycle or dates offers nothing. Each listed status is a revert the server will
+accept, provided the caller can manage the project. */
     backwardStatusTargets: LifecycleNavigationDto[];
+    /** The scoring model assigned to the project's portfolio, or null if scoring is not enabled. */
     portfolioScoringModel?: NavigationDto | undefined;
+    /** A summary of the project's most recent score, or null if it has not been scored. */
     currentScore?: ScoreSummaryDto | undefined;
+    /** The project's fractional rank sort key within its portfolio: an opaque value, not the displayed
+position. Every project is ranked from creation. Sort ascending to order projects by rank; not for
+display. */
     rank: number;
 }
 
@@ -51784,24 +52282,49 @@ export enum ProjectLifecycleState {
 
 export interface ProjectListDto {
     id: string;
+    /** The project's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: string;
+    /** The name of the project. */
     name: string;
+    /** The current status of the project. */
     status: LifecycleNavigationDto;
+    /** The project start date. */
     start?: string | undefined;
+    /** The project end date. */
     end?: string | undefined;
+    /** The portfolio associated with this project. */
     portfolio: NavigationDto;
+    /** The program associated with this project. */
     program?: NavigationDto | undefined;
+    /** The sponsors of the project. */
     projectSponsors: EmployeeNavigationDto[];
+    /** The owners of the project. */
     projectOwners: EmployeeNavigationDto[];
+    /** The managers of the project. */
     projectManagers: EmployeeNavigationDto[];
+    /** The members of the project. */
     projectMembers: EmployeeNavigationDto[];
+    /** The strategic themes associated with this project. */
     strategicThemes: NavigationDto[];
+    /** The project lifecycle assigned to this project. */
     projectLifecycle?: NavigationDto | undefined;
+    /** The project stages, ordered by display order. */
     stages: ProjectStageListDto[];
+    /** The current (non-expired) health check for this project, or null if none exists. */
     healthCheck?: ProjectHealthCheckSummaryDto | undefined;
+    /** The denormalised summary of the project's most recent score, or null if it has not been scored. */
     currentScore?: ScoreSummaryDto | undefined;
+    /** The project's fractional rank sort key within its portfolio: an opaque value, not the displayed
+position. Every project is ranked, so this is always set. Sort ascending to order projects by rank;
+not for display. */
     rank: number;
+    /** The project's 1-based display position within its portfolio's ranking, derived at read time
+from `rank`. Null only when the result is not scoped to a single portfolio (a
+cross-portfolio position would be meaningless). */
     position?: number | undefined;
+    /** Whether the current user can manage this project (record health checks, scores, etc.). True when
+the user is an Owner or Manager of the project, its portfolio, or its program, or holds the
+domain-wide PPM administrator grant. Sponsors and project Members are excluded. */
     canManageProject: boolean;
 }
 
@@ -51813,60 +52336,96 @@ export enum ProjectMemberRole {
     Assignee = "Assignee",
 }
 
+/** Unified DTO for the project plan tree that includes both stages and tasks as nodes. */
 export interface ProjectPlanNodeDto {
     id: string;
+    /** The type of node: "Stage" or "Task". */
     nodeType: string;
     name: string;
     status: SimpleNavigationDto;
     order: number;
+    /** The Work Breakdown Structure code (e.g., "1" for stages, "1.1.2" for tasks). */
     wbs: string;
     start?: string | undefined;
     end?: string | undefined;
     progress: number;
     assignees: EmployeeNavigationDto[];
+    /** The child nodes (tasks under a stage, or sub-tasks under a task). */
     children: ProjectPlanNodeDto[];
+    /** The task key (e.g., "PROJ-123"). Null for stage nodes. */
     key?: string | undefined;
+    /** The task type (Task or Milestone). Null for stage nodes. */
     type?: SimpleNavigationDto | undefined;
+    /** The task priority. Null for stage nodes. */
     priority?: SimpleNavigationDto | undefined;
+    /** The parent task ID. Null for root tasks and stage nodes. */
     parentId?: string | undefined;
+    /** The stage ID this task belongs to. Null for stage nodes. */
     projectStageId?: string | undefined;
+    /** The milestone planned date. Null for non-milestone tasks and stage nodes. */
     plannedDate?: string | undefined;
+    /** The estimated effort in hours. Null for stage nodes. */
     estimatedEffortHours?: number | undefined;
 }
 
+/** Summary metrics for a project's plan, computed from leaf tasks. */
 export interface ProjectPlanSummaryDto {
+    /** Tasks past their end date that are Not Started or In Progress. */
     overdue: number;
+    /** Tasks due by end of this week (Saturday) that are Not Started or In Progress. */
     dueThisWeek: number;
+    /** Tasks due next week (Sunday through Saturday) that are Not Started or In Progress. */
     upcoming: number;
+    /** Total number of leaf tasks in the project plan. */
     totalLeafTasks: number;
 }
 
 export interface ProjectPortfolioDetailsDto {
     id: string;
+    /** The portfolio's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the portfolio. */
     name: string;
+    /** A detailed description of the portfolio’s purpose. */
     description: string;
+    /** The status of the portfolio. */
     status: LifecycleNavigationDto;
+    /** The scoring model assigned to the portfolio, or null if scoring is not enabled. */
     scoringModel?: NavigationDto | undefined;
+    /** The sponsors of the portfolio. */
     portfolioSponsors: EmployeeNavigationDto[];
+    /** The owners of the portfolio. */
     portfolioOwners: EmployeeNavigationDto[];
+    /** The managers of the portfolio. */
     portfolioManagers: EmployeeNavigationDto[];
+    /** Whether the current user may manage this portfolio — change its status, edit its details, or assign
+its roles. True when the user is an Owner or Manager of the portfolio, or holds the domain-wide PPM
+administrator grant. Sponsors are excluded.
+A hint for which actions to offer; the server enforces the same rule on every change. */
     canManagePortfolio: boolean;
 }
 
 export interface ProjectPortfolioListDto {
     id: string;
+    /** The portfolio's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the portfolio. */
     name: string;
+    /** The description of the portfolio. */
     description: string;
+    /** The status of the portfolio. */
     status: LifecycleNavigationDto;
+    /** The sponsors of the portfolio. */
     portfolioSponsors: EmployeeNavigationDto[];
+    /** The owners of the portfolio. */
     portfolioOwners: EmployeeNavigationDto[];
+    /** The managers of the portfolio. */
     portfolioManagers: EmployeeNavigationDto[];
 }
 
 export interface ProjectPortfolioOptionDto {
     id: string;
+    /** The name of the portfolio. */
     name: string;
 }
 
@@ -51880,6 +52439,7 @@ export enum ProjectPortfolioStatus {
 
 export interface ProjectPortfolioStatusDto {
     id: number;
+    /** The status's stable name, as status filters accept it. */
     code: ProjectPortfolioStatus;
     name: string;
     description?: string | undefined;
@@ -51887,12 +52447,16 @@ export interface ProjectPortfolioStatusDto {
     lifecycleCategory: string;
 }
 
+/** A single project's current-model score breakdown for the ranking board. */
 export interface ProjectRankingScoreDto {
     projectId: string;
+    /** Criterion ratings from the current-model score; empty when there is no matching score. */
     ratings: ProjectScoreRatingDto[];
+    /** Output values from the current-model score; empty when there is no matching score. */
     outputs: ProjectScoreOutputDto[];
 }
 
+/** The full frozen snapshot of a recorded project score, including every criterion rating and computed output value as they were at scoring time. */
 export interface ProjectScoreDetailsDto {
     id: string;
     projectId: string;
@@ -51925,6 +52489,7 @@ export interface ProjectScoreRatingDto {
     order: number;
 }
 
+/** A history-list view of a recorded project score: the headline values without the full rating breakdown. */
 export interface ProjectScoreSummaryDto {
     id: string;
     sequence: number;
@@ -51937,9 +52502,15 @@ export interface ProjectScoreSummaryDto {
     outputs: ProjectScoreOutputDto[];
 }
 
+/** What is needed to record a score for a project: the assigned model's definition (its criteria and rating scales), whether that model is archived, and the project's current score (to seed a re-score). */
 export interface ProjectScoringContextDto {
+    /** The assigned scoring model's definition (criteria, scales, outputs). Null when the portfolio has
+no model assigned. */
     scoringModel?: ScoringModelDetailsDto | undefined;
+    /** True when the assigned model is no longer active (archived). Scoring still works, but the form
+should warn and nudge an admin to assign a newer model. */
     scoringModelArchived: boolean;
+    /** The project's current score, or null if it has never been scored. Used to seed a re-score. */
     currentScore?: ProjectScoreDetailsDto | undefined;
 }
 
@@ -51965,9 +52536,13 @@ export interface ProjectStageListDto {
     progress: number;
 }
 
+/** Aggregated task metrics across the projects an employee is involved in. */
 export interface ProjectsTaskMetricsDto {
+    /** Open tasks past their planned end date. */
     overdue: number;
+    /** Open tasks due by end of this week (Saturday). */
     dueThisWeek: number;
+    /** Open tasks due next week (Sunday through Saturday). */
     upcoming: number;
 }
 
@@ -51981,6 +52556,7 @@ export enum ProjectStatus {
 
 export interface ProjectStatusDto {
     id: number;
+    /** The status's stable name, as status filters accept it. */
     code: ProjectStatus;
     name: string;
     description?: string | undefined;
@@ -51991,41 +52567,70 @@ export interface ProjectStatusDto {
 export interface ProjectStatusHistoryDto {
     id: string;
     projectId: string;
+    /** The status the project moved out of, or null when the project entered its initial state. */
     fromStatus?: LifecycleNavigationDto | undefined;
+    /** The status the project moved into. */
     toStatus: LifecycleNavigationDto;
+    /** The employee who made the change, or null when it was made by the system or by a user with no
+employee link at the time. */
     changedBy?: NavigationDto | undefined;
+    /** Whether the change was made by the system rather than a person. Use this, not a null
+`changedBy`, to tell the two apart: a signed-in user with no employee link also has a null
+`changedBy`. */
     changedBySystem: boolean;
     changedOn: Date;
+    /** Whether the row was recorded as the transition happened or reconstructed from the audit trail. */
     source: SimpleNavigationDto;
     reason?: string | undefined;
 }
 
+/** Detailed DTO for a project task with full information including assignments. */
 export interface ProjectTaskDto {
+    /** The unique identifier of the task. */
     id: string;
+    /** The task key in the format {ProjectCode}-{Number} (e.g., "APOLLO-1"). */
     key: string;
+    /** The unique identifier of the parent project. */
     projectId: string;
+    /** The name of the task. */
     name: string;
+    /** A detailed description of the task. */
     description?: string | undefined;
+    /** The task type (Task or Milestone). */
     type: SimpleNavigationDto;
+    /** The current status of the task. */
     status: SimpleNavigationDto;
+    /** The priority of the task. */
     priority: SimpleNavigationDto;
+    /** The assignees of the project task. */
     assignees: EmployeeNavigationDto[];
+    /** The progress of the task as a percentage (0 to 100). */
     progress: number;
+    /** The order of the task within its parent. */
     order: number;
+    /** The unique identifier of the parent task (null for root tasks). */
     parentId?: string | undefined;
+    /** The unique identifier of the project stage this task belongs to. */
     projectStageId: string;
+    /** The parent task navigation information. */
     parent?: ProjectTaskNavigationDto | undefined;
+    /** The planned start date for regular tasks. */
     plannedStart?: string | undefined;
+    /** The planned end date for regular tasks. */
     plannedEnd?: string | undefined;
+    /** The planned date for milestones. */
     plannedDate?: string | undefined;
+    /** The estimated effort in hours. */
     estimatedEffortHours?: number | undefined;
 }
 
+/** Represents an object's ID and task key (e.g., "APOLLO-1"). */
 export interface ProjectTaskIdAndKey {
     id: string;
     key: string;
 }
 
+/** Lightweight DTO for a project task in list views. */
 export interface ProjectTaskListDto {
     id: string;
     key: string;
@@ -52034,7 +52639,9 @@ export interface ProjectTaskListDto {
     type: SimpleNavigationDto;
     status: SimpleNavigationDto;
     priority: SimpleNavigationDto;
+    /** The assignees of the project task. */
     assignees: EmployeeNavigationDto[];
+    /** The progress of the task as a percentage (0 to 100). */
     progress: number;
     order: number;
     parentId?: string | undefined;
@@ -52045,6 +52652,7 @@ export interface ProjectTaskListDto {
     estimatedEffortHours?: number | undefined;
 }
 
+/** Navigation DTO for a project task. */
 export interface ProjectTaskNavigationDto {
     id: string;
     key: string;
@@ -52058,10 +52666,15 @@ export interface ProjectTaskTypeDto {
     order: number;
 }
 
+/** Represents a team member on a project with their roles, assigned stages, and active workload. */
 export interface ProjectTeamMemberDto {
+    /** The employee on the project team. */
     employee: EmployeeNavigationDto;
+    /** The project roles assigned to this team member (e.g., Sponsor, Owner, Manager, Member). */
     roles: string[];
+    /** The names of the stages this team member is assigned to, ordered by stage order. */
     assignedStages: string[];
+    /** The number of active leaf tasks (Not Started or In Progress) assigned to this team member. */
     activeWorkItemCount: number;
 }
 
@@ -52074,16 +52687,25 @@ any automatic choice the operator overrode. */
     decisions: StatusRemapDecisionRequest[];
 }
 
+/** One thing that happened to a version or a package, most recent first. */
 export interface RecentDeliveryEventDto {
     recordId: string;
     recordKey: number;
+    /** Which record this happened to, so a caller knows where the link goes. */
     kind: DeliveryRecordKind;
+    /** The product the version was cut against. Null for a package, which spans several. */
     product?: NavigationDto | undefined;
+    /** The version number, or the package's own version. Free text, never parsed. */
     label: string;
+    /** The status reached, as the organization named it. */
     statusName: string;
+    /** The well-known meaning of that status. */
     alias: ProductStatusAlias;
+    /** When the record moved into this status. */
     changedOn: Date;
+    /** When the record shipped, where it has shipped. */
     releasedAt?: Date | undefined;
+    /** How many components the package shipped. Null for a version. */
     componentCount?: number | undefined;
 }
 
@@ -52119,54 +52741,80 @@ export interface RefreshTokenCommand {
     refreshToken: string;
 }
 
+/** What was announced to customers, and the versions and packages that carried it. */
 export interface ReleaseDto {
     id: string;
     key: number;
+    /** The product this release is announced under, or `null` where it spans product lines. */
     product?: NavigationDto | undefined;
+    /** The release's own version label. Free text, never parsed. */
     version: string;
     name?: string | undefined;
+    /** Product notes, written for customers. */
     notes?: string | undefined;
+    /** A manual ordering override, used only where chronology misleads. */
     sequence?: number | undefined;
     targetDate?: string | undefined;
     releasedDate?: string | undefined;
+    /** The release's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+    /** The versions this release announces directly, outside any package. */
     versions: ReleaseVersionDto[];
+    /** The packages this release shipped. */
     packages: ReleasePackageSummaryDto[];
 }
 
+/** How often versions shipped. */
 export interface ReleaseFrequencyDto {
     count: number;
     windowDays: number;
     perWeek: number;
+    /** The same measure over the window immediately before this one, or `null` where nothing
+shipped then. */
     previousPerWeek?: number | undefined;
 }
 
 export interface ReleasePackageComponentDto {
+    /** The component this entry is for. */
     product: NavigationDto;
+    /** The version record this line came from, where one was recorded. Its `name` is that
+version's number, which may differ from `version` if the manifest was hand-authored. */
     versionRecord?: NavigationDto | undefined;
+    /** The component version in this package. Free text, never parsed. */
     version: string;
+    /** Whether the component changed in this package or was carried forward unchanged. */
     kind: ManifestEntryKind;
 }
 
+/** A coordinated shipment of several component releases. */
 export interface ReleasePackageDto {
     id: string;
     key: number;
+    /** The package's own version, distinct from any component's. Free text, never parsed. */
     version: string;
     name?: string | undefined;
     targetDate?: string | undefined;
     releasedAt?: Date | undefined;
+    /** The package's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
     components: ReleasePackageComponentDto[];
 }
 
+/** One package a release shipped. */
 export interface ReleasePackageSummaryDto {
+    /** The package. Its `name` is the package version. */
     package: NavigationDto;
+    /** When that package shipped, or `null` while it has not. */
     releasedAt?: Date | undefined;
 }
 
+/** One version a release announces directly. */
 export interface ReleaseVersionDto {
+    /** The version record. Its `name` is the version number. */
     version: NavigationDto;
+    /** The product that version was cut against. */
     product?: NavigationDto | undefined;
+    /** When that version shipped, or `null` while it has not. */
     releasedAt?: Date | undefined;
 }
 
@@ -52280,8 +52928,11 @@ export interface ResetPasswordRequest {
     newPassword: string;
 }
 
+/** How a resume left the run. */
 export interface ResumedImport {
+    /** Rows that will be attempted. */
     queuedRowCount: number;
+    /** Rows that cannot be, because the retention sweep took their data. */
     skippedRowCount: number;
 }
 
@@ -52369,36 +53020,55 @@ export interface RiskStatusDto {
 }
 
 export interface RoadmapItemDetailsDto {
+    /** The roadmap item Id. */
     id: string;
+    /** The roadmap Id. */
     roadmapId: string;
+    /** The name of the roadmap item. */
     name: string;
+    /** The description of the roadmap item. */
     description?: string | undefined;
+    /** The type of roadmap item. */
     type: SimpleNavigationDto;
+    /** The parent roadmap activity. */
     parent?: RoadmapActivityNavigationDto | undefined;
+    /** The color of the roadmap item. Must be a valid hex color code. */
     color?: string | undefined;
     $type: string;
 }
 
 export interface RoadmapActivityDetailsDto extends RoadmapItemDetailsDto {
+    /** The Roadmap Activity start date. */
     start: string;
+    /** The Roadmap Activity end date. */
     end: string;
+    /** The order of the Roadmap Activity within its parent. */
     order: number;
     children: RoadmapItemDetailsDto[];
 }
 
 export interface RoadmapItemListDto {
+    /** The roadmap item Id. */
     id: string;
+    /** The roadmap Id. */
     roadmapId: string;
+    /** The name of the roadmap item. */
     name: string;
+    /** The type of roadmap item. */
     type: SimpleNavigationDto;
+    /** The parent roadmap activity. */
     parent?: RoadmapActivityNavigationDto | undefined;
+    /** The color of the roadmap item. Must be a valid hex color code. */
     color?: string | undefined;
     $type: string;
 }
 
 export interface RoadmapActivityListDto extends RoadmapItemListDto {
+    /** The Roadmap Activity start date. */
     start: string;
+    /** The Roadmap Activity end date. */
     end: string;
+    /** The order of the Roadmap Activity within its parent. */
     order: number;
     children: RoadmapItemListDto[];
 }
@@ -52409,42 +53079,67 @@ export interface RoadmapActivityNavigationDto {
 }
 
 export interface RoadmapColorDto {
+    /** The color, as a hex code (e.g. "#4096FF"). */
     color: string;
+    /** The caption describing what the color represents on this Roadmap. */
     name: string;
+    /** The order of the color within the Roadmap's configured colors. */
     order: number;
+    /** Whether this is the default color applied to activities that have no color of their own. */
     isDefault: boolean;
 }
 
 export interface RoadmapDetailsDto {
+    /** The roadmap's unique identifier. */
     id: string;
+    /** The roadmap's numeric key, an alternate to its id. */
     key: number;
+    /** The name of the Roadmap. */
     name: string;
+    /** The description of the Roadmap. */
     description?: string | undefined;
+    /** The Roadmap start date. */
     start: string;
+    /** The Roadmap end date. */
     end: string;
+    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
     visibility: SimpleNavigationDto;
+    /** The state of the Roadmap. */
     state: SimpleNavigationDto;
+    /** The managers of the Roadmap. */
     roadmapManagers: EmployeeNavigationDto[];
+    /** The colors configured on the Roadmap, ordered by their configured order. */
     colors: RoadmapColorDto[];
 }
 
 export interface RoadmapListDto {
+    /** The roadmap's unique identifier. */
     id: string;
+    /** The roadmap's numeric key, an alternate to its id. */
     key: number;
+    /** The name of the Roadmap. */
     name: string;
+    /** The Roadmap start date. */
     start: string;
+    /** The Roadmap end date. */
     end: string;
+    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
     visibility: SimpleNavigationDto;
+    /** The state of the Roadmap. */
     state: SimpleNavigationDto;
+    /** The color of the Roadmap. Must be a valid hex color code. */
     color?: string | undefined;
+    /** The managers of the Roadmap. */
     roadmapManagers: EmployeeNavigationDto[];
 }
 
 export interface RoadmapMilestoneDetailsDto extends RoadmapItemDetailsDto {
+    /** The Roadmap Milestone date. */
     date: string;
 }
 
 export interface RoadmapMilestoneListDto extends RoadmapItemListDto {
+    /** The Roadmap Milestone date. */
     date: string;
 }
 
@@ -52457,12 +53152,16 @@ export interface RoadmapStateDto extends CommonEnumDtoOfRoadmapState {
 }
 
 export interface RoadmapTimeboxDetailsDto extends RoadmapItemDetailsDto {
+    /** The Roadmap Timebox start date. */
     start: string;
+    /** The Roadmap Timebox end date. */
     end: string;
 }
 
 export interface RoadmapTimeboxListDto extends RoadmapItemListDto {
+    /** The Roadmap Timebox start date. */
     start: string;
+    /** The Roadmap Timebox end date. */
     end: string;
 }
 
@@ -52487,15 +53186,24 @@ export interface RollBackDeploymentRequest {
     rolledBackAt?: Date | undefined;
 }
 
+/** One product currently live in an environment, and the deployment that put it there. */
 export interface RolloutItemDto {
+    /** The deployment this was read from, so a caller can open the record behind the answer. */
     deploymentId: string;
     deploymentKey: number;
+    /** The product running. */
     product: NavigationDto;
+    /** The version record, where one is recorded in Wayd. */
     version?: NavigationDto | undefined;
+    /** The version as it should be read, whether or not a version record backs it. Free text. */
     versionLabel: string;
+    /** The package that carried it, where it arrived inside one rather than on its own. */
     package?: NavigationDto | undefined;
+    /** The build that actually shipped, where one was recorded. Free text, never parsed. */
     artifactId?: string | undefined;
+    /** When it reached the environment. */
     deployedAt: Date;
+    /** Whether a later deployment touching this product failed or was rolled back here. */
     hasFailedAttemptSince: boolean;
 }
 
@@ -52516,8 +53224,12 @@ export interface ScaleLevelInput {
 export interface SchedulingSettingsDto {
     defaultTimeZone: string;
     defaultCommitmentGraceDays: number;
+    /** The days of the week new team operating models work, Monday first. */
     defaultWorkingDays: IsoDayOfWeek[];
+    /** The holiday calendar of every team operating model that has none of its own, or null for none. Carries its
+name, so someone who may view the settings but not list the calendars still sees which it is. */
     defaultHolidayCalendar?: NavigationDto | undefined;
+    /** How many hours a working day has, which time away entered in hours is a share of. */
     workingDayHours: number;
 }
 
@@ -52533,10 +53245,12 @@ export interface ScopedDependencyDto {
     comment?: string | undefined;
 }
 
+/** A summary of a project's current score: the score, when it was recorded, who recorded it, and the scoring model used. */
 export interface ScoreSummaryDto {
     value: number;
     scoredOn: Date;
     scoringModelId: string;
+    /** The employee who recorded the score. May be null if the scorer is not found. */
     scoredBy?: EmployeeNavigationDto | undefined;
     scoringModelName: string;
 }
@@ -52575,6 +53289,7 @@ export interface ScoringModelDetailsDto {
     outputs: ScoringModelOutputDto[];
 }
 
+/** The result of evaluating a scoring model against a set of supplied criterion values. Carries every output value (in evaluation order) plus the primary score, so callers can preview formula results. */
 export interface ScoringModelEvaluationDto {
     primaryValue: number;
     outputs: ScoringModelOutputValueDto[];
@@ -52611,6 +53326,7 @@ export interface ScoringModelOutputRequest {
     isPrimary: boolean;
 }
 
+/** A single named output value produced by an evaluation. */
 export interface ScoringModelOutputValueDto {
     token: string;
     name: string;
@@ -52833,45 +53549,83 @@ export interface SprintBacklogItemDto {
     externalViewWorkItemUrl?: string | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    /** The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated. */
     effort?: number | undefined;
+    /** The size estimate, the CMMI process's requirement estimate; null when unestimated. */
     size?: number | undefined;
     tags: string[];
     cycleTime?: number | undefined;
 }
 
+/** A sprint's burn-up and burn-down, worked out from work item history: its scope and completed work at the commitment point, at the end of each of its days in the team's zone, and at the effective end — or now, for a sprint that has not ended. Counts and estimates both, so a viewer can switch unit without refetching. */
 export interface SprintBurnDto {
+    /** The sprint the burn is of. */
     sprintId: string;
+    /** The estimate the burn is measured in: its team's sizing method on the sprint's planned start, or Count
+for a sprint with no team. */
     sizingMethod: SizingMethod;
+    /** The commitment point, where the burn and its ideal line start. */
     effectiveStart: Date;
+    /** The effective end, where the ideal line reaches zero. */
     effectiveEnd: Date;
+    /** The IANA zone the sprint's days are counted in. */
     timeZone: string;
+    /** Whether a workspace holding the sprint's work has not had its history read through to the end, so the
+burn may be missing changes. */
     historyIncomplete: boolean;
+    /** The work committed at the commitment point, where the ideal burn-down line starts. */
     committed: SprintScopeMeasureDto;
+    /** The readings, in time order; empty before the commitment point. */
     points: SprintBurnPointDto[];
+    /** The ideal burn-down over the whole sprint, however much has passed: points at the commitment point, the
+start of each day in the team's zone, and the effective end, joined by straight lines. It falls only on
+the days the team works — its working week, less holidays and team days off — and stays flat on the rest. */
     ideal: SprintIdealPointDto[];
 }
 
+/** One reading of a sprint's burn. */
 export interface SprintBurnPointDto {
+    /** When the reading was taken. */
     at: Date;
+    /** The team's calendar day the reading closes. */
     day: string;
+    /** The work in scope at the reading. */
     scope: SprintScopeMeasureDto;
+    /** The part of the scope in a Done- or Removed-category status at the reading. */
     completed: SprintScopeMeasureDto;
 }
 
+/** A sprint's capacity over its planned dates, in person-days, beside its scope and what that capacity is expected to deliver. Worked out when read from the team's allocations and recent sprints; never stored. */
 export interface SprintCapacityDto {
     sprintId: string;
+    /** The first planned day of the sprint, which the capacity is counted from. */
     start: string;
+    /** The last planned day of the sprint, which the capacity is counted to. */
     end: string;
+    /** The time allocated to the team over the sprint's planned dates in every role, in person-days, after holidays and time away. */
     allocatedPersonDays: number;
+    /** The part of it in roles that count toward delivery capacity, in person-days. What the scope is set against. */
     deliveryPersonDays: number;
+    /** The allocated time that people's time away takes, in person-days; already left out of the other two. */
     awayPersonDays: number;
+    /** Whether anyone is allocated to the team on any of the sprint's planned dates, whatever holidays, time away
+and team days off leave of it. False is a team that does not plan capacity, rather than one whose people
+are all away. */
     hasAllocations: boolean;
+    /** The estimate `scope` and `expectedScope` are in: the sprint's sizing method. */
     sizingMethod: SizingMethod;
+    /** Which scope is set against the capacity: the work planned so far before the commitment point, the committed work after it. */
     scopeBasis: SprintCapacityScopeBasis;
+    /** The scope, by count under Count and otherwise in `sizingMethod`. An item with no estimate adds nothing. */
     scope: number;
+    /** Whether the scope could be compared with what the capacity is expected to deliver, and if not, why. */
     outcome: SprintCapacityOutcome;
+    /** What the capacity is expected to deliver, in the scope's unit: the team's velocity per person-day of
+delivery capacity over its recent completed sprints, times this sprint's. Null unless compared. */
     expectedScope?: number | undefined;
+    /** How many completed sprints `expectedScope` was drawn from. */
     priorSprints: number;
+    /** Whether the scope is more than `expectedScope`. Never true for a completed sprint. */
     isOverCapacity: boolean;
 }
 
@@ -52889,56 +53643,111 @@ export enum SprintCapacityScopeBasis {
 
 export interface SprintDetailsDto {
     id: string;
+    /** The sprint's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the sprint. */
     name: string;
+    /** The sprint's state now, worked out from its actual and default dates when read. */
     state: SimpleNavigationDto;
+    /** The first planned day of the sprint. */
     start: string;
+    /** The last planned day of the sprint, included in it. */
     end: string;
     team: WorkTeamNavigationDto;
+    /** Whether the sprint's team is active. An inactive team's allocations can no longer be added to, so its
+capacity plan is read-only. */
     teamIsActive: boolean;
+    /** When the team started the sprint, if it did. */
     started?: Date | undefined;
+    /** When the team completed the sprint, if it did. */
     completed?: Date | undefined;
+    /** When the sprint became Active: `started`, or by default the start of its first planned day
+in `timeZone`, never before the previous sprint ended. `state` is Future before
+it. Null for a sprint whose team is not mapped or that has no planned dates. */
     activeFrom?: Date | undefined;
+    /** When the sprint stops being Active, exclusive: `completed`, or by default the end of its last
+planned day, cut to the next sprint's start where the two overlap. A sprint that runs to the end of a day
+ends at the next midnight, so its last day is the one before. */
     activeUntil?: Date | undefined;
+    /** The IANA time zone the sprint's planned days are counted in: its team's on the planned start. */
     timeZone?: string | undefined;
+    /** Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
+offsite, in date order. Those managing the sprint (`canManageSprint`) can change them. */
     teamDaysOff: string[];
+    /** The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
+the team names none: days the team is already off, so never a team day off. Empty without a team or dates. */
     holidays: string[];
+    /** The days of the week the team works during the sprint, from its operating model on the sprint's planned
+start. Empty without a team or dates. */
     workingDays: IsoDayOfWeek[];
+    /** Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
+the team's sprint metrics. Worked out when read: see `sprintTypeSource`. */
     sprintType: SprintType;
+    /** Where `sprintType` came from: the team, the mapped planning interval iteration's category,
+or the default. Those managing the sprint (`canManageSprint`) can set or clear the team's. */
     sprintTypeSource: SprintTypeSource;
+    /** Whether the source system plans this sprint to overlap the team's previous sprint. */
     overlapsPreviousSprint: boolean;
+    /** Whether the source system plans this sprint to overlap the team's next sprint. */
     overlapsNextSprint: boolean;
+    /** Whether the caller may start, complete or reopen the sprint: a member of its team or team of teams
+holding the permission, or an administrator. */
     canManageSprint: boolean;
+    /** Whether the sprint's lifecycle allows starting it now, whoever asks. */
     canStart: boolean;
+    /** The moments the sprint can be recorded as started, now or earlier. Null when it can't be started. */
     startWindow?: InstantWindowDto | undefined;
+    /** Whether the sprint's lifecycle allows completing it now, whoever asks. */
     canComplete: boolean;
+    /** The moments the sprint can be recorded as completed, now or earlier. Null when it can't be completed. */
     completeWindow?: InstantWindowDto | undefined;
+    /** Whether the sprint's lifecycle allows reopening it now, whoever asks. */
     canReopen: boolean;
+    /** Another sprint of the team that is still open, which starting this one completes. */
     openSprint?: NavigationDto | undefined;
 }
 
+/** A point on a sprint's ideal burn-down. */
 export interface SprintIdealPointDto {
+    /** When the point falls. */
     at: Date;
+    /** The share of the committed work still expected to remain: 1 at the commitment point, 0 at the effective
+end. Multiply by the committed work in either unit. */
     remaining: number;
 }
 
 export interface SprintListDto {
     id: string;
+    /** The sprint's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the sprint. */
     name: string;
+    /** The sprint's state now, worked out from its actual and default dates when read. */
     state: SimpleNavigationDto;
+    /** The first planned day of the sprint. */
     start: string;
+    /** The last planned day of the sprint, included in it. */
     end: string;
     team: WorkTeamNavigationDto;
+    /** When the team started the sprint, if it did. */
     started?: Date | undefined;
+    /** When the team completed the sprint, if it did. */
     completed?: Date | undefined;
+    /** Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
+the team's sprint metrics. Worked out when read: see `sprintTypeSource`. */
     sprintType: SprintType;
+    /** Where `sprintType` came from: the team, the mapped planning interval iteration's category,
+or the default. */
     sprintTypeSource: SprintTypeSource;
 }
 
+/** A sprint's velocity, predictability and say/do in one unit. */
 export interface SprintMetricFiguresDto {
+    /** What was completed while in the sprint, including work completed as Removed. */
     velocity: number;
+    /** Velocity ÷ committed, up to 1; null when there is no commitment in this unit. */
     predictability?: number | undefined;
+    /** Completed of committed ÷ committed; null when there is no commitment in this unit. */
     sayDo?: number | undefined;
 }
 
@@ -52949,6 +53758,8 @@ export enum SprintMetricsExclusion {
 }
 
 export interface SprintMetricsSettingsDto {
+    /** How many of a team's most recent completed standard sprints its velocity, predictability and say/do
+are averaged over. */
     sprintWindow: number;
 }
 
@@ -52986,33 +53797,59 @@ Count every estimate equals its item count. */
     cycleTime: CycleTimeSummary;
 }
 
+/** Each metric summarized across the sprints that have a value for it; null when none has. */
 export interface SprintMetricSummariesDto {
     velocity?: SprintMetricSummaryDto | undefined;
     predictability?: SprintMetricSummaryDto | undefined;
     sayDo?: SprintMetricSummaryDto | undefined;
 }
 
+/** One metric across a team's sprints. */
 export interface SprintMetricSummaryDto {
+    /** The mean of the sprints' values, not a ratio of their pooled totals. */
     average: number;
+    /** The lowest sprint's value. */
     min: number;
+    /** The highest sprint's value. */
     max: number;
+    /** The population standard deviation of the sprints' values. */
     standardDeviation: number;
+    /** How many sprints had a value for this metric. */
     sprints: number;
 }
 
+/** What a sprint committed to and what became of it, worked out from work item history between the sprint's effective start and end. Only requirement-tier work counts. A sprint that has not ended is measured up to now, and one that has not reached its commitment point has no scope yet. */
 export interface SprintScopeDto {
+    /** The sprint the scope is of. */
     sprintId: string;
+    /** The estimate the report is measured in: its team's sizing method on the sprint's planned start, or
+Count for a sprint with no team. Under Count every estimate equals its item count. */
     sizingMethod: SizingMethod;
+    /** The commitment point: what was in the sprint here is committed. */
     effectiveStart: Date;
+    /** Whether the effective start is the team's recorded start rather than the default. */
     startIsActual: boolean;
+    /** The effective end: what is in the sprint here is completed or carried over. */
     effectiveEnd: Date;
+    /** Whether the effective end is the team's recorded completion rather than the default. */
     endIsActual: boolean;
+    /** The start of the sprint's last day. Unfinished work moved to the team's next sprint from here on is
+carried over; before it, descoped. */
     lastDay: Date;
+    /** The IANA zone the sprint's days are counted in. */
     timeZone: string;
+    /** Whether the sprint has a team. A sprint with none is counted in the system default zone and grace
+period, by item count. */
     hasTeam: boolean;
+    /** Whether the history of a workspace holding the sprint's work has not yet been read through to the end.
+The figures are then unreliable, and a full sync completes them. */
     historyIncomplete: boolean;
+    /** The items summed by category. */
     totals: SprintScopeTotalsDto;
+    /** The ideal burn-down from the commitment point to the effective end, which the sprint's health measures
+progress against: falling only on the days the team works. The same line as the sprint burn's. */
     ideal: SprintIdealPointDto[];
+    /** Each requirement-tier work item that was in the sprint's scope, in backlog order. */
     items: SprintScopeItemDto[];
 }
 
@@ -53021,18 +53858,31 @@ export enum SprintScopeEntry {
     Added = "Added",
 }
 
+/** A work item that was in the sprint's scope, as it is now, with how it came in and what became of it. */
 export interface SprintScopeItemDto {
+    /** The work item as it is now; its current sprint may be another one. */
     workItem: SprintBacklogItemDto;
+    /** Whether the item was committed or added. */
     entry: SprintScopeEntry;
+    /** What became of the item: completed, completed as Removed, carried over, descoped or remaining. */
     outcome: SprintScopeOutcome;
+    /** When an added item was added to the sprint; null for a committed one. */
     addedAt?: Date | undefined;
+    /** When the item was last removed from the sprint — moved to another iteration or out of the requirement
+tier; not when it reached a Removed status. Null if it was still in at the effective end, or is still
+in a sprint that has not ended. */
     removedAt?: Date | undefined;
+    /** The item's estimate when it was committed or added. */
     entryEstimate?: number | undefined;
+    /** The item's estimate when it was last in the sprint. */
     outcomeEstimate?: number | undefined;
 }
 
+/** How many items, and how much estimate, fall in one category. A missing estimate adds nothing. */
 export interface SprintScopeMeasureDto {
+    /** The number of items. */
     count: number;
+    /** The sum of their estimates in the report's sizing method. */
     estimate: number;
 }
 
@@ -53044,20 +53894,41 @@ export enum SprintScopeOutcome {
     Remaining = "Remaining",
 }
 
+/** A sprint's scope summed by category. Committed and Added are measured with the estimate each item had when it came in; the outcomes with the estimate it had when it was last in the sprint. */
 export interface SprintScopeTotalsDto {
+    /** Every item that was in scope, measured like the outcomes: the sum of Completed, Carried Over, Descoped
+and Remaining. By count it also equals Committed plus Added; by estimate it need not, since an item
+re-estimated during the sprint comes in at one estimate and leaves at another. */
     total: SprintScopeMeasureDto;
+    /** Items in the sprint at its commitment point, at their estimate then. */
     committed: SprintScopeMeasureDto;
+    /** Items that entered the sprint after its commitment point, at their estimate when added. */
     added: SprintScopeMeasureDto;
+    /** Completed items, including those completed as Removed. */
     completed: SprintScopeMeasureDto;
+    /** The part of `completed` completed as Removed. */
     removed: SprintScopeMeasureDto;
+    /** Unfinished items still in the sprint at its effective end, or moved to the team's next sprint on or
+after its last day. */
     carriedOver: SprintScopeMeasureDto;
+    /** Unfinished items taken out of the sprint before its last day, or on it for somewhere other than the
+team's next sprint. */
     descoped: SprintScopeMeasureDto;
+    /** Unfinished work still in a sprint that has not ended. */
     remaining: SprintScopeMeasureDto;
+    /** Committed items that were completed, measured with their committed estimate so it compares with
+`committed`. */
     completedOfCommitted: SprintScopeMeasureDto;
+    /** Completed of committed ÷ committed, by item count; null when nothing was committed. */
     sayDoCount?: number | undefined;
+    /** Completed of committed ÷ committed, by estimate; null when the committed work had no estimate. */
     sayDoEstimate?: number | undefined;
+    /** Completed ÷ committed by item count, up to 1: how much of what the team committed to it delivered,
+letting finished added work stand in for committed work. Null when nothing was committed. */
     predictabilityCount?: number | undefined;
+    /** Completed ÷ committed by estimate, up to 1; null when the committed work had no estimate. */
     predictabilityEstimate?: number | undefined;
+    /** Items with no value in the sprint's estimate when they were last in the sprint. */
     unestimated: number;
 }
 
@@ -53066,6 +53937,7 @@ export enum SprintType {
     NonStandard = "NonStandard",
 }
 
+/** A sprint type, with the code a sprint carries and the request to set one accepts. */
 export interface SprintTypeDto extends CommonEnumDtoOfSprintType {
 }
 
@@ -53075,10 +53947,14 @@ export enum SprintTypeSource {
     Default = "Default",
 }
 
+/** Work item metrics for a single sprint, as item counts and as estimates in the sprint's sizing method. Only requirement-tier work counts: tasks are left out, and bugs count only where the process puts them at the requirement level. */
 export interface SprintWorkItemMetricsDto {
     sprintId: string;
+    /** The estimate the sprint is measured in: its team's sizing method on the sprint's planned start, or
+Count for a sprint with no team. Under Count every estimate equals its item count. */
     sizingMethod: SizingMethod;
     totalWorkItems: number;
+    /** The sum of every item's estimate in `sizingMethod`; unestimated items add nothing. */
     totalEstimate: number;
     completedWorkItems: number;
     completedEstimate: number;
@@ -53086,7 +53962,10 @@ export interface SprintWorkItemMetricsDto {
     inProgressEstimate: number;
     notStartedWorkItems: number;
     notStartedEstimate: number;
+    /** Items with no value in `sizingMethod`. An estimate of 0 is an estimate. */
     unestimatedWorkItems: number;
+    /** Cycle-time rollup for the sprint. Carries count and total so callers can
+aggregate across sprints without average-of-averages bias. */
     cycleTime: CycleTimeSummary;
 }
 
@@ -53146,10 +54025,16 @@ export enum StatusCategory {
     Removed = "Removed",
 }
 
+/** The status a record currently holds, as a reader needs it. */
 export interface StatusNavigationDto {
     id: string;
+    /** What the status was called when the record last moved. Frozen, so renaming a status does not
+rewrite what past records read as. */
     name: string;
+    /** The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on. */
     category: StatusCategory;
+    /** The well-known meaning the status carries, as the consuming module's alias value, or
+`0` when it carries none. */
     alias: number;
 }
 
@@ -53161,35 +54046,57 @@ export interface StatusRemapDecisionRequest {
     toStatusId: string;
 }
 
+/** Where one status would send its records. */
 export interface StatusRemapEntryDto {
+    /** The status records currently hold. */
     from: WorkflowStatusDto;
+    /** The status they would move to, or null when nothing could be chosen for them. */
     to?: WorkflowStatusDto | undefined;
+    /** Why this row was matched — Alias, Name, Category, or Unresolved. */
     matchedBy: string;
+    /** How many records currently hold this status. */
     recordCount: number;
 }
 
+/** How each status of the current workflow would land in the target, before anything is committed. */
 export interface StatusRemapPreviewDto {
+    /** The workflow the scope is on now. */
     from: NavigationDto;
+    /** The workflow it would move to. */
     to: NavigationDto;
+    /** One entry per status of the current workflow, in display order. */
     entries: StatusRemapEntryDto[];
+    /** Whether every status already has a target. The domain refuses an incomplete remap. */
     isComplete: boolean;
+    /** How many records the reassignment would move. */
     affectedRecordCount: number;
 }
 
+/** One status change from a record's history, as a reader needs it. */
 export interface StatusTransitionDto {
     id: string;
+    /** Orders the history as it actually happened. */
     sequence: number;
+    /** The status moved out of, or `null` when the record entered its initial status. */
     fromStatus?: FrozenStatusDto | undefined;
+    /** The status moved into. */
     toStatus: StatusNavigationDto;
+    /** The workflow that governed this change. */
     workflowId: string;
+    /** The mechanism that made the change — a user, an import, a sync, the platform. */
     actorKind: SimpleNavigationDto;
+    /** The person who made the change, or `null` when none can be named. */
     changedBy?: NavigationDto | undefined;
+    /** The account behind the change, where there was one. */
     changedByUser?: UserNavigationDto | undefined;
+    /** Whether the platform made the change on its own behalf. */
     changedBySystem: boolean;
     changedOn: Date;
+    /** Why the change was made, where a reason was recorded. */
     reason?: string | undefined;
 }
 
+/** A workflow with its statuses and what may currently be done to it. */
 export interface StatusWorkflowDetailsDto {
     id: string;
     key: number;
@@ -53200,21 +54107,26 @@ export interface StatusWorkflowDetailsDto {
     isSystem: boolean;
     isAssigned: boolean;
     statuses: WorkflowStatusDto[];
+    /** The required aliases this workflow does not yet carry, named rather than numbered. */
     missingRequiredAliases: string[];
+    /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
     canEdit: boolean;
     canPublish: boolean;
     canArchive: boolean;
 }
 
+/** A workflow as it appears in the list. */
 export interface StatusWorkflowListDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
+    /** The kind of record this workflow governs. */
     owner: WorkflowOwnerNavigationDto;
     state: string;
     isSystem: boolean;
     statusCount: number;
+    /** Whether any scope currently uses this workflow. Archiving is refused while it does. */
     isAssigned: boolean;
 }
 
@@ -53231,6 +54143,7 @@ export interface StoryMapChecklistItemDto {
     order: number;
 }
 
+/** The full Story Map: its goals (each with steps and tasks), swim lanes, and personas. */
 export interface StoryMapDetailsDto {
     id: string;
     key: number;
@@ -53251,6 +54164,7 @@ export interface StoryMapGoalDto {
     steps: StoryMapStepDto[];
 }
 
+/** A Story Map summarised for lists: name, description, owner, and status, without its content. */
 export interface StoryMapListDto {
     id: string;
     key: number;
@@ -53302,14 +54216,23 @@ export interface StoryMapTaskDto {
 
 export interface StrategicInitiativeDetailsDto {
     id: string;
+    /** The strategic initiative's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the strategic initiative. */
     name: string;
+    /** A detailed explanation of what the strategic initiative aims to achieve. */
     description: string;
+    /** The status of the strategic initiative. */
     status: LifecycleNavigationDto;
+    /** The strategic initiative start date. */
     start?: string | undefined;
+    /** The strategic initiative end date. */
     end?: string | undefined;
+    /** The portfolio associated with this strategic initiative. */
     portfolio: NavigationDto;
+    /** The sponsors of the strategic initiative. */
     strategicInitiativeSponsors: EmployeeNavigationDto[];
+    /** The owners of the strategic initiative. */
     strategicInitiativeOwners: EmployeeNavigationDto[];
 }
 
@@ -53334,30 +54257,51 @@ export interface StrategicInitiativeKpiCheckpointDto {
 
 export interface StrategicInitiativeKpiDetailsDto {
     id: string;
+    /** The KPI's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the KPI. */
     name: string;
+    /** The description detailing what the KPI measures. */
     description?: string | undefined;
+    /** The starting (baseline) value of the KPI. Used to track progress relative to where the KPI began. */
     startingValue?: number | undefined;
+    /** The target value that defines success for the KPI. */
     targetValue: number;
+    /** The actual value of the KPI. */
     actualValue?: number | undefined;
+    /** The progress towards the KPI target, calculated based on the starting value, actual value, target value, and target direction. */
     progress?: number | undefined;
+    /** An optional prefix symbol displayed before the numeric value (e.g. "$"). */
     prefix?: string | undefined;
+    /** An optional suffix symbol displayed after the numeric value (e.g. "%", "M"). */
     suffix?: string | undefined;
+    /** Whether the KPI succeeds by increasing or by decreasing toward its target value. */
     targetDirection: KpiTargetDirection;
+    /** The display order of the KPI within its strategic initiative. Lower values appear first. */
     order: number;
 }
 
 export interface StrategicInitiativeKpiListDto {
     id: string;
+    /** The KPI's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the KPI. */
     name: string;
+    /** The starting (baseline) value of the KPI. Used to track progress relative to where the KPI began. */
     startingValue?: number | undefined;
+    /** The target value that defines success for the KPI. */
     targetValue: number;
+    /** The actual value of the KPI. */
     actualValue?: number | undefined;
+    /** The progress towards the KPI target, calculated based on the starting value, actual value, target value, and target direction. */
     progress?: number | undefined;
+    /** An optional prefix symbol displayed before the numeric value (e.g. "$"). */
     prefix?: string | undefined;
+    /** An optional suffix symbol displayed after the numeric value (e.g. "%", "M"). */
     suffix?: string | undefined;
+    /** Whether the KPI succeeds by increasing or by decreasing toward its target value. */
     targetDirection: KpiTargetDirection;
+    /** The display order of the KPI within its strategic initiative. Lower values appear first. */
     order: number;
 }
 
@@ -53371,13 +54315,21 @@ export interface StrategicInitiativeKpiMeasurementDto {
 
 export interface StrategicInitiativeListDto {
     id: string;
+    /** The strategic initiative's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the strategic initiative. */
     name: string;
+    /** The status of the strategic initiative. */
     status: LifecycleNavigationDto;
+    /** The strategic initiative start date. */
     start?: string | undefined;
+    /** The strategic initiative end date. */
     end?: string | undefined;
+    /** The portfolio associated with this strategic initiative. */
     portfolio: NavigationDto;
+    /** The sponsors of the strategic initiative. */
     strategicInitiativeSponsors: EmployeeNavigationDto[];
+    /** The owners of the strategic initiative. */
     strategicInitiativeOwners: EmployeeNavigationDto[];
 }
 
@@ -53392,6 +54344,7 @@ export enum StrategicInitiativeStatus {
 
 export interface StrategicInitiativeStatusDto {
     id: number;
+    /** The status's stable name, as status filters accept it. */
     code: StrategicInitiativeStatus;
     name: string;
     description?: string | undefined;
@@ -53400,23 +54353,35 @@ export interface StrategicInitiativeStatusDto {
 }
 
 export interface StrategicThemeDetailsDto {
+    /** The unique identifier of the strategic theme. */
     id: string;
+    /** The strategic theme's unique, human-readable number; an alternate key to `id`. */
     key: number;
+    /** The name of the strategic theme, highlighting its focus or priority. */
     name: string;
+    /** A detailed description of the strategic theme and its importance. */
     description: string;
+    /** The current lifecycle state of the strategic theme. */
     state: SimpleNavigationDto;
 }
 
 export interface StrategicThemeListDto {
+    /** The unique identifier of the strategic theme. */
     id: string;
+    /** The strategic theme's unique, human-readable number; an alternate key to `id`. */
     key: number;
+    /** The name of the strategic theme, highlighting its focus or priority. */
     name: string;
+    /** The current lifecycle state of the strategic theme. */
     state: SimpleNavigationDto;
 }
 
 export interface StrategicThemeOptionDto {
+    /** The unique identifier of the strategic theme. */
     id: string;
+    /** The name of the strategic theme, highlighting its focus or priority. */
     name: string;
+    /** The current lifecycle state of the strategic theme. */
     state: string;
 }
 
@@ -53430,21 +54395,34 @@ export interface StrategicThemeStateDto extends CommonEnumDtoOfStrategicThemeSta
 }
 
 export interface StrategyDetailsDto {
+    /** The unique identifier of the strategy. */
     id: string;
+    /** The strategy's unique, human-readable number; an alternate key to `id`. */
     key: number;
+    /** The concise statement describing the strategy and its purpose or focus area. */
     name: string;
+    /** A detailed description of the strategy. */
     description: string;
+    /** The current status of the strategy (e.g., Draft, Active, Completed, Archived). */
     status: SimpleNavigationDto;
+    /** The date when the strategy was initiated or became active. */
     start?: string | undefined;
+    /** The date when the strategy was completed, archived, or ended. */
     end?: string | undefined;
 }
 
 export interface StrategyListDto {
+    /** The unique identifier of the strategy. */
     id: string;
+    /** The strategy's unique, human-readable number; an alternate key to `id`. */
     key: number;
+    /** The concise statement describing the strategy and its purpose or focus area. */
     name: string;
+    /** The current status of the strategy (e.g., Draft, Active, Completed, Archived). */
     status: SimpleNavigationDto;
+    /** The date when the strategy was initiated or became active. */
     start?: string | undefined;
+    /** The date when the strategy was completed, archived, or ended. */
     end?: string | undefined;
 }
 
@@ -53483,6 +54461,9 @@ export interface SyncRunDetailsDto {
     workItemsProcessed: number;
     errorsCount: number;
     errorMessage?: string | undefined;
+    /** Connector-specific per-run details as a JSON string. The shape varies by connector
+category: work-sync runs carry an array of workspace details, people-sync runs carry a
+single employees summary object. */
     detailsJson?: string | undefined;
 }
 
@@ -53542,201 +54523,374 @@ export interface TaskStatusDto {
     order: number;
 }
 
+/** Allocations a team could start from: its members, in the roles they hold, at what is left of their time. Nothing in it is saved. */
 export interface TeamAllocationProposalDto {
+    /** The first day the proposed allocations would cover. */
     from: string;
+    /** One row per member and role, by member name and then role name. A member who already has time on the
+team on `from` has no rows. */
     rows: TeamAllocationProposalRowDto[];
 }
 
+/** A proposed allocation of a member's time to the team in one role. */
 export interface TeamAllocationProposalRowDto {
+    /** The member whose time is proposed. */
     employee: NavigationDto;
+    /** The team member role the member holds. */
     role: NavigationDto;
+    /** Whether the role's time adds to the team's delivery capacity. */
     countsTowardDeliveryCapacity: boolean;
+    /** The last day the proposed allocation would cover: the day before the member's next allocation to the
+team, so that one is left as it is. Null, for no end, when they have none. */
     end?: string | undefined;
+    /** What is left of the member's time across all teams, from 0 to 100: 100 less their most allocated day
+from the proposal's `from` to this row's `end`. Zero means they have none to give. */
     remainingPercent: number;
+    /** The share proposed for this role, from 0 to 100: the member's remaining time split evenly between the
+roles they hold on the team. */
     percent: number;
 }
 
+/** A team's backlog graded against a set of thresholds. */
 export interface TeamBacklogHealthDto {
     team: WorkTeamNavigationDto;
+    /** The thresholds the backlog was graded against: the defaults, with any the caller overrode. */
     thresholds: BacklogHealthThresholds;
+    /** Days of history, ending yesterday (UTC), that throughput, cycle time and net flow were measured over. */
     lookbackDays: number;
     from: string;
     to: string;
+    /** The team's sizing method today, which every estimate in the report is in. A team that sizes by count has
+no estimates, so its estimate checks are not applicable. */
     sizingMethod: SizingMethod;
     totalWorkItems: number;
+    /** The sum of the open work items' estimates in `sizingMethod`; under Count, the number of items. */
     totalEstimate: number;
     proposedWorkItems: number;
     activeWorkItems: number;
+    /** Backlog work items the team completed in the lookback window. */
     itemsCompleted: number;
+    /** Backlog work items created for the team in the lookback window and not since removed. */
     itemsCreated: number;
+    /** The completed work items the history needs before the checks that measure the team against its own past are graded. */
     minimumItemsCompleted: number;
+    /** The team's members, or null when the team is not known to the organization. */
     memberCount?: number | undefined;
+    /** The number of top-ranked work items the readiness checks looked at. */
     readinessWindowWorkItems: number;
+    /** The cycle time, in days, an active work item is flagged beyond. Null without enough history. */
     agingWipDays?: number | undefined;
+    /** The estimate, in `sizingMethod`, a work item is flagged as oversized above. Null without
+enough history, or when the team sizes by count. */
     oversizedEstimate?: number | undefined;
     checks: BacklogHealthCheckDto[];
+    /** Every open backlog work item, first-ranked first. */
     workItems: BacklogHealthWorkItemDto[];
 }
 
+/** A Kanban team's velocity over its reporting cadence: what it completed in each recent period, from done dates, and the average and spread across them. Worked out when read, and never stored. There is no commitment, so no predictability or say/do. */
 export interface TeamCadenceMetricsDto {
+    /** The team the metrics are of. */
     teamId: string;
+    /** How many ended periods the window holds when full: the number asked for, or else int TeamCadenceMetricsDto.DefaultPeriodWindow. */
     periodWindow: number;
+    /** The organization's window, from the sprint metrics setting, which team pages are measured over. */
     defaultPeriodWindow: number;
+    /** The length in weeks of the team's cadence now, or null when it has none. A team can have periods from an
+earlier cadence while having none now. */
     cadenceWeeks?: number | undefined;
+    /** The estimate CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate is measured in: the team's sizing method now. Under Count
+CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate equals CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByCount. */
     sizingMethod: SizingMethod;
+    /** Velocity by item count across the ended, whole periods; null when there are none. */
     byCount?: CadenceVelocitySummaryDto | undefined;
+    /** Velocity in SizingMethod TeamCadenceMetricsDto.SizingMethod across the ended, whole periods measured in it; null when there are
+none. Estimates in different units are never averaged. */
     byEstimate?: CadenceVelocitySummaryDto | undefined;
+    /** The current period, if any, then up to int TeamCadenceMetricsDto.PeriodWindow ended periods, most recent first. Empty
+for a team that has never had a cadence. */
     periods: TeamCadencePeriodDto[];
 }
 
+/** What a team completed in one of its reporting periods. */
 export interface TeamCadencePeriodDto {
+    /** The period's first day. */
     start: string;
+    /** The period's last day, included in it. */
     end: string;
+    /** The estimate the period's work is measured in: its operating model's sizing method. */
     sizingMethod: SizingMethod;
+    /** Whether the period is shorter than its cadence, because an operating model began or ended inside it.
+Partial periods are left out of the averages. */
     isPartial: boolean;
+    /** Whether the period has not ended yet. The current period is left out of the averages. */
     isCurrent: boolean;
+    /** Whether the period counts toward the averages: it has ended and is whole. */
     inAverages: boolean;
+    /** Whether double TeamCadencePeriodDto.CompletedEstimate counts toward the estimate averages. */
     inEstimateAverages: boolean;
+    /** How many Requirement-tier items reached a Done-category status in the period. */
     completedCount: number;
+    /** The completed items' estimates in SizingMethod TeamCadencePeriodDto.SizingMethod; under Count, the count. */
     completedEstimate: number;
+    /** Completed items with no value in SizingMethod TeamCadencePeriodDto.SizingMethod, which add nothing to double TeamCadencePeriodDto.CompletedEstimate. */
     unestimatedCount: number;
 }
 
+/** An allocation of a person's time to the team. */
 export interface TeamCapacityAllocationDto {
     id: string;
+    /** The team member role the time is spent in, or null when none was chosen. */
     role?: NavigationDto | undefined;
+    /** Whether the allocation adds to the team's delivery capacity. True when it has no role. */
     countsTowardDeliveryCapacity: boolean;
+    /** The first day of the allocation, which may be before the range. */
     start: string;
+    /** The last day of the allocation, or null when it has no end. It may be after the range. */
     end?: string | undefined;
+    /** The share of the person's time, from 1 to 100. */
     percent: number;
+    /** What the allocation is worth over the team's working days in the range, in person-days, after the
+holidays the person takes and their time away. */
     personDays: number;
 }
 
+/** A team's capacity over a date range, from the time people are allocated to it, the days it works, and when each of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day. */
 export interface TeamCapacityDto {
+    /** The first day of the range. */
     from: string;
+    /** The last day of the range. */
     to: string;
+    /** The team's working days in the range: days in its working week that are not holidays in its calendar.
+Each person's person-days follow the calendar assigned to them, or the system default, so they may be
+there on more or fewer of them. */
     workingDays: number;
+    /** The time allocated to the team in every role that people are there for, in person-days. */
     allocatedPersonDays: number;
+    /** The part of the allocated time in roles that count toward delivery capacity, in person-days. */
     deliveryPersonDays: number;
+    /** The time allocated to the team that people's time away takes, in person-days. Already left out of
+`allocatedPersonDays`. */
     awayPersonDays: number;
+    /** Whether the caller may change this team's allocations. */
     canManage: boolean;
+    /** How many hours a working day has, from the system settings, so person-days and a share of a day can be read
+in hours. */
     workingDayHours: number;
+    /** The allocated time by team member role, by role name with the time in no role last. The lines add up to
+`allocatedPersonDays`. */
     roles: TeamCapacityRoleDto[];
+    /** Everyone with time allocated to the team in the range, by name. */
     people: TeamCapacityPersonDto[];
 }
 
+/** A run of days a team counts toward a rollup, both inclusive. */
 export interface TeamCapacityPeriodDto {
+    /** The first day of the run. */
     start: string;
+    /** The last day of the run. */
     end: string;
 }
 
+/** One person's time on a team over a date range. */
 export interface TeamCapacityPersonDto {
     employee: NavigationDto;
+    /** Their time allocated to the team in every role, in person-days. */
     allocatedPersonDays: number;
+    /** The part of it in roles that count toward delivery capacity, in person-days. */
     deliveryPersonDays: number;
+    /** Their time allocated to other teams on this team's working days, in person-days. */
     elsewherePersonDays: number;
+    /** The time allocated to the team that their time away takes, in person-days. Already left out of
+`allocatedPersonDays`. */
     awayPersonDays: number;
+    /** Their time away that falls in the range, in date order: when, and how much of each day. */
     timeAway: TeamCapacityTimeAwayDto[];
+    /** Their allocations to the team that fall in the range, in date order. */
     allocations: TeamCapacityAllocationDto[];
+    /** Their allocations to other teams that fall in the range, in date order: what
+`elsewherePersonDays` is made of, and where time can be moved from. */
     elsewhereAllocations: EmployeeAllocationDto[];
 }
 
+/** A person's time in one role on one of the team's working days. */
 export interface TeamCapacityPlanDayDto {
     date: string;
+    /** The share of the person's time allocated, from 1 to 100. */
     percent: number;
+    /** What it is worth, in person-days, after the holidays the person takes and their time away. */
     personDays: number;
 }
 
+/** A team's capacity over a date range day by day, to plan against: the capacity totals, and for each person their time in each role on each of the team's working days, beside what else decides it that day. */
 export interface TeamCapacityPlanDto {
+    /** The team's capacity totals over the range, the same as the team capacity request returns. */
     capacity: TeamCapacityDto;
+    /** The days of the team's working week in the range, in date order, holidays included. The person-days of
+each day already leave out the holidays each person takes. */
     days: string[];
+    /** The days of `days` the whole team is off, as asked for, such as a sprint's team days off. Nobody
+is counted on them, so they add nothing to `capacity` or to any day's person-days. */
     teamDaysOff: string[];
+    /** Everyone with time allocated to the team in the range, in the same order as `capacity.people`. */
     people: TeamCapacityPlanPersonDto[];
 }
 
+/** What else decides a person's time on one of the team's working days. */
 export interface TeamCapacityPlanPersonDayDto {
     date: string;
+    /** Whether the day is a holiday in the calendar the person takes. */
     isHoliday: boolean;
+    /** The share of the day the person is away, from 0 to 100. Never why. */
     percentAway: number;
+    /** The share of the person's time allocated to other teams that day, from 0 to 100. */
     elsewherePercent: number;
 }
 
+/** One person's time on a team, day by day. */
 export interface TeamCapacityPlanPersonDto {
+    /** The employee's id, matching `employee.id` of an entry in `capacity.people`. */
     employeeId: string;
+    /** Whether the caller may record, change and remove this person's time away: the person, anyone they report up
+to, and a time away administrator. */
     canManageTimeAway: boolean;
+    /** The working days on which something besides their allocation here decides their time: a holiday, time
+away, or time allocated to other teams. A day left out has none of these. */
     days: TeamCapacityPlanPersonDayDto[];
+    /** Their time in each team member role, by role name with the time in no role last. */
     rows: TeamCapacityPlanRowDto[];
 }
 
+/** A person's time on a team in one team member role, day by day. */
 export interface TeamCapacityPlanRowDto {
+    /** The team member role, or null for time allocated in no role. */
     role?: NavigationDto | undefined;
+    /** Whether the role's time adds to the team's delivery capacity. True for time in no role. */
     countsTowardDeliveryCapacity: boolean;
+    /** The working days with time allocated in the role, in date order. A day left out has none. */
     days: TeamCapacityPlanDayDto[];
 }
 
+/** The time allocated to a team in one team member role over a date range. */
 export interface TeamCapacityRoleDto {
+    /** The team member role, or null for time allocated in no role. */
     role?: NavigationDto | undefined;
+    /** Whether the role's time adds to the team's delivery capacity. True for time in no role. */
     countsTowardDeliveryCapacity: boolean;
+    /** The time allocated in the role, in person-days. */
     personDays: number;
 }
 
+/** A team of teams' capacity over a date range with the teams beneath it rolled up: the time allocated to it directly, plus the time allocated to each team beneath it on the days that team was in the hierarchy. Capacity is in person-days: one person allocated in full for one working day of the team they are allocated to. */
 export interface TeamCapacityRollupDto {
+    /** The first day of the range. */
     from: string;
+    /** The last day of the range. */
     to: string;
+    /** The time allocated to the team of teams and to every team beneath it, in person-days. */
     allocatedPersonDays: number;
+    /** The part of `allocatedPersonDays` in roles that count toward delivery capacity. */
     deliveryPersonDays: number;
+    /** The time allocated to the team of teams itself, in person-days. */
     directAllocatedPersonDays: number;
+    /** The part of `directAllocatedPersonDays` in roles that count toward delivery capacity. */
     directDeliveryPersonDays: number;
+    /** How many different people have an allocation to the team of teams or to a team beneath it on the days it
+counts. Someone allocated at more than one level is one person. An allocation that falls on none of
+the team's working days still counts its person, at no person-days. */
     people: number;
+    /** The allocated time across the team of teams and every team beneath it by team member role, by role name
+with the time in no role last. The lines add up to `allocatedPersonDays`. */
     roles: TeamCapacityRoleDto[];
+    /** The teams directly beneath the team of teams in the range, by name. */
     children: TeamCapacityRollupNodeDto[];
 }
 
+/** The capacity of a team or team of teams beneath the one a rollup is for, over the days it was in that hierarchy. */
 export interface TeamCapacityRollupNodeDto {
+    /** The team or team of teams this node is for. */
     team: TeamNavigationDto;
+    /** The days of the range the team counts for, in date order: those its membership of its parent covers,
+less any its parent was itself out of the hierarchy. */
     periods: TeamCapacityPeriodDto[];
+    /** The team's own working days within `periods`. A team of teams has the system default
+working week and holidays. */
     workingDays: number;
+    /** The time allocated to the team and to every team beneath it, in person-days. */
     allocatedPersonDays: number;
+    /** The part of `allocatedPersonDays` in roles that count toward delivery capacity. */
     deliveryPersonDays: number;
+    /** The time allocated to the team itself, in person-days. */
     directAllocatedPersonDays: number;
+    /** The part of `directAllocatedPersonDays` in roles that count toward delivery capacity. */
     directDeliveryPersonDays: number;
+    /** Everyone with an allocation to the team itself within `periods`, by name, including anyone
+whose allocation falls on none of its working days there. */
     people: TeamCapacityRollupPersonDto[];
+    /** The teams directly beneath this one within `periods`, by name. Empty for a team. */
     children: TeamCapacityRollupNodeDto[];
 }
 
+/** One person's time on a team beneath the one a rollup is for. */
 export interface TeamCapacityRollupPersonDto {
+    /** The person allocated. */
     employee: NavigationDto;
+    /** Their time allocated to the team in every role on the days it counts, in person-days. */
     allocatedPersonDays: number;
+    /** The part of it in roles that count toward delivery capacity, in person-days. */
     deliveryPersonDays: number;
+    /** Their allocations to the team that fall on the days it counts, in date order. Each one's
+`personDays` is over those days only. */
     allocations: TeamCapacityAllocationDto[];
 }
 
+/** A stretch of days a person on the team is away, as their teammates see it: when and how much of each day, never why. */
 export interface TeamCapacityTimeAwayDto {
+    /** The first day away, which may be before the range. */
     start: string;
+    /** The last day away, which may be after the range. */
     end: string;
+    /** The share of each day the person is away, from 1 to 100. */
     percentAway: number;
 }
 
 export interface TeamDetailsDto {
+    /** The team's unique identifier. */
     id: string;
+    /** The team's numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the team. */
     name: string;
+    /** The team's short code, 2 to 10 characters, unique across teams and teams of teams. */
     code: string;
+    /** The team's description, or null when it has none. */
     description?: string | undefined;
+    /** The team type's display name: "Team" or "Team of Teams". */
     type: string;
+    /** The date the team became active. */
     activeDate: string;
+    /** The date the team became inactive, or null while it is active. */
     inactiveDate?: string | undefined;
+    /** Whether the team is active. */
     isActive: boolean;
+    /** The team of teams the team belongs to today, or null when it belongs to none. */
     teamOfTeams?: TeamNavigationDto | undefined;
+    /** The current operating model of the team. */
     operatingModel: TeamOperatingModelListDto;
 }
 
 export interface TeamListDto {
+    /** The team's unique identifier. */
     id: string;
+    /** The team's numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the team. */
     name: string;
+    /** The team's short code, 2 to 10 characters, unique across teams and teams of teams. */
     code: string;
+    /** The team type's display name: "Team" or "Team of Teams". */
     type: string;
+    /** Whether the team is active. */
     isActive: boolean;
     teamOfTeams?: TeamNavigationDto | undefined;
 }
@@ -53761,6 +54915,7 @@ export interface TeamMemberRoleDto {
     name: string;
     description?: string | undefined;
     isActive: boolean;
+    /** Whether time allocated to a team in this role adds to the team's delivery capacity. */
     countsTowardDeliveryCapacity: boolean;
 }
 
@@ -53779,102 +54934,183 @@ export interface TeamNavigationDto extends NavigationDto {
 }
 
 export interface TeamOfTeamsDetailsDto {
+    /** The team of teams' unique identifier. */
     id: string;
+    /** The team of teams' numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the team of teams. */
     name: string;
+    /** The team of teams' short code, 2 to 10 characters, unique across teams and teams of teams. */
     code: string;
+    /** The team of teams' description, or null when it has none. */
     description?: string | undefined;
+    /** The team type's display name: "Team" or "Team of Teams". */
     type: string;
+    /** The date the team of teams became active. */
     activeDate: string;
+    /** The date the team of teams became inactive, or null while it is active. */
     inactiveDate?: string | undefined;
+    /** Whether the team of teams is active. */
     isActive: boolean;
+    /** The team of teams this one belongs to today, or null when it belongs to none. */
     teamOfTeams?: TeamNavigationDto | undefined;
 }
 
 export interface TeamOfTeamsListDto {
+    /** The team of teams' unique identifier. */
     id: string;
+    /** The team of teams' numeric key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
     key: number;
+    /** The name of the team of teams. */
     name: string;
+    /** The team of teams' short code, 2 to 10 characters, unique across teams and teams of teams. */
     code: string;
+    /** The team type's display name: "Team" or "Team of Teams". */
     type: string;
+    /** Whether the team of teams is active. */
     isActive: boolean;
     teamOfTeams?: TeamNavigationDto | undefined;
 }
 
+/** How a team of teams works over a stretch of dates: the time zone its own rollups count days in. */
 export interface TeamOfTeamsOperatingModelDetailsDto {
+    /** The identifier of the operating model. */
     id: string;
+    /** The identifier of the team of teams. */
     teamId: string;
+    /** The start date of the operating model. */
     start: string;
+    /** The end date of the operating model. Null indicates the model is current. */
     end?: string | undefined;
+    /** The IANA id of the time zone the team of teams' own rollups count days in. */
     timeZone: string;
+    /** Indicates whether this operating model is current (has no end date). */
     isCurrent: boolean;
 }
 
+/** How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday calendar and, for a Kanban team, reporting cadence. */
 export interface TeamOperatingModelDetailsDto {
+    /** The identifier of the operating model. */
     id: string;
+    /** The identifier of the team. */
     teamId: string;
+    /** The start date of the operating model. */
     start: string;
+    /** The end date of the operating model. Null indicates the model is current. */
     end?: string | undefined;
+    /** The methodology the team uses (e.g., Scrum, Kanban). */
     methodology: Methodology;
+    /** The sizing method the team uses (e.g., StoryPoints, Count). */
     sizingMethod: SizingMethod;
+    /** The IANA id of the time zone the team's days are counted in. */
     timeZone: string;
+    /** How many days after a sprint's planned start its commitment is taken, when the team does not start it. */
     commitmentGraceDays: number;
+    /** The days of the week the team works, Monday first. */
     workingDays: IsoDayOfWeek[];
+    /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendar?: NavigationDto | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, or null for no cadence. */
     cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others; set exactly when
+int? TeamOperatingModelDetailsDto.CadenceWeeks is. */
     cadenceAnchor?: string | undefined;
+    /** Indicates whether this operating model is current (has no end date). */
     isCurrent: boolean;
 }
 
+/** A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are counted in, and its reporting cadence. */
 export interface TeamOperatingModelListDto {
+    /** The identifier of the operating model. */
     id: string;
+    /** The methodology the team uses (e.g., Scrum, Kanban). */
     methodology: Methodology;
+    /** The sizing method the team uses (e.g., StoryPoints, Count). */
     sizingMethod: SizingMethod;
+    /** The IANA id of the time zone the team's days are counted in, which decides what day it is for the team. */
     timeZone: string;
+    /** The length in weeks of a Kanban team's reporting periods, or null for no cadence. */
     cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others; set exactly when
+int? TeamOperatingModelListDto.CadenceWeeks is. */
     cadenceAnchor?: string | undefined;
 }
 
+/** A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread. Worked out when read from work item history, and never stored. */
 export interface TeamSprintMetricsDto {
+    /** The team the metrics are of. */
     teamId: string;
+    /** How many sprints the window holds when full: the number asked for, or else `defaultSprintWindow`. */
     sprintWindow: number;
+    /** The organization's sprint window, from the system settings, which team pages are measured over. */
     defaultSprintWindow: number;
+    /** The estimate `byEstimate` is measured in: the team's sizing method now. Under Count
+`byEstimate` equals `byCount`. */
     sizingMethod: SizingMethod;
+    /** Each metric by item count, across every counted sprint. */
     byCount: SprintMetricSummariesDto;
+    /** Each metric in `sizingMethod`, across the counted sprints measured in it. A sprint measured
+in another estimate is left out: estimates in different units are never averaged. */
     byEstimate: SprintMetricSummariesDto;
+    /** The sprints counted, most recent first. Fewer than `sprintWindow` when the team has too few
+usable sprints among its most recent completed ones. */
     sprints: TeamSprintMetricsSprintDto[];
+    /** The completed sprints passed over while filling the window, most recent first, each with why it was left
+out. Sprints older than the window reaches are not listed. */
     excluded: TeamSprintMetricsExcludedSprintDto[];
 }
 
+/** A completed sprint left out of its team's sprint metrics. */
 export interface TeamSprintMetricsExcludedSprintDto {
     id: string;
+    /** The sprint's key, an alternate to its id. */
     key: number;
     name: string;
+    /** The first planned day of the sprint. */
     start: string;
+    /** The last planned day of the sprint, included in it. */
     end: string;
+    /** Why the sprint is left out: it is non-standard, its history is incomplete, or nothing was committed to it. */
     reason: SprintMetricsExclusion;
 }
 
+/** A sprint counted in its team's sprint metrics, with its own values. */
 export interface TeamSprintMetricsSprintDto {
     id: string;
+    /** The sprint's key, an alternate to its id. */
     key: number;
     name: string;
+    /** The first planned day of the sprint. */
     start: string;
+    /** The last planned day of the sprint, included in it. */
     end: string;
+    /** The estimate the sprint was measured in: its team's sizing method on the sprint's planned start. */
     sizingMethod: SizingMethod;
+    /** Whether `byEstimate` counts toward the report's estimate averages. False when the team has
+since changed its sizing method, so this sprint's estimates are in another unit. */
     inEstimateAverages: boolean;
+    /** The sprint's values by item count. */
     byCount: SprintMetricFiguresDto;
+    /** The sprint's values in its own `sizingMethod`. */
     byEstimate: SprintMetricFiguresDto;
 }
 
+/** How many backlog work items a team will finish from `forecastStart` through `targetDate`. */
 export interface TeamThroughputForecastDto {
+    /** Whether a forecast could be made: Forecast, or Not Enough History when the team has not
+finished enough work recently to forecast from. */
     outcome: SimpleNavigationDto;
     team: ForecastTeamDto;
+    /** The first simulated day (UTC). */
     forecastStart: string;
     targetDate: string;
+    /** Days of history the team's throughput was sampled from. */
     lookbackDays: number;
+    /** Whether active backlog items were counted ahead of proposed ones. */
     startedWorkFirst: boolean;
+    /** Simulated days, `forecastStart` through `targetDate` inclusive. */
     days: number;
+    /** The team's open backlog work items today. */
     backlogWorkItems: number;
     trials: number;
     percentiles: ThroughputPercentileDto[];
@@ -53888,16 +55124,19 @@ export interface TeamTypeDto {
     order: number;
 }
 
+/** Where a team's completed work went from `from` to `to`, grouped by one dimension. For a team of teams it covers every team beneath it, each placed where it sat on the day the work was done. */
 export interface TeamWorkDistributionDto {
     team: WorkTeamNavigationDto;
     from: string;
     to: string;
     summary: WorkDistributionSummaryDto;
     groups: WorkDistributionGroupDto[];
+    /** The team hierarchy, pre-ordered from the requested team, each placed under its latest parent in the window. */
     teams: WorkDistributionTeamRowDto[];
     periods: WorkDistributionPeriodDto[];
 }
 
+/** A user eligible to be bulk-migrated off a given source tenant: bound to the provider via an active identity on that tenant, with no migration already pending. */
 export interface TenantMigrationCandidateDto {
     userId: string;
     userName?: string | undefined;
@@ -53923,6 +55162,7 @@ export interface TestAzureOpenAIConnectionRequest {
     deploymentName: string;
 }
 
+/** Outcome of fetching an OIDC provider's discovery document. On success, `issuer` echoes the value from the discovery document so it can be checked against expectations, and `jwksKeyCount` is how many signing keys the JWKS endpoint returned (zero indicates a misconfigured provider that can never validate a token). On failure, `error` says what went wrong. */
 export interface TestOidcProviderDiscoveryResult {
     success: boolean;
     issuer?: string | undefined;
@@ -53941,8 +55181,11 @@ export interface ThroughputHistogramBucketDto {
 }
 
 export interface ThroughputPercentileDto {
+    /** The share of trials, as a whole percent, that finished at least `workItems` work items. */
     confidence: number;
     workItems: number;
+    /** The backlog item that many items down, first-ranked first: work down to and including it
+is done at this confidence. Null when nothing is, or when the count runs past the backlog. */
     throughWorkItem?: ForecastWorkItemDto | undefined;
 }
 
@@ -53953,11 +55196,14 @@ export enum TimeAwayReason {
     Other = "Other",
 }
 
+/** A reason for time away, with the code a stretch of time away carries and the requests accept. */
 export interface TimeAwayReasonDto extends CommonEnumDtoOfTimeAwayReason {
 }
 
 export interface TimeZoneDto {
+    /** The IANA time zone id, e.g. "America/Chicago". */
     id: string;
+    /** The zone's offset from UTC right now, e.g. "-05:00". Changes with daylight saving time. */
     currentOffset: string;
 }
 
@@ -53973,8 +55219,11 @@ export interface TokenResponse {
     mustChangePassword: boolean;
 }
 
+/** A measure this module does not compute yet, and why. */
 export interface UnavailableMetricDto {
+    /** The measure's name, as a reader would recognise it. */
     metric: string;
+    /** What is missing before it can be computed. */
     reason: string;
 }
 
@@ -54790,6 +56039,8 @@ export interface UserDetailsDto {
     loginProvider: string;
     pendingMigrationTenantId?: string | undefined;
     pendingMigrationProviderId?: string | undefined;
+    /** Whether the user has an identity they can sign in with. False for an admin-created
+Entra user who has not yet signed in. */
     hasActiveIdentity: boolean;
     lastActivityAt?: Date | undefined;
     employee?: NavigationDto | undefined;
@@ -54830,6 +56081,7 @@ export interface UserRoleDto {
     enabled: boolean;
 }
 
+/** One live sign-in shown on the account's Sessions tab. Carries no token or hash — everything here is display detail plus the id needed to revoke the row. */
 export interface UserSessionResponse {
     id: string;
     deviceLabel?: string | undefined;
@@ -54845,17 +56097,22 @@ export interface UserThemeConfigDto {
     useCompactAlgorithm: boolean;
 }
 
+/** A version of one product. */
 export interface VersionDto {
     id: string;
     key: number;
+    /** The product this version is for. */
     product: NavigationDto;
+    /** The version as the organization writes it. Free text, never parsed. */
     number: string;
     name?: string | undefined;
     notes?: string | undefined;
+    /** A manual ordering override, used only where chronology misleads. */
     sequence?: number | undefined;
     targetDate?: string | undefined;
     cutAt?: Date | undefined;
     releasedAt?: Date | undefined;
+    /** The version's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
 }
 
@@ -54863,11 +56120,17 @@ export interface VisibilityDto extends CommonEnumDto {
 }
 
 export interface VisionDto {
+    /** The unique identifier of the vision. */
     id: string;
+    /** The vision's unique, human-readable number; an alternate key to `id`. */
     key: number;
+    /** A concise statement describing the vision of the organization. */
     description: string;
+    /** The current lifecycle state of the vision: Proposed, Active, or Archived. */
     state: SimpleNavigationDto;
+    /** When the vision became active and started guiding the organization; null while it is proposed. */
     start?: Date | undefined;
+    /** When the vision was archived; null until it is archived. */
     end?: Date | undefined;
 }
 
@@ -54899,35 +56162,65 @@ export interface WithdrawVersionRequest {
 }
 
 export interface WorkdayConnectionConfigurationDto {
+    /** The Workday Web Services WSDL URL entered for the connection. The service host, tenant alias,
+and version are derived from it. */
     wsdlUrl: string;
+    /** The Workday service host, derived from `wsdlUrl`. */
     serviceHost: string;
+    /** The Workday tenant alias, derived from `wsdlUrl`. */
     tenantAlias: string;
+    /** The Workday Web Services (WWS) version, derived from `wsdlUrl`. */
     wsdlVersion: string;
+    /** The username of the Workday Integration System User (ISU) the connection signs in as. */
     isuUsername: string;
+    /** The Integration System User password. Returned masked as a fixed-width placeholder. */
     isuPassword: string;
+    /** Which Workday worker identifier the sync uses to identify each worker. */
     workerKey: WorkdayWorkerKey;
+    /** When true, terminated/inactive workers are also returned by the sync. */
     includeInactive: boolean;
+    /** The employee field the sync uses to match a worker to an existing employee. */
     matchBy: EmployeeMatchProperty;
+    /** When true, the probe and sync accept Workday's `User_ID` as the work email when
+`Contact_Data` is missing, provided it parses as a valid email address. */
     useUserIdAsEmailFallback: boolean;
+    /** When true, sync reads `Preferred_Name_Data` in preference to `Legal_Name_Data`. */
     usePreferredName: boolean;
+    /** When true, names that come back from Workday in all-caps are title-cased before storage. */
     normalizeNameCasing: boolean;
+    /** Workday `Organization_Type_ID` whose organization sets each employee's department.
+Null when department sync is turned off. */
     departmentOrganizationTypeId?: string | undefined;
+    /** The organization types discovered during the most recent init probe; the choices for
+`departmentOrganizationTypeId`. */
     discoveredOrgTypes?: WorkdayOrgTypeDto[] | undefined;
+    /** Rules that filter workers out of the sync. Each rule names an `Organization_Type_ID`
+plus the WID of an organization of that type; workers whose `Worker_Organization_Data`
+references that WID are excluded from the sync. Empty by default. */
     orgExclusions: WorkdayOrgExclusionDto[];
+    /** UTC timestamp of the most recent init probe; null when no probe has run. */
     lastInitAt?: Date | undefined;
+    /** Whether the most recent init probe succeeded. */
     lastInitSucceeded: boolean;
+    /** Required fields the ISU could not read during the most recent probe. */
     lastInitMissingFields?: string[] | undefined;
+    /** Non-fatal observations from the most recent probe. */
     lastInitWarnings?: string[] | undefined;
+    /** The authentication error the most recent probe reported. Null when it reported none, which does not mean
+the credentials are valid: a probe that could not reach Workday, timed out or failed for another reason
+also leaves it null. Read it with `lastInitSucceeded`. */
     lastInitAuthError?: string | undefined;
 }
 
 export interface WorkdayConnectionDetailsDto extends ConnectionDetailsDto {
+    /** The configuration for the Workday connection. */
     configuration: WorkdayConnectionConfigurationDto;
 }
 
 export interface WorkdayConnectionListDto extends ConnectionListDto {
 }
 
+/** One admin-configured exclusion rule for the Workday sync. */
 export interface WorkdayOrgExclusionDto {
     organizationTypeId: string;
     organizationReference: string;
@@ -54941,6 +56234,7 @@ export interface WorkdayOrgExclusionRequest {
     displayName?: string | undefined;
 }
 
+/** One entry in the org-type catalog discovered by the init probe. */
 export interface WorkdayOrgTypeDto {
     typeId: string;
     displayName?: string | undefined;
@@ -54954,6 +56248,7 @@ export enum WorkdayWorkerKey {
 
 export interface WorkDistributionCellDto {
     value: number;
+    /** Percent of the row's measured total. */
     share: number;
     items: number;
 }
@@ -54975,21 +56270,30 @@ export enum WorkDistributionDimension {
 }
 
 export interface WorkDistributionGroupDto {
+    /** Stable within a response; cells and periods refer to groups by position, not by this. */
     id: string;
     kind: WorkDistributionGroupKind;
+    /** The portfolio, program, project or theme's id; null for work types and gap groups. */
     recordId?: string | undefined;
     recordKey?: string | undefined;
     name: string;
+    /** For a program or project group: the portfolio it belongs to. */
     portfolio?: NavigationDto | undefined;
+    /** For a project group: its program, when it has one. */
     program?: NavigationDto | undefined;
+    /** Keys of the projects whose work landed in this group, ordered. */
     projectKeys: string[];
     programCount: number;
     items: number;
     storyPoints: number;
     filledStoryPoints: number;
+    /** The group's total in the requested measure. */
     value: number;
+    /** Percent of the measured total. */
     share: number;
+    /** Work type groups only: the part of `value` with no project. */
     noProjectValue?: number | undefined;
+    /** Work type groups only: percent of this group's value with no project. */
     noProjectShare?: number | undefined;
     largestContributor?: WorkDistributionContributorDto | undefined;
 }
@@ -55012,20 +56316,30 @@ export interface WorkDistributionPeriodDto {
     items: number;
     value: number;
     values: number[];
+    /** Percent of the period's measured total, per group. */
     shares: number[];
     noProjectShare: number;
 }
 
 export interface WorkDistributionSummaryDto {
     itemsCompleted: number;
+    /** Completed items from teams that sized in story points on the day each was done. */
     itemsInPointSizedTeams: number;
+    /** Of `itemsInPointSizedTeams`, those with story points; 0 is an estimate. */
     estimatedItems: number;
+    /** Estimated story points; filled-in points are reported separately. */
     storyPoints: number;
+    /** Items whose estimate was filled from their team's average, in whatever unit the team sized in. */
     filledItems: number;
+    /** The story points filled in; fills in other units are not story points and are left out. */
     filledStoryPoints: number;
+    /** Teams (not teams of teams) that completed work in the window. */
     teamsIncluded: number;
+    /** Teams whose work the measure leaves out: under story points, teams that size by anything else. */
     excludedTeams: WorkDistributionTeamReferenceDto[];
+    /** Items with no project in their ancestry. */
     noProjectItems: number;
+    /** Percent of the measured total with no project. */
     noProjectShare: number;
 }
 
@@ -55042,12 +56356,14 @@ export interface WorkDistributionTeamRowDto {
     isTeamOfTeams: boolean;
     parentId?: string | undefined;
     level: number;
+    /** True when the row completed work but the measure counts none of it. */
     excluded: boolean;
     excludedReason?: string | undefined;
     items: number;
     storyPoints: number;
     value: number;
     cells: WorkDistributionCellDto[];
+    /** Work type dimension only: percent of this row's value with no project. */
     noProjectShare?: number | undefined;
 }
 
@@ -55057,10 +56373,13 @@ export interface WorkflowAliasDto {
     isRequired: boolean;
 }
 
+/** Which workflow a scope's records currently use. */
 export interface WorkflowAssignmentDto {
     id: string;
     owner: WorkflowOwnerNavigationDto;
+    /** Null for the organization-wide default, which is the only scope in use today. */
     scopeId?: string | undefined;
+    /** The workflow this scope's records use. */
     workflow: NavigationDto;
 }
 
@@ -55074,15 +56393,19 @@ export interface WorkflowDto {
     schemes: WorkflowSchemeDto[];
 }
 
+/** An owner type, as referenced from a workflow or an assignment. */
 export interface WorkflowOwnerNavigationDto {
     key: string;
     name: string;
 }
 
+/** An owner type and the vocabulary its workflows are built from. */
 export interface WorkflowOwnerTypeDto {
     key: string;
     displayName: string;
+    /** Every alias this owner type recognises. */
     aliases: WorkflowAliasDto[];
+    /** The aliases a workflow must carry before it can be published. */
     requiredAliases: number[];
 }
 
@@ -55094,12 +56417,16 @@ export interface WorkflowSchemeDto {
     isActive: boolean;
 }
 
+/** One status within a workflow. */
 export interface WorkflowStatusDto {
     id: string;
     name: string;
     description?: string | undefined;
+    /** The rollup this status belongs to, as id and display name. */
     category: SimpleNavigationDto;
+    /** The well-known meaning, or zero for none. */
     alias: number;
+    /** The alias in the module's vocabulary, or null when it carries none. */
     aliasName?: string | undefined;
     order: number;
 }
@@ -55123,7 +56450,9 @@ export interface WorkItemBacklogItemDto {
     externalViewWorkItemUrl?: string | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    /** The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated. */
     effort?: number | undefined;
+    /** The size estimate, the CMMI process's requirement estimate; null when unestimated. */
     size?: number | undefined;
     tags: string[];
 }
@@ -55152,7 +56481,9 @@ export interface WorkItemDetailsDto {
     projectSource: string;
     externalViewWorkItemUrl?: string | undefined;
     storyPoints?: number | undefined;
+    /** The level-of-effort estimate, often set on features and epics for longer-term planning; null when unestimated. */
     effort?: number | undefined;
+    /** The size estimate, the CMMI process's requirement estimate; null when unestimated. */
     size?: number | undefined;
     tags: string[];
 }
@@ -55173,23 +56504,43 @@ export interface WorkItemDetailsNavigationDto {
 }
 
 export interface WorkItemForecastDto {
+    /** Whether a forecast could be made: Forecast, Done, Not Enough History, Blocked by Dependency,
+Cannot Forecast or Nothing Remaining. Only Forecast fills the percentiles and histogram. */
     outcome: SimpleNavigationDto;
+    /** The first simulated day (UTC): a trial that finishes on its first day finishes on this date. */
     forecastStart: string;
+    /** Days of history the teams' throughput was sampled from. */
     lookbackDays: number;
+    /** Whether the forecast ignored dependencies, as a what-if. */
     ignoreDependencies: boolean;
+    /** Whether active backlog items were counted ahead of proposed ones. */
     startedWorkFirst: boolean;
+    /** The 1-based position in its team's backlog, when the forecast is for a single open backlog
+work item. */
     backlogPosition?: number | undefined;
+    /** The open backlog work items the forecast is for. A backlog work item counts itself; a
+portfolio work item counts its open backlog descendants. */
     remainingWorkItems: number;
+    /** Remaining work items left out because they could not be forecast (see `issues`
+for why). A forecast with exclusions is a lower bound. */
     excludedWorkItems: ForecastWorkItemDto[];
+    /** Every team whose throughput the forecast drew on, including predecessors' teams. */
     teams: ForecastTeamDto[];
+    /** The date the work is due, when there is one: an objective's target date or its planning
+interval's end, or a project's planned end. */
     targetDate?: string | undefined;
+    /** The share of trials (0 to 1) that finished on or before `targetDate`. Null
+without a target date or a forecast. */
     chanceOfFinishingByTargetDate?: number | undefined;
     trials: number;
     trialsBeyondHorizon: number;
     percentiles: ForecastPercentileDto[];
     histogram: ForecastHistogramBucketDto[];
     dependencies: ForecastDependencyInfluenceDto[];
+    /** Dependencies left out of the forecast, each with its `reason`:
+it closed a cycle, or its predecessor was removed. */
     ignoredDependencies: ForecastDependencyLinkDto[];
+    /** Why the work item, or something it depends on, could not be forecast or is only a lower bound. */
     issues: ForecastIssueDto[];
 }
 
@@ -55207,7 +56558,9 @@ export interface WorkItemListDto {
     assignedTo?: EmployeeNavigationDto | undefined;
     stackRank: number;
     storyPoints?: number | undefined;
+    /** The level-of-effort estimate, Scrum's backlog item estimate; null when unestimated. */
     effort?: number | undefined;
+    /** The size estimate, the CMMI process's requirement estimate; null when unestimated. */
     size?: number | undefined;
     project?: WorkProjectNavigationDto | undefined;
     externalViewWorkItemUrl?: string | undefined;
@@ -55226,6 +56579,7 @@ export interface WorkItemNavigationDto {
     externalViewWorkItemUrl?: string | undefined;
 }
 
+/** Progress data for a collection of work items.  Work items with a status category of Proposed, Active, and Done are counted.  Work items with a status category of Removed are not included */
 export interface WorkItemProgressRollupDto {
     proposed: number;
     active: number;
@@ -55325,8 +56679,11 @@ export interface WorkStatusCategoryListDto {
 
 export interface WorkStatusDto {
     id: number;
+    /** The name of the work status. It cannot be changed. */
     name: string;
+    /** The description of the work status; null when it has none. */
     description?: string | undefined;
+    /** Whether the work status is active. */
     isActive: boolean;
 }
 
@@ -55337,24 +56694,35 @@ export interface WorkTeamNavigationDto extends NavigationDto {
 
 export interface WorkTypeDto {
     id: number;
+    /** The name of the work type. */
     name: string;
+    /** The description of the work type. */
     description?: string | undefined;
+    /** The work type level name. */
     level: SimpleNavigationDto;
+    /** Indicates whether the work type is active. */
     isActive: boolean;
 }
 
 export interface WorkTypeLevelDto {
     id: number;
+    /** The name of the work type level. */
     name: string;
+    /** The description of the work type level; null when it has none. */
     description?: string | undefined;
+    /** The tier the level belongs to: Portfolio, Requirement, Task or Other. */
     tier: SimpleNavigationDto;
+    /** The level's position within its tier; levels sort by it in ascending order. */
     order: number;
 }
 
 export interface WorkTypeNavigationDto {
     id: number;
+    /** The name of the work type. */
     name: string;
+    /** The work type level name. */
     level: SimpleNavigationDto;
+    /** The work type tier. */
     tier: SimpleNavigationDto;
 }
 

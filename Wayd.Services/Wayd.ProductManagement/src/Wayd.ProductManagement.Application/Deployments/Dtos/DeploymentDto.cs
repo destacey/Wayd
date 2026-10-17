@@ -20,14 +20,14 @@ public sealed record DeploymentDto
     public int Key { get; init; }
 
     /// <summary>
-    /// The version deployed, when this deployment carries a single version. Its <c>Name</c> is the
+    /// The version deployed, when this deployment carries a single version. Its <c>name</c> is the
     /// version number, which is what a reader identifies it by.
     /// </summary>
     public NavigationDto? Version { get; init; }
 
     /// <summary>
     /// The package deployed, when several components shipped as one unit. Exactly one of this and
-    /// <see cref="Version"/> is set.
+    /// <c>version</c> is set.
     /// </summary>
     public NavigationDto? Package { get; init; }
 
@@ -48,7 +48,7 @@ public sealed record DeploymentDto
     /// <summary>Why it failed or was rolled back, where someone recorded a reason.</summary>
     public string? Reason { get; init; }
 
-    /// <summary>The deployment's current status.</summary>
+    /// <summary>The deployment's current status: the organization's name for it, its category and its well-known alias.</summary>
     public StatusNavigationDto Status { get; init; } = default!;
 
     /// <summary>

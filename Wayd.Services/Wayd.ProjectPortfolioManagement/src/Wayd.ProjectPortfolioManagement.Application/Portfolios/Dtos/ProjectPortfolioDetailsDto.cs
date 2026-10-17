@@ -10,7 +10,7 @@ public sealed record ProjectPortfolioDetailsDto : IMapFrom<ProjectPortfolio>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The unique key of the portfolio.  This is an alternate key to the Id.
+    /// The portfolio's unique key, an alternate to its <c>id</c>. Endpoints differ in which of the two they accept; a uuid parameter takes the id.
     /// </summary>
     public int Key { get; set; }
 
@@ -35,11 +35,6 @@ public sealed record ProjectPortfolioDetailsDto : IMapFrom<ProjectPortfolio>
     public NavigationDto? ScoringModel { get; set; }
 
     /// <summary>
-    /// The date range defining the portfolio’s lifecycle.
-    /// </summary>
-    //public FlexibleDateRange? DateRange { get; set; }
-
-    /// <summary>
     /// The sponsors of the portfolio.
     /// </summary>
     public required List<EmployeeNavigationDto> PortfolioSponsors { get; set; } = [];
@@ -58,12 +53,12 @@ public sealed record ProjectPortfolioDetailsDto : IMapFrom<ProjectPortfolio>
     /// Whether the current user may manage this portfolio — change its status, edit its details, or assign
     /// its roles. True when the user is an Owner or Manager of the portfolio, or holds the domain-wide PPM
     /// administrator grant. Sponsors are excluded.
-    /// <para>
-    /// This is a UI hint only; the aggregate enforces the same rule. It is false when the DTO is produced
-    /// by the parameterless global mapping, so callers that need it must use
-    /// <see cref="CreateTypeAdapterConfig"/>.
-    /// </para>
+    /// A hint for which actions to offer; the server enforces the same rule on every change.
     /// </summary>
+    /// <remarks>
+    /// The aggregate enforces the same rule. It is false when the DTO is produced by the parameterless
+    /// global mapping, so callers that need it must use <see cref="CreateTypeAdapterConfig"/>.
+    /// </remarks>
     public bool CanManagePortfolio { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)

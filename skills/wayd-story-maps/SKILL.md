@@ -1,6 +1,6 @@
 ---
 name: wayd-story-maps
-description: Guides agents working with Wayd Story Maps via the Wayd MCP server — reading, analyzing, creating, and managing a map's goals, steps, tasks, swim lanes, personas, checklists, and work item links. Use when finding or reading a story map, summarizing it, analyzing its scope, slicing or completeness, checking persona coverage or work item linkage, building one out, reorganizing it by reordering or moving cards between steps and lanes, or managing or deleting its parts.
+description: Read before calling the Wayd MCP tools named StoryMaps_*. Guides agents working with Wayd Story Maps via the Wayd MCP server — reading, analyzing, creating, and managing a map's goals, steps, tasks, swim lanes, personas, checklists, and work item links. Use when finding or reading a story map, summarizing it, analyzing its scope, slicing or completeness, checking persona coverage or work item linkage, building one out, reorganizing it by reordering or moving cards between steps and lanes, or managing or deleting its parts.
 ---
 
 # Wayd Story Maps

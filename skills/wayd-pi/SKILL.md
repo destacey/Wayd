@@ -1,6 +1,6 @@
 ---
 name: wayd-pi
-description: Guides agents working with Wayd Planning Intervals via the Wayd MCP server — iterations, sprint mappings, iteration metrics and backlogs, team objectives and their linked work items, objective health checks, PI health reports, predictability, and risks. Use when finding or exploring a PI or its iterations, listing or analyzing team objectives, recommending, reviewing or logging a health check on an objective (Healthy / AtRisk / Unhealthy), building a PI health report or predictability summary, reviewing PI risks, or finding out what changed on a PI or an objective and who changed it.
+description: Read before calling the Wayd MCP tools named PlanningIntervals_*. Guides agents working with Wayd Planning Intervals via the Wayd MCP server — iterations, sprint mappings, iteration metrics and backlogs, team objectives and their linked work items, objective health checks, PI health reports, predictability, and risks. Use when finding or exploring a PI or its iterations, listing or analyzing team objectives, recommending, reviewing or logging a health check on an objective (Healthy / AtRisk / Unhealthy), building a PI health report or predictability summary, reviewing PI risks, or finding out what changed on a PI or an objective and who changed it.
 ---
 
 # Wayd Planning Intervals (PI)

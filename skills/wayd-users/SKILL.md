@@ -1,6 +1,6 @@
 ---
 name: wayd-users
-description: Guides agents working with Wayd users via the Wayd MCP server, and resolving a person's name to the employee id that role and assignee fields require. Use when looking up a user, or when a project, program, or portfolio role list (sponsorIds, ownerIds, managerIds, memberIds), a task's assigneeIds, or an activity-history payload needs a person matched to an id.
+description: Read before calling the Wayd MCP tools named Users_*, and before putting a person into any role or assignee field. Guides agents working with Wayd users via the Wayd MCP server, and resolving a person's name to the employee id that role and assignee fields require. Use when looking up a user, or when a project, program, or portfolio role list (sponsorIds, ownerIds, managerIds, memberIds), a task's assigneeIds, or an activity-history payload needs a person matched to an id.
 ---
 
 # Wayd Users

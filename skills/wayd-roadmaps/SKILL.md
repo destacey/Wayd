@@ -1,6 +1,6 @@
 ---
 name: wayd-roadmaps
-description: Guides agents reading Wayd Roadmaps — listing roadmaps and exploring their activities, timeboxes, milestones, and item details. Read-only, since the Wayd MCP server has no tools that create or edit roadmaps. Use when finding or listing a roadmap, exploring its activities, timeboxes and milestones, summarizing what it plans for a period, or looking up the details of a roadmap item.
+description: Read before calling the Wayd MCP tools named Roadmaps_*. Guides agents reading Wayd Roadmaps — listing roadmaps and exploring their activities, timeboxes, milestones, and item details. Read-only, since the Wayd MCP server has no tools that create or edit roadmaps. Use when finding or listing a roadmap, exploring its activities, timeboxes and milestones, summarizing what it plans for a period, or looking up the details of a roadmap item.
 ---
 
 # Wayd Roadmaps

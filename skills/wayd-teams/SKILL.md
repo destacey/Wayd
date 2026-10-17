@@ -1,6 +1,6 @@
 ---
 name: wayd-teams
-description: Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
+description: Read before calling the Wayd MCP tools named Teams_*, TeamsOfTeams_* or Workspaces_*. Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
 ---
 
 # Wayd Teams

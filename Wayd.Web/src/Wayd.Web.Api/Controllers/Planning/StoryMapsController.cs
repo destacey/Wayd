@@ -123,7 +123,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     [HttpPost("{storyMapId}/goals")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
     [EndpointSummary("Add a goal to a story map.")]
-    [EndpointDescription("The goal is created with one step already in it.")]
+    [EndpointDescription("The goal is created empty; add its steps with StoryMaps_AddStep.")]
     [McpTool("StoryMaps_AddGoal", "Add a story map goal", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

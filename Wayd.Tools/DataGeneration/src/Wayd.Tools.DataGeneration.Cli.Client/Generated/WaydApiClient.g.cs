@@ -51288,7 +51288,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a goal to a story map.
         /// </summary>
         /// <remarks>
-        /// The goal is created with one step already in it.
+        /// The goal is created empty; add its steps with StoryMaps_AddStep.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -52266,7 +52266,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a goal to a story map.
         /// </summary>
         /// <remarks>
-        /// The goal is created with one step already in it.
+        /// The goal is created empty; add its steps with StoryMaps_AddStep.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>

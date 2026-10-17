@@ -39,6 +39,7 @@ public sealed record TeamOperatingModelListDto : IMapFrom<TeamOperatingModel>
     /// </summary>
     public LocalDate? CadenceAnchor { get; set; }
 
+    /// <summary>Flattens the model's optional cadence into its length and anchor.</summary>
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<TeamOperatingModel, TeamOperatingModelListDto>()

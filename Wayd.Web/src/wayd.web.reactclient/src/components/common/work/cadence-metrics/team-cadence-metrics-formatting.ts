@@ -88,5 +88,5 @@ export const PERIOD_NOTE_DESCRIPTIONS: Record<string, string> = {
   'In progress':
     'The period has not ended, so its work is still coming in. It is left out of the averages.',
   Partial:
-    'The period was cut short where an operating model started or ended inside it. It is left out of the averages.',
+    'The period was cut short where the cadence, time zone or sizing method changed inside it. It is left out of the averages.',
 }

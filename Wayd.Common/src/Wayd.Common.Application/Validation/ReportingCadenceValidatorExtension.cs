@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Models.Organizations;
 
 namespace Wayd.Common.Application.Validation;
 
+/// <summary>Validation rules for a reporting cadence given in a request as a length and an anchor.</summary>
 public static class ReportingCadenceValidatorExtension
 {
     /// <summary>

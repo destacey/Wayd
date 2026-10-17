@@ -83,11 +83,11 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             [workProcessId, _workspaceId], cancellationToken);
     }
 
-    public async Task<(Guid Id, string Code)> AddTeam(CancellationToken cancellationToken)
+    public async Task<(Guid Id, string Code)> AddTeam(CancellationToken cancellationToken, TeamType type = TeamType.Team)
     {
         var key = Random.Shared.Next(100_000, 999_999);
         var code = $"F{key}";
-        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, $"Team {key}", new TeamCode(code), TeamType.Team, true), Now);
+        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, $"Team {key}", new TeamCode(code), type, true), Now);
 
         await using var context = _fixture.CreateContext();
         context.WorkTeams.Add(team);

@@ -16,6 +16,7 @@ import {
 } from '@/src/utils'
 import {
   useGetOperatingModelDefaultsQuery,
+  useGetTeamOperatingModelsQuery,
   useSetTeamOperatingModelMutation,
 } from '@/src/store/features/organizations/team-api'
 import {
@@ -31,6 +32,7 @@ import {
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
+import { parseCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form
 const { Group: RadioGroup } = Radio
@@ -141,6 +143,19 @@ const SetTeamOperatingModelForm = ({
       form.setFieldsValue({ workingDays: defaults.workingDays })
     }
   }, [defaults, form, userChosen])
+
+  // A new model is often set for another reason than the cadence, and one left
+  // empty would end it, so the current cadence carries over until changed.
+  const { data: operatingModels } = useGetTeamOperatingModelsQuery(teamId)
+  const currentModel = operatingModels?.find((m) => m.isCurrent)
+  useEffect(() => {
+    if (!currentModel?.cadenceWeeks || !currentModel.cadenceAnchor) return
+    if (userChosen.cadenceWeeks || userChosen.cadenceAnchor) return
+    form.setFieldsValue({
+      cadenceWeeks: currentModel.cadenceWeeks,
+      cadenceAnchor: parseCalendarDate(currentModel.cadenceAnchor),
+    })
+  }, [currentModel, form, userChosen])
 
   return (
     <Modal

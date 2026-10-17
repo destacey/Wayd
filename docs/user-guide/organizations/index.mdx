@@ -113,7 +113,7 @@ Operating models have an effective date range, creating a history. When a team c
 
 A sprint uses the time zone, grace period, sizing method and working days of the operating model in effect on its planned start date, for the whole sprint. So a team that moves, or starts sizing in a different unit, keeps its old zone and unit for sprints planned before the change, while editing a model corrects every sprint in that model's period.
 
-A cadence follows its operating model the same way. When a new model starts partway through a cadence period, that period ends early, the day before the new model starts, and the new model's periods begin; earlier periods stay as they were. Correcting a model's cadence changes the periods for that model's whole period.
+A cadence follows its operating model the same way. When a new model changes the cadence, time zone or sizing method partway through a cadence period, that period ends early, the day before the new model starts, and the new model's periods begin; earlier periods stay as they were. A new model that keeps all three, set to change something else such as the working days, leaves the open period running. Setting a new model fills in the current cadence; clear it to end the cadence. Correcting a model's cadence changes the periods for that model's whole period.
 
 A new model's time zone is pre-filled from the team's parent Team of Teams — the zone that team of teams had on the new model's start date — or from the [scheduling settings](../settings/index.mdx) when the team had no parent then. The grace period and working days are pre-filled from the scheduling settings. These are suggestions only: changing the parent's zone or the scheduling settings never changes an existing team.
 
@@ -389,8 +389,8 @@ See [Team Sprint Metrics](../work-management/sprints.mdx#team-sprint-metrics) fo
 
 Available from the **Reports** menu, the **Velocity** report shows a Kanban team's velocity over its [cadence](#operating-model): the work it completed in each recent period, as a chart and a table, and the average and range across them. Velocity is the requirement-level work that reached a done status in the period, by its done date, counted in the team's time zone; work closed as removed is not counted. A cadence is for reporting only, so there is no commitment and no predictability or say/do.
 
-- **Periods** — The current period comes first, then the ended ones, most recent first. Each period follows the cadence of the operating model it falls in, and stops where that model does.
-- **What is averaged** — Only ended, whole periods. The current period is marked **In progress**, and a period cut short where an operating model started or ended inside it is marked **Partial**; both are shown but not averaged.
+- **Periods** — The current period comes first, then the ended ones, most recent first. Each period follows the cadence of the operating model it falls in, and stops where the cadence, time zone or sizing method changes.
+- **What is averaged** — Only ended, whole periods. The current period is marked **In progress**, and a period cut short where the cadence, time zone or sizing method changed inside it is marked **Partial**; both are shown but not averaged.
 - **Window** — The report opens at the organization's sprint window from the [Sprint Metrics settings](../settings/index.mdx), as a number of ended periods. Choose another number of periods for this visit only.
 - **Unit** — Velocity is shown in the team's sizing method, or switch to **Count** to count work items. A period measured in an earlier sizing method shows no estimate, and is left out of the estimate average, because estimates in different units are never averaged. **Unestimated** is how many completed items had no value in the sizing method.
 

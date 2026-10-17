@@ -78,13 +78,18 @@ public sealed class ReportingCadence : IEquatable<ReportingCadence>
             yield return period;
     }
 
+    /// <summary>Whether <paramref name="other"/> has the same length and anchor, and so the same periods.</summary>
     public bool Equals(ReportingCadence? other) => other is not null && Weeks == other.Weeks && Anchor == other.Anchor;
 
+    /// <inheritdoc />
     public override bool Equals(object? obj) => Equals(obj as ReportingCadence);
 
+    /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Weeks, Anchor);
 
+    /// <summary>Whether two cadences have the same length and anchor; two nulls are equal.</summary>
     public static bool operator ==(ReportingCadence? left, ReportingCadence? right) => Equals(left, right);
 
+    /// <summary>Whether two cadences differ in length or anchor.</summary>
     public static bool operator !=(ReportingCadence? left, ReportingCadence? right) => !Equals(left, right);
 }

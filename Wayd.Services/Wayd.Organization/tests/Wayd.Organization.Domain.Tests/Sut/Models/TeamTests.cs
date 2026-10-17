@@ -1400,6 +1400,24 @@ public class TeamTests
     }
 
     [Fact]
+    public void CorrectOperatingModel_WithAnEqualButNewCadence_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var anchor = new LocalDate(2023, 1, 2);
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, ReportingCadence.Create(2, anchor).Value, EventActor.System, _dateTimeProvider.Now).Value;
+        model.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.CorrectOperatingModel(model.Id, Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, ReportingCadence.Create(2, anchor).Value, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void CorrectOperatingModel_WhenOnlyTheCadenceChanged_RaisesEventCarryingBothCadences()
     {
         // Arrange

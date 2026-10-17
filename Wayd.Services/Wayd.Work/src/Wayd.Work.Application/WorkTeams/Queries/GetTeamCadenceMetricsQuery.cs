@@ -19,6 +19,7 @@ namespace Wayd.Work.Application.WorkTeams.Queries;
 /// </param>
 public sealed record GetTeamCadenceMetricsQuery(Guid TeamId, int? PeriodWindow = null) : IQuery<TeamCadenceMetricsDto?>;
 
+/// <summary>Holds the period window to the bounds the sprint window has.</summary>
 public sealed class GetTeamCadenceMetricsQueryValidator : AbstractValidator<GetTeamCadenceMetricsQuery>
 {
     public GetTeamCadenceMetricsQueryValidator()
@@ -29,6 +30,10 @@ public sealed class GetTeamCadenceMetricsQueryValidator : AbstractValidator<GetT
     }
 }
 
+/// <summary>
+/// Reads the team's operating models from Organization, works out its recent cadence periods, and measures each
+/// from the work items it completed in them.
+/// </summary>
 public sealed class GetTeamCadenceMetricsQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
@@ -41,6 +46,7 @@ public sealed class GetTeamCadenceMetricsQueryHandler(
     private readonly ISettings<SprintMetricsSettings> _sprintMetricsSettings = sprintMetricsSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
+    /// <inheritdoc />
     public async Task<TeamCadenceMetricsDto?> Handle(GetTeamCadenceMetricsQuery request, CancellationToken cancellationToken)
     {
         var isTeam = await _workDbContext.WorkTeams
@@ -66,11 +72,14 @@ public sealed class GetTeamCadenceMetricsQueryHandler(
             ? []
             : await LoadCompletions(request.TeamId, periods.Min(p => p.From), periods.Max(p => p.Until), cancellationToken);
 
-        var metrics = TeamCadenceMetrics.Measure(current?.SizingMethod ?? SizingMethod.Count, periods, completions);
+        // With no model covering today, the latest model's unit is still the one its periods were measured in.
+        var sizingMethod = (current ?? schedule.LastOrDefault())?.SizingMethod ?? SizingMethod.Count;
+        var metrics = TeamCadenceMetrics.Measure(sizingMethod, periods, completions);
 
         return TeamCadenceMetricsDto.From(request.TeamId, window, defaultWindow, current?.Cadence?.Weeks, metrics);
     }
 
+    /// <summary>The team's Requirement-tier items that reached a Done-category status from <paramref name="from"/> until <paramref name="until"/>.</summary>
     private async Task<List<CompletedWorkItem>> LoadCompletions(Guid teamId, Instant from, Instant until, CancellationToken cancellationToken)
     {
         // Removed items also carry a DoneTimestamp, so the status category is what excludes them.

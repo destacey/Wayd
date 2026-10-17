@@ -98,6 +98,58 @@ public sealed class GetTeamCadenceMetricsQueryHandlerTests(SqlServerDbContextFix
     }
 
     [Fact]
+    public async Task Handle_TeamOfTeams_ReturnsNull()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeder = new ForecastSeeder(_fixture);
+        await seeder.Reset(cancellationToken);
+        var (teamOfTeamsId, _) = await seeder.AddTeam(cancellationToken, TeamType.TeamOfTeams);
+
+        await using var context = _fixture.CreateContext();
+        var handler = new GetTeamCadenceMetricsQueryHandler(context, DispatcherWith().Object, Settings(),
+            Mock.Of<IDateTimeProvider>(p => p.Now == ForecastSeeder.Now));
+
+        // Act
+        var result = await handler.Handle(new GetTeamCadenceMetricsQuery(teamOfTeamsId), cancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_CountsADoneDateInTheTeamsZone_AndMeasuresInTheCurrentModelsUnit()
+    {
+        // Arrange — 05:00 UTC on Monday 14 September is still Sunday 13 September in Chicago
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeder = new ForecastSeeder(_fixture);
+        await seeder.Reset(cancellationToken);
+        var (teamId, _) = await seeder.AddTeam(cancellationToken);
+        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 14, 4, 0), storyPoints: 5);
+
+        var cadence = ReportingCadence.Create(2, Anchor).Value;
+        var earlier = new TeamSchedulePeriodDto(Anchor.PlusDays(-28), Anchor.PlusDays(-1), "America/Chicago", 1, SizingMethod.Count);
+        var current = new TeamSchedulePeriodDto(Anchor, null, "America/Chicago", 1, SizingMethod.StoryPoints) { Cadence = cadence };
+
+        await using var context = _fixture.CreateContext();
+        var handler = new GetTeamCadenceMetricsQueryHandler(context, DispatcherWith(earlier, current).Object, Settings(),
+            Mock.Of<IDateTimeProvider>(p => p.Now == ForecastSeeder.Now));
+
+        // Act
+        var result = await handler.Handle(new GetTeamCadenceMetricsQuery(teamId, PeriodWindow: 3), cancellationToken);
+
+        // Assert
+        result!.PeriodWindow.Should().Be(3);
+        result.SizingMethod.Should().Be(SizingMethod.StoryPoints);
+        var first = result.Periods.Single(p => p.Start == Anchor);
+        first.CompletedCount.Should().Be(1);
+        first.CompletedEstimate.Should().Be(5);
+    }
+
+    private static ISettings<SprintMetricsSettings> Settings() =>
+        Mock.Of<ISettings<SprintMetricsSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new SprintMetricsSettings()));
+
+    [Fact]
     public async Task Handle_UnknownTeam_ReturnsNull()
     {
         // Arrange

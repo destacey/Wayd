@@ -1,4 +1,4 @@
-﻿using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Application.Requests.Organization;
 
 namespace Wayd.Organization.Application.Teams.Queries;
 

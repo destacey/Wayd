@@ -47,6 +47,7 @@ public sealed record TeamCadenceMetricsDto
     /// </summary>
     public required List<TeamCadencePeriodDto> Periods { get; init; }
 
+    /// <summary>The DTO of <paramref name="metrics"/>, measured over <paramref name="periodWindow"/> ended periods.</summary>
     public static TeamCadenceMetricsDto From(Guid teamId, int periodWindow, int defaultPeriodWindow, int? cadenceWeeks, TeamCadenceMetrics metrics) => new()
     {
         TeamId = teamId,
@@ -96,6 +97,7 @@ public sealed record TeamCadencePeriodDto
     /// <summary>Completed items with no value in <see cref="SizingMethod"/>, which add nothing to <see cref="CompletedEstimate"/>.</summary>
     public int UnestimatedCount { get; init; }
 
+    /// <summary>The DTO of one measured period.</summary>
     public static TeamCadencePeriodDto From(MeasuredCadencePeriod measured) => new()
     {
         Start = measured.Period.Start,
@@ -119,6 +121,7 @@ public sealed record TeamCadencePeriodDto
 /// <param name="Periods">How many periods were averaged.</param>
 public sealed record CadenceVelocitySummaryDto(double Average, double Min, double Max, double StandardDeviation, int Periods)
 {
+    /// <summary>The DTO of a velocity summary, or null when no period was averaged.</summary>
     public static CadenceVelocitySummaryDto? From(SprintMetricSummary? summary) =>
         summary is null ? null : new(summary.Average, summary.Min, summary.Max, summary.StandardDeviation, summary.Sprints);
 }

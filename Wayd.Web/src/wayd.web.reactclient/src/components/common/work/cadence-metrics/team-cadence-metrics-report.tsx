@@ -202,7 +202,7 @@ export const TeamCadenceMetricsReportView: FC<
           Velocity
         </Title>
         <WaydTooltip
-          title={`${VELOCITY_TOOLTIP} The current period and periods cut short by an operating model change are shown but not averaged.`}
+          title={`${VELOCITY_TOOLTIP} The current period and periods cut short by a change of cadence, time zone or sizing method are shown but not averaged.`}
           helpCursor
         >
           <InfoCircleOutlined />

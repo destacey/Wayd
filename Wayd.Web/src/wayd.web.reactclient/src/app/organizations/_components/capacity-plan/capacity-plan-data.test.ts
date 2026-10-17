@@ -50,6 +50,7 @@ function plan(
       people: [
         {
           employee: { id: 'ada', key: 1, name: 'Ada Lovelace' },
+          workingDayHours: 6,
           allocatedPersonDays: 0,
           deliveryPersonDays: 0,
           elsewherePersonDays: 0,
@@ -149,6 +150,12 @@ describe('planRows', () => {
     expect(rows.map((r) => r.isFirstOfPerson)).toEqual([true, false])
     expect(rows.every((r) => r.canManageTimeAway)).toBe(true)
     expect(rows[1].conditionsByDate.get('2027-02-04')?.isHoliday).toBe(true)
+  })
+
+  it("carries the person's own working day on each of their rows", () => {
+    const rows = planRows(plan())
+
+    expect(rows.map((r) => r.workingDayHours)).toEqual([6, 6])
   })
 })
 

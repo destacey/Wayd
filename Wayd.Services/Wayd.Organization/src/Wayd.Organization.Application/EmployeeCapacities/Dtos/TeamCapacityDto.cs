@@ -5,7 +5,8 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Dtos;
 
 /// <summary>
 /// A team's capacity over a date range, from the time people are allocated to it, the days it works, and when
-/// each of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day.
+/// each of them is there. Capacity is in person-days: one person allocated in full, and there, for one system
+/// working day. A part-timer whose working day is half the system's is worth half a person-day a day in full.
 /// </summary>
 /// <remarks>
 /// Every person-day figure is what is left after the holidays each person takes and their time away.
@@ -41,8 +42,8 @@ public sealed record TeamCapacityDto
     public bool CanManage { get; set; }
 
     /// <summary>
-    /// How many hours a working day has, from the system settings, so person-days and a share of a day can be read
-    /// in hours.
+    /// How many hours a working day has, from the system settings: the length of a person-day, so person-days can
+    /// be read in hours. A person with a working day of their own carries it on their line.
     /// </summary>
     public required decimal WorkingDayHours { get; set; }
 
@@ -73,6 +74,12 @@ public sealed record TeamCapacityRoleDto
 public sealed record TeamCapacityPersonDto
 {
     public required NavigationDto Employee { get; set; }
+
+    /// <summary>
+    /// How many hours their working day has: their own, or else the system's. A share of their day, such as an
+    /// allocation's percent or their time away, is a share of this many hours.
+    /// </summary>
+    public required decimal WorkingDayHours { get; set; }
 
     /// <summary>Their time allocated to the team in every role, in person-days.</summary>
     public required decimal AllocatedPersonDays { get; set; }

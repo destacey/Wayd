@@ -9,6 +9,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Dtos;
@@ -435,7 +436,7 @@ public class TeamsController(
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the capacity of a team over a date range day by day, to plan against.")]
     [EndpointDescription(
-        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -447,12 +448,12 @@ public class TeamsController(
         if (firstDay is null || lastDay is null)
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("Both from and to dates are required.", HttpContext));
 
-        List<LocalDate> teamDaysOff = [];
+        List<TeamDayOff> teamDaysOff = [];
         foreach (var day in daysOff ?? [])
         {
-            if (!IsoDateQuery.TryParse(day, out var dayOff) || dayOff is null)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
-            teamDaysOff.Add(dayOff.Value);
+            if (!TeamDayOff.TryParse(day, out var dayOff))
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("Each day off must be yyyy-MM-dd, optionally followed by :percent off from 1 to 100.", HttpContext));
+            teamDaysOff.Add(dayOff);
         }
 
         var plan = await _dispatcher.Send(new GetTeamCapacityPlanQuery(id, TeamType.Team, firstDay.Value, lastDay.Value, teamDaysOff), cancellationToken);
@@ -857,6 +858,23 @@ public class TeamsController(
     public async Task<ActionResult<TeamSprintMetricsDto>> GetSprintMetrics(Guid id, [FromQuery] int? sprintWindow, CancellationToken cancellationToken)
     {
         var metrics = await _dispatcher.Send(new GetTeamSprintMetricsQuery(id, sprintWindow), cancellationToken);
+
+        return metrics is not null
+            ? Ok(metrics)
+            : NotFound();
+    }
+
+    [HttpGet("{id}/cadence-metrics")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [EndpointSummary("Get the team's cadence velocity.")]
+    [EndpointDescription("A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short where an operating model changes the cadence, time zone or sizing method inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.")]
+    [McpTool("Teams_GetCadenceMetrics", "Get team cadence velocity")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamCadenceMetricsDto>> GetCadenceMetrics(Guid id, [FromQuery] int? periodWindow, CancellationToken cancellationToken)
+    {
+        var metrics = await _dispatcher.Send(new GetTeamCadenceMetricsQuery(id, periodWindow), cancellationToken);
 
         return metrics is not null
             ? Ok(metrics)

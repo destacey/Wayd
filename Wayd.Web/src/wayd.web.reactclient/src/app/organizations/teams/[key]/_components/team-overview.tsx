@@ -5,6 +5,7 @@ import { MetricCard } from '@/src/components/common/metrics'
 import ActiveTeamSprint from '@/src/components/common/planning/active-team-sprint'
 // From its file, not the folder's index, which would pull the lazily loaded report in with it.
 import TeamSprintMetricsSummary from '@/src/components/common/work/sprint-metrics/team-sprint-metrics-summary'
+import TeamCadenceMetricsSummary from '@/src/components/common/work/cadence-metrics/team-cadence-metrics-summary'
 import TeamMemberCard from '@/src/app/organizations/teams/_components/team-member-card'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Methodology, TeamDetailsDto } from '@/src/services/wayd-api'
@@ -132,6 +133,13 @@ const TeamOverview = ({
           onOpenReport={() => onNavigateToSection('sprint-metrics')}
         />
       )}
+
+      {team.operatingModel?.cadenceWeeks ? (
+        <TeamCadenceMetricsSummary
+          teamId={team.id}
+          onOpenReport={() => onNavigateToSection('velocity')}
+        />
+      ) : null}
 
       <Flex vertical gap="small">
         <Text strong style={{ fontSize: 14 }}>

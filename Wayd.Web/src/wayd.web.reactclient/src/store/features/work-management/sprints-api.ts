@@ -10,6 +10,7 @@ import {
   SprintBurnDto,
   SprintCapacityDto,
   SprintScopeDto,
+  SprintTeamDayOffRequest,
   SprintWorkItemMetricsDto,
   SprintType,
   SprintTypeDto,
@@ -261,7 +262,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
 
     setSprintTeamDaysOff: builder.mutation<
       void,
-      { id: string; key: number; teamDaysOff: string[] }
+      { id: string; key: number; teamDaysOff: SprintTeamDayOffRequest[] }
     >({
       queryFn: async ({ id, teamDaysOff }) => {
         try {

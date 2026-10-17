@@ -1,14 +1,16 @@
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Application.Iterations.Sprints;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Iterations.Commands;
 
 /// <summary>
-/// Replaces the days within the sprint that the whole team is off, such as an offsite. Allowed for the same
-/// people as the sprint's lifecycle: members of its team or team of teams, or an iterations administrator.
+/// Replaces the days within the sprint that the whole team is off for some or all of, such as an offsite.
+/// Allowed for the same people as the sprint's lifecycle: members of its team or team of teams, or an iterations
+/// administrator.
 /// </summary>
-public sealed record SetSprintTeamDaysOffCommand(Guid Id, IReadOnlyList<LocalDate> TeamDaysOff) : ICommand, IRequireLinkedEmployee;
+public sealed record SetSprintTeamDaysOffCommand(Guid Id, IReadOnlyList<TeamDayOff> TeamDaysOff) : ICommand, IRequireLinkedEmployee;
 
 public sealed class SetSprintTeamDaysOffCommandValidator : AbstractValidator<SetSprintTeamDaysOffCommand>
 {
@@ -19,6 +21,10 @@ public sealed class SetSprintTeamDaysOffCommandValidator : AbstractValidator<Set
 
         RuleFor(c => c.TeamDaysOff)
             .NotNull();
+
+        RuleForEach(c => c.TeamDaysOff)
+            .Must(d => TeamDayOff.IsValidPercent(d.PercentOff))
+            .WithMessage("A team day off must be off for 1 to 100 percent of the day.");
     }
 }
 

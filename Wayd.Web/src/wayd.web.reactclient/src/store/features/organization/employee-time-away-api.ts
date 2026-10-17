@@ -1,6 +1,7 @@
 import { getEmployeesClient } from '@/src/services/clients'
 import {
   ChangeEmployeeHolidayCalendarRequest,
+  ChangeEmployeeWorkingDayHoursRequest,
   EmployeeTimeAwayDto,
   EmployeeTimeAwayEntryDto,
   EmployeeTimeAwayRequest,
@@ -11,9 +12,9 @@ import { QueryTags } from '../query-tags'
 
 export type { EmployeeTimeAwayDto, EmployeeTimeAwayEntryDto }
 
-// Time away and a person's holidays lower every team they are allocated to,
-// and the sprint ideal line is weighed by who is there, so each change
-// refetches every team's capacity and every sprint's burn and scope.
+// Time away, a person's holidays and their working day change every team they
+// are allocated to, and the sprint ideal line is weighed by who is there, so
+// each change refetches every team's capacity and every sprint's burn and scope.
 const invalidatedBy = (employeeId: string) => [
   { type: QueryTags.EmployeeTimeAway, id: employeeId },
   QueryTags.TeamCapacity,
@@ -139,6 +140,25 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
         QueryTags.HolidayCalendar,
       ],
     }),
+
+    changeEmployeeWorkingDayHours: builder.mutation<
+      void,
+      { employeeId: string; request: ChangeEmployeeWorkingDayHoursRequest }
+    >({
+      queryFn: async ({ employeeId, request }) => {
+        try {
+          const data = await getEmployeesClient().changeWorkingDayHours(
+            employeeId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => invalidatedBy(arg.employeeId),
+    }),
   }),
 })
 
@@ -149,4 +169,5 @@ export const {
   useChangeEmployeeTimeAwayMutation,
   useRemoveEmployeeTimeAwayMutation,
   useChangeEmployeeHolidayCalendarMutation,
+  useChangeEmployeeWorkingDayHoursMutation,
 } = employeeTimeAwayApi

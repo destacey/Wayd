@@ -130,14 +130,15 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
     /// <param name="workingWeek">The days of the week the team works.</param>
     /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
+    /// <param name="cadence">The team's reporting cadence, or null for none. Kanban only.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns>A result containing the new operating model or an error.</returns>
-    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, EventActor actor, Instant timestamp)
+    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, ReportingCadence? cadence, EventActor actor, Instant timestamp)
     {
         var currentModel = _operatingModels.SingleOrDefault(m => m.IsCurrent);
 
-        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId, currentModel);
+        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId, cadence, currentModel);
         if (result.IsFailure)
             return result;
 
@@ -162,10 +163,11 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
     /// <param name="workingWeek">The days of the week the team works.</param>
     /// <param name="holidayCalendarId">The team's holiday calendar, or null for the system default.</param>
+    /// <param name="cadence">The team's reporting cadence, or null for none. Kanban only.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns>A result indicating success or failure.</returns>
-    public Result CorrectOperatingModel(Guid operatingModelId, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, EventActor actor, Instant timestamp)
+    public Result CorrectOperatingModel(Guid operatingModelId, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, WorkingWeek workingWeek, Guid? holidayCalendarId, ReportingCadence? cadence, EventActor actor, Instant timestamp)
     {
         var operatingModel = _operatingModels.SingleOrDefault(m => m.Id == operatingModelId);
         if (operatingModel is null)
@@ -173,7 +175,7 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
 
         var before = SettingsOf(operatingModel);
 
-        var result = operatingModel.Update(methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId);
+        var result = operatingModel.Update(methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, holidayCalendarId, cadence);
         if (result.IsFailure)
             return result;
 
@@ -212,7 +214,7 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     }
 
     private static TeamOperatingModelSettings SettingsOf(TeamOperatingModel model) =>
-        new(model.Methodology, model.SizingMethod, model.TimeZone, model.CommitmentGraceDays, model.WorkingWeek.Days, model.HolidayCalendarId);
+        new(model.Methodology, model.SizingMethod, model.TimeZone, model.CommitmentGraceDays, model.WorkingWeek.Days, model.HolidayCalendarId, model.Cadence?.Weeks, model.Cadence?.Anchor);
 
     /// <summary>Creates the specified team with an initial operating model.</summary>
     /// <param name="name">The name.</param>
@@ -258,7 +260,7 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
         );
 
         // A new team takes the system default holiday calendar until one is chosen.
-        var operatingModel = team.SetOperatingModel(activeDate, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, null, actor, timestamp);
+        var operatingModel = team.SetOperatingModel(activeDate, methodology, sizingMethod, timeZone, commitmentGraceDays, workingWeek, null, null, actor, timestamp);
         if (operatingModel.IsFailure)
             throw new ArgumentException(operatingModel.Error);
 

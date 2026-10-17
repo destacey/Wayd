@@ -339,6 +339,24 @@ public class EmployeesController(
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id:guid}/working-day-hours")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Employees)]
+    [EndpointSummary("Set how many hours an employee's working day has.")]
+    [EndpointDescription(
+        "For someone whose working day is shorter or longer than the system's, such as a part-timer contracted for 4 hours a day; with none (`workingDayHours` null) they have the system's. The same on every team. Their allocation is a share of this day, so a part-timer allocated in full adds 4 hours, half a person-day of an 8-hour system day, to a team's capacity; time away entered in hours is a share of it. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ChangeWorkingDayHours(Guid id, [FromBody] ChangeEmployeeWorkingDayHoursRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new ChangeEmployeeWorkingDayHoursCommand(id, request.WorkingDayHours), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{id}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Get the work items assigned to an employee.")]

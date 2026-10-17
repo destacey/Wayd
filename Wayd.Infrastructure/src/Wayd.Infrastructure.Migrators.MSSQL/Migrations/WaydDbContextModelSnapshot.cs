@@ -2037,6 +2037,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<decimal?>("WorkingDayHours")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("HolidayCalendarId");
@@ -2502,6 +2506,17 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar")
                         .HasColumnName("WorkingDays");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Cadence", "Wayd.Organization.Domain.Models.TeamOperatingModel.Cadence#ReportingCadence", b1 =>
+                        {
+                            b1.Property<DateTime>("Anchor")
+                                .HasColumnType("date")
+                                .HasColumnName("CadenceAnchor");
+
+                            b1.Property<int>("Weeks")
+                                .HasColumnType("int")
+                                .HasColumnName("CadenceWeeks");
+                        });
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "DateRange", "Wayd.Organization.Domain.Models.TeamOperatingModel.DateRange#OperatingModelDateRange", b1 =>
                         {

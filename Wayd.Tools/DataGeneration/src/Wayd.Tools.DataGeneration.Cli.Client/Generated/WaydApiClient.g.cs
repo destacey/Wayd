@@ -56026,7 +56026,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set a sprint's team days off.
         /// </summary>
         /// <remarks>
-        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.
+        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite, each with the `percentOff` of the working day (100, a full day, when left out). A day off takes its share of everyone's capacity that day, and the sprint's ideal burn-down drops that much less: flat on a full day off, half a day on a half day. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -57195,7 +57195,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set a sprint's team days off.
         /// </summary>
         /// <remarks>
-        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.
+        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite, each with the `percentOff` of the working day (100, a full day, when left out). A day off takes its share of everyone's capacity that day, and the sprint's ideal burn-down drops that much less: flat on a full day off, half a day on a half day. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -57262,6 +57262,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -62532,6 +62542,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set how many hours an employee's working day has.
+        /// </summary>
+        /// <remarks>
+        /// For someone whose working day is shorter or longer than the system's, such as a part-timer contracted for 4 hours a day; with none (`workingDayHours` null) they have the system's. The same on every team. Their allocation is a share of this day, so a part-timer allocated in full adds 4 hours, half a person-day of an 8-hour system day, to a team's capacity; time away entered in hours is a share of it. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeWorkingDayHoursAsync(System.Guid id, ChangeEmployeeWorkingDayHoursRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the work items assigned to an employee.
         /// </summary>
         /// <returns>OK</returns>
@@ -64237,6 +64258,109 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("api/organization/employees/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/holiday-calendar");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set how many hours an employee's working day has.
+        /// </summary>
+        /// <remarks>
+        /// For someone whose working day is shorter or longer than the system's, such as a part-timer contracted for 4 hours a day; with none (`workingDayHours` null) they have the system's. The same on every team. Their allocation is a share of this day, so a part-timer allocated in full adds 4 hours, half a person-day of an 8-hour system day, to a team's capacity; time away entered in hours is a share of it. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeWorkingDayHoursAsync(System.Guid id, ChangeEmployeeWorkingDayHoursRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/employees/{id}/working-day-hours"
+                    urlBuilder_.Append("api/organization/employees/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/working-day-hours");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -66620,7 +66744,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -66797,6 +66921,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamSprintMetricsDto> GetSprintMetricsAsync(System.Guid id, int? sprintWindow = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the team's cadence velocity.
+        /// </summary>
+        /// <remarks>
+        /// A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short where an operating model changes the cadence, time zone or sizing method inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCadenceMetricsDto> GetCadenceMetricsAsync(System.Guid id, int? periodWindow = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -68769,7 +68904,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -70869,6 +71004,114 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamSprintMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the team's cadence velocity.
+        /// </summary>
+        /// <remarks>
+        /// A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short where an operating model changes the cadence, time zone or sizing method inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCadenceMetricsDto> GetCadenceMetricsAsync(System.Guid id, int? periodWindow = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{id}/cadence-metrics"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/cadence-metrics");
+                    urlBuilder_.Append('?');
+                    if (periodWindow != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("periodWindow")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(periodWindow, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCadenceMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -88389,6 +88632,45 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Velocity across a team's averaged periods.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CadenceVelocitySummaryDto
+    {
+
+        /// <summary>
+        /// The mean of the periods' values, not a ratio of pooled totals.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("average")]
+        public double Average { get; set; } = default!;
+
+        /// <summary>
+        /// The lowest period's value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// The highest period's value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+        /// <summary>
+        /// The population standard deviation of the periods' values.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("standardDeviation")]
+        public double StandardDeviation { get; set; } = default!;
+
+        /// <summary>
+        /// How many periods were averaged.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        public int Periods { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ChangeEmployeeAllocationsRequest
     {
@@ -88417,6 +88699,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Sets how many hours an employee's working day has instead of the system's.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeEmployeeWorkingDayHoursRequest
+    {
+
+        /// <summary>
+        /// The hours of the employee's working day, from 1 to 24 with at most two decimal places, such as 4 for
+        /// <br/>someone contracted for half days; or null to give them the system's.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "1", "24")]
+        public decimal? WorkingDayHours { get; set; } = default!;
 
     }
 
@@ -92128,7 +92427,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// When an employee is away from every team they are allocated to, and the holidays they take.
+    /// When an employee is away from every team they are allocated to, the holidays they take, and how long their
+    /// <br/>working day is.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EmployeeTimeAwayDto
@@ -92142,11 +92442,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanManage { get; set; } = default!;
 
         /// <summary>
-        /// How many hours a working day has, from the system settings, so a share of a day can be read and entered in
-        /// <br/>hours: 25% of an 8-hour day is 2 hours.
+        /// How many hours the employee's working day has, their own or else the system's, so a share of their day can
+        /// <br/>be read and entered in hours: 25% of an 8-hour day is 2 hours, of a 4-hour day 1 hour.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
         public decimal WorkingDayHours { get; set; } = default!;
+
+        /// <summary>
+        /// The hours of the employee's own working day, or null when they have the system's.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownWorkingDayHours")]
+        public decimal? OwnWorkingDayHours { get; set; } = default!;
+
+        /// <summary>
+        /// How many hours the system's working day has, from the scheduling settings.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("systemWorkingDayHours")]
+        public decimal SystemWorkingDayHours { get; set; } = default!;
 
         /// <summary>
         /// The holiday calendar the employee follows instead of the system default, or null when they follow the
@@ -97765,12 +98077,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<PlanningIntervalCapacityFiguresDto> Iterations { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalCapacityFiguresDto>();
 
         /// <summary>
-        /// The team's sprint days off in the planning interval, in date order: days the whole team is off, already
-        /// <br/>left out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup.
+        /// The team's sprint days off in the planning interval, in date order: days the whole team is off for some or
+        /// <br/>all of, already left out of its capacity. Empty for a team of teams, whose teams' days off are left out of
+        /// <br/>its rollup.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<TeamDayOffDto> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<TeamDayOffDto>();
 
     }
 
@@ -102636,12 +102949,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list
-        /// <br/>clears them. Holidays from the team's calendar and days outside its working week need not be listed.
+        /// The days within the sprint's planned dates that the whole team is off for some or all of, such as an
+        /// <br/>offsite, each listed once. An empty list clears them. Holidays from the team's calendar and days outside
+        /// <br/>its working week need not be listed.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<SprintTeamDayOffRequest> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<SprintTeamDayOffRequest>();
 
     }
 
@@ -102782,6 +103096,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+        /// <br/>A Scrum team's sprints are its cadence, so a Scrum model takes none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others. Required with
+        /// <br/>int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
     }
 
@@ -103316,12 +103645,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? TimeZone { get; set; } = default!;
 
         /// <summary>
-        /// Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
-        /// <br/>offsite, in date order. Those managing the sprint (`canManageSprint`) can change them.
+        /// Days within the sprint the whole team is off for some or all of beyond its working week and holiday
+        /// <br/>calendar, such as an offsite, in date order. Those managing the sprint (`canManageSprint`) can change
+        /// <br/>them.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<TeamDayOffDto> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<TeamDayOffDto>();
+
+        /// <summary>
+        /// How many hours a working day has, the system's scheduling setting: a team day off entered in hours is a
+        /// <br/>share of it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
 
         /// <summary>
         /// The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
@@ -104056,6 +104393,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unestimated")]
         public int Unestimated { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A day the whole team is off for some or all of.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintTeamDayOffRequest
+    {
+
+        /// <summary>
+        /// The day, within the sprint's planned dates.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Date { get; set; } = default!;
+
+        /// <summary>
+        /// The share of the working day the team is off, from 1 to 100; 100, a full day, when left out. A half-day
+        /// <br/>offsite is 50: it takes half of everyone's capacity that day, and the ideal burn-down drops by half a day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("percentOff")]
+        public int PercentOff { get; set; } = default!;
 
     }
 
@@ -105996,6 +106357,149 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A Kanban team's velocity over its reporting cadence: what it completed in each recent period, from done dates,
+    /// <br/>and the average and spread across them. Worked out when read, and never stored. There is no commitment, so no
+    /// <br/>predictability or say/do.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCadenceMetricsDto
+    {
+
+        /// <summary>
+        /// The team the metrics are of.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid TeamId { get; set; } = default!;
+
+        /// <summary>
+        /// How many ended periods the window holds when full: the number asked for, or else int TeamCadenceMetricsDto.DefaultPeriodWindow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periodWindow")]
+        public int PeriodWindow { get; set; } = default!;
+
+        /// <summary>
+        /// The organization's window, from the sprint metrics setting, which team pages are measured over.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaultPeriodWindow")]
+        public int DefaultPeriodWindow { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of the team's cadence now, or null when it has none. A team can have periods from an
+        /// <br/>earlier cadence while having none now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate is measured in: the team's sizing method now. Under Count
+        /// <br/>CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate equals CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByCount.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// Velocity by item count across the ended, whole periods; null when there are none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("byCount")]
+        public CadenceVelocitySummaryDto? ByCount { get; set; } = default!;
+
+        /// <summary>
+        /// Velocity in SizingMethod TeamCadenceMetricsDto.SizingMethod across the ended, whole periods measured in it; null when there are
+        /// <br/>none. Estimates in different units are never averaged.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("byEstimate")]
+        public CadenceVelocitySummaryDto? ByEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// The current period, if any, then up to int TeamCadenceMetricsDto.PeriodWindow ended periods, most recent first. Empty
+        /// <br/>for a team that has never had a cadence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCadencePeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<TeamCadencePeriodDto>();
+
+    }
+
+    /// <summary>
+    /// What a team completed in one of its reporting periods.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCadencePeriodDto
+    {
+
+        /// <summary>
+        /// The period's first day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The period's last day, included in it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate the period's work is measured in: its operating model's sizing method.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the period is shorter than its cadence, because an operating model began or ended inside it.
+        /// <br/>Partial periods are left out of the averages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isPartial")]
+        public bool IsPartial { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the period has not ended yet. The current period is left out of the averages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
+        public bool IsCurrent { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the period counts toward the averages: it has ended and is whole.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inAverages")]
+        public bool InAverages { get; set; } = default!;
+
+        /// <summary>
+        /// Whether double TeamCadencePeriodDto.CompletedEstimate counts toward the estimate averages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inEstimateAverages")]
+        public bool InEstimateAverages { get; set; } = default!;
+
+        /// <summary>
+        /// How many Requirement-tier items reached a Done-category status in the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedCount")]
+        public int CompletedCount { get; set; } = default!;
+
+        /// <summary>
+        /// The completed items' estimates in SizingMethod TeamCadencePeriodDto.SizingMethod; under Count, the count.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double CompletedEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// Completed items with no value in SizingMethod TeamCadencePeriodDto.SizingMethod, which add nothing to double TeamCadencePeriodDto.CompletedEstimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedCount")]
+        public int UnestimatedCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// An allocation of a person's time to the team.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -106050,7 +106554,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     /// <summary>
     /// A team's capacity over a date range, from the time people are allocated to it, the days it works, and when
-    /// <br/>each of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day.
+    /// <br/>each of them is there. Capacity is in person-days: one person allocated in full, and there, for one system
+    /// <br/>working day. A part-timer whose working day is half the system's is worth half a person-day a day in full.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityDto
@@ -106106,8 +106611,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanManage { get; set; } = default!;
 
         /// <summary>
-        /// How many hours a working day has, from the system settings, so person-days and a share of a day can be read
-        /// <br/>in hours.
+        /// How many hours a working day has, from the system settings: the length of a person-day, so person-days can
+        /// <br/>be read in hours. A person with a working day of their own carries it on their line.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
         public decimal WorkingDayHours { get; set; } = default!;
@@ -106164,6 +106669,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("employee")]
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Employee { get; set; } = default!;
+
+        /// <summary>
+        /// How many hours their working day has: their own, or else the system's. A share of their day, such as an
+        /// <br/>allocation's percent or their time away, is a share of this many hours.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
 
         /// <summary>
         /// Their time allocated to the team in every role, in person-days.
@@ -106233,7 +106745,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int Percent { get; set; } = default!;
 
         /// <summary>
-        /// What it is worth, in person-days, after the holidays the person takes and their time away.
+        /// What it is worth, in person-days, after the holidays the person takes, their time away and the team's
+        /// <br/>day off.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personDays")]
         public decimal PersonDays { get; set; } = default!;
@@ -106264,12 +106777,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<System.DateTimeOffset> Days { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
         /// <summary>
-        /// The days of `days` the whole team is off, as asked for, such as a sprint's team days off. Nobody
-        /// <br/>is counted on them, so they add nothing to `capacity` or to any day's person-days.
+        /// The days of `days` the whole team is off for some or all of, as asked for, such as a sprint's team
+        /// <br/>days off, in date order. Each takes its `percentOff` of everyone's time that day, already left out of
+        /// <br/>`capacity` and of each day's person-days: a full day off adds nothing to either.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<TeamDayOffDto> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<TeamDayOffDto>();
 
         /// <summary>
         /// Everyone with time allocated to the team in the range, in the same order as `capacity.people`.
@@ -106612,6 +107126,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percentAway")]
         public int PercentAway { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A day the whole team is off for some or all of, beyond its working week and holidays, such as a sprint's
+    /// <br/>offsite. It takes its share of everyone's capacity that day.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamDayOffDto
+    {
+
+        /// <summary>
+        /// The day the team is off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Date { get; set; } = default!;
+
+        /// <summary>
+        /// The share of the working day the team is off, from 1 to 100: 100 is a full day off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("percentOff")]
+        public int PercentOff { get; set; } = default!;
 
     }
 
@@ -107033,8 +107571,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week and
-    /// <br/>holiday calendar.
+    /// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday
+    /// <br/>calendar and, for a Kanban team, reporting cadence.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamOperatingModelDetailsDto
@@ -107113,6 +107651,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public NavigationDto? HolidayCalendar { get; set; } = default!;
 
         /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+        /// <br/>int? TeamOperatingModelDetailsDto.CadenceWeeks is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
+
+        /// <summary>
         /// Indicates whether this operating model is current (has no end date).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
@@ -107121,7 +107673,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A team's operating model in brief: the methodology and sizing method it uses.
+    /// A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are
+    /// <br/>counted in, and its reporting cadence.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamOperatingModelListDto
@@ -107149,6 +107702,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA id of the time zone the team's days are counted in, which decides what day it is for the team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TimeZone { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+        /// <br/>int? TeamOperatingModelListDto.CadenceWeeks is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
     }
 
@@ -109853,6 +110427,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+        /// <br/>A Scrum team's sprints are its cadence, so a Scrum model takes none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others. Required with
+        /// <br/>int? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
     }
 

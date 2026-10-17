@@ -28,6 +28,7 @@ const WEEKS: PlanWeek[] = [
 const ROW: PlanRow = {
   id: 'ada|',
   employee: { id: 'ada', key: 1, name: 'Ada Lovelace' },
+  workingDayHours: 8,
   countsTowardDeliveryCapacity: true,
   percentByDate: new Map([
     ['2027-02-03', 50],
@@ -47,12 +48,18 @@ const ROW: PlanRow = {
 const mockEdits = jest.fn()
 
 /** The grid in editing, holding its edits as the plan does. */
-const EditingGrid = ({ unit = 'percent' }: { unit?: PlanUnit }) => {
+const EditingGrid = ({
+  unit = 'percent',
+  row = ROW,
+}: {
+  unit?: PlanUnit
+  row?: PlanRow
+}) => {
   const [edits, setEdits] = useState<Record<string, RowEdits>>({})
   mockEdits(edits)
   return (
     <CapacityPlanGrid
-      rows={[ROW]}
+      rows={[row]}
       weeks={WEEKS}
       editing
       unit={unit}
@@ -130,6 +137,20 @@ describe('CapacityPlanGrid', () => {
     expect(mockEdits).toHaveBeenLastCalledWith({ 'ada|': { 'w:0': 75 } })
   })
 
+  it("takes a part-timer's hours as a share of their own day", async () => {
+    render(<EditingGrid unit="hours" row={{ ...ROW, workingDayHours: 4 }} />)
+
+    const input = screen.getByRole('spinbutton', {
+      name: /Week of Feb 3 – Feb 5 .*hours a day/,
+    })
+    expect(input).toHaveValue('2.00')
+
+    await userEvent.clear(input)
+    await userEvent.type(input, '3')
+
+    expect(mockEdits).toHaveBeenLastCalledWith({ 'ada|': { 'w:0': 75 } })
+  })
+
   it('offers no input for a week the team works no day of', () => {
     render(<EditingGrid />)
 
@@ -187,6 +208,35 @@ describe('CapacityPlanGrid in view', () => {
     expect(screen.getAllByText('Hours').length).toBeGreaterThan(0)
   })
 
+  it("reads a part-timer's cells and time away in hours of their own day, and their total in system hours", async () => {
+    // A 4-hour day at 50% is 2 hours a day, worth a quarter of an 8-hour person-day.
+    renderView({
+      unit: 'hours',
+      rows: [
+        {
+          ...AWAY_ROW,
+          workingDayHours: 4,
+          personDaysByDate: new Map([
+            ['2027-02-03', 0.1875],
+            ['2027-02-04', 0],
+            ['2027-02-05', 0.25],
+          ]),
+        },
+      ],
+    })
+
+    expect(screen.getByTestId('cell-ada|-w:0')).toHaveTextContent('2 h/day')
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: /Expand week of Feb 3/ })[0],
+    )
+
+    expect(screen.getByTestId('cell-ada|-d:2027-02-03')).toHaveTextContent(
+      'Away 1 h',
+    )
+    expect(screen.getByText('3.5')).toBeInTheDocument()
+  })
+
   it('says beneath a day how long the person is away, or that it is a holiday', async () => {
     renderView()
 
@@ -242,7 +292,7 @@ describe('CapacityPlanGrid on a team day off', () => {
         editing={false}
         edits={{}}
         onEditRow={jest.fn()}
-        teamDaysOff={['2027-02-04']}
+        teamDaysOff={[{ date: '2027-02-04', percentOff: 100 }]}
       />,
     )
 
@@ -254,7 +304,35 @@ describe('CapacityPlanGrid on a team day off', () => {
       'Team day off',
     )
     expect(screen.getByTestId('cell-ada|-d:2027-02-03')).not.toHaveTextContent(
-      'Team day off',
+      'Team',
+    )
+  })
+
+  it('says how much of a part day the team is off', async () => {
+    render(
+      <CapacityPlanGrid
+        rows={[ROW]}
+        weeks={WEEKS}
+        editing={false}
+        edits={{}}
+        onEditRow={jest.fn()}
+        workingDayHours={8}
+        teamDaysOff={[
+          { date: '2027-02-03', percentOff: 50 },
+          { date: '2027-02-04', percentOff: 25 },
+        ]}
+      />,
+    )
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: /Expand week of Feb 3/ })[0],
+    )
+
+    expect(screen.getByTestId('cell-ada|-d:2027-02-03')).toHaveTextContent(
+      'Team off half day',
+    )
+    expect(screen.getByTestId('cell-ada|-d:2027-02-04')).toHaveTextContent(
+      'Team off 2 h',
     )
   })
 })

@@ -12,7 +12,7 @@ public sealed record TeamOperatingModelSetEvent : DomainEvent<TeamOperatingModel
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
     public TeamOperatingModelSetEvent(Guid id, int key, FlexibleDateRange period, TeamOperatingModelSettings settings, FlexibleDateRange? supersededPeriod, EventActor actor, Instant timestamp)
-        : base(actor, "1.2")
+        : base(actor, "1.3")
     {
         Id = id;
         Key = key;

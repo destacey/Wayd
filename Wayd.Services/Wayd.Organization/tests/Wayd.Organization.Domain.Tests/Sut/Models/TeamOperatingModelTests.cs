@@ -11,6 +11,33 @@ public class TeamOperatingModelTests
     #region Create
 
     [Fact]
+    public void Create_KanbanWithACadence_KeepsTheCadence()
+    {
+        // ARRANGE
+        var cadence = ReportingCadence.Create(2, new LocalDate(2024, 1, 1)).Value;
+
+        // ACT
+        var result = TeamOperatingModel.Create(new LocalDate(2024, 1, 1), Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, cadence);
+
+        // ASSERT
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Cadence.Should().Be(cadence);
+    }
+
+    [Fact]
+    public void Create_ScrumWithACadence_ReturnsFailure()
+    {
+        // ARRANGE
+        var cadence = ReportingCadence.Create(2, new LocalDate(2024, 1, 1)).Value;
+
+        // ACT
+        var result = TeamOperatingModel.Create(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, cadence);
+
+        // ASSERT
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
     public void Create_WithValidData_Success()
     {
         // ARRANGE
@@ -19,7 +46,7 @@ public class TeamOperatingModelTests
         var sizingMethod = SizingMethod.StoryPoints;
 
         // ACT
-        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null);
+        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -43,7 +70,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null, currentModel);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -69,7 +96,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null, currentModel);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -89,7 +116,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null, currentModel);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -111,7 +138,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null, currentModel);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -127,7 +154,7 @@ public class TeamOperatingModelTests
         var startDate = new LocalDate(2024, 1, 1);
 
         // ACT
-        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2, WorkingWeek.MondayToFriday, null);
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -146,7 +173,7 @@ public class TeamOperatingModelTests
         var startDate = new LocalDate(2024, 1, 1);
 
         // ACT
-        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null);
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -163,7 +190,7 @@ public class TeamOperatingModelTests
         var startDate = new LocalDate(2024, 1, 1);
 
         // ACT
-        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, timeZone, 1, WorkingWeek.MondayToFriday, null);
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, timeZone, 1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -177,7 +204,7 @@ public class TeamOperatingModelTests
         var startDate = new LocalDate(2024, 1, 1);
 
         // ACT
-        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", -1, WorkingWeek.MondayToFriday, null);
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", -1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -191,7 +218,7 @@ public class TeamOperatingModelTests
         var currentModel = new TeamOperatingModelFaker(new LocalDate(2023, 1, 1)).Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "Not/AZone", 1, WorkingWeek.MondayToFriday, null, currentModel);
+        var result = TeamOperatingModel.Create(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "Not/AZone", 1, WorkingWeek.MondayToFriday, null, null, currentModel);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -215,7 +242,7 @@ public class TeamOperatingModelTests
         var newSizingMethod = SizingMethod.Count;
 
         // ACT
-        var result = model.Update(newMethodology, newSizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null);
+        var result = model.Update(newMethodology, newSizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -236,7 +263,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = model.Update(methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null);
+        var result = model.Update(methodology, sizingMethod, "UTC", 1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -254,7 +281,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = model.Update(model.Methodology, model.SizingMethod, "America/Chicago", 0, WorkingWeek.MondayToFriday, null);
+        var result = model.Update(model.Methodology, model.SizingMethod, "America/Chicago", 0, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -272,7 +299,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = model.Update(Methodology.Kanban, model.SizingMethod, "Not/AZone", 1, WorkingWeek.MondayToFriday, null);
+        var result = model.Update(Methodology.Kanban, model.SizingMethod, "Not/AZone", 1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -287,11 +314,41 @@ public class TeamOperatingModelTests
         var model = new TeamOperatingModelFaker().WithCommitmentGraceDays(1).Generate();
 
         // ACT
-        var result = model.Update(model.Methodology, model.SizingMethod, "UTC", -1, WorkingWeek.MondayToFriday, null);
+        var result = model.Update(model.Methodology, model.SizingMethod, "UTC", -1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
         model.CommitmentGraceDays.Should().Be(1);
+    }
+
+    [Fact]
+    public void Update_GivingAScrumModelACadence_ReturnsFailureAndKeepsTheModel()
+    {
+        // ARRANGE
+        var model = TeamOperatingModel.Create(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, null).Value;
+        var cadence = ReportingCadence.Create(2, new LocalDate(2024, 1, 1)).Value;
+
+        // ACT
+        var result = model.Update(Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, cadence);
+
+        // ASSERT
+        result.IsFailure.Should().BeTrue();
+        model.Cadence.Should().BeNull();
+    }
+
+    [Fact]
+    public void Update_SwitchingToKanbanWithACadence_SetsTheCadence()
+    {
+        // ARRANGE
+        var model = TeamOperatingModel.Create(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, null, null).Value;
+        var cadence = ReportingCadence.Create(2, new LocalDate(2024, 1, 1)).Value;
+
+        // ACT
+        var result = model.Update(Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, cadence);
+
+        // ASSERT
+        result.IsSuccess.Should().BeTrue();
+        model.Cadence.Should().Be(cadence);
     }
 
     #endregion Update
@@ -378,6 +435,7 @@ public class TeamOperatingModelTests
             "UTC",
             1,
             WorkingWeek.MondayToFriday,
+            null,
             null);
 
         result1.IsSuccess.Should().BeTrue();
@@ -393,6 +451,7 @@ public class TeamOperatingModelTests
             1,
             WorkingWeek.MondayToFriday,
             null,
+            null,
             model1);
 
         result2.IsSuccess.Should().BeTrue();
@@ -407,6 +466,7 @@ public class TeamOperatingModelTests
             "UTC",
             1,
             WorkingWeek.MondayToFriday,
+            null,
             null,
             model2);
 
@@ -443,13 +503,14 @@ public class TeamOperatingModelTests
             "UTC",
             1,
             WorkingWeek.MondayToFriday,
+            null,
             null);
 
         result.IsSuccess.Should().BeTrue();
         var model = result.Value;
 
         // ACT - Update the operating model
-        var updateResult = model.Update(Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null);
+        var updateResult = model.Update(Methodology.Kanban, SizingMethod.Count, "UTC", 1, WorkingWeek.MondayToFriday, null, null);
 
         // ASSERT
         updateResult.IsSuccess.Should().BeTrue();

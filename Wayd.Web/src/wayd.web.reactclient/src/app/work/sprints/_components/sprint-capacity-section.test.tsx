@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {
   SprintDetailsDto,
   SprintType,
@@ -11,9 +12,9 @@ jest.mock(
   '@/src/app/organizations/_components/capacity-plan/team-capacity-plan',
   () => ({
     __esModule: true,
-    default: (props: unknown) => {
+    default: (props: { extraActions?: React.ReactNode }) => {
       mockPlan(props)
-      return <div />
+      return <div>{props.extraActions}</div>
     },
   }),
 )
@@ -36,6 +37,7 @@ const sprint = (teamIsActive: boolean): SprintDetailsDto => ({
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
   teamDaysOff: [],
+  workingDayHours: 8,
   canManageSprint: false,
   canStart: false,
   canComplete: false,
@@ -59,6 +61,35 @@ describe('SprintCapacitySection', () => {
         to: '2026-08-30',
         daysOff: [],
       })
+      expect(
+        screen.queryByRole('button', { name: 'Team Days Off' }),
+      ).not.toBeInTheDocument()
     },
   )
+
+  it('offers the team days off beside the plan to those who can change them', async () => {
+    // Arrange
+    const onSetTeamDaysOff = jest.fn()
+    const withHalfDay = {
+      ...sprint(true),
+      teamDaysOff: [{ date: '2026-08-19', percentOff: 50 }],
+    }
+    render(
+      <SprintCapacitySection
+        sprint={withHalfDay}
+        onSetTeamDaysOff={onSetTeamDaysOff}
+      />,
+    )
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Team Days Off' }))
+
+    // Assert
+    expect(onSetTeamDaysOff).toHaveBeenCalled()
+    expect(mockPlan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        daysOff: [{ date: '2026-08-19', percentOff: 50 }],
+      }),
+    )
+  })
 })

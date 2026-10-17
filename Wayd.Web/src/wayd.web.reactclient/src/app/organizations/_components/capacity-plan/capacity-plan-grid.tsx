@@ -9,7 +9,13 @@ import {
   MinusSquareOutlined,
   PlusSquareOutlined,
 } from '@ant-design/icons'
-import { CalendarDate, formatCalendarDate } from '@/src/utils'
+import { TeamDayOffDto } from '@/src/services/wayd-api'
+import {
+  CalendarDate,
+  formatCalendarDate,
+  isFullDayOff,
+  teamDayOffOn,
+} from '@/src/utils'
 import {
   formatHours,
   hoursFor,
@@ -34,6 +40,7 @@ import {
   weekIsEdited,
   withCellEdit,
 } from './capacity-plan-data'
+import { teamDayOffLabel } from './team-days-off'
 import styles from './capacity-plan-grid.module.css'
 
 const { Text } = Typography
@@ -52,30 +59,35 @@ export interface CapacityPlanGridProps {
   onEditRow: (rowId: string, edits: RowEdits) => void
   /** What the cells show and take. */
   unit?: PlanUnit
-  /** How many hours a working day has, for the hours unit and time away. */
+  /**
+   * How many hours the system's working day has: a person-day, and the day a
+   * team day off is a share of. Each row carries its person's own.
+   */
   workingDayHours?: number
   /** Opens the time away form for a row's person; absent to offer none. */
   onRecordTimeAway?: (row: PlanRow) => void
-  /** Days the whole team is off, which count for nothing. */
-  teamDaysOff?: CalendarDate[]
+  /** Days the whole team is off for some or all of, which count for that much less. */
+  teamDaysOff?: TeamDayOffDto[]
   isLoading?: boolean
 }
 
 /**
- * What a day cell says beneath its figure: a holiday the person takes, or
- * how long they are away. Nothing on an ordinary day.
+ * What a day cell says beneath its figure: the team's day off, in hours of the
+ * system's working day, a holiday the person takes, or how long they are away,
+ * in hours of theirs. Nothing on an ordinary day.
  */
 export function dayNote(
   row: PlanRow,
   day: CalendarDate,
   workingDayHours: number,
-  teamDaysOff: CalendarDate[] = [],
+  teamDaysOff: TeamDayOffDto[] = [],
 ): string | undefined {
-  if (teamDaysOff.includes(day)) return 'Team day off'
+  const teamDayOff = teamDayOffOn(teamDaysOff, day)
+  if (teamDayOff) return teamDayOffLabel(teamDayOff.percentOff, workingDayHours)
   const condition = row.conditionsByDate.get(day)
   if (condition?.isHoliday) return 'Holiday'
   if (condition && condition.percentAway > 0)
-    return `Away ${timeAwayLabel(condition.percentAway, workingDayHours).toLowerCase()}`
+    return `Away ${timeAwayLabel(condition.percentAway, row.workingDayHours).toLowerCase()}`
   return undefined
 }
 
@@ -121,8 +133,8 @@ const CapacityPlanGrid = ({
   isLoading,
 }: CapacityPlanGridProps) => {
   const inHours = unit === 'hours'
-  const figure = (cell: PlanCell) =>
-    inHours ? hoursLabel(cell, workingDayHours) : percentLabel(cell)
+  const figure = (row: PlanRow, cell: PlanCell) =>
+    inHours ? hoursLabel(cell, row.workingDayHours) : percentLabel(cell)
 
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
 
@@ -161,7 +173,10 @@ const CapacityPlanGrid = ({
     const className = [
       styles.cell,
       (cell.holidays > 0 && cell.holidays === days.length) ||
-      days.every((d) => teamDaysOff.includes(d))
+      days.every((d) => {
+        const teamDayOff = teamDayOffOn(teamDaysOff, d)
+        return teamDayOff !== undefined && isFullDayOff(teamDayOff)
+      })
         ? styles.holiday
         : '',
       cell.awayDays > 0 ? styles.away : '',
@@ -206,17 +221,19 @@ const CapacityPlanGrid = ({
               <InputNumber
                 size="small"
                 min={0}
-                max={workingDayHours}
+                max={row.workingDayHours}
                 step={0.25}
                 precision={2}
                 suffix="h"
                 className={styles.input}
                 aria-label={`${label} for ${row.employee.name}, ${row.role?.name ?? NO_ROLE_LABEL}, hours a day`}
-                placeholder={hoursLabel(pendingCell, workingDayHours)}
+                placeholder={hoursLabel(pendingCell, row.workingDayHours)}
                 value={
                   uniform === null
                     ? null
-                    : Number(formatHours(hoursFor(uniform, workingDayHours)))
+                    : Number(
+                        formatHours(hoursFor(uniform, row.workingDayHours)),
+                      )
                 }
                 onChange={(value) =>
                   onEditRow(
@@ -227,7 +244,7 @@ const CapacityPlanGrid = ({
                       day,
                       value === null
                         ? undefined
-                        : percentForHours(value, workingDayHours),
+                        : percentForHours(value, row.workingDayHours),
                     ),
                   )
                 }
@@ -263,7 +280,7 @@ const CapacityPlanGrid = ({
           className={className}
           data-testid={`cell-${row.id}-${day ? dayEditKey(day) : weekEditKey(week)}`}
         >
-          <Text>{figure(pendingCell)}</Text>
+          <Text>{figure(row, pendingCell)}</Text>
           {note && <div className={styles.note}>{note}</div>}
           {marked && !note && <span className={styles.marker} aria-hidden />}
         </div>
@@ -374,6 +391,7 @@ const CapacityPlanGrid = ({
       align: 'right',
       render: (_, row) => {
         const personDays = planCell(row, allDays).personDays
+        // A person-day is a system working day, whoever's time it is.
         return inHours
           ? formatHours(personDays * workingDayHours)
           : formatPersonDays(personDays)

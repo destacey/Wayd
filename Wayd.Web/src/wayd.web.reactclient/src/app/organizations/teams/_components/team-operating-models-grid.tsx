@@ -11,7 +11,10 @@ import {
 } from '@/src/store/features/organizations/team-api'
 import { TeamOperatingModelDetailsDto } from '@/src/services/wayd-api'
 import { sizingMethodLabel } from '@/src/utils'
-import { formatWorkingDays } from '@/src/components/common/scheduling'
+import {
+  formatReportingCadence,
+  formatWorkingDays,
+} from '@/src/components/common/scheduling'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
@@ -175,6 +178,12 @@ const TeamOperatingModelsGrid = ({
         accessorFn: (row) => row.holidayCalendar?.name ?? 'System default',
         header: 'Holiday Calendar',
         meta: { filterType: 'set' },
+      },
+      {
+        id: 'cadence',
+        accessorFn: (row) =>
+          formatReportingCadence(row.cadenceWeeks, row.cadenceAnchor),
+        header: 'Cadence',
       },
       {
         id: 'isCurrent',

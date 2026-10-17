@@ -31673,6 +31673,13 @@ export class SprintsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -35302,6 +35309,75 @@ export class EmployeesClient {
     }
 
     protected processChangeHolidayCalendar(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set how many hours an employee's working day has.
+     * @return No Content
+     */
+    changeWorkingDayHours(id: string, request: ChangeEmployeeWorkingDayHoursRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/working-day-hours";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeWorkingDayHours(_response);
+        });
+    }
+
+    protected processChangeWorkingDayHours(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -39197,6 +39273,78 @@ export class TeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamSprintMetricsDto>(null as any);
+    }
+
+    /**
+     * Get the team's cadence velocity.
+     * @param periodWindow (optional) 
+     * @return OK
+     */
+    getCadenceMetrics(id: string, periodWindow?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamCadenceMetricsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/cadence-metrics?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (periodWindow !== undefined && periodWindow !== null)
+            url_ += "periodWindow=" + encodeURIComponent("" + periodWindow) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCadenceMetrics(_response);
+        });
+    }
+
+    protected processGetCadenceMetrics(response: AxiosResponse): Promise<TeamCadenceMetricsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCadenceMetricsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCadenceMetricsDto>(null as any);
     }
 
     /**
@@ -48612,6 +48760,20 @@ export interface BulkTenantMigrationResult {
     stagedCount: number;
 }
 
+/** Velocity across a team's averaged periods. */
+export interface CadenceVelocitySummaryDto {
+    /** The mean of the periods' values, not a ratio of pooled totals. */
+    average: number;
+    /** The lowest period's value. */
+    min: number;
+    /** The highest period's value. */
+    max: number;
+    /** The population standard deviation of the periods' values. */
+    standardDeviation: number;
+    /** How many periods were averaged. */
+    periods: number;
+}
+
 export interface ChangeEmployeeAllocationsRequest {
     /** The changes to make, applied together or not at all. Each sets what one team and role have over its date
 range and leaves the days outside it as they were. */
@@ -48623,6 +48785,13 @@ export interface ChangeEmployeeHolidayCalendarRequest {
     /** The shared holiday calendar the employee follows, such as their country's, or null to have them follow the
 system default. */
     holidayCalendarId?: string | undefined;
+}
+
+/** Sets how many hours an employee's working day has instead of the system's. */
+export interface ChangeEmployeeWorkingDayHoursRequest {
+    /** The hours of the employee's working day, from 1 to 24 with at most two decimal places, such as 4 for
+someone contracted for half days; or null to give them the system's. */
+    workingDayHours?: number | undefined;
 }
 
 /** The share of production deployments that failed or were rolled back. */
@@ -49833,14 +50002,18 @@ export interface NavigationDto extends NavigationDtoOfGuidAndInteger {
 export interface EmployeeNavigationDto extends NavigationDto {
 }
 
-/** When an employee is away from every team they are allocated to, and the holidays they take. */
+/** When an employee is away from every team they are allocated to, the holidays they take, and how long their working day is. */
 export interface EmployeeTimeAwayDto {
     /** Whether the caller may record, change and remove this employee's time away: the employee, anyone they
 report up to, and a time away administrator. Each stretch's reason is given only when this is true. */
     canManage: boolean;
-    /** How many hours a working day has, from the system settings, so a share of a day can be read and entered in
-hours: 25% of an 8-hour day is 2 hours. */
+    /** How many hours the employee's working day has, their own or else the system's, so a share of their day can
+be read and entered in hours: 25% of an 8-hour day is 2 hours, of a 4-hour day 1 hour. */
     workingDayHours: number;
+    /** The hours of the employee's own working day, or null when they have the system's. */
+    ownWorkingDayHours?: number | undefined;
+    /** How many hours the system's working day has, from the scheduling settings. */
+    systemWorkingDayHours: number;
     /** The holiday calendar the employee follows instead of the system default, or null when they follow the
 system default. */
     holidayCalendar?: NavigationDto | undefined;
@@ -51722,9 +51895,10 @@ interval. A team with no one has nothing to plan with, rather than no time. */
     total: PlanningIntervalCapacityFiguresDto;
     /** The team's capacity in each iteration, in the same order as the planning interval's `iterations`. */
     iterations: PlanningIntervalCapacityFiguresDto[];
-    /** The team's sprint days off in the planning interval, in date order: days the whole team is off, already
-left out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup. */
-    teamDaysOff: string[];
+    /** The team's sprint days off in the planning interval, in date order: days the whole team is off for some or
+all of, already left out of its capacity. Empty for a team of teams, whose teams' days off are left out of
+its rollup. */
+    teamDaysOff: TeamDayOffDto[];
 }
 
 /** Per-team rollup for a Planning Interval. Cycle time is averaged across all of the team's sprints mapped to any iteration in the PI; predictability matches the value returned by the predictability endpoint. */
@@ -53353,9 +53527,10 @@ export interface SetReleasePackageManifestRequest {
 
 /** Replaces a sprint's team days off. */
 export interface SetSprintTeamDaysOffRequest {
-    /** The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list
-clears them. Holidays from the team's calendar and days outside its working week need not be listed. */
-    teamDaysOff: string[];
+    /** The days within the sprint's planned dates that the whole team is off for some or all of, such as an
+offsite, each listed once. An empty list clears them. Holidays from the team's calendar and days outside
+its working week need not be listed. */
+    teamDaysOff: SprintTeamDayOffRequest[];
 }
 
 /** Sets or clears the type the team set on a sprint. */
@@ -53405,6 +53580,12 @@ export interface SetTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+A Scrum team's sprints are its cadence, so a Scrum model takes none. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others. Required with
+int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
+    cadenceAnchor?: string | undefined;
 }
 
 export interface SetupRequest {
@@ -53584,9 +53765,13 @@ ends at the next midnight, so its last day is the one before. */
     activeUntil?: Date | undefined;
     /** The IANA time zone the sprint's planned days are counted in: its team's on the planned start. */
     timeZone?: string | undefined;
-    /** Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
-offsite, in date order. Those managing the sprint (`canManageSprint`) can change them. */
-    teamDaysOff: string[];
+    /** Days within the sprint the whole team is off for some or all of beyond its working week and holiday
+calendar, such as an offsite, in date order. Those managing the sprint (`canManageSprint`) can change
+them. */
+    teamDaysOff: TeamDayOffDto[];
+    /** How many hours a working day has, the system's scheduling setting: a team day off entered in hours is a
+share of it. */
+    workingDayHours: number;
     /** The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
 the team names none: days the team is already off, so never a team day off. Empty without a team or dates. */
     holidays: string[];
@@ -53843,6 +54028,15 @@ letting finished added work stand in for committed work. Null when nothing was c
     predictabilityEstimate?: number | undefined;
     /** Items with no value in the sprint's estimate when they were last in the sprint. */
     unestimated: number;
+}
+
+/** A day the whole team is off for some or all of. */
+export interface SprintTeamDayOffRequest {
+    /** The day, within the sprint's planned dates. */
+    date: string;
+    /** The share of the working day the team is off, from 1 to 100; 100, a full day, when left out. A half-day
+offsite is 50: it takes half of everyone's capacity that day, and the ideal burn-down drops by half a day. */
+    percentOff: number;
 }
 
 export enum SprintType {
@@ -54501,6 +54695,55 @@ enough history, or when the team sizes by count. */
     workItems: BacklogHealthWorkItemDto[];
 }
 
+/** A Kanban team's velocity over its reporting cadence: what it completed in each recent period, from done dates, and the average and spread across them. Worked out when read, and never stored. There is no commitment, so no predictability or say/do. */
+export interface TeamCadenceMetricsDto {
+    /** The team the metrics are of. */
+    teamId: string;
+    /** How many ended periods the window holds when full: the number asked for, or else int TeamCadenceMetricsDto.DefaultPeriodWindow. */
+    periodWindow: number;
+    /** The organization's window, from the sprint metrics setting, which team pages are measured over. */
+    defaultPeriodWindow: number;
+    /** The length in weeks of the team's cadence now, or null when it has none. A team can have periods from an
+earlier cadence while having none now. */
+    cadenceWeeks?: number | undefined;
+    /** The estimate CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate is measured in: the team's sizing method now. Under Count
+CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate equals CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByCount. */
+    sizingMethod: SizingMethod;
+    /** Velocity by item count across the ended, whole periods; null when there are none. */
+    byCount?: CadenceVelocitySummaryDto | undefined;
+    /** Velocity in SizingMethod TeamCadenceMetricsDto.SizingMethod across the ended, whole periods measured in it; null when there are
+none. Estimates in different units are never averaged. */
+    byEstimate?: CadenceVelocitySummaryDto | undefined;
+    /** The current period, if any, then up to int TeamCadenceMetricsDto.PeriodWindow ended periods, most recent first. Empty
+for a team that has never had a cadence. */
+    periods: TeamCadencePeriodDto[];
+}
+
+/** What a team completed in one of its reporting periods. */
+export interface TeamCadencePeriodDto {
+    /** The period's first day. */
+    start: string;
+    /** The period's last day, included in it. */
+    end: string;
+    /** The estimate the period's work is measured in: its operating model's sizing method. */
+    sizingMethod: SizingMethod;
+    /** Whether the period is shorter than its cadence, because an operating model began or ended inside it.
+Partial periods are left out of the averages. */
+    isPartial: boolean;
+    /** Whether the period has not ended yet. The current period is left out of the averages. */
+    isCurrent: boolean;
+    /** Whether the period counts toward the averages: it has ended and is whole. */
+    inAverages: boolean;
+    /** Whether double TeamCadencePeriodDto.CompletedEstimate counts toward the estimate averages. */
+    inEstimateAverages: boolean;
+    /** How many Requirement-tier items reached a Done-category status in the period. */
+    completedCount: number;
+    /** The completed items' estimates in SizingMethod TeamCadencePeriodDto.SizingMethod; under Count, the count. */
+    completedEstimate: number;
+    /** Completed items with no value in SizingMethod TeamCadencePeriodDto.SizingMethod, which add nothing to double TeamCadencePeriodDto.CompletedEstimate. */
+    unestimatedCount: number;
+}
+
 /** An allocation of a person's time to the team. */
 export interface TeamCapacityAllocationDto {
     id: string;
@@ -54519,7 +54762,7 @@ holidays the person takes and their time away. */
     personDays: number;
 }
 
-/** A team's capacity over a date range, from the time people are allocated to it, the days it works, and when each of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day. */
+/** A team's capacity over a date range, from the time people are allocated to it, the days it works, and when each of them is there. Capacity is in person-days: one person allocated in full, and there, for one system working day. A part-timer whose working day is half the system's is worth half a person-day a day in full. */
 export interface TeamCapacityDto {
     /** The first day of the range. */
     from: string;
@@ -54538,8 +54781,8 @@ there on more or fewer of them. */
     awayPersonDays: number;
     /** Whether the caller may change this team's allocations. */
     canManage: boolean;
-    /** How many hours a working day has, from the system settings, so person-days and a share of a day can be read
-in hours. */
+    /** How many hours a working day has, from the system settings: the length of a person-day, so person-days can
+be read in hours. A person with a working day of their own carries it on their line. */
     workingDayHours: number;
     /** The allocated time by team member role, by role name with the time in no role last. The lines add up to
 `allocatedPersonDays`. */
@@ -54559,6 +54802,9 @@ export interface TeamCapacityPeriodDto {
 /** One person's time on a team over a date range. */
 export interface TeamCapacityPersonDto {
     employee: NavigationDto;
+    /** How many hours their working day has: their own, or else the system's. A share of their day, such as an
+allocation's percent or their time away, is a share of this many hours. */
+    workingDayHours: number;
     /** Their time allocated to the team in every role, in person-days. */
     allocatedPersonDays: number;
     /** The part of it in roles that count toward delivery capacity, in person-days. */
@@ -54582,7 +54828,8 @@ export interface TeamCapacityPlanDayDto {
     date: string;
     /** The share of the person's time allocated, from 1 to 100. */
     percent: number;
-    /** What it is worth, in person-days, after the holidays the person takes and their time away. */
+    /** What it is worth, in person-days, after the holidays the person takes, their time away and the team's
+day off. */
     personDays: number;
 }
 
@@ -54593,9 +54840,10 @@ export interface TeamCapacityPlanDto {
     /** The days of the team's working week in the range, in date order, holidays included. The person-days of
 each day already leave out the holidays each person takes. */
     days: string[];
-    /** The days of `days` the whole team is off, as asked for, such as a sprint's team days off. Nobody
-is counted on them, so they add nothing to `capacity` or to any day's person-days. */
-    teamDaysOff: string[];
+    /** The days of `days` the whole team is off for some or all of, as asked for, such as a sprint's team
+days off, in date order. Each takes its `percentOff` of everyone's time that day, already left out of
+`capacity` and of each day's person-days: a full day off adds nothing to either. */
+    teamDaysOff: TeamDayOffDto[];
     /** Everyone with time allocated to the team in the range, in the same order as `capacity.people`. */
     people: TeamCapacityPlanPersonDto[];
 }
@@ -54716,6 +54964,14 @@ export interface TeamCapacityTimeAwayDto {
     end: string;
     /** The share of each day the person is away, from 1 to 100. */
     percentAway: number;
+}
+
+/** A day the whole team is off for some or all of, beyond its working week and holidays, such as a sprint's offsite. It takes its share of everyone's capacity that day. */
+export interface TeamDayOffDto {
+    /** The day the team is off. */
+    date: string;
+    /** The share of the working day the team is off, from 1 to 100: 100 is a full day off. */
+    percentOff: number;
 }
 
 export interface TeamDetailsDto {
@@ -54852,7 +55108,7 @@ export interface TeamOfTeamsOperatingModelDetailsDto {
     isCurrent: boolean;
 }
 
-/** How a team works over a stretch of dates: its methodology, sizing method, time zone, working week and holiday calendar. */
+/** How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday calendar and, for a Kanban team, reporting cadence. */
 export interface TeamOperatingModelDetailsDto {
     /** The identifier of the operating model. */
     id: string;
@@ -54874,11 +55130,16 @@ export interface TeamOperatingModelDetailsDto {
     workingDays: IsoDayOfWeek[];
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendar?: NavigationDto | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, or null for no cadence. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others; set exactly when
+int? TeamOperatingModelDetailsDto.CadenceWeeks is. */
+    cadenceAnchor?: string | undefined;
     /** Indicates whether this operating model is current (has no end date). */
     isCurrent: boolean;
 }
 
-/** A team's operating model in brief: the methodology and sizing method it uses. */
+/** A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are counted in, and its reporting cadence. */
 export interface TeamOperatingModelListDto {
     /** The identifier of the operating model. */
     id: string;
@@ -54886,6 +55147,13 @@ export interface TeamOperatingModelListDto {
     methodology: Methodology;
     /** The sizing method the team uses (e.g., StoryPoints, Count). */
     sizingMethod: SizingMethod;
+    /** The IANA id of the time zone the team's days are counted in, which decides what day it is for the team. */
+    timeZone: string;
+    /** The length in weeks of a Kanban team's reporting periods, or null for no cadence. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others; set exactly when
+int? TeamOperatingModelListDto.CadenceWeeks is. */
+    cadenceAnchor?: string | undefined;
 }
 
 /** A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread. Worked out when read from work item history, and never stored. */
@@ -55759,6 +56027,12 @@ export interface UpdateTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+A Scrum team's sprints are its cadence, so a Scrum model takes none. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others. Required with
+int? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
+    cadenceAnchor?: string | undefined;
 }
 
 export interface UpdateTeamRequest {

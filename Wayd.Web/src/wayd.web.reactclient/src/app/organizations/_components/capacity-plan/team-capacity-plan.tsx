@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { ReactNode, useState } from 'react'
 import { Alert, Button, Flex, Segmented, Statistic } from 'antd'
 import useAuth from '@/src/components/contexts/auth'
 import { useLocalStorageState } from '@/src/hooks'
 import { useMessage } from '@/src/components/contexts/messaging'
+import { TeamDayOffDto } from '@/src/services/wayd-api'
 import { CalendarDate, isApiError, type ApiError } from '@/src/utils'
 import { useChangeEmployeeAllocationsMutation } from '@/src/store/features/organization/employee-allocations-api'
 import {
@@ -34,8 +35,10 @@ export interface TeamCapacityPlanProps {
   /** The plan's first and last days, both included. */
   from: CalendarDate
   to: CalendarDate
-  /** Days the whole team is off, such as a sprint's team days off. */
-  daysOff?: CalendarDate[]
+  /** Days the whole team is off for some or all of, such as a sprint's team days off. */
+  daysOff?: TeamDayOffDto[]
+  /** More actions beside the plan's own, shown while it is not being edited. */
+  extraActions?: ReactNode
 }
 
 /** A person whose changes the API refused, and why. */
@@ -57,6 +60,7 @@ const TeamCapacityPlan = ({
   from,
   to,
   daysOff,
+  extraActions,
 }: TeamCapacityPlanProps) => {
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
@@ -189,41 +193,39 @@ const TeamCapacityPlan = ({
       </Flex>
 
       <Flex justify="space-between" align="center" wrap gap="small">
-        {canEdit ? (
-          <Flex gap="small" className={styles.actions}>
-            {editing ? (
-              <>
-                <Button
-                  type="primary"
-                  size="small"
-                  loading={isSaving}
-                  disabled={requests.length === 0}
-                  onClick={save}
-                >
-                  Save
-                </Button>
-                <Button size="small" disabled={isSaving} onClick={stopEditing}>
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="small" onClick={() => setAllocating(true)}>
-                  Allocate Person
-                </Button>
-                <Button
-                  size="small"
-                  disabled={rows.length === 0}
-                  onClick={() => setEditing(true)}
-                >
-                  Edit Plan
-                </Button>
-              </>
-            )}
-          </Flex>
-        ) : (
-          <span />
-        )}
+        <Flex gap="small" className={styles.actions}>
+          {canEdit && editing && (
+            <>
+              <Button
+                type="primary"
+                size="small"
+                loading={isSaving}
+                disabled={requests.length === 0}
+                onClick={save}
+              >
+                Save
+              </Button>
+              <Button size="small" disabled={isSaving} onClick={stopEditing}>
+                Cancel
+              </Button>
+            </>
+          )}
+          {canEdit && !editing && (
+            <>
+              <Button size="small" onClick={() => setAllocating(true)}>
+                Allocate Person
+              </Button>
+              <Button
+                size="small"
+                disabled={rows.length === 0}
+                onClick={() => setEditing(true)}
+              >
+                Edit Plan
+              </Button>
+            </>
+          )}
+          {!editing && extraActions}
+        </Flex>
         <Segmented<PlanUnit>
           size="small"
           value={unit}
@@ -278,7 +280,7 @@ const TeamCapacityPlan = ({
       {recordingFor && (
         <TimeAwayForm
           employeeId={recordingFor.employee.id}
-          workingDayHours={workingDayHours}
+          workingDayHours={recordingFor.workingDayHours}
           initialDates={{ start: from, end: from }}
           onFormComplete={() => setRecordingFor(null)}
           onFormCancel={() => setRecordingFor(null)}

@@ -4246,6 +4246,23 @@
       ]
     },
     {
+      "name": "Teams_GetCadenceMetrics",
+      "title": "Get team cadence velocity",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "periodWindow"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
       "name": "Teams_GetSprintMetrics",
       "title": "Get team sprint metrics",
       "annotations": {

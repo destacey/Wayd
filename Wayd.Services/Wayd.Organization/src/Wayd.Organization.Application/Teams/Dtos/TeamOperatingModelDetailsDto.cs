@@ -7,8 +7,8 @@ using NodaTime;
 namespace Wayd.Organization.Application.Teams.Dtos;
 
 /// <summary>
-/// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week and
-/// holiday calendar.
+/// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday
+/// calendar and, for a Kanban team, reporting cadence.
 /// </summary>
 public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
 {
@@ -71,6 +71,17 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
     public NavigationDto? HolidayCalendar { get; set; }
 
     /// <summary>
+    /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+    /// </summary>
+    public int? CadenceWeeks { get; set; }
+
+    /// <summary>
+    /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+    /// <see cref="CadenceWeeks"/> is.
+    /// </summary>
+    public LocalDate? CadenceAnchor { get; set; }
+
+    /// <summary>
     /// Indicates whether this operating model is current (has no end date).
     /// </summary>
     [Required]
@@ -84,6 +95,8 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.IsCurrent, src => src.IsCurrent)
             .Map(dest => dest.WorkingDays, src => src.WorkingWeek.Days)
+            .Map(dest => dest.CadenceWeeks, src => src.Cadence == null ? (int?)null : src.Cadence.Weeks)
+            .Map(dest => dest.CadenceAnchor, src => src.Cadence == null ? (LocalDate?)null : src.Cadence.Anchor)
             .Ignore(dest => dest.HolidayCalendar!);
     }
 }

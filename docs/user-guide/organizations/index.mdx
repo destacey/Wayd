@@ -107,10 +107,13 @@ Each team has an **Operating Model** that defines how it works. The operating mo
 - **Commitment Grace Period** — How many days after a sprint's planned start its commitment is taken when the team does not start the sprint itself (1 is the end of the first planned day)
 - **Working Days** — The days of the week the team works, Monday to Friday by default. A sprint's [ideal burn-down line](../work-management/sprints.mdx) drops only on working days and stays flat on the rest
 - **Holiday Calendar** — The [holiday calendar](../settings/index.mdx#holiday-calendars) whose holidays the team takes off, or none to use the default calendar from the scheduling settings. The ideal burn-down line stays flat on holidays too
+- **Cadence** (Kanban only) — An optional reporting period for a Kanban team: a length of 1 to 8 weeks and an **anchor** date that one of the periods starts on, so every period starts on the anchor's day of the week. A two-week cadence anchored on a Monday reports the team's velocity in back-to-back two-week periods from Monday to the following Sunday. The periods are worked out from the length and anchor; nothing is created for them, and they have no commitment, start or complete. A Scrum team has no cadence, because its sprints are its cadence
 
 Operating models have an effective date range, creating a history. When a team changes how it works (e.g., moving from Kanban to Scrum, relocating to another time zone, or changing its working week), a new operating model is added and the previous one is automatically closed the day before the new one starts.
 
 A sprint uses the time zone, grace period, sizing method and working days of the operating model in effect on its planned start date, for the whole sprint. So a team that moves, or starts sizing in a different unit, keeps its old zone and unit for sprints planned before the change, while editing a model corrects every sprint in that model's period.
+
+A cadence follows its operating model the same way. When a new model changes the cadence, time zone or sizing method partway through a cadence period, that period ends early, the day before the new model starts, and the new model's periods begin; earlier periods stay as they were. A new model that keeps all three, set to change something else such as the working days, leaves the open period running. Setting a new model fills in the current cadence; clear it to end the cadence. Correcting a model's cadence changes the periods for that model's whole period.
 
 A new model's time zone is pre-filled from the team's parent Team of Teams — the zone that team of teams had on the new model's start date — or from the [scheduling settings](../settings/index.mdx) when the team had no parent then. The grace period and working days are pre-filled from the scheduling settings. These are suggestions only: changing the parent's zone or the scheduling settings never changes an existing team.
 
@@ -122,7 +125,7 @@ It follows the same rules as a team's operating model: setting a new model from 
 
 The operating model affects what the team sees in the UI:
 - **Scrum teams** see a **Sprints** section and an **Active Sprint** indicator on their detail page
-- **Kanban teams** do not see sprint-related UI
+- **Kanban teams** do not see sprint-related UI; a Kanban team with a cadence sees a [Velocity report](#velocity-report) and an Overview card instead
 - The **Sizing Method** determines how work is measured in backlog views and metrics
 
 ### Team Members
@@ -169,7 +172,7 @@ Who can change a team's allocations is covered under [Allocations: team membersh
 ### Time Away and Holiday Calendars
 
 :::note
-Time away and the holiday calendar a person follows are part of **Team Capacity Management**, which an administrator turns on under **Settings > Feature Management**.
+Time away, the holiday calendar a person follows and their working day are part of **Team Capacity Management**, which an administrator turns on under **Settings > Feature Management**.
 :::
 
 :::warning Before turning on Team Capacity Management
@@ -184,7 +187,7 @@ How much of a person's allocated time a team really has on a day depends on whet
 
 A stretch of **time away** has:
 - **First day** and **Last day** — The days it covers, the same day for a single day
-- **Away for** — **Full day**, **Half day** or a number of **Hours** each day. Hours are a share of the [working day](../settings/index.mdx#scheduling), 8 hours unless an administrator sets another length, so 2 hours away is a quarter of the day. The share is what is kept, so a stretch reads back in hours to the nearest quarter hour
+- **Away for** — **Full day**, **Half day** or a number of **Hours** each day. Hours are a share of the person's [working day](#working-day), so 2 hours away is a quarter of an 8-hour day and half of a 4-hour one. The share is what is kept, so a stretch reads back in hours to the nearest quarter hour
 - **Reason** — Paid time off, Business travel, Training or Other
 
 Key rules:
@@ -195,9 +198,24 @@ Key rules:
 - A person on several teams is recorded away once. Every team they are on, and every sprint of those teams, takes it into account; nobody sets their allocation to 0
 - Everyone who can see the person sees **that** they are away and for how much of the day. The **reason** is shown only to the person, the people they report up to and time away administrators, and is never written to the [activity log](../activity-log.mdx)
 
-A person's availability to a team on a day is their allocation to it, times whether the day is in the team's working week, times whether it is a holiday in the calendar they follow, times the share of the day they are not away. The team's [Capacity](#capacity) section and the [sprint burn-down's ideal line](../work-management/sprints.mdx#burn-up-and-burn-down) both read it.
+A person's availability to a team on a day is their allocation to it, times whether the day is in the team's working week, times whether it is a holiday in the calendar they follow, times the share of the day they are not away, times their [working day](#working-day) as a share of the system's. The team's [Capacity](#capacity) section and the [sprint burn-down's ideal line](../work-management/sprints.mdx#burn-up-and-burn-down) both read it.
 
 Who can record a person's time away is covered under [Time away: the person and their managers](../settings/permissions.mdx#time-away-the-person-and-their-managers).
+
+#### Working day
+
+Everyone's working day is the system's, set under **Working day hours** in the [scheduling settings](../settings/index.mdx#scheduling) (8 hours unless an administrator sets another length), unless they are given one of their own. Give a person their own working day when it is shorter or longer than the system's, such as a part-timer contracted for 4 hours a day. It is set on the person, not on a team, so it is the same on every team they are allocated to.
+
+A person's allocation and time away are shares of their own working day, and a [person-day](#capacity) is always one system working day. So against an 8-hour system day:
+
+- A part-timer with a 4-hour day allocated 100% to a team adds **0.5** of a person-day to its capacity each working day, and reads **4 h/day** on a capacity plan in hours
+- Allocated 50%, they add 0.25 of a person-day, **2 h/day**
+- **2 hours** of time away is half of their day, and takes 0.25 of a person-day from a team they are on in full
+- Their 100% is all of *their* time, so the 100% limit still stops anyone from allocating time they do not have
+
+Everyone without a working day of their own is counted exactly as before. Changing a person's working day changes every figure that counts their time, past sprints included, since capacity is worked out when it is read and never stored. The same goes for changing the system's length: a person with their own working day is then a different share of it.
+
+The working day is set from the **Working day** line on the employee page's [Capacity](#capacity-1) tab, and needs `Permissions.Employees.Update`. Clearing it gives the person the system's again. Each change is recorded in the person's [activity log](../activity-log.mdx).
 
 ### Team Memberships
 
@@ -237,6 +255,7 @@ The **Overview** section summarises the team at a glance:
 - Metric tiles for **Members**, **Backlog**, **Dependencies**, and **Open Risks**, each linking to the section it counts
 - **Active Team Sprint** — For Scrum teams, shows the current sprint with timeline progress, completion rate, velocity, in progress count, and average cycle time
 - **Sprint Metrics** — For teams that have used Scrum, the team's average velocity, predictability and say/do over its most recent completed standard sprints, each with its range. Select a card to open the [Sprint Metrics report](#sprint-metrics-report)
+- **Velocity** — For a Kanban team with a [cadence](#operating-model), its average velocity over its most recent cadence periods, with its range. Select the card to open the [Velocity report](#velocity-report)
 - **Members** — A card for each team member showing their name (links to their employee page) and roles. Cards are clickable and navigate to the employee's detail page.
 
 ### Members
@@ -254,15 +273,15 @@ Members are managed from the **Actions menu → Team Management**:
 
 ### Capacity
 
-With **Team Capacity Management** turned on, team and team of teams pages have a **Capacity** section. It shows whose time the team has over a date range, from their [allocations](#allocations), and what that comes to in person-days once the [holidays each person takes and their time away](#time-away-and-holiday-calendars) are left out. One person-day is one person allocated in full, and there, for one of the team's working days.
+With **Team Capacity Management** turned on, team and team of teams pages have a **Capacity** section. It shows whose time the team has over a date range, from their [allocations](#allocations), and what that comes to in person-days once the [holidays each person takes and their time away](#time-away-and-holiday-calendars) are left out. One person-day is one person allocated in full, and there, for one of the team's working days, as long as the system's [working day](#working-day). A person with a shorter working day of their own is worth that share of a person-day: half for a 4-hour day against an 8-hour one.
 
 The section keeps no plan of its own: it is a view of people's allocations, and every edit made here changes the same allocations the [employee page](#employee-detail-page) shows.
 
-- **Date range** — Any range of up to two years, starting on the current month
+- **Date range** — Any range of up to two years, starting on the current month, or on the current period for a Kanban team with a [cadence](#operating-model), both as of today in the team's time zone. The **This period** and **This month** shortcuts in the picker go back to either
 - **Working days**, **People**, **Allocated person-days** and **Delivery person-days** — Totals for the range. Working days are the days of the team's working week that are not holidays in its own calendar; each person's person-days follow the calendar they follow, so they may be there on more or fewer of them. Delivery person-days leave out time in roles that do not count toward delivery capacity
 - **Time away person-days** — What people's time away takes from the team in the range. It is already left out of the allocated and delivery person-days. A team of teams does not show it
 - **By role** — Person-days for each role that counts toward delivery capacity, then one **Non-delivery** line for the roles that do not, so the lines add up to everything allocated
-- A grid with a row for each allocation in the range: Person, Role, Delivery, Percent, Start, End, **Person-days** on this team, **Elsewhere**, the person-days the same person has allocated to other teams on the same days, and **Away**, the person-days their time away takes from this team. Hover over **Away** to see the days the person is away and how much of each. The reason is never shown here
+- A grid with a row for each allocation in the range: Person, Role, Delivery, Percent, Start, End, **Person-days** on this team, **Elsewhere**, the person-days the same person has allocated to other teams on the same days, and **Away**, the person-days their time away takes from this team. Hover over **Away** to see the days the person is away and how much of each, in hours of their working day. The reason is never shown here
 
 A team of teams' section also covers the teams beneath it, at any depth:
 
@@ -290,8 +309,8 @@ A sprint's [Capacity section](../work-management/sprints.mdx#sprint-capacity), a
 
 - **Weeks** are counted from the plan's first day, so a sprint's first week is its first seven days whatever weekday it starts on. Expand a week to see its working days
 - A **cell** shows the percent of the person's time the team has in that role, or the range of percents when the days differ. Hover over it for the person-days it is worth and any holidays, time away or time on other teams. A day shows **Holiday** or how long the person is away, such as **Away 2 h**, beneath its figure; a week with any is marked
-- A sprint's **team days off** count for nothing: the day keeps its percent, since the allocation runs on, but is worth no person-days and reads **Team day off**
-- **% | Hours** switches the cells between percents and hours of each working day: 50% of an 8-hour day reads **4 h/day**, and the totals read in hours. Edits can be entered in either, and are kept as percents. Your choice is remembered
+- A sprint's **team days off** take their share of everyone's time: the day keeps its percent, since the allocation runs on, but a full day off is worth no person-days and reads **Team day off**, and a part day is worth the share the team works and reads how much it is off, such as **Team off half day**
+- **% | Hours** switches the cells between percents and hours of each working day. A cell's hours are of that person's [working day](#working-day): 50% reads **4 h/day** for someone with an 8-hour day and **2 h/day** for a part-timer with a 4-hour one, and time away beneath a day reads in their hours too. The totals are person-days in hours of the system's working day, so they add up across people with different working days. A team day off reads in hours of the system's working day. Edits can be entered in either, and are kept as percents of the person's day. Your choice is remembered
 - The calendar button beside a person's name records **time away** for them, with the same form as the [employee's page](#employee-detail-page). It is offered to those who may manage their time away. Time away is not an allocation, so it is never entered in the cells
 - **Edit Plan** turns the cells into inputs. A week sets the person's allocation on all seven of its days, a day on that day alone, and the days before and after them keep what they have. **Save** makes each person's changes together; anyone whose changes are refused keeps their edits, with the reason, and everyone else is saved
 - **Allocate Person** works as it does here, with the plan's dates as the range: a member's allocation has no end, so they are in the next sprint's plan too, and a non-member's ends with the sprint
@@ -379,6 +398,19 @@ Available from the **Reports** menu, the **Sprint Metrics** report shows the tea
 
 See [Team Sprint Metrics](../work-management/sprints.mdx#team-sprint-metrics) for which sprints count, how the averages are worked out, and what happens when a team changes its sizing method.
 
+### Velocity (Report)
+
+> Only visible for teams whose current operating model has a cadence.
+
+Available from the **Reports** menu, the **Velocity** report shows a Kanban team's velocity over its [cadence](#operating-model): the work it completed in each recent period, as a chart and a table, and the average and range across them. Velocity is the requirement-level work that reached a done status in the period, by its done date, counted in the team's time zone; work closed as removed is not counted. A cadence is for reporting only, so there is no commitment and no predictability or say/do.
+
+- **Periods** — The current period comes first, then the ended ones, most recent first. Each period follows the cadence of the operating model it falls in, and stops where the cadence, time zone or sizing method changes.
+- **What is averaged** — Only ended, whole periods. The current period is marked **In progress**, and a period cut short where the cadence, time zone or sizing method changed inside it is marked **Partial**; both are shown but not averaged.
+- **Window** — The report opens at the organization's sprint window from the [Sprint Metrics settings](../settings/index.mdx), as a number of ended periods. Choose another number of periods for this visit only.
+- **Unit** — Velocity is shown in the team's sizing method, or switch to **Count** to count work items. A period measured in an earlier sizing method shows no estimate, and is left out of the estimate average, because estimates in different units are never averaged. **Unestimated** is how many completed items had no value in the sizing method.
+
+A team of teams has no cadence. A [planning interval](../planning/planning-intervals.mdx) slices every team by its own iteration dates, whatever a team's cadence.
+
 ### Cycle Time Report (Report)
 
 Available from the **Reports** menu, the **Cycle Time Report** analyzes how long it takes the team's work items to complete. It uses the same report available on employee detail pages, but scoped to work items owned by the team.
@@ -456,11 +488,11 @@ To add a team to a Team of Teams:
 1. Navigate to the team's detail page
 2. From the page actions menu, choose **Operating Model > Set Operating Model**
 3. Set the **Start Date** — the previous model will automatically close the day before
-4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period**, **Working Days** and **Holiday Calendar**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
+4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period**, **Working Days** and **Holiday Calendar**. For a Kanban team, optionally set a **Cadence** length in weeks and its **Cadence Anchor**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
 
 To correct the current model without creating a new one:
 1. From the page actions menu, choose **Operating Model > Update Operating Model**
-2. Change the **Methodology**, **Sizing Method**, **Time Zone**, **Commitment Grace Period**, **Working Days** or **Holiday Calendar**
+2. Change the **Methodology**, **Sizing Method**, **Time Zone**, **Commitment Grace Period**, **Working Days**, **Holiday Calendar** or, for a Kanban team, **Cadence**
 
 A correction applies to the model's whole period, including past sprints. If the team actually moved to another time zone or changed its working week, set a new operating model from the date of the change instead.
 
@@ -516,10 +548,11 @@ For teams whose allocations you can change:
 - **Change** on a row, or clicking an allocation on the timeline, edits that allocation: its start, end and percent. The team and role are fixed; entering 0 removes it
 - **Move** takes a share from one team and role and gives it to another over a date range in one step. Use it for someone who is fully allocated, where raising one team first would exceed 100%
 
-Below the allocations, **Time away** shows the person's [time away and holiday calendar](#time-away-and-holiday-calendars):
+Below the allocations, **Time away** shows the person's [time away, holiday calendar and working day](#time-away-and-holiday-calendars):
 
 - **Holiday calendar** — The calendar the person follows, or **System default** when they follow none. **Change** sets it, and needs `Permissions.Employees.Update`
-- A grid of every stretch of time away, past and future, with its First day, Last day and how long each day: **Full day**, **Half day** or hours
+- **Working day** — The hours of the person's own [working day](#working-day), or **System default** with the system's hours when they have none. **Change** sets it, from 1 to 24 hours; leave it empty for the system default. It needs `Permissions.Employees.Update`
+- A grid of every stretch of time away, past and future, with its First day, Last day and how long each day: **Full day**, **Half day** or hours of the person's working day
 
 If you are the person, someone they report up to, or a time away administrator, the grid also shows each stretch's **Reason**, and:
 
@@ -564,6 +597,7 @@ Features:
 | Time away reason is private | The reason is shown only to the person, the people they report up to and time away administrators, and is not recorded in the activity log |
 | Plans change allocations | Editing a week or day of a capacity plan changes the person's allocation for those days only; nothing is stored per day |
 | A person's holidays follow their calendar | A person takes the holidays of the calendar assigned to them, otherwise the system default, on every team; a team's own calendar only applies when it is read as a whole |
+| A person's working day | A person has the system's working day unless given their own, from 1 to 24 hours, the same on every team. Their allocation and time away are shares of it, and a person-day is one system working day, so a 4-hour part-timer in full is half a person-day a day against an 8-hour system day |
 
 ## Related
 

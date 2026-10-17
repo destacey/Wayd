@@ -54,6 +54,23 @@ public class GetEmployeeTimeAwayQueryHandlerTests : IDisposable
 
         // Assert
         result!.WorkingDayHours.Should().Be(7.5m);
+        result.OwnWorkingDayHours.Should().BeNull();
+        result.SystemWorkingDayHours.Should().Be(7.5m);
+    }
+
+    [Fact]
+    public async Task Handle_ForSomeoneWithTheirOwnWorkingDay_GivesTheirsAsTheLengthTimeAwayIsAShareOf()
+    {
+        // Arrange
+        _capacity.ChangeWorkingDayHours(4m, EventActor.System, Now);
+
+        // Act
+        var result = await CreateHandler(_teammate.Id).Handle(new GetEmployeeTimeAwayQuery(_employee.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.WorkingDayHours.Should().Be(4m);
+        result.OwnWorkingDayHours.Should().Be(4m);
+        result.SystemWorkingDayHours.Should().Be(7.5m);
     }
 
     [Fact]

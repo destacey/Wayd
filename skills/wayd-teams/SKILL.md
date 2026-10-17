@@ -11,7 +11,7 @@ A team carries three identifiers, and each tool accepts a specific one:
 
 | Identifier | Example      | Accepted by                                                                                                                                           |
 | ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`       | UUID         | `Teams_GetActivities`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`, `Teams_GetSprintMetrics` (UUID only) |
+| `id`       | UUID         | `Teams_GetActivities`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`, `Teams_GetSprintMetrics`, `Teams_GetCadenceMetrics` (UUID only) |
 | `key`      | integer      | `Teams_GetTeam` (its parameter is named `id` but takes the integer `key`), `Teams_GetActivities`                                                      |
 | `code`     | short string | `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`                                                              |
 
@@ -51,6 +51,16 @@ Planning Interval tools take the same UUID `id` as their `teamId`; a team has no
 - **A changed sizing method.** `sizingMethod` is the team's sizing method now. A sprint with `inEstimateAverages: false` was measured in an earlier one. It counts toward `byCount` but not `byEstimate`; do not compare its `byEstimate` values with the others. Each summary's `sprints` says how many sprints it covers, which can be fewer than the sprints listed; when no sprint is in the team's sizing method yet, `byEstimate` is null and `byCount` is the figure to report.
 - **Use the organization's window unless asked.** Omit `sprintWindow` to use the organization's setting (`defaultSprintWindow`), which is what Wayd's own pages show. Pass 3 to 12 only when the user asks for another range, and say which you used.
 - **An empty report is not an error, a 404 is.** A team with no sprints, or none usable, returns empty `sprints` and null summaries. Say there is nothing to measure, and why from `excluded`. A 404 means the id is not a team's: a mistyped id, or a team of teams, which has no sprints of its own. Do not report it as a team with no sprints.
+
+## Cadence velocity
+
+`Teams_GetCadenceMetrics` takes the team's UUID `id` only, and returns a Kanban team's velocity over its reporting cadence: back-to-back periods of a whole number of weeks set on its operating model. Use it for a Kanban team and `Teams_GetSprintMetrics` for a Scrum team; a cadence has no commitment, so there is no predictability or say/do to report.
+
+- **Say which periods the figures cover.** `periods` lists the current period first (`isCurrent`), then ended ones, most recent first, each with its `start` and `end`. Averages cover only ended, whole periods (`inAverages`); each summary's `periods` says how many.
+- **Don't call the current period slow.** Its work is still coming in. A period with `isPartial` was cut short where the cadence, time zone or sizing method changed inside it, so it is shorter than the cadence; neither is averaged.
+- **Report the spread with the average,** and name the unit, as for sprint metrics: `byEstimate` is in the response's `sizingMethod`, `byCount` counts work items. A period's `unestimatedCount` is completed work with no value in that unit, which adds nothing to `completedEstimate`; mention it when it is large.
+- **Velocity is done work only.** It counts Requirement-tier items that reached a Done-category status in the period, by done date. Removed work is not velocity here.
+- **No cadence is not an error.** A team with no cadence returns empty `periods` and a null `cadenceWeeks`: say the team has no cadence set, which its operating model can add. A 404 means the id is not a team's, such as a team of teams.
 
 ## Delivery forecasts
 

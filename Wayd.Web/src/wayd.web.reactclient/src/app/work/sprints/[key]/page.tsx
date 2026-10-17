@@ -232,7 +232,14 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       case SprintSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       case SprintSections.Capacity:
-        return showsCapacity ? <SprintCapacitySection sprint={sprint} /> : null
+        return showsCapacity ? (
+          <SprintCapacitySection
+            sprint={sprint}
+            onSetTeamDaysOff={
+              canManage ? () => setEditingDaysOff(true) : undefined
+            }
+          />
+        ) : null
       case SprintSections.Backlog:
         // Block-level children: the grid collapses as a flex item.
         return (
@@ -362,6 +369,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       {editingDaysOff && (
         <SprintTeamDaysOffForm
           sprint={sprint}
+          allowPartDays={capacityEnabled}
           onFormComplete={() => setEditingDaysOff(false)}
           onFormCancel={() => setEditingDaysOff(false)}
         />

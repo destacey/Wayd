@@ -1,4 +1,9 @@
-import { addCalendarDays, CalendarDate, formatCalendarDate } from '@/src/utils'
+import {
+  addCalendarDays,
+  CalendarDate,
+  calendarDaysBetween,
+  formatCalendarDate,
+} from '@/src/utils'
 import { timeAwayLabel } from '../time-away/time-away-duration'
 import {
   ChangeEmployeeAllocationsRequest,
@@ -31,6 +36,26 @@ export function monthOf(today: CalendarDate): CapacityRange {
     from: `${today.slice(0, 7)}-01`,
     to: addCalendarDays(firstOfNext, -1),
   }
+}
+
+/** A Kanban team's reporting cadence: periods of a whole number of weeks, one starting on `anchor`. */
+export interface CapacityCadence {
+  weeks: number
+  anchor: CalendarDate
+}
+
+/**
+ * The cadence period `today` falls in. Periods run before the anchor as well
+ * as after, so every period starts on the anchor's day of the week.
+ */
+export function cadencePeriodOf(
+  today: CalendarDate,
+  cadence: CapacityCadence,
+): CapacityRange {
+  const days = cadence.weeks * 7
+  const index = Math.floor(calendarDaysBetween(cadence.anchor, today) / days)
+  const from = addCalendarDays(cadence.anchor, index * days)
+  return { from, to: addCalendarDays(from, days - 1) }
 }
 
 /** Person-days to two decimal places at most, without trailing zeros. */
@@ -69,7 +94,7 @@ export function capacityRows(people: TeamCapacityPersonDto[]): CapacityRow[] {
 
 /**
  * A person's time away as their teammates read it, a line per stretch: the
- * days and how much of each, never why.
+ * days and how much of each, in hours of their working day, never why.
  */
 export function timeAwayLines(
   timeAway: TeamCapacityTimeAwayDto[],

@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
@@ -113,7 +114,7 @@ public sealed class GetTeamsCapacityByPeriodQueryHandlerTests(SqlServerDbContext
             new GetTeamsCapacityByPeriodQuery(
                 [cardsId, paymentsId],
                 [SecondWeek],
-                new Dictionary<Guid, IReadOnlyList<LocalDate>> { [cardsId] = [new LocalDate(2027, 2, 10)] }),
+                new Dictionary<Guid, IReadOnlyList<TeamDayOff>> { [cardsId] = [new(new LocalDate(2027, 2, 10))] }),
             cancellationToken);
         withDayOff![cardsId][0].Should().Be(new TeamPeriodCapacity(SecondWeek, 5.5m, 3.5m, 0.5m, true));
         withDayOff[paymentsId][0].Should().Be(new TeamPeriodCapacity(SecondWeek, 8m, 6m, 0.5m, true));

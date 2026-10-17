@@ -15,6 +15,15 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
 {
     public static string Key => "scheduling";
 
+    /// <summary>The fewest hours a working day may have, the system's or a person's.</summary>
+    public const decimal MinWorkingDayHours = 1m;
+
+    /// <summary>The most hours a working day may have, the system's or a person's.</summary>
+    public const decimal MaxWorkingDayHours = 24m;
+
+    /// <summary>The most decimal places a person's own working day may have: quarter hours fit, as do minutes to the hundredth of an hour.</summary>
+    public const int WorkingDayHoursDecimals = 2;
+
     /// <summary>The IANA time zone id new team operating models start with.</summary>
     public string DefaultTimeZone { get; init; } = "UTC";
 
@@ -34,8 +43,9 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
     public Guid? DefaultHolidayCalendarId { get; init; }
 
     /// <summary>
-    /// How many hours a working day has, which time away entered in hours is a share of: 2 hours of an 8-hour day
-    /// is a quarter of it. The same for every person and team.
+    /// How many hours a working day has: the length of a person-day, and of the day of everyone without a working
+    /// day of their own. Time away entered in hours is a share of the person's day, team days off a share of this
+    /// one: 2 hours of an 8-hour day is a quarter of it. The same for every team.
     /// </summary>
     public decimal WorkingDayHours { get; init; } = 8m;
 

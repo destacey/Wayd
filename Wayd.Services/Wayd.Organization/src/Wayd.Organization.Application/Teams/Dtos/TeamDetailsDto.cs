@@ -78,6 +78,8 @@ public sealed record TeamDetailsDto : IMapFrom<Team>
     {
         var cfg = new TypeAdapterConfig();
 
+        new TeamOperatingModelListDto().ConfigureMapping(cfg);
+
         cfg.NewConfig<Team, TeamDetailsDto>()
             .Map(dest => dest.Id, src => src.Id)
             .Map(dest => dest.Key, src => src.Key)

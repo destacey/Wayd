@@ -21,6 +21,7 @@ public sealed class GetTeamsScheduleHistoryQueryHandler(IOrganizationDbContext o
                 {
                     WorkingWeek = m.WorkingWeek,
                     HolidayCalendarId = m.HolidayCalendarId,
+                    Cadence = m.Cadence,
                 },
             })
             .ToListAsync(cancellationToken);

@@ -61,7 +61,7 @@ const team: PlanningIntervalTeamCapacityDto = {
   hasAllocations: true,
   total: figures(60),
   iterations: [figures(25.5), figures(34.5)],
-  teamDaysOff: ['2026-01-07'],
+  teamDaysOff: [{ date: '2026-01-07', percentOff: 50 }],
 }
 
 const group: PlanningIntervalTeamCapacityDto = {
@@ -151,7 +151,7 @@ describe('PlanningIntervalCapacitySection', () => {
       teamType: 'Team',
       from: '2026-01-05',
       to: '2026-03-01',
-      daysOff: ['2026-01-07'],
+      daysOff: [{ date: '2026-01-07', percentOff: 50 }],
     })
   })
 

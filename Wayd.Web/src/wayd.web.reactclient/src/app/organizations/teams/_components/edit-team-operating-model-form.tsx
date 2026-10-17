@@ -26,7 +26,11 @@ import {
   HolidayCalendarSelect,
   WorkingDaysSelect,
   workingDaysRule,
+  ReportingCadenceFields,
+  toReportingCadenceRequest,
+  type ReportingCadenceFormValues,
 } from '@/src/components/common/scheduling'
+import { parseCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form
 const { Group: RadioGroup } = Radio
@@ -38,7 +42,7 @@ export interface EditTeamOperatingModelFormProps {
   onFormCancel: () => void
 }
 
-interface EditTeamOperatingModelFormValues {
+interface EditTeamOperatingModelFormValues extends ReportingCadenceFormValues {
   methodology: Methodology
   sizingMethod: SizingMethod
   timeZone: string
@@ -62,6 +66,7 @@ const mapToRequestValues = (
     commitmentGraceDays: values.commitmentGraceDays,
     workingDays: values.workingDays,
     holidayCalendarId: values.holidayCalendarId,
+    ...toReportingCadenceRequest(values.methodology, values),
   } as UpdateTeamOperatingModelRequest
 }
 
@@ -125,6 +130,10 @@ const EditTeamOperatingModelForm = ({
         commitmentGraceDays: operatingModel.commitmentGraceDays,
         workingDays: operatingModel.workingDays,
         holidayCalendarId: operatingModel.holidayCalendar?.id,
+        cadenceWeeks: operatingModel.cadenceWeeks ?? null,
+        cadenceAnchor: operatingModel.cadenceAnchor
+          ? parseCalendarDate(operatingModel.cadenceAnchor)
+          : null,
       })
     }
   }, [operatingModel, isLoading, isFetching, form])
@@ -217,6 +226,7 @@ const EditTeamOperatingModelForm = ({
               aria-label="Holiday Calendar"
             />
           </FormItem>
+          <ReportingCadenceFields />
         </Form>
       </Spin>
     </Modal>

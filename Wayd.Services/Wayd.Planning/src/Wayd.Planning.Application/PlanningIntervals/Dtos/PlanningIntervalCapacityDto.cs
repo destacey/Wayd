@@ -67,10 +67,11 @@ public sealed record PlanningIntervalTeamCapacityDto
     public required IReadOnlyList<PlanningIntervalCapacityFiguresDto> Iterations { get; init; }
 
     /// <summary>
-    /// The team's sprint days off in the planning interval, in date order: days the whole team is off, already
-    /// left out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup.
+    /// The team's sprint days off in the planning interval, in date order: days the whole team is off for some or
+    /// all of, already left out of its capacity. Empty for a team of teams, whose teams' days off are left out of
+    /// its rollup.
     /// </summary>
-    public required IReadOnlyList<LocalDate> TeamDaysOff { get; init; }
+    public required IReadOnlyList<TeamDayOffDto> TeamDaysOff { get; init; }
 }
 
 /// <summary>A team's capacity over a run of days, in person-days, after holidays, time away and team days off.</summary>

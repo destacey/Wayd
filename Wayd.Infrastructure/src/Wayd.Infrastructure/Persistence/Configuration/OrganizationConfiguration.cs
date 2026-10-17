@@ -194,6 +194,8 @@ public class EmployeeCapacityConfig : IEntityTypeConfiguration<EmployeeCapacity>
         // that each fit within 100% could both save and together exceed it.
         builder.Property(c => c.Revision).IsConcurrencyToken();
 
+        builder.Property(c => c.WorkingDayHours).HasPrecision(4, 2);
+
         builder.HasMany(c => c.Allocations)
             .WithOne()
             .HasForeignKey(a => a.EmployeeId)
@@ -360,6 +362,12 @@ public class TeamOperatingModelConfig : IEntityTypeConfiguration<TeamOperatingMo
         {
             options.Property(d => d.Start).HasColumnName("Start").IsRequired();
             options.Property(d => d.End).HasColumnName("End");
+        });
+
+        builder.ComplexProperty(m => m.Cadence, options =>
+        {
+            options.Property(c => c.Weeks).HasColumnName("CadenceWeeks");
+            options.Property(c => c.Anchor).HasColumnName("CadenceAnchor");
         });
 
         // Restrict: a calendar in use cannot be deleted, so no model loses its holidays silently.

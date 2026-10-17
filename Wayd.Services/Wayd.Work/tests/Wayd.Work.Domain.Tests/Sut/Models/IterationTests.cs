@@ -353,15 +353,91 @@ public class IterationTests
         var monday = DaysOffSprintStart.PlusDays(7);
 
         // Act
-        var result = sprint.SetTeamDaysOff([monday, friday, monday], EventActor.System, _dateTimeProvider.Now);
+        var result = sprint.SetTeamDaysOff([new(monday), new(friday), new(monday)], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sprint.TeamDaysOff.Should().Equal(friday, monday);
+        sprint.TeamDaysOff.Should().Equal(new TeamDayOff(friday), new TeamDayOff(monday));
         var raised = sprint.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintTeamDaysOffChangedEvent>().Subject;
         raised.Added.Should().Equal(friday, monday);
         raised.Removed.Should().BeEmpty();
         raised.TeamDaysOff.Should().Equal(friday, monday);
+        raised.PartDaysOff.Should().BeEmpty();
+        raised.EventVersion.Should().Be("1.1");
+    }
+
+    [Fact]
+    public void SetTeamDaysOff_WithAPartDay_RecordsItsPercentAndCarriesItAsAPartDay()
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+        var friday = DaysOffSprintStart.PlusDays(4);
+        var monday = DaysOffSprintStart.PlusDays(7);
+
+        // Act
+        var result = sprint.SetTeamDaysOff([new(monday), new(friday, 50)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint.TeamDaysOff.Should().Equal(new TeamDayOff(friday, 50), new TeamDayOff(monday));
+        var raised = sprint.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintTeamDaysOffChangedEvent>().Subject;
+        raised.TeamDaysOff.Should().Equal(friday, monday);
+        raised.PartDaysOff.Should().Equal(new TeamDayOff(friday, 50));
+        raised.PreviousPartDaysOff.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTeamDaysOff_WhenOnlyAPercentChanges_RaisesTheChangeWithBothEnds()
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+        var friday = DaysOffSprintStart.PlusDays(4);
+        sprint.SetTeamDaysOff([new(friday, 50)], EventActor.System, _dateTimeProvider.Now);
+        sprint.ClearDomainEvents();
+
+        // Act
+        var result = sprint.SetTeamDaysOff([new(friday, 25)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint.TeamDaysOff.Should().Equal(new TeamDayOff(friday, 25));
+        var raised = sprint.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintTeamDaysOffChangedEvent>().Subject;
+        raised.Added.Should().BeEmpty();
+        raised.Removed.Should().BeEmpty();
+        raised.PartDaysOff.Should().Equal(new TeamDayOff(friday, 25));
+        raised.PreviousPartDaysOff.Should().Equal(new TeamDayOff(friday, 50));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(101)]
+    public void SetTeamDaysOff_WithAPercentOutsideOneTo100_FailsAndChangesNothing(int percentOff)
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+
+        // Act
+        var result = sprint.SetTeamDaysOff([new(DaysOffSprintStart, percentOff)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sprint.TeamDaysOff.Should().BeEmpty();
+        sprint.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTeamDaysOff_WithOneDayListedTwiceAtDifferentPercents_FailsAndChangesNothing()
+    {
+        // Arrange
+        var sprint = TwoWeekSprint();
+
+        // Act
+        var result = sprint.SetTeamDaysOff([new(DaysOffSprintStart), new(DaysOffSprintStart, 50)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sprint.TeamDaysOff.Should().BeEmpty();
+        sprint.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
@@ -371,11 +447,11 @@ public class IterationTests
         var sprint = TwoWeekSprint();
         var friday = DaysOffSprintStart.PlusDays(4);
         var monday = DaysOffSprintStart.PlusDays(7);
-        sprint.SetTeamDaysOff([friday], EventActor.System, _dateTimeProvider.Now);
+        sprint.SetTeamDaysOff([new(friday, 50)], EventActor.System, _dateTimeProvider.Now);
         sprint.ClearDomainEvents();
 
         // Act
-        var result = sprint.SetTeamDaysOff([monday], EventActor.System, _dateTimeProvider.Now);
+        var result = sprint.SetTeamDaysOff([new(monday)], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -383,6 +459,8 @@ public class IterationTests
         raised.Added.Should().Equal(monday);
         raised.Removed.Should().Equal(friday);
         raised.TeamDaysOff.Should().Equal(monday);
+        raised.PartDaysOff.Should().BeEmpty();
+        raised.PreviousPartDaysOff.Should().Equal(new TeamDayOff(friday, 50));
     }
 
     [Fact]
@@ -391,11 +469,11 @@ public class IterationTests
         // Arrange
         var sprint = TwoWeekSprint();
         var friday = DaysOffSprintStart.PlusDays(4);
-        sprint.SetTeamDaysOff([friday], EventActor.System, _dateTimeProvider.Now);
+        sprint.SetTeamDaysOff([new(friday, 50)], EventActor.System, _dateTimeProvider.Now);
         sprint.ClearDomainEvents();
 
         // Act
-        var result = sprint.SetTeamDaysOff([friday], EventActor.System, _dateTimeProvider.Now);
+        var result = sprint.SetTeamDaysOff([new(friday, 50)], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -409,13 +487,13 @@ public class IterationTests
         var sprint = TwoWeekSprint();
         var firstMonday = DaysOffSprintStart;
         var lastFriday = DaysOffSprintStart.PlusDays(11);
-        sprint.SetTeamDaysOff([firstMonday, lastFriday], EventActor.System, _dateTimeProvider.Now);
+        sprint.SetTeamDaysOff([new(firstMonday), new(lastFriday)], EventActor.System, _dateTimeProvider.Now);
 
         // Act — the source moves the sprint a week later
         sprint.Update(sprint.Name, sprint.Type, new IterationDateRange(DaysOffSprintStart.PlusDays(7), DaysOffSprintStart.PlusDays(20)), sprint.TeamId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        sprint.TeamDaysOff.Should().Equal(lastFriday);
+        sprint.TeamDaysOff.Should().Equal(new TeamDayOff(lastFriday));
     }
 
     [Fact]
@@ -425,7 +503,7 @@ public class IterationTests
         var sprint = TwoWeekSprint();
 
         // Act
-        var result = sprint.SetTeamDaysOff([DaysOffSprintStart.PlusDays(14)], EventActor.System, _dateTimeProvider.Now);
+        var result = sprint.SetTeamDaysOff([new(DaysOffSprintStart.PlusDays(14))], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -442,7 +520,7 @@ public class IterationTests
             .Generate();
 
         // Act
-        var result = iteration.SetTeamDaysOff([DaysOffSprintStart], EventActor.System, _dateTimeProvider.Now);
+        var result = iteration.SetTeamDaysOff([new(DaysOffSprintStart)], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

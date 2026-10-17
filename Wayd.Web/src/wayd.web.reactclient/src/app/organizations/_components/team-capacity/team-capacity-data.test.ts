@@ -2,6 +2,7 @@ import {
   capacityRows,
   formatPeriods,
   formatPersonDays,
+  cadencePeriodOf,
   monthOf,
   overProposed,
   proposalRequests,
@@ -23,6 +24,19 @@ describe('monthOf', () => {
   })
 })
 
+describe('cadencePeriodOf', () => {
+  const cadence = { weeks: 2, anchor: '2026-10-05' }
+
+  it.each([
+    ['2026-10-05', '2026-10-05', '2026-10-18'],
+    ['2026-10-18', '2026-10-05', '2026-10-18'],
+    ['2026-10-19', '2026-10-19', '2026-11-01'],
+    ['2026-10-04', '2026-09-21', '2026-10-04'],
+  ])('spans the whole two-week period %s falls in', (today, from, to) => {
+    expect(cadencePeriodOf(today, cadence)).toEqual({ from, to })
+  })
+})
+
 describe('formatPersonDays', () => {
   it.each([
     [5, '5'],
@@ -39,6 +53,7 @@ describe('capacityRows', () => {
   it('is a row per allocation, each carrying its person', () => {
     const ada = {
       employee: { id: 'e-1', key: 1, name: 'Ada Lovelace' },
+      workingDayHours: 8,
       allocatedPersonDays: 8,
       deliveryPersonDays: 5,
       elsewherePersonDays: 2,
@@ -68,6 +83,7 @@ describe('capacityRows', () => {
     }
     const grace = {
       employee: { id: 'e-2', key: 2, name: 'Grace Hopper' },
+      workingDayHours: 8,
       allocatedPersonDays: 10,
       deliveryPersonDays: 10,
       elsewherePersonDays: 0,

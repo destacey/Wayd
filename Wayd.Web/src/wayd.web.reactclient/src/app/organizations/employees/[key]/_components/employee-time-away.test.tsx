@@ -54,6 +54,17 @@ jest.mock('./employee-holiday-calendar-form', () => ({
   },
 }))
 
+const mockWorkingDayForm = jest.fn()
+jest.mock('./employee-working-day-form', () => ({
+  __esModule: true,
+  workingDayLabel: jest.requireActual('./employee-working-day-form')
+    .workingDayLabel,
+  default: (props: unknown) => {
+    mockWorkingDayForm(props)
+    return <div data-testid="working-day-form" />
+  },
+}))
+
 const entry = {
   id: 'away-1',
   start: '2027-02-01',
@@ -188,7 +199,7 @@ describe('EmployeeTimeAway', () => {
       mockPermissions = permissions
       const { unmount } = renderSection(timeAway)
       expect(
-        screen.queryByRole('button', { name: 'Change' }),
+        screen.queryByRole('button', { name: 'Change holiday calendar' }),
       ).not.toBeInTheDocument()
       unmount()
     }
@@ -198,12 +209,72 @@ describe('EmployeeTimeAway', () => {
       'Permissions.HolidayCalendars.View',
     ]
     renderSection(timeAway)
-    await user.click(screen.getByRole('button', { name: 'Change' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Change holiday calendar' }),
+    )
 
     expect(mockCalendarForm).toHaveBeenLastCalledWith(
       expect.objectContaining({
         employeeId: 'employee-1',
         holidayCalendar: expect.objectContaining({ id: 'calendar-1' }),
+      }),
+    )
+  })
+
+  it("says the person's own working day, or the system default's", () => {
+    const { unmount } = renderSection({
+      canManage: false,
+      systemWorkingDayHours: 7.5,
+      entries: [],
+    })
+    expect(screen.getByText('System default (7.5 h)')).toBeInTheDocument()
+    unmount()
+
+    renderSection({
+      canManage: false,
+      ownWorkingDayHours: 4,
+      systemWorkingDayHours: 7.5,
+      entries: [],
+    })
+    expect(screen.getByText('4 h')).toBeInTheDocument()
+  })
+
+  it('reads time away in hours of the working day the person has', () => {
+    renderSection({
+      canManage: false,
+      workingDayHours: 4,
+      ownWorkingDayHours: 4,
+      systemWorkingDayHours: 8,
+      entries: [{ ...entry, percentAway: 25 }],
+    })
+
+    expect(screen.getByRole('cell', { name: '1 h' })).toBeInTheDocument()
+  })
+
+  it('offers to change the working day only with Employees Update', async () => {
+    const user = userEvent.setup()
+    const timeAway = {
+      canManage: false,
+      ownWorkingDayHours: 4,
+      systemWorkingDayHours: 8,
+      entries: [],
+    }
+
+    const { unmount } = renderSection(timeAway)
+    expect(
+      screen.queryByRole('button', { name: 'Change working day' }),
+    ).not.toBeInTheDocument()
+    unmount()
+
+    mockPermissions = ['Permissions.Employees.Update']
+    renderSection(timeAway)
+    await user.click(screen.getByRole('button', { name: 'Change working day' }))
+
+    expect(mockWorkingDayForm).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        employeeId: 'employee-1',
+        ownWorkingDayHours: 4,
+        systemWorkingDayHours: 8,
       }),
     )
   })

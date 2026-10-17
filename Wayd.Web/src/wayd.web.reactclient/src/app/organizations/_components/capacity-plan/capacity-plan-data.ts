@@ -59,6 +59,8 @@ export interface PlanRow {
   /** Unique within the plan: the person and the role. */
   id: string
   employee: NavigationDto
+  /** How many hours the person's working day has, which their percent and time away are shares of. */
+  workingDayHours: number
   role?: NavigationDto
   countsTowardDeliveryCapacity: boolean
   /** The percent allocated each working day; a day left out has none. */
@@ -75,18 +77,17 @@ export interface PlanRow {
 
 /** A row per person and role, in the order people and roles arrive in. */
 export function planRows(plan: TeamCapacityPlanDto): PlanRow[] {
-  const employees = new Map(
-    plan.capacity.people.map((p) => [p.employee.id, p.employee]),
-  )
+  const people = new Map(plan.capacity.people.map((p) => [p.employee.id, p]))
 
   return plan.people.flatMap((person) => {
-    const employee = employees.get(person.employeeId)
-    if (!employee) return []
+    const capacity = people.get(person.employeeId)
+    if (!capacity) return []
 
     const conditionsByDate = new Map(person.days.map((d) => [d.date, d]))
     return person.rows.map((row, index) => ({
       id: `${person.employeeId}|${row.role?.id ?? ''}`,
-      employee,
+      employee: capacity.employee,
+      workingDayHours: capacity.workingDayHours,
       role: row.role,
       countsTowardDeliveryCapacity: row.countsTowardDeliveryCapacity,
       percentByDate: new Map(row.days.map((d) => [d.date, d.percent])),
@@ -142,8 +143,8 @@ export const percentLabel = (cell: PlanCell): string =>
     : `${cell.minPercent}–${cell.maxPercent}%`
 
 /**
- * A cell's time in hours of the working day: one figure when every day has
- * it, else the range. "4 h/day" is half of an 8-hour day.
+ * A cell's time in hours of the person's working day: one figure when every
+ * day has it, else the range. "4 h/day" is half of an 8-hour day.
  */
 export const hoursLabel = (cell: PlanCell, workingDayHours: number): string => {
   const min = formatHours((cell.minPercent * workingDayHours) / 100)

@@ -280,7 +280,7 @@ const TeamCapacityPlan = ({
       {recordingFor && (
         <TimeAwayForm
           employeeId={recordingFor.employee.id}
-          workingDayHours={workingDayHours}
+          workingDayHours={recordingFor.workingDayHours}
           initialDates={{ start: from, end: from }}
           onFormComplete={() => setRecordingFor(null)}
           onFormCancel={() => setRecordingFor(null)}

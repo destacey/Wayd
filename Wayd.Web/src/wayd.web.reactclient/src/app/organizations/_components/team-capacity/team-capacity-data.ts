@@ -94,7 +94,7 @@ export function capacityRows(people: TeamCapacityPersonDto[]): CapacityRow[] {
 
 /**
  * A person's time away as their teammates read it, a line per stretch: the
- * days and how much of each, never why.
+ * days and how much of each, in hours of their working day, never why.
  */
 export function timeAwayLines(
   timeAway: TeamCapacityTimeAwayDto[],

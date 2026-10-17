@@ -35344,6 +35344,75 @@ export class EmployeesClient {
     }
 
     /**
+     * Set how many hours an employee's working day has.
+     * @return No Content
+     */
+    changeWorkingDayHours(id: string, request: ChangeEmployeeWorkingDayHoursRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/working-day-hours";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeWorkingDayHours(_response);
+        });
+    }
+
+    protected processChangeWorkingDayHours(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get the work items assigned to an employee.
      * @param statusCategories (optional) 
      * @param doneFrom (optional) 
@@ -48718,6 +48787,13 @@ system default. */
     holidayCalendarId?: string | undefined;
 }
 
+/** Sets how many hours an employee's working day has instead of the system's. */
+export interface ChangeEmployeeWorkingDayHoursRequest {
+    /** The hours of the employee's working day, from 1 to 24 with at most two decimal places, such as 4 for
+someone contracted for half days; or null to give them the system's. */
+    workingDayHours?: number | undefined;
+}
+
 /** The share of production deployments that failed or were rolled back. */
 export interface ChangeFailureRateDto {
     /** Completed production deployments in the window — the denominator. */
@@ -49926,14 +50002,18 @@ export interface NavigationDto extends NavigationDtoOfGuidAndInteger {
 export interface EmployeeNavigationDto extends NavigationDto {
 }
 
-/** When an employee is away from every team they are allocated to, and the holidays they take. */
+/** When an employee is away from every team they are allocated to, the holidays they take, and how long their working day is. */
 export interface EmployeeTimeAwayDto {
     /** Whether the caller may record, change and remove this employee's time away: the employee, anyone they
 report up to, and a time away administrator. Each stretch's reason is given only when this is true. */
     canManage: boolean;
-    /** How many hours a working day has, from the system settings, so a share of a day can be read and entered in
-hours: 25% of an 8-hour day is 2 hours. */
+    /** How many hours the employee's working day has, their own or else the system's, so a share of their day can
+be read and entered in hours: 25% of an 8-hour day is 2 hours, of a 4-hour day 1 hour. */
     workingDayHours: number;
+    /** The hours of the employee's own working day, or null when they have the system's. */
+    ownWorkingDayHours?: number | undefined;
+    /** How many hours the system's working day has, from the scheduling settings. */
+    systemWorkingDayHours: number;
     /** The holiday calendar the employee follows instead of the system default, or null when they follow the
 system default. */
     holidayCalendar?: NavigationDto | undefined;
@@ -54677,7 +54757,7 @@ holidays the person takes and their time away. */
     personDays: number;
 }
 
-/** A team's capacity over a date range, from the time people are allocated to it, the days it works, and when each of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day. */
+/** A team's capacity over a date range, from the time people are allocated to it, the days it works, and when each of them is there. Capacity is in person-days: one person allocated in full, and there, for one system working day. A part-timer whose working day is half the system's is worth half a person-day a day in full. */
 export interface TeamCapacityDto {
     /** The first day of the range. */
     from: string;
@@ -54696,8 +54776,8 @@ there on more or fewer of them. */
     awayPersonDays: number;
     /** Whether the caller may change this team's allocations. */
     canManage: boolean;
-    /** How many hours a working day has, from the system settings, so person-days and a share of a day can be read
-in hours. */
+    /** How many hours a working day has, from the system settings: the length of a person-day, so person-days can
+be read in hours. A person with a working day of their own carries it on their line. */
     workingDayHours: number;
     /** The allocated time by team member role, by role name with the time in no role last. The lines add up to
 `allocatedPersonDays`. */
@@ -54717,6 +54797,9 @@ export interface TeamCapacityPeriodDto {
 /** One person's time on a team over a date range. */
 export interface TeamCapacityPersonDto {
     employee: NavigationDto;
+    /** How many hours their working day has: their own, or else the system's. A share of their day, such as an
+allocation's percent or their time away, is a share of this many hours. */
+    workingDayHours: number;
     /** Their time allocated to the team in every role, in person-days. */
     allocatedPersonDays: number;
     /** The part of it in roles that count toward delivery capacity, in person-days. */

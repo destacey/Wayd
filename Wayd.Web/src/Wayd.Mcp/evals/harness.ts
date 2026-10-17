@@ -262,5 +262,8 @@ export function perfFrom(c: Case, run: Run) {
     skills: run.skillsLoaded,
     num_turns: run.numTurns,
     api_equiv_usd: Math.round(run.costUsd * 10000) / 10000,
+    // What the grader read, kept on the row so `regrade.ts` can rescore it after a scenario's assertions change.
+    calls: run.calls.map(({ tool, args, repliesBefore }) => ({ tool, args, repliesBefore })),
+    final_text: run.output,
   };
 }

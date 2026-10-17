@@ -1620,7 +1620,7 @@
       },
       {
         "type": "says",
-        "pattern": "\\b75(\\.0+)?\\s?(%|percent)",
+        "pattern": "\\b75(\\.0+)?\\b(?!\\.\\d)",
         "because": "Falcon's PI 2026.3 predictability is 75%; quoting it shows the PI endpoint was read."
       }
     ],

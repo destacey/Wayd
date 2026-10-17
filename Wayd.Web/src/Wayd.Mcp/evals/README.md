@@ -59,7 +59,7 @@ node evals/build-report.mjs evals/results/claude-sonnet-5-5/
 
 The runner refuses to start when `harness.ts`, `scenario.ts`, `stub-server.ts` or `run-eval.mjs` changed since the hash in that directory's `_state.json` was recorded; rerun with `--approve-harness` once you have reviewed the change. Rows are written as each case finishes, and a rerun skips cases already in `results.jsonl`, so an interrupted run resumes. `--reps N` runs each scenario N times; `--concurrency N` (default 4) sets how many `claude` processes run at once.
 
-`results.jsonl` holds one row per scenario and repetition, with `explanation.pass` listing each failed assertion. `traces/` holds the transcripts and is not committed. The `api_equiv_usd` column is what Claude Code reports the run would have cost at API prices — a measure of size, not a charge on a subscription.
+`results.jsonl` holds one row per scenario and repetition, with `explanation.pass` listing each failed assertion, plus the calls and final message it was graded on. After fixing an assertion, rescore the recorded runs instead of running them again: `npx tsx evals/regrade.ts evals/results/<model>`. A fixture change still needs a new run, because fixtures shape what the agent does. `traces/` holds the transcripts and is not committed. The `api_equiv_usd` column is what Claude Code reports the run would have cost at API prices — a measure of size, not a charge on a subscription.
 
 ## Writing a scenario
 

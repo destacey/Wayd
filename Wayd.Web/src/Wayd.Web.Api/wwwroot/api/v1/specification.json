@@ -32140,6 +32140,96 @@
         ]
       }
     },
+    "/api/organization/teams/{id}/capacity/report": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Report the capacity of a team over a date range.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person and team member role allocated to the team. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` holds the team alone, as `nodeId` 0. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated to other teams and `unallocatedPersonDays` allocated nowhere. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Teams_GetCapacityReport",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/CapacityReportInterval"
+                }
+              ],
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCapacityReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/organization/teams/{id}/capacity/plan": {
       "get": {
         "tags": [
@@ -34395,6 +34485,96 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TeamCapacityRollupDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/capacity/report": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Report the capacity of a team of teams and every team beneath it over a date range.",
+        "description": "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person, team member role and team: the team of teams itself and every team beneath it at any depth, each counted only for the days it was in the hierarchy. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` lists the team of teams first (`nodeId` 0) and each team beneath it with its `parentNodeId`; a team that moved between two parents appears under each. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated elsewhere and `unallocatedPersonDays` allocated nowhere. An allocation counts once, on the team it was made to, so every grouping of the lines gives `total`. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "TeamsOfTeams_GetCapacityReport",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/CapacityReportInterval"
+                }
+              ],
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCapacityReportDto"
                 }
               }
             }
@@ -42761,6 +42941,52 @@
         },
         "additionalProperties": false,
         "description": "Velocity across a team's averaged periods."
+      },
+      "CapacityMeasuresDto": {
+        "required": [
+          "allocatedPersonDays",
+          "holidayPersonDays",
+          "timeAwayPersonDays",
+          "availablePersonDays",
+          "deliveryPersonDays"
+        ],
+        "type": "object",
+        "properties": {
+          "allocatedPersonDays": {
+            "type": "number",
+            "description": "The time allocated over the working days, before holidays and time away.",
+            "format": "decimal"
+          },
+          "holidayPersonDays": {
+            "type": "number",
+            "description": "The part of `allocatedPersonDays` on holidays in the calendar each person takes.",
+            "format": "decimal"
+          },
+          "timeAwayPersonDays": {
+            "type": "number",
+            "description": "The part of `allocatedPersonDays` taken by time away.",
+            "format": "decimal"
+          },
+          "availablePersonDays": {
+            "type": "number",
+            "description": "What is left of `allocatedPersonDays` after holidays and time away.",
+            "format": "decimal"
+          },
+          "deliveryPersonDays": {
+            "type": "number",
+            "description": "The part of `availablePersonDays` in roles that count toward delivery capacity.",
+            "format": "decimal"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Time in person-days, from what was allocated to what was left after holidays and time away."
+      },
+      "CapacityReportInterval": {
+        "enum": [
+          "Week",
+          "Month"
+        ],
+        "type": "string"
       },
       "ChangeEmployeeAllocationsRequest": {
         "required": [
@@ -62273,6 +62499,267 @@
         },
         "additionalProperties": false,
         "description": "A person's time on a team in one team member role, day by day."
+      },
+      "TeamCapacityReportDto": {
+        "required": [
+          "from",
+          "to",
+          "buckets",
+          "workingDayHours",
+          "total",
+          "roles",
+          "teams",
+          "people",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The first day of the range.",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "description": "The last day of the range.",
+            "format": "date"
+          },
+          "interval": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CapacityReportInterval"
+              }
+            ],
+            "description": "How the range is bucketed, or null when it is not.",
+            "nullable": true
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityPeriodDto"
+            },
+            "description": "The buckets of the range in date order, the first and last cut to it. Empty when it is not bucketed."
+          },
+          "workingDayHours": {
+            "type": "number",
+            "description": "The hours in a person-day, from the system working day, for showing person-days as hours.",
+            "format": "decimal"
+          },
+          "total": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CapacityMeasuresDto"
+              }
+            ],
+            "description": "The time across every line of the report."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityReportRoleDto"
+            },
+            "description": "The time across the report by team member role, by role name with the time in no role last. The lines add up to `total`."
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityReportTeamDto"
+            },
+            "description": "The team the report is for, first, then every team beneath it depth first. A team that moved between two\nparents in the range appears under each, as a node of its own."
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityReportPersonDto"
+            },
+            "description": "Everyone with a line in the report, by name, with their time outside it."
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityReportLineDto"
+            },
+            "description": "One person's time in one role on one team, by team then person then role."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The capacity of a team, or of a team of teams with every team beneath it, over a date range: who had time on\neach team, what holidays and time away took from it, and what was left. Capacity is in person-days: one\nperson allocated in full for one system working day."
+      },
+      "TeamCapacityReportLineDto": {
+        "required": [
+          "nodeId",
+          "employeeId",
+          "countsTowardDeliveryCapacity",
+          "total",
+          "buckets"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "integer",
+            "description": "The `nodeId` of the team in `teams`.",
+            "format": "int32"
+          },
+          "employeeId": {
+            "type": "string",
+            "description": "The person, whose details are in `people`.",
+            "format": "uuid"
+          },
+          "role": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The team member role the time is in, or null for none.",
+            "nullable": true
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean",
+            "description": "Whether time in the role counts toward delivery capacity."
+          },
+          "total": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CapacityMeasuresDto"
+              }
+            ],
+            "description": "The time over the days the team counts for."
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CapacityMeasuresDto"
+            },
+            "description": "The time in each of the report's buckets."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One person's time in one role on one team of a capacity report."
+      },
+      "TeamCapacityReportPersonDto": {
+        "required": [
+          "employee",
+          "outsidePersonDays",
+          "unallocatedPersonDays",
+          "outsideBuckets",
+          "unallocatedBuckets"
+        ],
+        "type": "object",
+        "properties": {
+          "employee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The person."
+          },
+          "outsidePersonDays": {
+            "type": "number",
+            "description": "Their time allocated to teams outside the report, or to a team in it on days it was not in the hierarchy.",
+            "format": "decimal"
+          },
+          "unallocatedPersonDays": {
+            "type": "number",
+            "description": "Their time allocated to no team.",
+            "format": "decimal"
+          },
+          "outsideBuckets": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "decimal"
+            },
+            "description": "`outsidePersonDays` in each of the report's buckets."
+          },
+          "unallocatedBuckets": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "decimal"
+            },
+            "description": "`unallocatedPersonDays` in each of the report's buckets."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A person in a capacity report, with their time outside it over the system default working days, before\nholidays and time away."
+      },
+      "TeamCapacityReportRoleDto": {
+        "required": [
+          "countsTowardDeliveryCapacity",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The role, or null for time allocated in no role.",
+            "nullable": true
+          },
+          "countsTowardDeliveryCapacity": {
+            "type": "boolean",
+            "description": "Whether time in the role counts toward delivery capacity."
+          },
+          "total": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CapacityMeasuresDto"
+              }
+            ],
+            "description": "The time in the role."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The time across a capacity report in one team member role."
+      },
+      "TeamCapacityReportTeamDto": {
+        "required": [
+          "nodeId",
+          "team",
+          "periods",
+          "workingDays"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "integer",
+            "description": "The node's id within the report: 0 for the team the report is for.",
+            "format": "int32"
+          },
+          "parentNodeId": {
+            "type": "integer",
+            "description": "The node directly above it, or null for the team the report is for.",
+            "format": "int32",
+            "nullable": true
+          },
+          "team": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeamNavigationDto"
+              }
+            ],
+            "description": "The team or team of teams."
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCapacityPeriodDto"
+            },
+            "description": "The days of the range it counts for, in date order: the whole range for the team the report is for, and\nfor a team beneath it the days it was in the hierarchy."
+          },
+          "workingDays": {
+            "type": "integer",
+            "description": "Its own working days within `periods` that are not team holidays. A team of teams has the system defaults.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A team as a capacity report counts it: the team the report is for, or one place beneath it."
       },
       "TeamCapacityRoleDto": {
         "required": [

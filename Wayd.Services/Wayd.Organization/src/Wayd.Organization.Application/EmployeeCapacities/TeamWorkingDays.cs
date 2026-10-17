@@ -1,5 +1,6 @@
 using NodaTime;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Organization.Application.EmployeeCapacities;
@@ -72,5 +73,21 @@ internal static class TeamWorkingDays
         }
 
         return teamDaysByTeam;
+    }
+
+    /// <summary>
+    /// The days of <paramref name="workingWeek"/>, the system default, from <paramref name="from"/> to
+    /// <paramref name="to"/>, both inclusive, in date order, each with the system default calendar.
+    /// </summary>
+    public static IReadOnlyList<TeamDay> Default(WorkingWeek workingWeek, LocalDate from, LocalDate to)
+    {
+        List<TeamDay> days = [];
+        for (var day = from; day <= to; day = day.PlusDays(1))
+        {
+            if (workingWeek.Includes(day))
+                days.Add(new TeamDay(day, null));
+        }
+
+        return days;
     }
 }

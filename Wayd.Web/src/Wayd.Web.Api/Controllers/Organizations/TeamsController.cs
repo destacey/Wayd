@@ -1,3 +1,4 @@
+using Wayd.Organization.Application.EmployeeCapacities;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using CsvHelper;
@@ -428,6 +429,30 @@ public class TeamsController(
 
         return capacity is not null
             ? Ok(capacity)
+            : NotFound();
+    }
+
+    [HttpGet("{id:guid}/capacity/report")]
+    [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [EndpointSummary("Report the capacity of a team over a date range.")]
+    [EndpointDescription(
+        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person and team member role allocated to the team. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` holds the team alone, as `nodeId` 0. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated to other teams and `unallocatedPersonDays` allocated nowhere. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamCapacityReportDto>> GetCapacityReport(Guid id, [FromQuery] string? from, [FromQuery] string? to, [FromQuery] CapacityReportInterval? interval, CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(from, out var firstDay) || !IsoDateQuery.TryParse(to, out var lastDay))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        if (firstDay is null || lastDay is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest("Both from and to dates are required.", HttpContext));
+
+        var report = await _dispatcher.Send(new GetTeamCapacityReportQuery(id, TeamType.Team, firstDay.Value, lastDay.Value, interval), cancellationToken);
+
+        return report is not null
+            ? Ok(report)
             : NotFound();
     }
 

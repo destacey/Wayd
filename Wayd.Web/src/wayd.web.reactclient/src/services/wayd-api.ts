@@ -37797,6 +37797,84 @@ export class TeamsClient {
     }
 
     /**
+     * Report the capacity of a team over a date range.
+     * @param from (optional) 
+     * @param to (optional) 
+     * @param interval (optional) 
+     * @return OK
+     */
+    getCapacityReport(id: string, from?: string | null | undefined, to?: string | null | undefined, interval?: CapacityReportInterval | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityReportDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/capacity/report?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (interval !== undefined && interval !== null)
+            url_ += "interval=" + encodeURIComponent("" + interval) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacityReport(_response);
+        });
+    }
+
+    protected processGetCapacityReport(response: AxiosResponse): Promise<TeamCapacityReportDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityReportDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityReportDto>(null as any);
+    }
+
+    /**
      * Get the capacity of a team over a date range day by day, to plan against.
      * @param from (optional) 
      * @param to (optional) 
@@ -40238,6 +40316,84 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamCapacityRollupDto>(null as any);
+    }
+
+    /**
+     * Report the capacity of a team of teams and every team beneath it over a date range.
+     * @param from (optional) 
+     * @param to (optional) 
+     * @param interval (optional) 
+     * @return OK
+     */
+    getCapacityReport(id: string, from?: string | null | undefined, to?: string | null | undefined, interval?: CapacityReportInterval | null | undefined, cancelToken?: CancelToken): Promise<TeamCapacityReportDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/capacity/report?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (interval !== undefined && interval !== null)
+            url_ += "interval=" + encodeURIComponent("" + interval) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCapacityReport(_response);
+        });
+    }
+
+    protected processGetCapacityReport(response: AxiosResponse): Promise<TeamCapacityReportDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCapacityReportDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCapacityReportDto>(null as any);
     }
 
     /**
@@ -48781,6 +48937,25 @@ export interface CadenceVelocitySummaryDto {
     periods: number;
 }
 
+/** Time in person-days, from what was allocated to what was left after holidays and time away. */
+export interface CapacityMeasuresDto {
+    /** The time allocated over the working days, before holidays and time away. */
+    allocatedPersonDays: number;
+    /** The part of `allocatedPersonDays` on holidays in the calendar each person takes. */
+    holidayPersonDays: number;
+    /** The part of `allocatedPersonDays` taken by time away. */
+    timeAwayPersonDays: number;
+    /** What is left of `allocatedPersonDays` after holidays and time away. */
+    availablePersonDays: number;
+    /** The part of `availablePersonDays` in roles that count toward delivery capacity. */
+    deliveryPersonDays: number;
+}
+
+export enum CapacityReportInterval {
+    Week = "Week",
+    Month = "Month",
+}
+
 export interface ChangeEmployeeAllocationsRequest {
     /** The changes to make, applied together or not at all. Each sets what one team and role have over its date
 range and leaves the days outside it as they were. */
@@ -54888,6 +55063,86 @@ export interface TeamCapacityPlanRowDto {
     countsTowardDeliveryCapacity: boolean;
     /** The working days with time allocated in the role, in date order. A day left out has none. */
     days: TeamCapacityPlanDayDto[];
+}
+
+/** The capacity of a team, or of a team of teams with every team beneath it, over a date range: who had time on each team, what holidays and time away took from it, and what was left. Capacity is in person-days: one person allocated in full for one system working day. */
+export interface TeamCapacityReportDto {
+    /** The first day of the range. */
+    from: string;
+    /** The last day of the range. */
+    to: string;
+    /** How the range is bucketed, or null when it is not. */
+    interval?: CapacityReportInterval | undefined;
+    /** The buckets of the range in date order, the first and last cut to it. Empty when it is not bucketed. */
+    buckets: TeamCapacityPeriodDto[];
+    /** The hours in a person-day, from the system working day, for showing person-days as hours. */
+    workingDayHours: number;
+    /** The time across every line of the report. */
+    total: CapacityMeasuresDto;
+    /** The time across the report by team member role, by role name with the time in no role last. The lines add up to `total`. */
+    roles: TeamCapacityReportRoleDto[];
+    /** The team the report is for, first, then every team beneath it depth first. A team that moved between two
+parents in the range appears under each, as a node of its own. */
+    teams: TeamCapacityReportTeamDto[];
+    /** Everyone with a line in the report, by name, with their time outside it. */
+    people: TeamCapacityReportPersonDto[];
+    /** One person's time in one role on one team, by team then person then role. */
+    lines: TeamCapacityReportLineDto[];
+}
+
+/** One person's time in one role on one team of a capacity report. */
+export interface TeamCapacityReportLineDto {
+    /** The `nodeId` of the team in `teams`. */
+    nodeId: number;
+    /** The person, whose details are in `people`. */
+    employeeId: string;
+    /** The team member role the time is in, or null for none. */
+    role?: NavigationDto | undefined;
+    /** Whether time in the role counts toward delivery capacity. */
+    countsTowardDeliveryCapacity: boolean;
+    /** The time over the days the team counts for. */
+    total: CapacityMeasuresDto;
+    /** The time in each of the report's buckets. */
+    buckets: CapacityMeasuresDto[];
+}
+
+/** A person in a capacity report, with their time outside it over the system default working days, before holidays and time away. */
+export interface TeamCapacityReportPersonDto {
+    /** The person. */
+    employee: NavigationDto;
+    /** Their time allocated to teams outside the report, or to a team in it on days it was not in the hierarchy. */
+    outsidePersonDays: number;
+    /** Their time allocated to no team. */
+    unallocatedPersonDays: number;
+    /** `outsidePersonDays` in each of the report's buckets. */
+    outsideBuckets: number[];
+    /** `unallocatedPersonDays` in each of the report's buckets. */
+    unallocatedBuckets: number[];
+}
+
+/** The time across a capacity report in one team member role. */
+export interface TeamCapacityReportRoleDto {
+    /** The role, or null for time allocated in no role. */
+    role?: NavigationDto | undefined;
+    /** Whether time in the role counts toward delivery capacity. */
+    countsTowardDeliveryCapacity: boolean;
+    /** The time in the role. */
+    total: CapacityMeasuresDto;
+}
+
+/** A team as a capacity report counts it: the team the report is for, or one place beneath it. */
+export interface TeamCapacityReportTeamDto {
+    /** The node's id within the report: 0 for the team the report is for. */
+    nodeId: number;
+    /** The node directly above it, or null for the team the report is for. */
+    parentNodeId?: number | undefined;
+    /** The team or team of teams. */
+    team: TeamNavigationDto;
+    /** The days of the range it counts for, in date order: the whole range for the team the report is for, and
+for a team beneath it the days it was in the hierarchy. */
+    periods: TeamCapacityPeriodDto[];
+    /** Its own working days within `periods` that are not team holidays. A team of teams has the system defaults. */
+    workingDays: number;
 }
 
 /** The time allocated to a team in one team member role over a date range. */

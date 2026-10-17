@@ -51803,9 +51803,10 @@ interval. A team with no one has nothing to plan with, rather than no time. */
     total: PlanningIntervalCapacityFiguresDto;
     /** The team's capacity in each iteration, in the same order as the planning interval's `iterations`. */
     iterations: PlanningIntervalCapacityFiguresDto[];
-    /** The team's sprint days off in the planning interval, in date order: days the whole team is off, already
-left out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup. */
-    teamDaysOff: string[];
+    /** The team's sprint days off in the planning interval, in date order: days the whole team is off for some or
+all of, already left out of its capacity. Empty for a team of teams, whose teams' days off are left out of
+its rollup. */
+    teamDaysOff: TeamDayOffDto[];
 }
 
 /** Per-team rollup for a Planning Interval. Cycle time is averaged across all of the team's sprints mapped to any iteration in the PI; predictability matches the value returned by the predictability endpoint. */
@@ -53434,9 +53435,10 @@ export interface SetReleasePackageManifestRequest {
 
 /** Replaces a sprint's team days off. */
 export interface SetSprintTeamDaysOffRequest {
-    /** The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list
-clears them. Holidays from the team's calendar and days outside its working week need not be listed. */
-    teamDaysOff: string[];
+    /** The days within the sprint's planned dates that the whole team is off for some or all of, such as an
+offsite, each listed once. An empty list clears them. Holidays from the team's calendar and days outside
+its working week need not be listed. */
+    teamDaysOff: SprintTeamDayOffRequest[];
 }
 
 /** Sets or clears the type the team set on a sprint. */
@@ -53671,9 +53673,13 @@ ends at the next midnight, so its last day is the one before. */
     activeUntil?: Date | undefined;
     /** The IANA time zone the sprint's planned days are counted in: its team's on the planned start. */
     timeZone?: string | undefined;
-    /** Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
-offsite, in date order. Those managing the sprint (`canManageSprint`) can change them. */
-    teamDaysOff: string[];
+    /** Days within the sprint the whole team is off for some or all of beyond its working week and holiday
+calendar, such as an offsite, in date order. Those managing the sprint (`canManageSprint`) can change
+them. */
+    teamDaysOff: TeamDayOffDto[];
+    /** How many hours a working day has, the system's scheduling setting: a team day off entered in hours is a
+share of it. */
+    workingDayHours: number;
     /** The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
 the team names none: days the team is already off, so never a team day off. Empty without a team or dates. */
     holidays: string[];
@@ -53930,6 +53936,15 @@ letting finished added work stand in for committed work. Null when nothing was c
     predictabilityEstimate?: number | undefined;
     /** Items with no value in the sprint's estimate when they were last in the sprint. */
     unestimated: number;
+}
+
+/** A day the whole team is off for some or all of. */
+export interface SprintTeamDayOffRequest {
+    /** The day, within the sprint's planned dates. */
+    date: string;
+    /** The share of the working day the team is off, from 1 to 100; 100, a full day, when left out. A half-day
+offsite is 50: it takes half of everyone's capacity that day, and the ideal burn-down drops by half a day. */
+    percentOff: number;
 }
 
 export enum SprintType {
@@ -54718,7 +54733,8 @@ export interface TeamCapacityPlanDayDto {
     date: string;
     /** The share of the person's time allocated, from 1 to 100. */
     percent: number;
-    /** What it is worth, in person-days, after the holidays the person takes and their time away. */
+    /** What it is worth, in person-days, after the holidays the person takes, their time away and the team's
+day off. */
     personDays: number;
 }
 
@@ -54729,9 +54745,10 @@ export interface TeamCapacityPlanDto {
     /** The days of the team's working week in the range, in date order, holidays included. The person-days of
 each day already leave out the holidays each person takes. */
     days: string[];
-    /** The days of `days` the whole team is off, as asked for, such as a sprint's team days off. Nobody
-is counted on them, so they add nothing to `capacity` or to any day's person-days. */
-    teamDaysOff: string[];
+    /** The days of `days` the whole team is off for some or all of, as asked for, such as a sprint's team
+days off, in date order. Each takes its `percentOff` of everyone's time that day, already left out of
+`capacity` and of each day's person-days: a full day off adds nothing to either. */
+    teamDaysOff: TeamDayOffDto[];
     /** Everyone with time allocated to the team in the range, in the same order as `capacity.people`. */
     people: TeamCapacityPlanPersonDto[];
 }
@@ -54852,6 +54869,14 @@ export interface TeamCapacityTimeAwayDto {
     end: string;
     /** The share of each day the person is away, from 1 to 100. */
     percentAway: number;
+}
+
+/** A day the whole team is off for some or all of, beyond its working week and holidays, such as a sprint's offsite. It takes its share of everyone's capacity that day. */
+export interface TeamDayOffDto {
+    /** The day the team is off. */
+    date: string;
+    /** The share of the working day the team is off, from 1 to 100: 100 is a full day off. */
+    percentOff: number;
 }
 
 export interface TeamDetailsDto {

@@ -17,13 +17,15 @@ import EmployeeHolidayCalendarForm, {
   SYSTEM_DEFAULT_LABEL,
 } from './employee-holiday-calendar-form'
 import TimeAwayForm from '@/src/app/organizations/_components/time-away/time-away-form'
-import { timeAwayLabel } from '@/src/app/organizations/_components/time-away/time-away-duration'
+import {
+  DEFAULT_WORKING_DAY_HOURS,
+  timeAwayLabel,
+} from '@/src/app/organizations/_components/time-away/time-away-duration'
 import styles from './employee-capacity.module.css'
 
 const { Text, Title } = Typography
 
 // Until the read arrives; the system setting defaults to the same.
-const DEFAULT_WORKING_DAY_HOURS = 8
 
 interface Props {
   employeeId: string

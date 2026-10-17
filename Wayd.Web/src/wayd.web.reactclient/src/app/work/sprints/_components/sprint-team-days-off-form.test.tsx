@@ -1,7 +1,7 @@
 // The form lists and formats real days; the global mock only stubs format.
 jest.unmock('dayjs')
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   IsoDayOfWeek,
@@ -36,7 +36,8 @@ const sprint: SprintDetailsDto = {
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
-  teamDaysOff: ['2026-09-02'],
+  teamDaysOff: [{ date: '2026-09-02', percentOff: 100 }],
+  workingDayHours: 8,
   teamIsActive: true,
   holidays: [],
   workingDays: [],
@@ -92,9 +93,113 @@ describe('SprintTeamDaysOffForm', () => {
     expect(setTeamDaysOff).toHaveBeenCalledWith({
       id: 'sprint-1',
       key: 201,
-      teamDaysOff: ['2026-08-31', '2026-09-02'],
+      teamDaysOff: [
+        { date: '2026-08-31', percentOff: 100 },
+        { date: '2026-09-02', percentOff: 100 },
+      ],
     })
     expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it('offers no part days without allowPartDays, and keeps a part day already set', async () => {
+    // Arrange
+    setTeamDaysOff.mockResolvedValue({ data: undefined })
+    render(
+      <SprintTeamDaysOffForm
+        sprint={{
+          ...sprint,
+          teamDaysOff: [{ date: '2026-09-02', percentOff: 25 }],
+        }}
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+    expect(screen.queryByText('Half day')).not.toBeInTheDocument()
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    expect(setTeamDaysOff).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamDaysOff: [{ date: '2026-09-02', percentOff: 25 }],
+      }),
+    )
+  })
+
+  it.each([false, true])(
+    'saves a stored day too small for a quarter hour unchanged, part days allowed: %p',
+    async (allowPartDays) => {
+      // Arrange — 1% of an 8-hour day is under five minutes
+      setTeamDaysOff.mockResolvedValue({ data: undefined })
+      render(
+        <SprintTeamDaysOffForm
+          sprint={{
+            ...sprint,
+            teamDaysOff: [{ date: '2026-09-02', percentOff: 1 }],
+          }}
+          allowPartDays={allowPartDays}
+          onFormComplete={jest.fn()}
+          onFormCancel={jest.fn()}
+        />,
+      )
+      const save = screen.getByRole('button', { name: 'Save' })
+      expect(save).toBeEnabled()
+
+      // Act
+      await userEvent.click(save)
+
+      // Assert
+      expect(setTeamDaysOff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamDaysOff: [{ date: '2026-09-02', percentOff: 1 }],
+        }),
+      )
+    },
+  )
+
+  it('saves a half day and hours of a day as the share of the working day', async () => {
+    // Arrange
+    setTeamDaysOff.mockResolvedValue({ data: undefined })
+    render(
+      <SprintTeamDaysOffForm
+        sprint={sprint}
+        allowPartDays
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Thu, Sep 3, 2026' }),
+    )
+
+    // Act — half of the 2nd, and 2 of the 3rd's 8 hours
+    const wednesday = screen.getByRole('radiogroup', {
+      name: 'How much of Wed, Sep 2, 2026 the team is off',
+    })
+    await userEvent.click(within(wednesday).getByText('Half day'))
+    const thursday = screen.getByRole('radiogroup', {
+      name: 'How much of Thu, Sep 3, 2026 the team is off',
+    })
+    await userEvent.click(within(thursday).getByText('Hours'))
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    await userEvent.type(
+      screen.getByRole('spinbutton', {
+        name: 'Hours the team is off on Thu, Sep 3, 2026',
+      }),
+      '2',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    expect(setTeamDaysOff).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamDaysOff: [
+          { date: '2026-09-02', percentOff: 50 },
+          { date: '2026-09-03', percentOff: 25 },
+        ],
+      }),
+    )
   })
 
   it('reports a refusal and stays open', async () => {

@@ -10,8 +10,9 @@ import {
   TeamCapacityRollupDto,
   TeamCapacityRollupNodeDto,
   TeamCapacityTimeAwayDto,
+  TeamDayOffDto,
 } from '@/src/services/wayd-api'
-import { CalendarDate } from '@/src/utils'
+import { CalendarDate, teamDayOffParam } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -66,8 +67,8 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
         teamType: CapacityTeamType
         from: CalendarDate
         to: CalendarDate
-        /** Days the whole team is off, such as a sprint's team days off. */
-        daysOff?: CalendarDate[]
+        /** Days the whole team is off for some or all of, such as a sprint's team days off. */
+        daysOff?: TeamDayOffDto[]
       }
     >({
       queryFn: async ({ teamId, teamType, from, to, daysOff }) => {
@@ -78,7 +79,7 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
                   teamId,
                   from,
                   to,
-                  daysOff,
+                  daysOff?.map(teamDayOffParam),
                 )
               : await getTeamsOfTeamsClient().getCapacityPlan(teamId, from, to)
           return { data }

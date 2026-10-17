@@ -242,7 +242,10 @@ allocation, and Work draws the line as it did before allocations existed.
 
 A sprint's capacity against its scope works the same way. `GetSprintCapacityQuery` sends one
 `GetTeamsCapacityByPeriodQuery` for the sprint and the prior sprints its velocity comes from, each period
-carrying that sprint's team days off, and gets back the delivery person-days of each. Organization answers any
+carrying that sprint's team days off, and gets back the delivery person-days of each. A team day off
+(`TeamDayOff`, in Common) is a date and the percent of the day the team is off; Organization folds it into each
+`TeamDay` as the share worked, so a half day halves everyone's time there exactly as the ideal line halves
+the day's weight. Organization answers any
 number of teams and periods in a fixed number of reads, and null with the flag off; Work keeps the comparison
 with scope (`SprintCapacityComparison`) on its side, as a pure function.
 

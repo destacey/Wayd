@@ -37,7 +37,7 @@ public sealed class TeamWorkingDaysTests(SqlServerDbContextFixture fixture)
         {
             var team = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
             var mondayToThursday = WorkingWeek.Create([IsoDayOfWeek.Monday, IsoDayOfWeek.Tuesday, IsoDayOfWeek.Wednesday, IsoDayOfWeek.Thursday]).Value;
-            team.SetOperatingModel(SecondWeek, Methodology.Kanban, SizingMethod.Count, "UTC", 1, mondayToThursday, calendarId, EventActor.System, SqlServerDbContextFixture.FixedNow)
+            team.SetOperatingModel(SecondWeek, Methodology.Kanban, SizingMethod.Count, "UTC", 1, mondayToThursday, calendarId, null, EventActor.System, SqlServerDbContextFixture.FixedNow)
                 .IsSuccess.Should().BeTrue();
             await seedContext.SaveChangesAsync(cancellationToken);
 

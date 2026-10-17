@@ -863,6 +863,23 @@ public class TeamsController(
             : NotFound();
     }
 
+    [HttpGet("{id}/cadence-metrics")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [EndpointSummary("Get the team's cadence velocity.")]
+    [EndpointDescription("A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short where an operating model changes the cadence, time zone or sizing method inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.")]
+    [McpTool("Teams_GetCadenceMetrics", "Get team cadence velocity")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamCadenceMetricsDto>> GetCadenceMetrics(Guid id, [FromQuery] int? periodWindow, CancellationToken cancellationToken)
+    {
+        var metrics = await _dispatcher.Send(new GetTeamCadenceMetricsQuery(id, periodWindow), cancellationToken);
+
+        return metrics is not null
+            ? Ok(metrics)
+            : NotFound();
+    }
+
     [HttpGet("functional-organization-chart")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the functional organizaation chart for a given date.")]

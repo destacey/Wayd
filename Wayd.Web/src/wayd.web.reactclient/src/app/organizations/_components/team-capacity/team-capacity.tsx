@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { type Dayjs } from 'dayjs'
 import Link from 'next/link'
 import {
   Alert,
@@ -20,6 +21,7 @@ import {
   isApiError,
   parseCalendarDate,
   toCalendarDate,
+  calendarDateInZone,
   todayCalendarDate,
 } from '@/src/utils'
 import {
@@ -36,6 +38,8 @@ import MoveAllocationForm from '@/src/app/organizations/_components/allocations/
 import InitializeAllocationsForm from './initialize-allocations-form'
 import TeamCapacityRollup from './team-capacity-rollup'
 import {
+  cadencePeriodOf,
+  CapacityCadence,
   CapacityRange,
   CapacityRow,
   capacityRows,
@@ -63,6 +67,13 @@ const DIRECT_GRID_HEIGHT = 320
 interface Props {
   team: { id: string; name: string; isActive: boolean }
   teamType: CapacityTeamType
+  /** A Kanban team's reporting cadence: the section opens on its current period, not the current month. */
+  cadence?: CapacityCadence
+  /**
+   * The IANA zone the team's days are counted in, so the default range is the
+   * team's current month or period, not the viewer's. The viewer's zone when absent.
+   */
+  timeZone?: string
 }
 
 /** Which form is open, and for which row of the grid. */
@@ -78,9 +89,14 @@ type OpenForm =
  * the person's allocations. A team of teams also shows the teams beneath it,
  * read-only, and its totals include them.
  */
-const TeamCapacity = ({ team, teamType }: Props) => {
-  const [range, setRange] = useState<CapacityRange>(() =>
-    monthOf(todayCalendarDate()),
+const TeamCapacity = ({ team, teamType, cadence, timeZone }: Props) => {
+  const today = timeZone
+    ? calendarDateInZone(new Date(), timeZone)
+    : todayCalendarDate()
+  const currentMonth = monthOf(today)
+  const currentPeriod = cadence ? cadencePeriodOf(today, cadence) : undefined
+  const [range, setRange] = useState<CapacityRange>(
+    () => currentPeriod ?? currentMonth,
   )
   const [openForm, setOpenForm] = useState<OpenForm | null>(null)
 
@@ -276,6 +292,26 @@ const TeamCapacity = ({ team, teamType }: Props) => {
           allowClear={false}
           aria-label="Capacity date range"
           value={[parseCalendarDate(range.from), parseCalendarDate(range.to)]}
+          presets={[
+            ...(currentPeriod
+              ? [
+                  {
+                    label: 'This period',
+                    value: [
+                      parseCalendarDate(currentPeriod.from),
+                      parseCalendarDate(currentPeriod.to),
+                    ] as [Dayjs, Dayjs],
+                  },
+                ]
+              : []),
+            {
+              label: 'This month',
+              value: [
+                parseCalendarDate(currentMonth.from),
+                parseCalendarDate(currentMonth.to),
+              ] as [Dayjs, Dayjs],
+            },
+          ]}
           disabledDate={(current, { from }) =>
             !!from && Math.abs(current.diff(from, 'day')) >= MAX_RANGE_DAYS
           }

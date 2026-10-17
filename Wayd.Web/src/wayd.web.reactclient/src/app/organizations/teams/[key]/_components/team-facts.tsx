@@ -7,6 +7,7 @@ import {
   RecordFactsGroup,
   RecordLinkList,
 } from '@/src/components/common/record'
+import { formatReportingCadence } from '@/src/components/common/scheduling'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { TeamDetailsDto, TeamOfTeamsDetailsDto } from '@/src/services/wayd-api'
 import { useGetTeamOfTeamsMembershipsQuery } from '@/src/store/features/organizations/team-api'
@@ -67,6 +68,11 @@ const TeamFacts = ({
             <LabeledContent label="Sizing Method">
               {sizingMethodLabel(operatingModel.sizingMethod)}
             </LabeledContent>
+            {operatingModel.cadenceWeeks && (
+              <LabeledContent label="Cadence">
+                {formatReportingCadence(operatingModel.cadenceWeeks)}
+              </LabeledContent>
+            )}
           </>
         )}
 

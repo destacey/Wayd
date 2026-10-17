@@ -39200,6 +39200,78 @@ export class TeamsClient {
     }
 
     /**
+     * Get the team's cadence velocity.
+     * @param periodWindow (optional) 
+     * @return OK
+     */
+    getCadenceMetrics(id: string, periodWindow?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamCadenceMetricsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/cadence-metrics?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (periodWindow !== undefined && periodWindow !== null)
+            url_ += "periodWindow=" + encodeURIComponent("" + periodWindow) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCadenceMetrics(_response);
+        });
+    }
+
+    protected processGetCadenceMetrics(response: AxiosResponse): Promise<TeamCadenceMetricsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamCadenceMetricsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamCadenceMetricsDto>(null as any);
+    }
+
+    /**
      * Get the functional organizaation chart for a given date.
      * @param asOfDate (optional) 
      * @return OK
@@ -48612,6 +48684,20 @@ export interface BulkTenantMigrationResult {
     stagedCount: number;
 }
 
+/** Velocity across a team's averaged periods. */
+export interface CadenceVelocitySummaryDto {
+    /** The mean of the periods' values, not a ratio of pooled totals. */
+    average: number;
+    /** The lowest period's value. */
+    min: number;
+    /** The highest period's value. */
+    max: number;
+    /** The population standard deviation of the periods' values. */
+    standardDeviation: number;
+    /** How many periods were averaged. */
+    periods: number;
+}
+
 export interface ChangeEmployeeAllocationsRequest {
     /** The changes to make, applied together or not at all. Each sets what one team and role have over its date
 range and leaves the days outside it as they were. */
@@ -53400,6 +53486,12 @@ export interface SetTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+A Scrum team's sprints are its cadence, so a Scrum model takes none. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others. Required with
+int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
+    cadenceAnchor?: string | undefined;
 }
 
 export interface SetupRequest {
@@ -54496,6 +54588,55 @@ enough history, or when the team sizes by count. */
     workItems: BacklogHealthWorkItemDto[];
 }
 
+/** A Kanban team's velocity over its reporting cadence: what it completed in each recent period, from done dates, and the average and spread across them. Worked out when read, and never stored. There is no commitment, so no predictability or say/do. */
+export interface TeamCadenceMetricsDto {
+    /** The team the metrics are of. */
+    teamId: string;
+    /** How many ended periods the window holds when full: the number asked for, or else int TeamCadenceMetricsDto.DefaultPeriodWindow. */
+    periodWindow: number;
+    /** The organization's window, from the sprint metrics setting, which team pages are measured over. */
+    defaultPeriodWindow: number;
+    /** The length in weeks of the team's cadence now, or null when it has none. A team can have periods from an
+earlier cadence while having none now. */
+    cadenceWeeks?: number | undefined;
+    /** The estimate CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate is measured in: the team's sizing method now. Under Count
+CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate equals CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByCount. */
+    sizingMethod: SizingMethod;
+    /** Velocity by item count across the ended, whole periods; null when there are none. */
+    byCount?: CadenceVelocitySummaryDto | undefined;
+    /** Velocity in SizingMethod TeamCadenceMetricsDto.SizingMethod across the ended, whole periods measured in it; null when there are
+none. Estimates in different units are never averaged. */
+    byEstimate?: CadenceVelocitySummaryDto | undefined;
+    /** The current period, if any, then up to int TeamCadenceMetricsDto.PeriodWindow ended periods, most recent first. Empty
+for a team that has never had a cadence. */
+    periods: TeamCadencePeriodDto[];
+}
+
+/** What a team completed in one of its reporting periods. */
+export interface TeamCadencePeriodDto {
+    /** The period's first day. */
+    start: string;
+    /** The period's last day, included in it. */
+    end: string;
+    /** The estimate the period's work is measured in: its operating model's sizing method. */
+    sizingMethod: SizingMethod;
+    /** Whether the period is shorter than its cadence, because an operating model began or ended inside it.
+Partial periods are left out of the averages. */
+    isPartial: boolean;
+    /** Whether the period has not ended yet. The current period is left out of the averages. */
+    isCurrent: boolean;
+    /** Whether the period counts toward the averages: it has ended and is whole. */
+    inAverages: boolean;
+    /** Whether double TeamCadencePeriodDto.CompletedEstimate counts toward the estimate averages. */
+    inEstimateAverages: boolean;
+    /** How many Requirement-tier items reached a Done-category status in the period. */
+    completedCount: number;
+    /** The completed items' estimates in SizingMethod TeamCadencePeriodDto.SizingMethod; under Count, the count. */
+    completedEstimate: number;
+    /** Completed items with no value in SizingMethod TeamCadencePeriodDto.SizingMethod, which add nothing to double TeamCadencePeriodDto.CompletedEstimate. */
+    unestimatedCount: number;
+}
+
 /** An allocation of a person's time to the team. */
 export interface TeamCapacityAllocationDto {
     id: string;
@@ -54847,7 +54988,7 @@ export interface TeamOfTeamsOperatingModelDetailsDto {
     isCurrent: boolean;
 }
 
-/** How a team works over a stretch of dates: its methodology, sizing method, time zone, working week and holiday calendar. */
+/** How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday calendar and, for a Kanban team, reporting cadence. */
 export interface TeamOperatingModelDetailsDto {
     /** The identifier of the operating model. */
     id: string;
@@ -54869,11 +55010,16 @@ export interface TeamOperatingModelDetailsDto {
     workingDays: IsoDayOfWeek[];
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendar?: NavigationDto | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, or null for no cadence. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others; set exactly when
+int? TeamOperatingModelDetailsDto.CadenceWeeks is. */
+    cadenceAnchor?: string | undefined;
     /** Indicates whether this operating model is current (has no end date). */
     isCurrent: boolean;
 }
 
-/** A team's operating model in brief: the methodology and sizing method it uses. */
+/** A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are counted in, and its reporting cadence. */
 export interface TeamOperatingModelListDto {
     /** The identifier of the operating model. */
     id: string;
@@ -54881,6 +55027,13 @@ export interface TeamOperatingModelListDto {
     methodology: Methodology;
     /** The sizing method the team uses (e.g., StoryPoints, Count). */
     sizingMethod: SizingMethod;
+    /** The IANA id of the time zone the team's days are counted in, which decides what day it is for the team. */
+    timeZone: string;
+    /** The length in weeks of a Kanban team's reporting periods, or null for no cadence. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others; set exactly when
+int? TeamOperatingModelListDto.CadenceWeeks is. */
+    cadenceAnchor?: string | undefined;
 }
 
 /** A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread. Worked out when read from work item history, and never stored. */
@@ -55754,6 +55907,12 @@ export interface UpdateTeamOperatingModelRequest {
     workingDays?: IsoDayOfWeek[] | undefined;
     /** The holiday calendar whose holidays the team takes off, or null for the system default calendar. */
     holidayCalendarId?: string | undefined;
+    /** The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+A Scrum team's sprints are its cadence, so a Scrum model takes none. */
+    cadenceWeeks?: number | undefined;
+    /** The first day of one of the cadence's periods, which aligns the others. Required with
+int? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
+    cadenceAnchor?: string | undefined;
 }
 
 export interface UpdateTeamRequest {

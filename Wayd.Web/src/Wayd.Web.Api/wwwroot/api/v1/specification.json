@@ -33462,6 +33462,75 @@
         ]
       }
     },
+    "/api/organization/teams/{id}/cadence-metrics": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get the team's cadence velocity.",
+        "description": "A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short where an operating model changes the cadence, time zone or sizing method inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.",
+        "operationId": "Teams_GetCadenceMetrics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "periodWindow",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamCadenceMetricsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/organization/teams/functional-organization-chart": {
       "get": {
         "tags": [
@@ -42569,6 +42638,45 @@
         },
         "additionalProperties": false,
         "description": "Per-user outcome of a bulk staging run. `stagedUserIds` are the users whose\nmigration was staged; `skipped` lists the ones that no longer qualified, each with\na human-readable reason. Eligibility is re-checked on the server, so a submitted list\nthat has gone stale shows up as skipped users."
+      },
+      "CadenceVelocitySummaryDto": {
+        "required": [
+          "average",
+          "min",
+          "max",
+          "standardDeviation",
+          "periods"
+        ],
+        "type": "object",
+        "properties": {
+          "average": {
+            "type": "number",
+            "description": "The mean of the periods' values, not a ratio of pooled totals.",
+            "format": "double"
+          },
+          "min": {
+            "type": "number",
+            "description": "The lowest period's value.",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "description": "The highest period's value.",
+            "format": "double"
+          },
+          "standardDeviation": {
+            "type": "number",
+            "description": "The population standard deviation of the periods' values.",
+            "format": "double"
+          },
+          "periods": {
+            "type": "integer",
+            "description": "How many periods were averaged.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Velocity across a team's averaged periods."
       },
       "ChangeEmployeeAllocationsRequest": {
         "required": [
@@ -58107,6 +58215,18 @@
             "description": "The holiday calendar whose holidays the team takes off, or null for the system default calendar.",
             "format": "uuid",
             "nullable": true
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "description": "The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.\nA Scrum team's sprints are its cadence, so a Scrum model takes none.",
+            "format": "int32",
+            "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "description": "The first day of one of the cadence's periods, which aligns the others. Required with\nint? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it.",
+            "format": "date",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -61504,6 +61624,142 @@
         "additionalProperties": false,
         "description": "A team's backlog graded against a set of thresholds."
       },
+      "TeamCadenceMetricsDto": {
+        "required": [
+          "periods",
+          "teamId",
+          "periodWindow",
+          "defaultPeriodWindow",
+          "sizingMethod"
+        ],
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "description": "The team the metrics are of.",
+            "format": "uuid"
+          },
+          "periodWindow": {
+            "type": "integer",
+            "description": "How many ended periods the window holds when full: the number asked for, or else int TeamCadenceMetricsDto.DefaultPeriodWindow.",
+            "format": "int32"
+          },
+          "defaultPeriodWindow": {
+            "type": "integer",
+            "description": "The organization's window, from the sprint metrics setting, which team pages are measured over.",
+            "format": "int32"
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "description": "The length in weeks of the team's cadence now, or null when it has none. A team can have periods from an\nearlier cadence while having none now.",
+            "format": "int32",
+            "nullable": true
+          },
+          "sizingMethod": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SizingMethod"
+              }
+            ],
+            "description": "The estimate CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate is measured in: the team's sizing method now. Under Count\nCadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate equals CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByCount."
+          },
+          "byCount": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CadenceVelocitySummaryDto"
+              }
+            ],
+            "description": "Velocity by item count across the ended, whole periods; null when there are none.",
+            "nullable": true
+          },
+          "byEstimate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CadenceVelocitySummaryDto"
+              }
+            ],
+            "description": "Velocity in SizingMethod TeamCadenceMetricsDto.SizingMethod across the ended, whole periods measured in it; null when there are\nnone. Estimates in different units are never averaged.",
+            "nullable": true
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamCadencePeriodDto"
+            },
+            "description": "The current period, if any, then up to int TeamCadenceMetricsDto.PeriodWindow ended periods, most recent first. Empty\nfor a team that has never had a cadence."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A Kanban team's velocity over its reporting cadence: what it completed in each recent period, from done dates,\nand the average and spread across them. Worked out when read, and never stored. There is no commitment, so no\npredictability or say/do."
+      },
+      "TeamCadencePeriodDto": {
+        "required": [
+          "start",
+          "end",
+          "sizingMethod",
+          "isPartial",
+          "isCurrent",
+          "inAverages",
+          "inEstimateAverages",
+          "completedCount",
+          "completedEstimate",
+          "unestimatedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "description": "The period's first day.",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "description": "The period's last day, included in it.",
+            "format": "date"
+          },
+          "sizingMethod": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SizingMethod"
+              }
+            ],
+            "description": "The estimate the period's work is measured in: its operating model's sizing method."
+          },
+          "isPartial": {
+            "type": "boolean",
+            "description": "Whether the period is shorter than its cadence, because an operating model began or ended inside it.\nPartial periods are left out of the averages."
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether the period has not ended yet. The current period is left out of the averages."
+          },
+          "inAverages": {
+            "type": "boolean",
+            "description": "Whether the period counts toward the averages: it has ended and is whole."
+          },
+          "inEstimateAverages": {
+            "type": "boolean",
+            "description": "Whether double TeamCadencePeriodDto.CompletedEstimate counts toward the estimate averages."
+          },
+          "completedCount": {
+            "type": "integer",
+            "description": "How many Requirement-tier items reached a Done-category status in the period.",
+            "format": "int32"
+          },
+          "completedEstimate": {
+            "type": "number",
+            "description": "The completed items' estimates in SizingMethod TeamCadencePeriodDto.SizingMethod; under Count, the count.",
+            "format": "double"
+          },
+          "unestimatedCount": {
+            "type": "integer",
+            "description": "Completed items with no value in SizingMethod TeamCadencePeriodDto.SizingMethod, which add nothing to double TeamCadencePeriodDto.CompletedEstimate.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What a team completed in one of its reporting periods."
+      },
       "TeamCapacityAllocationDto": {
         "required": [
           "id",
@@ -62627,19 +62883,32 @@
             "description": "The holiday calendar whose holidays the team takes off, or null for the system default calendar.",
             "nullable": true
           },
+          "cadenceWeeks": {
+            "type": "integer",
+            "description": "The length in weeks of a Kanban team's reporting periods, or null for no cadence.",
+            "format": "int32",
+            "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "description": "The first day of one of the cadence's periods, which aligns the others; set exactly when\nint? TeamOperatingModelDetailsDto.CadenceWeeks is.",
+            "format": "date",
+            "nullable": true
+          },
           "isCurrent": {
             "type": "boolean",
             "description": "Indicates whether this operating model is current (has no end date)."
           }
         },
         "additionalProperties": false,
-        "description": "How a team works over a stretch of dates: its methodology, sizing method, time zone, working week and\nholiday calendar."
+        "description": "How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday\ncalendar and, for a Kanban team, reporting cadence."
       },
       "TeamOperatingModelListDto": {
         "required": [
           "id",
           "methodology",
-          "sizingMethod"
+          "sizingMethod",
+          "timeZone"
         ],
         "type": "object",
         "properties": {
@@ -62663,10 +62932,27 @@
               }
             ],
             "description": "The sizing method the team uses (e.g., StoryPoints, Count)."
+          },
+          "timeZone": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The IANA id of the time zone the team's days are counted in, which decides what day it is for the team."
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "description": "The length in weeks of a Kanban team's reporting periods, or null for no cadence.",
+            "format": "int32",
+            "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "description": "The first day of one of the cadence's periods, which aligns the others; set exactly when\nint? TeamOperatingModelListDto.CadenceWeeks is.",
+            "format": "date",
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "A team's operating model in brief: the methodology and sizing method it uses."
+        "description": "A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are\ncounted in, and its reporting cadence."
       },
       "TeamSprintMetricsDto": {
         "required": [
@@ -65649,6 +65935,18 @@
             "type": "string",
             "description": "The holiday calendar whose holidays the team takes off, or null for the system default calendar.",
             "format": "uuid",
+            "nullable": true
+          },
+          "cadenceWeeks": {
+            "type": "integer",
+            "description": "The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.\nA Scrum team's sprints are its cadence, so a Scrum model takes none.",
+            "format": "int32",
+            "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "description": "The first day of one of the cadence's periods, which aligns the others. Required with\nint? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it.",
+            "format": "date",
             "nullable": true
           }
         },

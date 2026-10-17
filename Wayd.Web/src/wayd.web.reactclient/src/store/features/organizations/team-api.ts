@@ -9,6 +9,7 @@ import {
   SprintListDto,
   SprintDetailsDto,
   TeamSprintMetricsDto,
+  TeamCadenceMetricsDto,
   TeamDetailsDto,
   TeamOfTeamsDetailsDto,
   WorkStatusCategory,
@@ -395,6 +396,30 @@ export const teamApi = apiSlice.injectEndpoints({
         // scheduling defaults.
         { type: QueryTags.TeamOperatingModel, id: arg.teamId },
         { type: QueryTags.SystemSettings, id: 'scheduling' },
+      ],
+    }),
+
+    getTeamCadenceMetrics: builder.query<
+      TeamCadenceMetricsDto,
+      { teamId: string; periodWindow?: number }
+    >({
+      queryFn: async ({ teamId, periodWindow }) => {
+        try {
+          const data = await getTeamsClient().getCadenceMetrics(
+            teamId,
+            periodWindow,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        // The operating models set the cadence, zone and unit each period is measured in.
+        { type: QueryTags.TeamOperatingModel, id: arg.teamId },
+        // The organization's sprint window decides how many periods count.
+        { type: QueryTags.SystemSettings, id: 'sprint-metrics' },
       ],
     }),
 
@@ -1172,6 +1197,7 @@ export const {
   useGetTeamDependenciesQuery,
   useGetTeamSprintsQuery,
   useGetTeamSprintMetricsQuery,
+  useGetTeamCadenceMetricsQuery,
   useGetActiveSprintQuery,
   useGetTeamSprintOptionsQuery,
   useGetFunctionalOrganizationChartQuery,

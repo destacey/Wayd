@@ -66800,6 +66800,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the team's cadence velocity.
+        /// </summary>
+        /// <remarks>
+        /// A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short where an operating model changes the cadence, time zone or sizing method inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCadenceMetricsDto> GetCadenceMetricsAsync(System.Guid id, int? periodWindow = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the functional organizaation chart for a given date.
         /// </summary>
         /// <returns>OK</returns>
@@ -70869,6 +70880,114 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamSprintMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the team's cadence velocity.
+        /// </summary>
+        /// <remarks>
+        /// A Kanban team's velocity over its reporting cadence: the Requirement-tier work it completed (Done-category status, not Removed) in each recent period, by item count and in the sizing method of the period's operating model, with the average and spread across ended, whole periods. Periods follow each operating model's cadence in that model's time zone; a period cut short where an operating model changes the cadence, time zone or sizing method inside it is partial and left out of the averages, as is the current period. periodWindow is how many ended periods to measure over (3 to 12); omit it for the organization's sprint window. There is no commitment, so no predictability or say/do. A team with no cadence returns no periods. Returns 404 for an id that is not a team's, including a team of teams, which has no cadence.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCadenceMetricsDto> GetCadenceMetricsAsync(System.Guid id, int? periodWindow = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{id}/cadence-metrics"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/cadence-metrics");
+                    urlBuilder_.Append('?');
+                    if (periodWindow != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("periodWindow")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(periodWindow, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCadenceMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -88389,6 +88508,45 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Velocity across a team's averaged periods.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CadenceVelocitySummaryDto
+    {
+
+        /// <summary>
+        /// The mean of the periods' values, not a ratio of pooled totals.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("average")]
+        public double Average { get; set; } = default!;
+
+        /// <summary>
+        /// The lowest period's value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// The highest period's value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+        /// <summary>
+        /// The population standard deviation of the periods' values.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("standardDeviation")]
+        public double StandardDeviation { get; set; } = default!;
+
+        /// <summary>
+        /// How many periods were averaged.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        public int Periods { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ChangeEmployeeAllocationsRequest
     {
@@ -102778,6 +102936,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
 
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+        /// <br/>A Scrum team's sprints are its cadence, so a Scrum model takes none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others. Required with
+        /// <br/>int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -105991,6 +106164,149 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A Kanban team's velocity over its reporting cadence: what it completed in each recent period, from done dates,
+    /// <br/>and the average and spread across them. Worked out when read, and never stored. There is no commitment, so no
+    /// <br/>predictability or say/do.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCadenceMetricsDto
+    {
+
+        /// <summary>
+        /// The team the metrics are of.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid TeamId { get; set; } = default!;
+
+        /// <summary>
+        /// How many ended periods the window holds when full: the number asked for, or else int TeamCadenceMetricsDto.DefaultPeriodWindow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periodWindow")]
+        public int PeriodWindow { get; set; } = default!;
+
+        /// <summary>
+        /// The organization's window, from the sprint metrics setting, which team pages are measured over.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaultPeriodWindow")]
+        public int DefaultPeriodWindow { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of the team's cadence now, or null when it has none. A team can have periods from an
+        /// <br/>earlier cadence while having none now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate is measured in: the team's sizing method now. Under Count
+        /// <br/>CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByEstimate equals CadenceVelocitySummaryDto? TeamCadenceMetricsDto.ByCount.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// Velocity by item count across the ended, whole periods; null when there are none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("byCount")]
+        public CadenceVelocitySummaryDto? ByCount { get; set; } = default!;
+
+        /// <summary>
+        /// Velocity in SizingMethod TeamCadenceMetricsDto.SizingMethod across the ended, whole periods measured in it; null when there are
+        /// <br/>none. Estimates in different units are never averaged.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("byEstimate")]
+        public CadenceVelocitySummaryDto? ByEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// The current period, if any, then up to int TeamCadenceMetricsDto.PeriodWindow ended periods, most recent first. Empty
+        /// <br/>for a team that has never had a cadence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCadencePeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<TeamCadencePeriodDto>();
+
+    }
+
+    /// <summary>
+    /// What a team completed in one of its reporting periods.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCadencePeriodDto
+    {
+
+        /// <summary>
+        /// The period's first day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The period's last day, included in it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate the period's work is measured in: its operating model's sizing method.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the period is shorter than its cadence, because an operating model began or ended inside it.
+        /// <br/>Partial periods are left out of the averages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isPartial")]
+        public bool IsPartial { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the period has not ended yet. The current period is left out of the averages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
+        public bool IsCurrent { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the period counts toward the averages: it has ended and is whole.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inAverages")]
+        public bool InAverages { get; set; } = default!;
+
+        /// <summary>
+        /// Whether double TeamCadencePeriodDto.CompletedEstimate counts toward the estimate averages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inEstimateAverages")]
+        public bool InEstimateAverages { get; set; } = default!;
+
+        /// <summary>
+        /// How many Requirement-tier items reached a Done-category status in the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedCount")]
+        public int CompletedCount { get; set; } = default!;
+
+        /// <summary>
+        /// The completed items' estimates in SizingMethod TeamCadencePeriodDto.SizingMethod; under Count, the count.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double CompletedEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// Completed items with no value in SizingMethod TeamCadencePeriodDto.SizingMethod, which add nothing to double TeamCadencePeriodDto.CompletedEstimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedCount")]
+        public int UnestimatedCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// An allocation of a person's time to the team.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -107028,8 +107344,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week and
-    /// <br/>holiday calendar.
+    /// How a team works over a stretch of dates: its methodology, sizing method, time zone, working week, holiday
+    /// <br/>calendar and, for a Kanban team, reporting cadence.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamOperatingModelDetailsDto
@@ -107108,6 +107424,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public NavigationDto? HolidayCalendar { get; set; } = default!;
 
         /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+        /// <br/>int? TeamOperatingModelDetailsDto.CadenceWeeks is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
+
+        /// <summary>
         /// Indicates whether this operating model is current (has no end date).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
@@ -107116,7 +107446,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A team's operating model in brief: the methodology and sizing method it uses.
+    /// A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are
+    /// <br/>counted in, and its reporting cadence.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamOperatingModelListDto
@@ -107144,6 +107475,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod SizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA id of the time zone the team's days are counted in, which decides what day it is for the team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TimeZone { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+        /// <br/>int? TeamOperatingModelListDto.CadenceWeeks is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
     }
 
@@ -109848,6 +110200,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("holidayCalendarId")]
         public System.Guid? HolidayCalendarId { get; set; } = default!;
+
+        /// <summary>
+        /// The length in weeks of a Kanban team's reporting periods, used for its velocity trend, or null for no cadence.
+        /// <br/>A Scrum team's sprints are its cadence, so a Scrum model takes none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
+        public int? CadenceWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of one of the cadence's periods, which aligns the others. Required with
+        /// <br/>int? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
 
     }
 

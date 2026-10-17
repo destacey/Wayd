@@ -1,11 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Mapster;
 using Wayd.Common.Domain.Enums.Organization;
+using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Dtos;
 
 /// <summary>
-/// A team's operating model in brief: the methodology and sizing method it uses.
+/// A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are
+/// counted in, and its reporting cadence.
 /// </summary>
 public sealed record TeamOperatingModelListDto : IMapFrom<TeamOperatingModel>
 {
@@ -26,4 +28,29 @@ public sealed record TeamOperatingModelListDto : IMapFrom<TeamOperatingModel>
     /// </summary>
     [Required]
     public SizingMethod SizingMethod { get; set; }
+
+    /// <summary>
+    /// The IANA id of the time zone the team's days are counted in, which decides what day it is for the team.
+    /// </summary>
+    [Required]
+    public string TimeZone { get; set; } = null!;
+
+    /// <summary>
+    /// The length in weeks of a Kanban team's reporting periods, or null for no cadence.
+    /// </summary>
+    public int? CadenceWeeks { get; set; }
+
+    /// <summary>
+    /// The first day of one of the cadence's periods, which aligns the others; set exactly when
+    /// <see cref="CadenceWeeks"/> is.
+    /// </summary>
+    public LocalDate? CadenceAnchor { get; set; }
+
+    /// <summary>Flattens the model's optional cadence into its length and anchor.</summary>
+    public void ConfigureMapping(TypeAdapterConfig config)
+    {
+        config.NewConfig<TeamOperatingModel, TeamOperatingModelListDto>()
+            .Map(dest => dest.CadenceWeeks, src => src.Cadence == null ? (int?)null : src.Cadence.Weeks)
+            .Map(dest => dest.CadenceAnchor, src => src.Cadence == null ? (LocalDate?)null : src.Cadence.Anchor);
+    }
 }

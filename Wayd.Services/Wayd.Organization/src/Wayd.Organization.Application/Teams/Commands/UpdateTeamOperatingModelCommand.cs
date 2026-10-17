@@ -7,7 +7,7 @@ namespace Wayd.Organization.Application.Teams.Commands;
 
 /// <summary>
 /// Corrects one of a team's operating models for its whole period. <paramref name="WorkingDays"/> left null keeps
-/// the model's working week.
+/// the model's working week; a null <paramref name="CadenceWeeks"/> leaves it with no reporting cadence.
 /// </summary>
 public sealed record UpdateTeamOperatingModelCommand(
     Guid TeamId,
@@ -17,7 +17,9 @@ public sealed record UpdateTeamOperatingModelCommand(
     string TimeZone,
     int CommitmentGraceDays,
     IReadOnlyList<IsoDayOfWeek>? WorkingDays,
-    Guid? HolidayCalendarId) : ICommand;
+    Guid? HolidayCalendarId,
+    int? CadenceWeeks = null,
+    LocalDate? CadenceAnchor = null) : ICommand;
 
 public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<UpdateTeamOperatingModelCommand>
 {
@@ -47,6 +49,8 @@ public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<U
         RuleFor(c => c.WorkingDays)
             .IsWorkingWeek()
             .When(c => c.WorkingDays is not null);
+
+        this.RulesForReportingCadence(c => c.Methodology, c => c.CadenceWeeks, c => c.CadenceAnchor);
     }
 }
 
@@ -95,6 +99,10 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
                 && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
                 return Result.Failure($"Holiday calendar {calendarId} not found.");
 
+            var cadence = ReportingCadence.CreateOptional(request.CadenceWeeks, request.CadenceAnchor);
+            if (cadence.IsFailure)
+                return Result.Failure(cadence.Error);
+
             var updateResult = team.CorrectOperatingModel(
                 request.OperatingModelId,
                 request.Methodology,
@@ -103,6 +111,7 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
                 request.CommitmentGraceDays,
                 workingWeek.Value,
                 request.HolidayCalendarId,
+                cadence.Value,
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
             if (updateResult.IsFailure)

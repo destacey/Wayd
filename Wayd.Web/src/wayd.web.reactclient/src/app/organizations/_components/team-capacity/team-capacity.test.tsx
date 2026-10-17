@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { calendarDaysBetween, todayCalendarDate } from '@/src/utils'
 import TeamCapacity from './team-capacity'
 
 jest.unmock('dayjs')
@@ -225,6 +226,53 @@ describe('TeamCapacity', () => {
     expect(arg).toMatchObject({ teamId: 'team-1', teamType: 'Team' })
     expect(arg.from).toMatch(/^\d{4}-\d{2}-01$/)
     expect(arg.to.slice(0, 7)).toBe(arg.from.slice(0, 7))
+  })
+
+  it('asks for the current cadence period by default for a team with a cadence', () => {
+    // Arrange
+    const today = todayCalendarDate()
+
+    // Act
+    render(
+      <TeamCapacity
+        team={team}
+        teamType="Team"
+        cadence={{ weeks: 2, anchor: '2026-10-05' }}
+      />,
+    )
+
+    // Assert
+    const { from, to } = mockCapacityArgs.mock.calls[0][0]
+    expect(calendarDaysBetween(from, to)).toBe(13)
+    expect(calendarDaysBetween('2026-10-05', from) % 14).toBe(0)
+    expect(from <= today && today <= to).toBe(true)
+  })
+
+  it("takes today in the team's zone, not the viewer's", () => {
+    // Arrange — noon UTC on Sunday 18 October is already Monday 19 October in
+    // Auckland, ahead of any viewer zone in the Americas or UTC
+    jest.useFakeTimers({ advanceTimers: true })
+    jest.setSystemTime(new Date('2026-10-18T12:00:00Z'))
+
+    try {
+      // Act
+      render(
+        <TeamCapacity
+          team={team}
+          teamType="Team"
+          timeZone="Pacific/Auckland"
+          cadence={{ weeks: 2, anchor: '2026-10-05' }}
+        />,
+      )
+
+      // Assert
+      expect(mockCapacityArgs.mock.calls[0][0]).toMatchObject({
+        from: '2026-10-19',
+        to: '2026-11-01',
+      })
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('lists each allocation and capacity by role with a non-delivery line', () => {

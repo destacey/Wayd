@@ -107,10 +107,13 @@ Each team has an **Operating Model** that defines how it works. The operating mo
 - **Commitment Grace Period** — How many days after a sprint's planned start its commitment is taken when the team does not start the sprint itself (1 is the end of the first planned day)
 - **Working Days** — The days of the week the team works, Monday to Friday by default. A sprint's [ideal burn-down line](../work-management/sprints.mdx) drops only on working days and stays flat on the rest
 - **Holiday Calendar** — The [holiday calendar](../settings/index.mdx#holiday-calendars) whose holidays the team takes off, or none to use the default calendar from the scheduling settings. The ideal burn-down line stays flat on holidays too
+- **Cadence** (Kanban only) — An optional reporting period for a Kanban team: a length of 1 to 8 weeks and an **anchor** date that one of the periods starts on, so every period starts on the anchor's day of the week. A two-week cadence anchored on a Monday reports the team's velocity in back-to-back two-week periods from Monday to the following Sunday. The periods are worked out from the length and anchor; nothing is created for them, and they have no commitment, start or complete. A Scrum team has no cadence, because its sprints are its cadence
 
 Operating models have an effective date range, creating a history. When a team changes how it works (e.g., moving from Kanban to Scrum, relocating to another time zone, or changing its working week), a new operating model is added and the previous one is automatically closed the day before the new one starts.
 
 A sprint uses the time zone, grace period, sizing method and working days of the operating model in effect on its planned start date, for the whole sprint. So a team that moves, or starts sizing in a different unit, keeps its old zone and unit for sprints planned before the change, while editing a model corrects every sprint in that model's period.
+
+A cadence follows its operating model the same way. When a new model changes the cadence, time zone or sizing method partway through a cadence period, that period ends early, the day before the new model starts, and the new model's periods begin; earlier periods stay as they were. A new model that keeps all three, set to change something else such as the working days, leaves the open period running. Setting a new model fills in the current cadence; clear it to end the cadence. Correcting a model's cadence changes the periods for that model's whole period.
 
 A new model's time zone is pre-filled from the team's parent Team of Teams — the zone that team of teams had on the new model's start date — or from the [scheduling settings](../settings/index.mdx) when the team had no parent then. The grace period and working days are pre-filled from the scheduling settings. These are suggestions only: changing the parent's zone or the scheduling settings never changes an existing team.
 
@@ -122,7 +125,7 @@ It follows the same rules as a team's operating model: setting a new model from 
 
 The operating model affects what the team sees in the UI:
 - **Scrum teams** see a **Sprints** section and an **Active Sprint** indicator on their detail page
-- **Kanban teams** do not see sprint-related UI
+- **Kanban teams** do not see sprint-related UI; a Kanban team with a cadence sees a [Velocity report](#velocity-report) and an Overview card instead
 - The **Sizing Method** determines how work is measured in backlog views and metrics
 
 ### Team Members
@@ -237,6 +240,7 @@ The **Overview** section summarises the team at a glance:
 - Metric tiles for **Members**, **Backlog**, **Dependencies**, and **Open Risks**, each linking to the section it counts
 - **Active Team Sprint** — For Scrum teams, shows the current sprint with timeline progress, completion rate, velocity, in progress count, and average cycle time
 - **Sprint Metrics** — For teams that have used Scrum, the team's average velocity, predictability and say/do over its most recent completed standard sprints, each with its range. Select a card to open the [Sprint Metrics report](#sprint-metrics-report)
+- **Velocity** — For a Kanban team with a [cadence](#operating-model), its average velocity over its most recent cadence periods, with its range. Select the card to open the [Velocity report](#velocity-report)
 - **Members** — A card for each team member showing their name (links to their employee page) and roles. Cards are clickable and navigate to the employee's detail page.
 
 ### Members
@@ -258,7 +262,7 @@ With **Team Capacity Management** turned on, team and team of teams pages have a
 
 The section keeps no plan of its own: it is a view of people's allocations, and every edit made here changes the same allocations the [employee page](#employee-detail-page) shows.
 
-- **Date range** — Any range of up to two years, starting on the current month
+- **Date range** — Any range of up to two years, starting on the current month, or on the current period for a Kanban team with a [cadence](#operating-model), both as of today in the team's time zone. The **This period** and **This month** shortcuts in the picker go back to either
 - **Working days**, **People**, **Allocated person-days** and **Delivery person-days** — Totals for the range. Working days are the days of the team's working week that are not holidays in its own calendar; each person's person-days follow the calendar they follow, so they may be there on more or fewer of them. Delivery person-days leave out time in roles that do not count toward delivery capacity
 - **Time away person-days** — What people's time away takes from the team in the range. It is already left out of the allocated and delivery person-days. A team of teams does not show it
 - **By role** — Person-days for each role that counts toward delivery capacity, then one **Non-delivery** line for the roles that do not, so the lines add up to everything allocated
@@ -379,6 +383,19 @@ Available from the **Reports** menu, the **Sprint Metrics** report shows the tea
 
 See [Team Sprint Metrics](../work-management/sprints.mdx#team-sprint-metrics) for which sprints count, how the averages are worked out, and what happens when a team changes its sizing method.
 
+### Velocity (Report)
+
+> Only visible for teams whose current operating model has a cadence.
+
+Available from the **Reports** menu, the **Velocity** report shows a Kanban team's velocity over its [cadence](#operating-model): the work it completed in each recent period, as a chart and a table, and the average and range across them. Velocity is the requirement-level work that reached a done status in the period, by its done date, counted in the team's time zone; work closed as removed is not counted. A cadence is for reporting only, so there is no commitment and no predictability or say/do.
+
+- **Periods** — The current period comes first, then the ended ones, most recent first. Each period follows the cadence of the operating model it falls in, and stops where the cadence, time zone or sizing method changes.
+- **What is averaged** — Only ended, whole periods. The current period is marked **In progress**, and a period cut short where the cadence, time zone or sizing method changed inside it is marked **Partial**; both are shown but not averaged.
+- **Window** — The report opens at the organization's sprint window from the [Sprint Metrics settings](../settings/index.mdx), as a number of ended periods. Choose another number of periods for this visit only.
+- **Unit** — Velocity is shown in the team's sizing method, or switch to **Count** to count work items. A period measured in an earlier sizing method shows no estimate, and is left out of the estimate average, because estimates in different units are never averaged. **Unestimated** is how many completed items had no value in the sizing method.
+
+A team of teams has no cadence. A [planning interval](../planning/planning-intervals.mdx) slices every team by its own iteration dates, whatever a team's cadence.
+
 ### Cycle Time Report (Report)
 
 Available from the **Reports** menu, the **Cycle Time Report** analyzes how long it takes the team's work items to complete. It uses the same report available on employee detail pages, but scoped to work items owned by the team.
@@ -456,11 +473,11 @@ To add a team to a Team of Teams:
 1. Navigate to the team's detail page
 2. From the page actions menu, choose **Operating Model > Set Operating Model**
 3. Set the **Start Date** — the previous model will automatically close the day before
-4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period**, **Working Days** and **Holiday Calendar**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
+4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period**, **Working Days** and **Holiday Calendar**. For a Kanban team, optionally set a **Cadence** length in weeks and its **Cadence Anchor**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
 
 To correct the current model without creating a new one:
 1. From the page actions menu, choose **Operating Model > Update Operating Model**
-2. Change the **Methodology**, **Sizing Method**, **Time Zone**, **Commitment Grace Period**, **Working Days** or **Holiday Calendar**
+2. Change the **Methodology**, **Sizing Method**, **Time Zone**, **Commitment Grace Period**, **Working Days**, **Holiday Calendar** or, for a Kanban team, **Cadence**
 
 A correction applies to the model's whole period, including past sprints. If the team actually moved to another time zone or changed its working week, set a new operating model from the date of the change instead.
 

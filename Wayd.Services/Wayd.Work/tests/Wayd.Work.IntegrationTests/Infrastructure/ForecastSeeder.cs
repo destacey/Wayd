@@ -83,11 +83,11 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             [workProcessId, _workspaceId], cancellationToken);
     }
 
-    public async Task<(Guid Id, string Code)> AddTeam(CancellationToken cancellationToken)
+    public async Task<(Guid Id, string Code)> AddTeam(CancellationToken cancellationToken, TeamType type = TeamType.Team)
     {
         var key = Random.Shared.Next(100_000, 999_999);
         var code = $"F{key}";
-        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, $"Team {key}", new TeamCode(code), TeamType.Team, true), Now);
+        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, $"Team {key}", new TeamCode(code), type, true), Now);
 
         await using var context = _fixture.CreateContext();
         context.WorkTeams.Add(team);
@@ -123,7 +123,8 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         Instant? done = null,
         Guid? parentId = null,
         Guid? projectId = null,
-        Guid? parentProjectId = null)
+        Guid? parentProjectId = null,
+        double? storyPoints = null)
     {
         var id = Guid.CreateVersion7();
         var number = _nextNumber++;
@@ -143,11 +144,11 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             INSERT INTO [Work].[WorkItems]
                 ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
                  [StatusCategory], [Created], [LastModified], [StackRank], [DoneTimestamp],
-                 [TeamId], [ParentId], [ProjectId], [ParentProjectId],
+                 [TeamId], [ParentId], [ProjectId], [ParentProjectId], [StoryPoints],
                  [SystemCreated], [SystemLastModified])
             VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId,
                     {category}, {created}, {created}, {stackRank}, {doneAt},
-                    {teamId}, {parentId}, {projectId}, {parentProjectId},
+                    {teamId}, {parentId}, {projectId}, {parentProjectId}, {storyPoints},
                     SYSUTCDATETIME(), SYSUTCDATETIME());
             """,
             cancellationToken);

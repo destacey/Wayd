@@ -14,9 +14,9 @@ public sealed class ImportProductRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-    /// reported against it, and child rows name it as their ParentImportId. Falls back to the row's
-    /// position when the column is absent — but a file with parents should supply it, since a
-    /// position is a fragile thing to reference.
+    /// reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the
+    /// row is known by its position instead — but a file with parents should fill it, since a position
+    /// is a fragile thing to reference. The column itself must be in the file.
     /// </summary>
     public string? ImportId { get; set; }
 
@@ -34,7 +34,7 @@ public sealed class ImportProductRequest
 
     /// <summary>
     /// The status by name, which must belong to the product workflow. Defaults to the workflow's
-    /// initial status when the column is absent or blank.
+    /// initial status when the cell is blank.
     /// </summary>
     public string? Status { get; set; }
 

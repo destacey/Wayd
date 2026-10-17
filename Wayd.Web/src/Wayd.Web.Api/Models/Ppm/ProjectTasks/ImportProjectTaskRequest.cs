@@ -18,8 +18,8 @@ public sealed class ImportProjectTaskRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-    /// reported against it, and child rows name it as their ParentImportId. Falls back to the row's
-    /// position when the column is absent, so a hand-authored file still works.
+    /// reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the
+    /// row is known by its position instead, but the column itself must be in the file.
     /// </summary>
     public string? ImportId { get; set; }
 
@@ -38,7 +38,7 @@ public sealed class ImportProjectTaskRequest
     /// <summary>The id of an existing task this one nests under. Cannot be combined with ParentImportId.</summary>
     public Guid? ParentTaskId { get; set; }
 
-    /// <summary>'Task' or 'Milestone'. Defaults to Task when the column is absent.</summary>
+    /// <summary>'Task' or 'Milestone'.</summary>
     [CsvValues(typeof(ProjectTaskType))]
     public string Type { get; set; } = nameof(ProjectTaskType.Task);
 

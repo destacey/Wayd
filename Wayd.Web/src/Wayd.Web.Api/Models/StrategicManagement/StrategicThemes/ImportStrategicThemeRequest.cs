@@ -12,15 +12,15 @@ public sealed class ImportStrategicThemeRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-    /// reported against it. Falls back to the row's position when the column is absent, so a
-    /// hand-authored file still works.
+    /// reported against it. Leave a cell blank and the row is known by its position instead, but the
+    /// column itself must be in the file.
     /// </summary>
     public string? ImportId { get; set; }
 
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
 
-    /// <summary>The theme's state. Defaults to Active when the column is absent.</summary>
+    /// <summary>The theme's state.</summary>
     [CsvValues(typeof(StrategicThemeState))]
     public string State { get; set; } = nameof(StrategicThemeState.Active);
 

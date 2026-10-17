@@ -16,7 +16,8 @@ public sealed class ImportProductDependencyRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-    /// reported against it. Falls back to the row's position when the column is absent.
+    /// reported against it. Leave a cell blank and the row is known by its position instead, but the
+    /// column itself must be in the file.
     /// </summary>
     public string? ImportId { get; set; }
 

@@ -52,7 +52,7 @@ A few rules apply to every import:
   value shows as one batch in [Settings → Imports](../settings/imports.mdx#what-you-see), with summed
   counts and each run's page linking to the others. Leave it out to submit a file on its own. An empty
   GUID is rejected rather than treated as a group.
-- **`ImportId` is an optional column, and it is yours.** Any value you like — a row number, a key from
+- **`ImportId` is yours, and its cells may be blank.** Any value you like — a row number, a key from
   whatever system the file came out of — provided it is unique within the one file, compared
   case-insensitively. Row outcomes are reported against it, rows reference each other by it (a child
   product names its parent's, a manifest line its package's), and leaving it blank uses the row's

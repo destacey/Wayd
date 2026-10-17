@@ -15,8 +15,9 @@ public sealed class ImportStrategicInitiativeRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-    /// reported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back
-    /// to the row's position when the column is absent, so a hand-authored file still works.
+    /// reported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a
+    /// cell blank and the row is known by its position instead, but the column itself must be in the
+    /// file.
     /// </summary>
     public string? ImportId { get; set; }
 
@@ -26,7 +27,7 @@ public sealed class ImportStrategicInitiativeRequest
     /// <summary>The owning portfolio, by id.</summary>
     public Guid PortfolioId { get; set; }
 
-    /// <summary>The initiative's status. Defaults to Active when the column is absent.</summary>
+    /// <summary>The initiative's status.</summary>
     [CsvValues(typeof(StrategicInitiativeStatus))]
     public string Status { get; set; } = nameof(StrategicInitiativeStatus.Active);
 

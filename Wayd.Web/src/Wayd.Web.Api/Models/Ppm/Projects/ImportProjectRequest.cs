@@ -17,8 +17,8 @@ public sealed class ImportProjectRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-    /// reported against it. Falls back to the row's position when the column is absent, so a
-    /// hand-authored file still works.
+    /// reported against it. Leave a cell blank and the row is known by its position instead, but the
+    /// column itself must be in the file.
     /// </summary>
     public string? ImportId { get; set; }
 
@@ -34,7 +34,7 @@ public sealed class ImportProjectRequest
     /// <summary>An expenditure category, by id. Create it in Settings first.</summary>
     public int ExpenditureCategoryId { get; set; }
 
-    /// <summary>The project's status. Defaults to Active when the column is absent.</summary>
+    /// <summary>The project's status.</summary>
     [CsvValues(typeof(ProjectStatus))]
     public string Status { get; set; } = nameof(ProjectStatus.Active);
 

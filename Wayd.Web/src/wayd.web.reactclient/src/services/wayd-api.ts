@@ -50228,8 +50228,8 @@ export interface ImportDefinitionDto {
 /** A single CSV row for the deployment environment import. An environment is identified by `Name`, which is unique across the organization. The deployments import names its environment by this, so a file of environments is what a historical backfill loads first. */
 export interface ImportDeploymentEnvironmentRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** What your organization calls it — "Production", "prod-eu", "QA2". */
     name: string;
@@ -50246,8 +50246,8 @@ then retires it, for the environments a historical backfill's deployments still 
 /** A single CSV row for the deployment import. Exactly one of `VersionId` and `PackageId` is set, both by id. The environment is named, because names are unique. A build number is never resolved to a version: the row says which version it deployed and carries the build as its `ArtifactId`. There is no status column. A row with no `Outcome` is still in flight; one with an outcome is walked through the same transitions a person would record, with the real timestamps supplied here. A rollback is recorded as a success first, so it needs both the time it completed and the time it was reverted. Timestamps are instants, and each must carry its offset (see `OffsetTimestamp`). */
 export interface ImportDeploymentRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The version deployed, by id. Leave empty when a package was deployed. */
     versionId?: string | undefined;
@@ -50274,8 +50274,9 @@ rollback, when it succeeded. */
 /** A single CSV row for the employee import. References the row's manager by employee number so an entire management tree can be imported at once; linkage is resolved server-side after all rows are created. */
 export interface ImportEmployeeRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it, and it is how a row is identified without depending on a display name. Falls
-back to the row's position when the column is absent, so a hand-authored file still works. */
+reported against it, and it is how a row is identified without depending on a display name.
+Leave a cell blank and the row is known by its position instead, but the column itself must be
+in the file. */
     importId?: string | undefined;
     /** The employee's natural key, unique across the company. */
     employeeNumber: string;
@@ -50290,7 +50291,7 @@ back to the row's position when the column is absent, so a hand-authored file st
     officeLocation?: string | undefined;
     /** The manager's employee number. May name someone elsewhere in the file. */
     managerNumber?: string | undefined;
-    /** Whether the employee is currently active. Defaults to true when the column is absent. */
+    /** Whether the employee is currently active. */
     isActive: boolean;
     /** The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form. */
     employeeType?: string | undefined;
@@ -50302,8 +50303,8 @@ left behind by a domain or tenant move. Home and personal addresses do not belon
 
 export interface ImportPlanningIntervalObjectivesRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The planning interval the objective belongs to, by id. Rows may name different intervals. */
     planningIntervalId: string;
@@ -50329,8 +50330,8 @@ hand-authored file still works. */
 /** A single CSV row for the planning interval import. The teams that ran the interval ride on the same row as `TeamIds`, a semicolon-separated list of ids — the repo's multi-value column convention — so one row is one planning interval and there is no second file. */
 export interface ImportPlanningIntervalRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     name: string;
     description?: string | undefined;
@@ -50353,12 +50354,12 @@ teams; nothing is ever replaced, since this import only creates. */
 /** A single CSV row for the portfolio import. `Status` is the status the portfolio should end up in (case-insensitive), reached by replaying the real lifecycle transitions — which is why the transition dates are on the row: a portfolio only ever gets its date range from those transitions, never from creation. Role columns hold semicolon-separated employee numbers, since a CSV cell cannot carry a list. */
 export interface ImportPortfolioRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     name: string;
     description: string;
-    /** The portfolio's status. Defaults to Active when the column is absent. */
+    /** The portfolio's status. */
     status: string;
     /** The date the portfolio was proposed. Required on every row. Nothing stores it yet — a portfolio
 keeps no creation date beyond the audit stamp, which records when the file was uploaded — but the
@@ -50378,8 +50379,8 @@ closing date here: an import cannot close a portfolio, so the finalize import ca
 /** A single CSV row for the finalization import, closing one program or portfolio after its contents have been imported. `Type` discriminates between the two (case-insensitive: "Program" / "Portfolio") and says how to read `Id`. */
 export interface ImportPpmFinalizationRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** Whether the row closes a program or a portfolio, which also says how Id is read. */
     type: string;
@@ -50460,7 +50461,8 @@ export enum ImportProcessStatus {
 /** A single CSV row for the product dependency import: `ProductId` relies on `DependsOnProductId`, both by id. Record the most specific product known — the service, not the platform it belongs to. A product cannot depend on itself or on anything above or below it in the tree, which is composition. A dependency that stopped carries `EndsOn`. One whose strength changed is two rows on the same pair: the first ending the day before the second starts. */
 export interface ImportProductDependencyRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The product that has the dependency, by id. */
     productId: string;
@@ -50484,9 +50486,9 @@ are none. */
 /** A single CSV row for the product import. `ParentImportId` must name another row in the same file by its `ImportId`, or be empty for a root. A product already in the catalog cannot be named as a parent — this import stands a catalog up rather than grafting single products onto one, which is what the screens are for. Names cannot serve as the link: a tree legitimately holds the same name in two places, so keying on names would make such a file unimportable. */
 export interface ImportProductRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it, and child rows name it as their ParentImportId. Falls back to the row's
-position when the column is absent — but a file with parents should supply it, since a
-position is a fragile thing to reference. */
+reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the
+row is known by its position instead — but a file with parents should fill it, since a position
+is a fragile thing to reference. The column itself must be in the file. */
     importId?: string | undefined;
     name: string;
     description?: string | undefined;
@@ -50497,7 +50499,7 @@ position is a fragile thing to reference. */
     /** The product's identifier in the system that owns it. */
     externalId?: string | undefined;
     /** The status by name, which must belong to the product workflow. Defaults to the workflow's
-initial status when the column is absent or blank. */
+initial status when the cell is blank. */
     status?: string | undefined;
     /** The product's tags, as semicolon-separated `Category|Tag` pairs —
 `Platform|ios;Platform|android;Compliance|pci-scope`. */
@@ -50507,14 +50509,14 @@ initial status when the column is absent or blank. */
 /** A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes by a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers. `Status` is the status the program should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
 export interface ImportProgramRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     name: string;
     description: string;
     /** The owning portfolio, by id. */
     portfolioId: string;
-    /** The program's status. Defaults to Active when the column is absent. */
+    /** The program's status. */
     status: string;
     /** The timeline the program plans to run over. */
     start?: string | undefined;
@@ -50541,8 +50543,8 @@ import cannot complete or cancel a program, so the finalize import carries that 
 /** A single CSV row for the project import. `Key` is the project's natural key, which project tasks and strategic initiatives reference. The portfolio, program, expenditure category and lifecycle are referenced by id; strategic themes and the role columns hold semicolon-separated lists. `Status` is the status the project should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
 export interface ImportProjectRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     name: string;
     description: string;
@@ -50552,7 +50554,7 @@ hand-authored file still works. */
     portfolioId: string;
     /** An expenditure category, by id. Create it in Settings first. */
     expenditureCategoryId: number;
-    /** The project's status. Defaults to Active when the column is absent. */
+    /** The project's status. */
     status: string;
     /** The program this project belongs to, if any. The program must be in the same portfolio. */
     programId?: string | undefined;
@@ -50589,8 +50591,8 @@ statuses and rejected on the rest. */
 /** A single CSV row for the project stage import: sets one stage's status. The project is referenced by key and the stage by name (stages come from the project's assigned lifecycle). The status is applied as given. */
 export interface ImportProjectStageRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The project, by key. */
     projectKey: string;
@@ -50603,8 +50605,8 @@ hand-authored file still works. */
 /** A single CSV row for the project task import. The project is referenced by key and the stage by name (stages come from the project's assigned lifecycle). A task nests under another row in this file by its `ParentImportId`, or under a task the project already has by `ParentTaskId`; with neither it is a root task of its stage. Rows may be listed in any order — parents are applied before children. */
 export interface ImportProjectTaskRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it, and child rows name it as their ParentImportId. Falls back to the row's
-position when the column is absent, so a hand-authored file still works. */
+reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the
+row is known by its position instead, but the column itself must be in the file. */
     importId?: string | undefined;
     /** The project this task belongs to, by key. */
     projectKey: string;
@@ -50616,7 +50618,7 @@ position when the column is absent, so a hand-authored file still works. */
     parentImportId?: string | undefined;
     /** The id of an existing task this one nests under. Cannot be combined with ParentImportId. */
     parentTaskId?: string | undefined;
-    /** 'Task' or 'Milestone'. Defaults to Task when the column is absent. */
+    /** 'Task' or 'Milestone'. */
     type: string;
     status: string;
     priority: string;
@@ -50662,7 +50664,8 @@ export interface ImportReleasePackageComponentRequest {
 export interface ImportReleasePackageRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
 reported against it, and the manifest file names it to say which package a line belongs to.
-Falls back to the row's position when the column is absent. */
+Leave a cell blank and the row is known by its position instead, but the column itself must be
+in the file. */
     importId?: string | undefined;
     /** The package's own version, distinct from any component's. Free text, never parsed. */
     version: string;
@@ -50677,8 +50680,9 @@ shipped it as-is. Supplying it makes the package Released. */
 /** A single CSV row for the release import — one release, without its contents. A release is identified by `Version` alone. `ProductId` is optional by design: a release spanning product lines has no single owner, so requiring one would force a misleading choice. */
 export interface ImportReleaseRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it, and the contents file names it to say which release a row belongs to.
-Falls back to the row's position when the column is absent. */
+reported against it, and the contents file names it to say which release a row belongs to. Leave
+a cell blank and the row is known by its position instead, but the column itself must be in the
+file. */
     importId?: string | undefined;
     /** The release as the organization announces it — `2026.07`. Free text, never parsed. */
     version: string;
@@ -50698,8 +50702,8 @@ it carries has not shipped. */
 
 export interface ImportRiskRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The team the risk belongs to, by id. */
     teamId: string;
@@ -50755,14 +50759,15 @@ should supply `ImportId`, since inserting a row silently re-parents every KPI be
 /** A single CSV row for the strategic initiative import. The owning portfolio is referenced by id and the delivering projects by a semicolon-separated list of their keys; role columns hold semicolon-separated employee numbers. `Status` is the status the initiative should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
 export interface ImportStrategicInitiativeRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back
-to the row's position when the column is absent, so a hand-authored file still works. */
+reported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a
+cell blank and the row is known by its position instead, but the column itself must be in the
+file. */
     importId?: string | undefined;
     name: string;
     description: string;
     /** The owning portfolio, by id. */
     portfolioId: string;
-    /** The initiative's status. Defaults to Active when the column is absent. */
+    /** The initiative's status. */
     status: string;
     /** The initiative's start date. */
     start: string;
@@ -50779,20 +50784,20 @@ to the row's position when the column is absent, so a hand-authored file still w
 /** A single CSV row for the strategic theme import. `State` is the theme's state on creation (case-insensitive: "Proposed" / "Active" / "Archived"), applied directly rather than through the activate/archive transitions. */
 export interface ImportStrategicThemeRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     name: string;
     description: string;
-    /** The theme's state. Defaults to Active when the column is absent. */
+    /** The theme's state. */
     state: string;
 }
 
 /** A single CSV row for team staffing: places one employee on one team in one role, all by natural key. Multiple roles for the same employee on the same team are expressed as multiple rows. */
 export interface ImportTeamMemberRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The team, by code. */
     teamCode: string;
@@ -50805,8 +50810,8 @@ hand-authored file still works. */
 /** A single CSV row for the team-hierarchy import: places a child team (or team of teams) under a parent team of teams for a date range, all by natural key. */
 export interface ImportTeamMembershipRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The child team's code. May be a Team or a Team of Teams. */
     childCode: string;
@@ -50821,8 +50826,8 @@ hand-authored file still works. */
 /** A single CSV row for the unified team import. `Type` discriminates between a Team and a Team of Teams (case-insensitive: "Team" / "TeamOfTeams"). Both share the same create shape. */
 export interface ImportTeamRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     type: string;
     name: string;
@@ -50831,7 +50836,7 @@ hand-authored file still works. */
     description?: string | undefined;
     /** The date the team became active. */
     activeDate: string;
-    /** Whether the team is currently active. Defaults to true when the column is absent. */
+    /** Whether the team is currently active. */
     isActive: boolean;
     /** When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`. */
     inactiveDate?: string | undefined;
@@ -50840,8 +50845,8 @@ hand-authored file still works. */
 /** A single CSV row for the version import. The product is referenced by id, and a version is identified by that product together with its `Number` — version strings are free text and only meaningful within one product, so two products may each hold a `1.0.0`. There is no status column: the moments decide where the version ends up. A row with neither is planned, a `CutAt` makes it ready, and a `ReleasedAt` makes it released. A released moment without a cut moment is legitimate — a version recorded after the fact often has no record of when scope froze. Both moments are instants and must carry their offset (see `OffsetTimestamp`): copy the CI/CD timestamps as-is. */
 export interface ImportVersionRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
-reported against it. Falls back to the row's position when the column is absent, so a
-hand-authored file still works. */
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
     importId?: string | undefined;
     /** The product this version was cut against, by id. Must be a releasable type. */
     productId: string;

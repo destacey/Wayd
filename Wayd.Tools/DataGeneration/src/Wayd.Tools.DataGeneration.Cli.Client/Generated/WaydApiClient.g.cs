@@ -15385,7 +15385,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <br/>
         /// <br/>Record the **most specific product known** — the service that makes the call, not the platform it belongs to — since the read side rolls links up to every ancestor anyway. A product cannot depend on itself, nor on anything above or below it in the tree: that is composition, which the tree already records.
         /// <br/>
-        /// <br/>**Strength has no default and must be chosen deliberately**: 1 Hard if the product stops working without it, 2 Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
+        /// <br/>**Strength has no default and must be chosen deliberately**: Hard if the product stops working without it, Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
         /// <br/>
         /// <br/>`interactionStyles` says how the product reaches it — `Synchronous`, `Asynchronous`, or both, since a pair commonly calls for what it needs now and subscribes for what it needs eventually. Unlike strength it has no requirement to be set, but leaving it out records nothing rather than recording that there are none, so supply it when the person has said.
         /// <br/>
@@ -17253,7 +17253,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <br/>
         /// <br/>Record the **most specific product known** — the service that makes the call, not the platform it belongs to — since the read side rolls links up to every ancestor anyway. A product cannot depend on itself, nor on anything above or below it in the tree: that is composition, which the tree already records.
         /// <br/>
-        /// <br/>**Strength has no default and must be chosen deliberately**: 1 Hard if the product stops working without it, 2 Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
+        /// <br/>**Strength has no default and must be chosen deliberately**: Hard if the product stops working without it, Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
         /// <br/>
         /// <br/>`interactionStyles` says how the product reaches it — `Synchronous`, `Asynchronous`, or both, since a pair commonly calls for what it needs now and subscribes for what it needs eventually. Unlike strength it has no requirement to be set, but leaving it out records nothing rather than recording that there are none, so supply it when the person has said.
         /// <br/>
@@ -75543,7 +75543,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
         /// </summary>
         /// <remarks>
-        /// Each row has its `importId` (the file's ImportId column, or its position when the file had none), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
+        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -75929,7 +75929,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
         /// </summary>
         /// <remarks>
-        /// Each row has its `importId` (the file's ImportId column, or its position when the file had none), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
+        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -93239,8 +93239,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -93294,8 +93294,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -93373,8 +93373,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it, and it is how a row is identified without depending on a display name. Falls
-        /// <br/>back to the row's position when the column is absent, so a hand-authored file still works.
+        /// <br/>reported against it, and it is how a row is identified without depending on a display name.
+        /// <br/>Leave a cell blank and the row is known by its position instead, but the column itself must be
+        /// <br/>in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -93431,7 +93432,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? ManagerNumber { get; set; } = default!;
 
         /// <summary>
-        /// Whether the employee is currently active. Defaults to true when the column is absent.
+        /// Whether the employee is currently active.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
@@ -93459,8 +93460,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -93543,8 +93544,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -93613,8 +93614,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -93630,7 +93631,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Description { get; set; } = default!;
 
         /// <summary>
-        /// The portfolio's status. Defaults to Active when the column is absent.
+        /// The portfolio's status.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -93685,8 +93686,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -93933,7 +93934,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94005,9 +94007,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it, and child rows name it as their ParentImportId. Falls back to the row's
-        /// <br/>position when the column is absent — but a file with parents should supply it, since a
-        /// <br/>position is a fragile thing to reference.
+        /// <br/>reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the
+        /// <br/>row is known by its position instead — but a file with parents should fill it, since a position
+        /// <br/>is a fragile thing to reference. The column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94043,7 +94045,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The status by name, which must belong to the product workflow. Defaults to the workflow's
-        /// <br/>initial status when the column is absent or blank.
+        /// <br/>initial status when the cell is blank.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public string? Status { get; set; } = default!;
@@ -94069,8 +94071,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94093,7 +94095,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid PortfolioId { get; set; } = default!;
 
         /// <summary>
-        /// The program's status. Defaults to Active when the column is absent.
+        /// The program's status.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -94171,8 +94173,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94209,7 +94211,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int ExpenditureCategoryId { get; set; } = default!;
 
         /// <summary>
-        /// The project's status. Defaults to Active when the column is absent.
+        /// The project's status.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -94317,8 +94319,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94359,8 +94361,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it, and child rows name it as their ParentImportId. Falls back to the row's
-        /// <br/>position when the column is absent, so a hand-authored file still works.
+        /// <br/>reported against it, and child rows name it as their ParentImportId. Leave a cell blank and the
+        /// <br/>row is known by its position instead, but the column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94401,7 +94403,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid? ParentTaskId { get; set; } = default!;
 
         /// <summary>
-        /// 'Task' or 'Milestone'. Defaults to Task when the column is absent.
+        /// 'Task' or 'Milestone'.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -94543,7 +94545,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
         /// <br/>reported against it, and the manifest file names it to say which package a line belongs to.
-        /// <br/>Falls back to the row's position when the column is absent.
+        /// <br/>Leave a cell blank and the row is known by its position instead, but the column itself must be
+        /// <br/>in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94588,8 +94591,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it, and the contents file names it to say which release a row belongs to.
-        /// <br/>Falls back to the row's position when the column is absent.
+        /// <br/>reported against it, and the contents file names it to say which release a row belongs to. Leave
+        /// <br/>a cell blank and the row is known by its position instead, but the column itself must be in the
+        /// <br/>file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94647,8 +94651,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94821,8 +94825,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back
-        /// <br/>to the row's position when the column is absent, so a hand-authored file still works.
+        /// <br/>reported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a
+        /// <br/>cell blank and the row is known by its position instead, but the column itself must be in the
+        /// <br/>file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94845,7 +94850,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid PortfolioId { get; set; } = default!;
 
         /// <summary>
-        /// The initiative's status. Defaults to Active when the column is absent.
+        /// The initiative's status.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -94898,8 +94903,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94915,7 +94920,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Description { get; set; } = default!;
 
         /// <summary>
-        /// The theme's state. Defaults to Active when the column is absent.
+        /// The theme's state.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -94933,8 +94938,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -94975,8 +94980,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -95024,8 +95029,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
@@ -95060,7 +95065,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset ActiveDate { get; set; } = default!;
 
         /// <summary>
-        /// Whether the team is currently active. Defaults to true when the column is absent.
+        /// Whether the team is currently active.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
@@ -95092,8 +95097,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The caller's own key for this row, unique within the file (case-insensitively). Results are
-        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
-        /// <br/>hand-authored file still works.
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;

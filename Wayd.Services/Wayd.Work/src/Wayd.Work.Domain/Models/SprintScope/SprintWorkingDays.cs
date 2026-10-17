@@ -1,11 +1,13 @@
 using NodaTime;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 
 namespace Wayd.Work.Domain.Models.SprintScope;
 
 /// <summary>
 /// How much of each day of a sprint the team works, which its ideal burn-down falls in proportion to. A day
-/// outside the team's working week, or one of the sprint's team days off, is not worked at all.
+/// outside the team's working week is not worked at all, and one of the sprint's team days off only for the
+/// share of it the team is not off.
 /// </summary>
 /// <remarks>
 /// A team with nobody allocated to it is read as a whole: each day weighs 1 when worked and 0 when it is a
@@ -16,18 +18,19 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 public sealed class SprintWorkingDays
 {
     private readonly WorkingWeek _workingWeek;
-    private readonly HashSet<LocalDate> _daysOff;
-    private readonly HashSet<LocalDate> _teamDaysOff;
+    private readonly HashSet<LocalDate> _holidays;
+    private readonly Dictionary<LocalDate, double> _shareWorkedOnTeamDaysOff;
     private readonly IReadOnlyDictionary<LocalDate, double> _availability;
 
-    /// <summary>A team read as a whole: every day in its working week weighs 1 unless it is one of <paramref name="daysOff"/>.</summary>
-    /// <param name="daysOff">The holidays in the team's calendar and the sprint's team days off.</param>
-    public SprintWorkingDays(WorkingWeek workingWeek, IEnumerable<LocalDate> daysOff)
+    /// <summary>
+    /// A team read as a whole: every day in its working week weighs 1, except one of <paramref name="holidays"/>,
+    /// which weighs 0, and one of <paramref name="teamDaysOff"/>, which weighs the share of it the team works.
+    /// </summary>
+    /// <param name="holidays">The holidays in the team's calendar.</param>
+    /// <param name="teamDaysOff">The sprint's team days off.</param>
+    public SprintWorkingDays(WorkingWeek workingWeek, IEnumerable<LocalDate> holidays, IEnumerable<TeamDayOff>? teamDaysOff = null)
+        : this(workingWeek, holidays, teamDaysOff ?? [], new Dictionary<LocalDate, double>())
     {
-        _workingWeek = workingWeek;
-        _daysOff = [.. daysOff];
-        _teamDaysOff = [];
-        _availability = new Dictionary<LocalDate, double>();
     }
 
     /// <summary>
@@ -40,7 +43,10 @@ public sealed class SprintWorkingDays
     /// Both readings put a normal working day at 1, so the line stays continuous where they meet.
     /// </remarks>
     /// <param name="holidays">The holidays in the team's calendar, for the days read as a whole.</param>
-    /// <param name="teamDaysOff">The sprint's team days off, when nobody works whatever their availability.</param>
+    /// <param name="teamDaysOff">
+    /// The sprint's team days off, which take their share of the day whatever the availability: a half day off
+    /// halves what is there.
+    /// </param>
     /// <param name="availability">
     /// The share of the team's allocated time that is there, from 0 to 1, by day. It already leaves out the
     /// holidays of the calendar each person follows, so the team's calendar is not applied to these days.
@@ -48,12 +54,14 @@ public sealed class SprintWorkingDays
     public SprintWorkingDays(
         WorkingWeek workingWeek,
         IEnumerable<LocalDate> holidays,
-        IEnumerable<LocalDate> teamDaysOff,
+        IEnumerable<TeamDayOff> teamDaysOff,
         IReadOnlyDictionary<LocalDate, double> availability)
     {
         _workingWeek = workingWeek;
-        _teamDaysOff = [.. teamDaysOff];
-        _daysOff = [.. holidays, .. _teamDaysOff];
+        _holidays = [.. holidays];
+        _shareWorkedOnTeamDaysOff = teamDaysOff
+            .GroupBy(d => d.Date)
+            .ToDictionary(day => day.Key, day => (double)day.Min(d => d.ShareWorked));
         _availability = availability;
     }
 
@@ -73,9 +81,14 @@ public sealed class SprintWorkingDays
     /// <summary>How much of a working day <paramref name="day"/> is, from 0 when the team does not work it to 1 when all of it does.</summary>
     public double Weight(LocalDate day)
     {
-        if (_availability.TryGetValue(day, out var share))
-            return _workingWeek.Includes(day) && !_teamDaysOff.Contains(day) ? share : 0;
+        if (!_workingWeek.Includes(day))
+            return 0;
 
-        return _workingWeek.Includes(day) && !_daysOff.Contains(day) ? 1 : 0;
+        var shareWorked = _shareWorkedOnTeamDaysOff.GetValueOrDefault(day, 1);
+
+        if (_availability.TryGetValue(day, out var share))
+            return share * shareWorked;
+
+        return _holidays.Contains(day) ? 0 : shareWorked;
     }
 }

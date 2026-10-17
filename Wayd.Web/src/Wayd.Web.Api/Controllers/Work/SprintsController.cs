@@ -196,12 +196,16 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
     [HttpPut("{id}/team-days-off")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
     [EndpointSummary("Set a sprint's team days off.")]
-    [EndpointDescription("Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.")]
+    [EndpointDescription("Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite, each with the `percentOff` of the working day (100, a full day, when left out). A day off takes its share of everyone's capacity that day, and the sprint's ideal burn-down drops that much less: flat on a full day off, half a day on a half day. Requires membership of the sprint's team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetTeamDaysOff(Guid id, [FromBody] SetSprintTeamDaysOffRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new SetSprintTeamDaysOffCommand(id, request.TeamDaysOff), cancellationToken);
+        // The serializer does not enforce non-nullable elements, and the command is built before validation runs.
+        if (request.TeamDaysOff is null || request.TeamDaysOff.Any(d => d is null))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest("Each team day off must be a day with a date.", HttpContext));
+
+        var result = await _dispatcher.Send(new SetSprintTeamDaysOffCommand(id, request.ToTeamDaysOff()), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

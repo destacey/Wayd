@@ -21,7 +21,7 @@ namespace Wayd.Work.Domain.Models;
 public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIteration, IHasOptionalWorkTeam
 {
     private readonly List<KeyValueObjectMetadata> _externalMetadata = [];
-    private List<LocalDate> _teamDaysOff = [];
+    private List<TeamDayOff> _teamDaysOff = [];
 
     private Iteration() { }
 
@@ -85,14 +85,14 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     public Instant? Completed { get; private set; }
 
     /// <summary>
-    /// Days within the sprint the whole team is off, beyond its working week and holiday calendar — an offsite,
-    /// a hackathon. Recorded in Wayd and never synced. In date order.
+    /// Days within the sprint the whole team is off for some or all of, beyond its working week and holiday
+    /// calendar — an offsite, a hackathon. Recorded in Wayd and never synced. In date order.
     /// </summary>
     /// <remarks>
     /// Only the days within the current planned dates: each was within them when set, and one a later change
     /// to the dates from the source leaves outside is no longer listed. It is dropped on the next change.
     /// </remarks>
-    public IReadOnlyList<LocalDate> TeamDaysOff => [.. _teamDaysOff.Where(d => DateRange.Includes(d))];
+    public IReadOnlyList<TeamDayOff> TeamDaysOff => [.. _teamDaysOff.Where(d => DateRange.Includes(d.Date))];
 
     /// <summary>
     /// The sprint type the team set, which holds whatever the sprint's planning interval mapping says. Null
@@ -227,27 +227,43 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     }
 
     /// <summary>
-    /// Replaces the sprint's team days off with <paramref name="days"/>, ignoring repeats. Each must fall within
-    /// the sprint's planned dates. Raises nothing when the set is unchanged.
+    /// Replaces the sprint's team days off with <paramref name="days"/>, ignoring exact repeats. Each must fall
+    /// within the sprint's planned dates, be off for 1 to 100 percent of the day, and be listed once. Raises
+    /// nothing when no day or percent changed.
     /// </summary>
-    public Result SetTeamDaysOff(IEnumerable<LocalDate> days, EventActor actor, Instant now)
+    public Result SetTeamDaysOff(IEnumerable<TeamDayOff> days, EventActor actor, Instant now)
     {
         if (Type != IterationType.Sprint)
             return Result.Failure("Only a sprint has team days off.");
 
-        var requested = days.Distinct().Order().ToList();
-        var outside = requested.Where(d => !DateRange.Includes(d)).ToList();
-        if (DateRange.Start is null || DateRange.End is null || outside.Count > 0)
+        var requested = days.Distinct().OrderBy(d => d.Date).ToList();
+        if (requested.Any(d => !TeamDayOff.IsValidPercent(d.PercentOff)))
+            return Result.Failure("A team day off must be off for 1 to 100 percent of the day.");
+
+        if (requested.DistinctBy(d => d.Date).Count() != requested.Count)
+            return Result.Failure("Each team day off can be listed only once.");
+
+        if (DateRange.Start is null || DateRange.End is null || requested.Any(d => !DateRange.Includes(d.Date)))
             return Result.Failure("Team days off must fall within the sprint's planned dates.");
 
         var previous = _teamDaysOff;
-        var added = requested.Except(previous).ToList();
-        var removed = previous.Except(requested).ToList();
-        if (added.Count == 0 && removed.Count == 0)
+        if (requested.SequenceEqual(previous))
             return Result.Success();
 
+        List<LocalDate> requestedDates = [.. requested.Select(d => d.Date)];
+        List<LocalDate> previousDates = [.. previous.Select(d => d.Date)];
+
         _teamDaysOff = requested;
-        AddDomainEvent(new SprintTeamDaysOffChangedEvent(Id, Key, added, removed, [.. requested], actor, now));
+        AddDomainEvent(new SprintTeamDaysOffChangedEvent(
+            Id,
+            Key,
+            [.. requestedDates.Except(previousDates)],
+            [.. previousDates.Except(requestedDates)],
+            requestedDates,
+            actor,
+            now,
+            [.. requested.Where(d => !d.IsFullDay)],
+            [.. previous.Where(d => !d.IsFullDay)]));
 
         return Result.Success();
     }

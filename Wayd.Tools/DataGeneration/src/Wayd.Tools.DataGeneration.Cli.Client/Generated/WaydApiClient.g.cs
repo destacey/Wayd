@@ -56026,7 +56026,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set a sprint's team days off.
         /// </summary>
         /// <remarks>
-        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.
+        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite, each with the `percentOff` of the working day (100, a full day, when left out). A day off takes its share of everyone's capacity that day, and the sprint's ideal burn-down drops that much less: flat on a full day off, half a day on a half day. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -57195,7 +57195,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set a sprint's team days off.
         /// </summary>
         /// <remarks>
-        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite; the sprint's ideal burn-down stays flat on them. Requires membership of the sprint's team or its team of teams.
+        /// Replaces the days within the sprint's planned dates that the whole team is off, such as an offsite, each with the `percentOff` of the working day (100, a full day, when left out). A day off takes its share of everyone's capacity that day, and the sprint's ideal burn-down drops that much less: flat on a full day off, half a day on a half day. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -66620,7 +66620,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68780,7 +68780,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the capacity of a team over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
-        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (yyyy-MM-dd, repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: nobody is counted on them, they are listed in `teamDaysOff`, and each keeps its percent at 0 person-days. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -97918,12 +97918,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<PlanningIntervalCapacityFiguresDto> Iterations { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalCapacityFiguresDto>();
 
         /// <summary>
-        /// The team's sprint days off in the planning interval, in date order: days the whole team is off, already
-        /// <br/>left out of its capacity. Empty for a team of teams, whose teams' days off are left out of its rollup.
+        /// The team's sprint days off in the planning interval, in date order: days the whole team is off for some or
+        /// <br/>all of, already left out of its capacity. Empty for a team of teams, whose teams' days off are left out of
+        /// <br/>its rollup.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<TeamDayOffDto> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<TeamDayOffDto>();
 
     }
 
@@ -102789,12 +102790,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The days within the sprint's planned dates that the whole team is off, such as an offsite. An empty list
-        /// <br/>clears them. Holidays from the team's calendar and days outside its working week need not be listed.
+        /// The days within the sprint's planned dates that the whole team is off for some or all of, such as an
+        /// <br/>offsite, each listed once. An empty list clears them. Holidays from the team's calendar and days outside
+        /// <br/>its working week need not be listed.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<SprintTeamDayOffRequest> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<SprintTeamDayOffRequest>();
 
     }
 
@@ -103484,12 +103486,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? TimeZone { get; set; } = default!;
 
         /// <summary>
-        /// Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
-        /// <br/>offsite, in date order. Those managing the sprint (`canManageSprint`) can change them.
+        /// Days within the sprint the whole team is off for some or all of beyond its working week and holiday
+        /// <br/>calendar, such as an offsite, in date order. Those managing the sprint (`canManageSprint`) can change
+        /// <br/>them.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<TeamDayOffDto> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<TeamDayOffDto>();
+
+        /// <summary>
+        /// How many hours a working day has, the system's scheduling setting: a team day off entered in hours is a
+        /// <br/>share of it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
 
         /// <summary>
         /// The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
@@ -104224,6 +104234,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unestimated")]
         public int Unestimated { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A day the whole team is off for some or all of.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintTeamDayOffRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Date { get; set; } = default!;
+
+        /// <summary>
+        /// The share of the working day the team is off, from 1 to 100; 100, a full day, when left out. A half-day
+        /// <br/>offsite is 50: it takes half of everyone's capacity that day, and the ideal burn-down drops by half a day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("percentOff")]
+        public int PercentOff { get; set; } = default!;
 
     }
 
@@ -106544,7 +106575,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int Percent { get; set; } = default!;
 
         /// <summary>
-        /// What it is worth, in person-days, after the holidays the person takes and their time away.
+        /// What it is worth, in person-days, after the holidays the person takes, their time away and the team's
+        /// <br/>day off.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personDays")]
         public decimal PersonDays { get; set; } = default!;
@@ -106575,12 +106607,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<System.DateTimeOffset> Days { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
 
         /// <summary>
-        /// The days of `days` the whole team is off, as asked for, such as a sprint's team days off. Nobody
-        /// <br/>is counted on them, so they add nothing to `capacity` or to any day's person-days.
+        /// The days of `days` the whole team is off for some or all of, as asked for, such as a sprint's team
+        /// <br/>days off, in date order. Each takes its `percentOff` of everyone's time that day, already left out of
+        /// <br/>`capacity` and of each day's person-days: a full day off adds nothing to either.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamDaysOff")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.DateTimeOffset> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<System.DateTimeOffset>();
+        public System.Collections.Generic.ICollection<TeamDayOffDto> TeamDaysOff { get; set; } = new System.Collections.ObjectModel.Collection<TeamDayOffDto>();
 
         /// <summary>
         /// Everyone with time allocated to the team in the range, in the same order as `capacity.people`.
@@ -106923,6 +106956,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percentAway")]
         public int PercentAway { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A day the whole team is off for some or all of, beyond its working week and holidays, such as a sprint's
+    /// <br/>offsite. It takes its share of everyone's capacity that day.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamDayOffDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Date { get; set; } = default!;
+
+        /// <summary>
+        /// The share of the working day the team is off, from 1 to 100: 100 is a full day off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("percentOff")]
+        public int PercentOff { get; set; } = default!;
 
     }
 

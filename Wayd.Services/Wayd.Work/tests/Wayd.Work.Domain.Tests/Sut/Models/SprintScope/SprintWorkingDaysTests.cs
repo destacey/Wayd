@@ -1,5 +1,6 @@
 using NodaTime;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Domain.Models.SprintScope;
 
 namespace Wayd.Work.Domain.Tests.Sut.Models.SprintScope;
@@ -66,13 +67,39 @@ public class SprintWorkingDaysTests
     public void Weight_OnATeamDayOff_IsZeroWhateverTheAvailability()
     {
         // Arrange
-        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, holidays: [], teamDaysOff: [Monday], Availability((Monday, 0.875)));
+        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, holidays: [], teamDaysOff: [new(Monday)], Availability((Monday, 0.875)));
 
         // Act
         var weight = sut.Weight(Monday);
 
         // Assert
         weight.Should().Be(0);
+    }
+
+    [Fact]
+    public void Weight_OnAPartTeamDayOff_TakesItsShareOfTheAvailability()
+    {
+        // Arrange — a half-day offsite on a day three quarters of the team is there
+        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, holidays: [], teamDaysOff: [new(Monday, 50)], Availability((Monday, 0.75)));
+
+        // Act
+        var weight = sut.Weight(Monday);
+
+        // Assert
+        weight.Should().Be(0.375);
+    }
+
+    [Fact]
+    public void Weight_OnAPartTeamDayOff_ReadAsAWholeTeam_IsTheShareWorked()
+    {
+        // Arrange
+        var sut = new SprintWorkingDays(WorkingWeek.MondayToFriday, [], [new(Monday, 25)]);
+
+        // Act
+        var weight = sut.Weight(Monday);
+
+        // Assert
+        weight.Should().Be(0.75);
     }
 
     [Fact]
@@ -93,6 +120,7 @@ public class SprintWorkingDaysTests
     [InlineData(0, 0)] // Monday: a holiday in the team's calendar
     [InlineData(1, 0)] // Tuesday: a team day off
     [InlineData(2, 1)] // Wednesday: worked
+    [InlineData(4, 0.5)] // Friday: a half team day off
     [InlineData(5, 0)] // Saturday: outside the working week
     public void Weight_OnADayWithNoAvailability_IsReadAsAWholeTeam(int daysAfterMonday, double expected)
     {
@@ -100,7 +128,7 @@ public class SprintWorkingDaysTests
         var sut = new SprintWorkingDays(
             WorkingWeek.MondayToFriday,
             holidays: [Monday],
-            teamDaysOff: [Monday.PlusDays(1)],
+            teamDaysOff: [new(Monday.PlusDays(1)), new(Monday.PlusDays(4), 50)],
             Availability((Monday.PlusDays(3), 0.5)));
 
         // Act

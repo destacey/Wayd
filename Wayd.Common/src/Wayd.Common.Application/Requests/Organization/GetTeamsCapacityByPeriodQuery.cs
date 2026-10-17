@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 
 namespace Wayd.Common.Application.Requests.Organization;
 
@@ -13,29 +14,30 @@ namespace Wayd.Common.Application.Requests.Organization;
 /// handful of reads answers however many teams and periods are asked for, so a caller asks once for all of them.
 /// </remarks>
 /// <param name="TeamDaysOff">
-/// Days each team is off beyond its working week and holidays, by team id, such as its sprints' team days off.
-/// Unlike <see cref="CapacityPeriod.DaysOff"/> they apply wherever the team is counted, including beneath a team
-/// of teams. A team left out has none.
+/// Days each team is off for some or all of beyond its working week and holidays, by team id, such as its sprints'
+/// team days off. Unlike <see cref="CapacityPeriod.DaysOff"/> they apply wherever the team is counted, including
+/// beneath a team of teams. A team left out has none.
 /// </param>
 public sealed record GetTeamsCapacityByPeriodQuery(
     IReadOnlyCollection<Guid> TeamIds,
     IReadOnlyList<CapacityPeriod> Periods,
-    IReadOnlyDictionary<Guid, IReadOnlyList<LocalDate>>? TeamDaysOff = null)
+    IReadOnlyDictionary<Guid, IReadOnlyList<TeamDayOff>>? TeamDaysOff = null)
     : IQuery<IReadOnlyDictionary<Guid, IReadOnlyList<TeamPeriodCapacity>>?>;
 
 /// <summary>A run of days a capacity is asked for, both inclusive.</summary>
 /// <param name="DaysOff">
-/// Days the team asked for is off in the period beyond its working week and holidays, such as a sprint's team days
-/// off. Nobody on that team counts as working them; the teams beneath a team of teams are not affected.
+/// Days the team asked for is off for some or all of in the period beyond its working week and holidays, such as a
+/// sprint's team days off. Each takes its share of everyone's time on that team; the teams beneath a team of teams
+/// are not affected.
 /// </param>
-public sealed record CapacityPeriod(LocalDate Start, LocalDate End, IReadOnlyCollection<LocalDate>? DaysOff = null)
+public sealed record CapacityPeriod(LocalDate Start, LocalDate End, IReadOnlyCollection<TeamDayOff>? DaysOff = null)
 {
     /// <summary>Compares the days off by value, so a period equals one asked for with the same days.</summary>
     public bool Equals(CapacityPeriod? other) =>
         other is not null
         && Start == other.Start
         && End == other.End
-        && (DaysOff ?? []).OrderBy(d => d).SequenceEqual((other.DaysOff ?? []).OrderBy(d => d));
+        && (DaysOff ?? []).OrderBy(d => d.Date).SequenceEqual((other.DaysOff ?? []).OrderBy(d => d.Date));
 
     public override int GetHashCode() => HashCode.Combine(Start, End, (DaysOff ?? []).Count);
 }

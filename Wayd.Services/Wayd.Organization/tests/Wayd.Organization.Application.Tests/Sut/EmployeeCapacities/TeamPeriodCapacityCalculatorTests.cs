@@ -1,5 +1,6 @@
 using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Organization.Application.EmployeeCapacities;
 
 namespace Wayd.Organization.Application.Tests.Sut.EmployeeCapacities;
@@ -92,7 +93,7 @@ public class TeamPeriodCapacityCalculatorTests
             new CapacityAllocation(Ada, Root, true, LongBefore, null, 100),
             new CapacityAllocation(Grace, Child, true, LongBefore, null, 100));
         HierarchyNode[] descendants = [new(Child, [new HierarchyPeriod(FirstWeek.Start, FirstWeek.End)], [])];
-        CapacityPeriod withDaysOff = FirstWeek with { DaysOff = [new LocalDate(2027, 2, 3), new LocalDate(2027, 2, 4)] };
+        CapacityPeriod withDaysOff = FirstWeek with { DaysOff = [new(new LocalDate(2027, 2, 3)), new(new LocalDate(2027, 2, 4))] };
 
         // Act
         var capacity = TeamPeriodCapacityCalculator.Calculate(
@@ -110,10 +111,10 @@ public class TeamPeriodCapacityCalculatorTests
             new CapacityAllocation(Ada, Root, true, LongBefore, null, 100),
             new CapacityAllocation(Grace, Child, true, LongBefore, null, 100));
         HierarchyNode[] descendants = [new(Child, [new HierarchyPeriod(FirstWeek.Start, FirstWeek.End)], [])];
-        Dictionary<Guid, IReadOnlyList<LocalDate>> teamDaysOff = new()
+        Dictionary<Guid, IReadOnlyList<TeamDayOff>> teamDaysOff = new()
         {
-            [Root] = [new LocalDate(2027, 2, 1)],
-            [Child] = [new LocalDate(2027, 2, 2)],
+            [Root] = [new(new LocalDate(2027, 2, 1))],
+            [Child] = [new(new LocalDate(2027, 2, 2))],
         };
 
         // Act
@@ -122,6 +123,32 @@ public class TeamPeriodCapacityCalculatorTests
 
         // Assert — 4 days at the root and 4 for the child
         capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 8m, 8m, 0m, true));
+    }
+
+    [Fact]
+    public void Calculate_TakesAPartDayOffsShareOfEveryonesTimeAndOfTheirTimeAway()
+    {
+        // Arrange — half of the first Wednesday off at the root and a quarter of Thursday off for the child; Ada
+        // is away all of that Wednesday
+        var allocations = Lookup(
+            new CapacityAllocation(Ada, Root, true, LongBefore, null, 100),
+            new CapacityAllocation(Grace, Child, true, LongBefore, null, 100));
+        HierarchyNode[] descendants = [new(Child, [new HierarchyPeriod(FirstWeek.Start, FirstWeek.End)], [])];
+        var wednesday = new LocalDate(2027, 2, 3);
+        CapacityPeriod withHalfDay = FirstWeek with { DaysOff = [new(wednesday, 50)] };
+        Dictionary<Guid, IReadOnlyList<TeamDayOff>> teamDaysOff = new() { [Child] = [new(wednesday.PlusDays(1), 25)] };
+        var availability = new AvailabilityCalculator(
+            new Dictionary<Guid, Guid>(),
+            new Dictionary<Guid, IReadOnlySet<LocalDate>>(),
+            null,
+            [new TimeAwaySpan(Ada, wednesday, wednesday, 100)]);
+
+        // Act
+        var capacity = TeamPeriodCapacityCalculator.Calculate(
+            Root, [withHalfDay], descendants, Days(Root, Child), allocations, availability, teamDaysOff);
+
+        // Assert — Ada's 4 other days, and the half of Wednesday her time away takes; Grace's 4.75 days
+        capacity.Should().Equal(new TeamPeriodCapacity(withHalfDay, 8.75m, 8.75m, 0.5m, true));
     }
 
     [Fact]

@@ -84,7 +84,7 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
         await using (var accessor = new WaydDbContextAccessor(_fixture))
         {
             var sprint = await accessor.Context.Iterations.SingleAsync(i => i.Id == sprintId, ct);
-            sprint.SetTeamDaysOff([dayOff], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
+            sprint.SetTeamDaysOff([new(dayOff)], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
             await accessor.Context.SaveChangesAsync(ct);
         }
 
@@ -100,6 +100,36 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
         Ideal(result!, holiday.PlusDays(1)).Should().Be(Ideal(result!, holiday));
         Ideal(result!, dayOff.PlusDays(1)).Should().Be(Ideal(result!, dayOff));
         Ideal(result!, new LocalDate(2026, 9, 26)).Should().Be(0);
+        result!.Ideal[^1].Remaining.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_IdealLine_DropsByHalfADayOnAHalfTeamDayOff()
+    {
+        // Arrange — Monday to Friday, with half of Wednesday 23rd off: eight and a half working days from Tuesday
+        // 15th to Friday 25th
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var sprintId = await WorkItemHistorySeeder.SeedSprint(_fixture, SprintStart, SprintEnd, ct);
+        var halfDayOff = new LocalDate(2026, 9, 23);
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            var sprint = await accessor.Context.Iterations.SingleAsync(i => i.Id == sprintId, ct);
+            sprint.SetTeamDaysOff([new(halfDayOff, 50)], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
+            await accessor.Context.SaveChangesAsync(ct);
+        }
+
+        var dispatcher = HolidayDispatcher.With();
+
+        // Act
+        var result = await Handle(sprintId, ct, dispatcher.Object);
+
+        // Assert — Tuesday 22nd is a whole day
+        result.Should().NotBeNull();
+        var normalDay = Ideal(result!, halfDayOff.PlusDays(-1)) - Ideal(result!, halfDayOff);
+        var halfDay = Ideal(result!, halfDayOff) - Ideal(result!, halfDayOff.PlusDays(1));
+        normalDay.Should().BeApproximately(1 / 8.5, 1e-9);
+        (halfDay / normalDay).Should().BeApproximately(0.5, 1e-9);
         result!.Ideal[^1].Remaining.Should().Be(0);
     }
 
@@ -152,7 +182,7 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
         await using (var accessor = new WaydDbContextAccessor(_fixture))
         {
             var sprint = await accessor.Context.Iterations.SingleAsync(i => i.Id == sprintId, ct);
-            sprint.SetTeamDaysOff([dayOff], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
+            sprint.SetTeamDaysOff([new(dayOff)], EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)).IsSuccess.Should().BeTrue();
             await accessor.Context.SaveChangesAsync(ct);
         }
 

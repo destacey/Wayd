@@ -42,6 +42,7 @@ public sealed class GetTeamActiveSprintQueryHandler(
             return null;
 
         var details = active.Adapt<SprintDetailsDto>();
+        details.WorkingDayHours = (await _schedulingSettings.Get(cancellationToken)).WorkingDayHours;
 
         var sprintTypes = await _dispatcher.ResolveSprintTypes([active], cancellationToken);
         (details.SprintType, details.SprintTypeSource) = sprintTypes[active.Id];

@@ -1,6 +1,7 @@
 using NodaTime;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 
@@ -12,10 +13,10 @@ namespace Wayd.Organization.Application.EmployeeCapacities.Queries;
 /// on each working day. Null when there is no <paramref name="TeamType"/> with that id.
 /// </summary>
 /// <param name="DaysOff">
-/// Days the whole team is off in the range beyond its working week and holidays, such as a sprint's team days off.
-/// Nobody is counted on them.
+/// Days the whole team is off for some or all of in the range beyond its working week and holidays, such as a
+/// sprint's team days off. Each takes its share of everyone's time that day.
 /// </param>
-public sealed record GetTeamCapacityPlanQuery(Guid TeamId, TeamType TeamType, LocalDate From, LocalDate To, IReadOnlyCollection<LocalDate>? DaysOff = null) : IQuery<TeamCapacityPlanDto?>;
+public sealed record GetTeamCapacityPlanQuery(Guid TeamId, TeamType TeamType, LocalDate From, LocalDate To, IReadOnlyCollection<TeamDayOff>? DaysOff = null) : IQuery<TeamCapacityPlanDto?>;
 
 public sealed class GetTeamCapacityPlanQueryValidator : CustomValidator<GetTeamCapacityPlanQuery>
 {

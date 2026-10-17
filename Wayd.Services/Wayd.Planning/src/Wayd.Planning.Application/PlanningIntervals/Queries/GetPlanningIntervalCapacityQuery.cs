@@ -88,7 +88,9 @@ public sealed class GetPlanningIntervalCapacityQueryHandler(IPlanningDbContext p
                         HasAllocations = byPeriod[0].HasAllocations,
                         Total = Figures(byPeriod[0]),
                         Iterations = [.. byPeriod.Skip(1).Select(Figures)],
-                        TeamDaysOff = team.Type == TeamType.Team ? teamDaysOff.GetValueOrDefault(team.Id, []) : [],
+                        TeamDaysOff = team.Type == TeamType.Team
+                            ? [.. teamDaysOff.GetValueOrDefault(team.Id, []).Select(TeamDayOffDto.From)]
+                            : [],
                     };
                 })],
         };

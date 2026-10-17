@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Organization.Application.EmployeeCapacities.Commands;
@@ -238,9 +240,9 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
     }
 
     [Fact]
-    public async Task Handle_WithTeamDaysOff_CountsNobodyOnThemAndListsThem()
+    public async Task Handle_WithTeamDaysOff_TakesTheirShareOfEveryonesTimeAndListsThem()
     {
-        // Arrange — Ada in full; the team is off the first Thursday and Friday
+        // Arrange — Ada in full; the team is off the first Thursday and half of the Friday
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
         var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken);
@@ -257,21 +259,26 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
             teamId = team.Id;
         }
 
-        LocalDate[] daysOff = [new(2027, 2, 4), new(2027, 2, 5)];
+        var thursday = new LocalDate(2027, 2, 4);
+        var friday = new LocalDate(2027, 2, 5);
+        TeamDayOff[] daysOff = [new(thursday), new(friday, 50)];
         await using var context = _fixture.CreateContext();
 
         // Act
         var plan = await PlanHandler(context, defaultCalendarId).Handle(
             new GetTeamCapacityPlanQuery(teamId, TeamType.Team, SprintStart, SprintEnd, daysOff), cancellationToken);
 
-        // Assert
-        plan!.TeamDaysOff.Should().Equal(daysOff);
+        // Assert — the half day is still a working day, worth half
+        plan!.TeamDaysOff.Should().Equal(
+            new TeamDayOffDto { Date = thursday, PercentOff = 100 },
+            new TeamDayOffDto { Date = friday, PercentOff = 50 });
         plan.Days.Should().HaveCount(10);
-        plan.Capacity.WorkingDays.Should().Be(8);
-        plan.Capacity.AllocatedPersonDays.Should().Be(8m);
+        plan.Capacity.WorkingDays.Should().Be(9);
+        plan.Capacity.AllocatedPersonDays.Should().Be(8.5m);
         var days = plan.People.Single().Rows.Single().Days;
         days.Should().HaveCount(10).And.OnlyContain(d => d.Percent == 100);
-        days.Where(d => daysOff.Contains(d.Date)).Should().OnlyContain(d => d.PersonDays == 0m);
+        days.Single(d => d.Date == thursday).PersonDays.Should().Be(0m);
+        days.Single(d => d.Date == friday).PersonDays.Should().Be(0.5m);
     }
 
     [Fact]

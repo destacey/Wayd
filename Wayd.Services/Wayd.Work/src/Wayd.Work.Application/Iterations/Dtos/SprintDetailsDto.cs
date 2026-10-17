@@ -72,10 +72,17 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public string? TimeZone { get; set; }
 
     /// <summary>
-    /// Days within the sprint the whole team is off beyond its working week and holiday calendar, such as an
-    /// offsite, in date order. Those managing the sprint (<c>canManageSprint</c>) can change them.
+    /// Days within the sprint the whole team is off for some or all of beyond its working week and holiday
+    /// calendar, such as an offsite, in date order. Those managing the sprint (<c>canManageSprint</c>) can change
+    /// them.
     /// </summary>
-    public IReadOnlyList<LocalDate> TeamDaysOff { get; set; } = [];
+    public IReadOnlyList<TeamDayOffDto> TeamDaysOff { get; set; } = [];
+
+    /// <summary>
+    /// How many hours a working day has, the system's scheduling setting: a team day off entered in hours is a
+    /// share of it.
+    /// </summary>
+    public decimal WorkingDayHours { get; set; }
 
     /// <summary>
     /// The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
@@ -149,9 +156,11 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => src.Team)
             .Map(dest => dest.TeamIsActive, src => src.Team != null && src.Team.IsActive)
+            .Map(dest => dest.TeamDaysOff, src => src.TeamDaysOff.Select(TeamDayOffDto.From).ToList())
             .Ignore(dest => dest.ActiveFrom)
             .Ignore(dest => dest.ActiveUntil)
             .Ignore(dest => dest.TimeZone)
+            .Ignore(dest => dest.WorkingDayHours)
             .Ignore(dest => dest.Holidays)
             .Ignore(dest => dest.WorkingDays)
             .Ignore(dest => dest.SprintType)

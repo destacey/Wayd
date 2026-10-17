@@ -34,8 +34,8 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
     public Guid? DefaultHolidayCalendarId { get; init; }
 
     /// <summary>
-    /// How many hours a working day has, which time away entered in hours is a share of: 2 hours of an 8-hour day
-    /// is a quarter of it. The same for every person and team.
+    /// How many hours a working day has, which time away and team days off entered in hours are a share of: 2
+    /// hours of an 8-hour day is a quarter of it. The same for every person and team.
     /// </summary>
     public decimal WorkingDayHours { get; init; } = 8m;
 

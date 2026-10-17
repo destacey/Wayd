@@ -15691,7 +15691,7 @@
         ],
         "requestBody": {
           "content": {
-            "application/json": {
+            "application/json-patch+json": {
               "schema": {
                 "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProjectStageRequest"
               }
@@ -16259,7 +16259,7 @@
         ],
         "requestBody": {
           "content": {
-            "application/json": {
+            "application/json-patch+json": {
               "schema": {
                 "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProjectTaskRequest"
               }
@@ -23391,7 +23391,7 @@
         ],
         "requestBody": {
           "content": {
-            "application/json": {
+            "application/json-patch+json": {
               "schema": {
                 "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateRoadmapItemRequest"
               }

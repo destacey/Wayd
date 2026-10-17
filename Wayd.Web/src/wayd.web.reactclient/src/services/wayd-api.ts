@@ -18964,7 +18964,7 @@ export class ProjectsClient {
             method: "PATCH",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
+                "Content-Type": "application/json-patch+json",
             },
             cancelToken
         };
@@ -19604,7 +19604,7 @@ export class ProjectTasksClient {
             method: "PATCH",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
+                "Content-Type": "application/json-patch+json",
             },
             cancelToken
         };
@@ -27763,7 +27763,7 @@ export class RoadmapsClient {
             method: "PATCH",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
+                "Content-Type": "application/json-patch+json",
             },
             cancelToken
         };

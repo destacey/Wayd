@@ -19,6 +19,7 @@ import {
 import {
   CopyRoadmapRequest,
   CreateRoadmapRequest,
+  JsonPatchOperation,
   RoadmapDetailsDto,
   RoadmapListDto,
   RoadmapState,
@@ -27,7 +28,8 @@ import {
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { authenticatedFetch, getRoadmapsClient } from '@/src/services/clients'
+import { toHttpError } from '../http-error'
+import { getRoadmapsClient } from '@/src/services/clients'
 import { OptionModel } from '@/src/components/types'
 
 export const ROADMAP_STATE = {
@@ -293,46 +295,20 @@ export const roadmapApi = apiSlice.injectEndpoints({
       {
         roadmapId: string
         itemId: string
-        patchOperations: Array<{
-          op: 'replace' | 'add' | 'remove'
-          path: string
-          value?: any
-        }>
+        patchOperations: JsonPatchOperation[]
       }
     >({
       queryFn: async ({ roadmapId, itemId, patchOperations }) => {
         try {
-          const response = await authenticatedFetch(
-            `/api/planning/roadmaps/${roadmapId}/items/${itemId}`,
-            {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json-patch+json',
-              },
-              body: JSON.stringify(patchOperations),
-            },
+          const data = await getRoadmapsClient().patchRoadmapItem(
+            roadmapId,
+            itemId,
+            patchOperations,
           )
-
-          if (!response.ok) {
-            let errorData: unknown
-            try {
-              errorData = await response.json()
-            } catch {
-              errorData = {
-                detail: await response.text(),
-              }
-            }
-
-            return {
-              error: {
-                status: response.status,
-                data: errorData,
-              },
-            }
-          }
-
-          return { data: null as unknown as void }
+          return { data }
         } catch (error: any) {
+          const httpError = toHttpError(error)
+          if (httpError) return { error: httpError }
           console.error('API Error:', error)
           return {
             error: {

@@ -35288,7 +35288,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                 {
                     var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
                     var content_ = new System.Net.Http.ByteArrayContent(json_);
-                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PATCH");
 
@@ -36706,7 +36706,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                 {
                     var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
                     var content_ = new System.Net.Http.ByteArrayContent(json_);
-                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PATCH");
 
@@ -50534,7 +50534,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                 {
                     var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
                     var content_ = new System.Net.Http.ByteArrayContent(json_);
-                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PATCH");
 

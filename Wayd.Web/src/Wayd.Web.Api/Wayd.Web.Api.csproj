@@ -86,10 +86,12 @@
     </PropertyGroup>
     <!-- Writes the OpenAPI document to wwwroot/api/v1/specification.json by building the real host and asking
          Microsoft.AspNetCore.OpenApi for it. WAYD_SKIP_DB_INIT keeps every piece of database-touching startup
-         work from running (see HostIntrospection); Development keeps the production-only guards off. -->
+         work from running (see HostIntrospection); Development keeps the production-only guards off.
+         The tool starts the host's hosted services, so Wolverine:DisableDurableOutbox stops the outbox store from
+         connecting to a database the build may not have (CI's deploy job has none). -->
     <Target Name="GenerateOpenApiDocument" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Debug' ">
         <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
-            EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development;WAYD_SKIP_DB_INIT=true"
+            EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development;WAYD_SKIP_DB_INIT=true;Wolverine__DisableDurableOutbox=true"
             Command="dotnet &quot;$(PkgMicrosoft_Extensions_ApiDescription_Server)/tools/dotnet-getdocument.dll&quot; --assembly &quot;$(TargetPath)&quot; --framework &quot;$(TargetFrameworkMoniker)&quot; --project &quot;$(MSBuildProjectName)&quot; --assets-file &quot;$(ProjectAssetsFile)&quot; --file-list &quot;$(ProjectDir)$(IntermediateOutputPath)OpenApiFiles.txt&quot; --output &quot;$(ProjectDir)wwwroot/api/v1&quot; --file-name specification --openapi-version OpenApi3_0">
             <Output TaskParameter="ExitCode" PropertyName="OpenApiExitCode" />
             <Output TaskParameter="ConsoleOutput" PropertyName="OpenApiOutput" />

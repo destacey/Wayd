@@ -4,6 +4,10 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useModalForm } from '@/src/hooks'
 import {
+  JsonPatchOperation,
+  JsonPatchOperationType,
+} from '@/src/services/wayd-api'
+import {
   useGetProjectStageQuery,
   useGetProjectPlanTreeQuery,
   usePatchProjectStageMutation,
@@ -61,15 +65,11 @@ const EditProjectStageForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditStageFormValues>({
       onSubmit: async (values: EditStageFormValues, form: any): Promise<boolean> => {
-          const patchOperations: Array<{
-            op: 'replace'
-            path: string
-            value: unknown
-          }> = []
+          const patchOperations: JsonPatchOperation[] = []
 
           if (values.description !== stageData?.description) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/Description',
               value: values.description,
             })
@@ -77,7 +77,7 @@ const EditProjectStageForm = ({
 
           if (values.statusId !== stageData?.status?.id) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/Status',
               value: values.statusId,
             })
@@ -96,14 +96,14 @@ const EditProjectStageForm = ({
 
           if (newStart !== oldStart) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/PlannedStart',
               value: newStart,
             })
           }
           if (newEnd !== oldEnd) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/PlannedEnd',
               value: newEnd,
             })
@@ -111,7 +111,7 @@ const EditProjectStageForm = ({
 
           if (values.progress !== stageData?.progress) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/Progress',
               value: values.progress,
             })
@@ -125,7 +125,7 @@ const EditProjectStageForm = ({
             JSON.stringify(newAssigneeIds)
           ) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/AssigneeIds',
               value: values.assigneeIds ?? [],
             })

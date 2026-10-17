@@ -1,7 +1,9 @@
-import { authenticatedFetch, getProjectsClient } from '@/src/services/clients'
+import { getProjectsClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
+import { toHttpError } from '../http-error'
 import {
   CreateProjectRequest,
+  JsonPatchOperation,
   ObjectIdAndKey,
   ProjectListDto,
   ProjectDetailsDto,
@@ -466,38 +468,20 @@ export const projectsApi = apiSlice.injectEndpoints({
         projectId: string
         projectKey: string
         stageId: string
-        patchOperations: Array<{
-          op: 'replace' | 'add' | 'remove'
-          path: string
-          value?: any
-        }>
+        patchOperations: JsonPatchOperation[]
       }
     >({
       queryFn: async ({ projectId, stageId, patchOperations }) => {
         try {
-          const response = await authenticatedFetch(
-            `/api/ppm/projects/${projectId}/stages/${stageId}`,
-            {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json-patch+json',
-              },
-              body: JSON.stringify(patchOperations),
-            },
+          const data = await getProjectsClient().patchProjectStage(
+            projectId,
+            stageId,
+            patchOperations,
           )
-
-          if (!response.ok) {
-            let errorData: unknown
-            try {
-              errorData = await response.json()
-            } catch {
-              errorData = { detail: await response.text() }
-            }
-            return { error: { status: response.status, data: errorData } }
-          }
-
-          return { data: null as any }
+          return { data }
         } catch (error) {
+          const httpError = toHttpError(error)
+          if (httpError) return { error: httpError }
           console.error('API Error:', error)
           return { error }
         }

@@ -3,6 +3,8 @@
 import {
   CreateRoadmapActivityRequest,
   CreateRoadmapTimeboxRequest,
+  JsonPatchOperation,
+  JsonPatchOperationType,
   RoadmapActivityListDto,
   RoadmapItemListDto,
   RoadmapMilestoneListDto,
@@ -410,36 +412,32 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           ) as RoadmapItemTreeNode | null
           if (!item) return false
 
-          const patchOperations: Array<{
-            op: 'replace' | 'add' | 'remove'
-            path: string
-            value?: any
-          }> = []
+          const patchOperations: JsonPatchOperation[] = []
 
           if (updates.name !== undefined) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/name',
               value: updates.name,
             })
           }
           if (updates.start !== undefined) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: item.type === 'Milestone' ? '/date' : '/start',
               value: updates.start,
             })
           }
           if (updates.end !== undefined && item.type !== 'Milestone') {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/end',
               value: updates.end,
             })
           }
           if (updates.color !== undefined) {
             patchOperations.push({
-              op: 'replace',
+              op: JsonPatchOperationType.Replace,
               path: '/color',
               value: updates.color,
             })

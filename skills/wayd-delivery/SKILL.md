@@ -5,6 +5,12 @@ description: Guides agents working with Wayd product delivery via the Wayd MCP s
 
 # Wayd Delivery (Releases / Versions / Packages / Deployments)
 
+## Before any change
+
+Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
+
+When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
+
 ## The four records, and why they are separate
 
 **This is the section to read first.** The word "release" means three different things in most

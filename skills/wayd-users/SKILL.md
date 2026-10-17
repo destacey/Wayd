@@ -5,6 +5,12 @@ description: Guides agents working with Wayd users via the Wayd MCP server, and 
 
 # Wayd Users
 
+## Before any change
+
+Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
+
+When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
+
 ## User id versus employee id
 
 A user is a sign-in account; an employee is the person record that holds roles and work. Every role and assignee field in Wayd takes an **employee id**, never a user id:

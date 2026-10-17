@@ -7,6 +7,12 @@ description: Guides agents importing CSV data into Wayd via the Wayd MCP server 
 
 For editing a handful of records, use the area's own create and update tools instead: an import creates records, and most imports only create.
 
+## Before any change
+
+Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
+
+When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
+
 ## A file only gets in through a preflight
 
 There is no tool that imports a file in one step. `Imports_Preflight` sends the file with `validateOnly` forced on: every row goes through the checks a real import runs, in the same order, against the data as it stands, and **nothing is created**. The only way to import is `Imports_Apply` on that finished preflight, which imports exactly the rows it checked without sending the file again.

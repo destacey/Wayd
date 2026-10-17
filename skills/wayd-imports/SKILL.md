@@ -1,21 +1,11 @@
 ---
 name: wayd-imports
-description: Guides agents importing CSV data into Wayd via the Wayd MCP server — writing a file in the right format, checking it with a preflight, importing the rows it checked, and following, stopping, resuming or retrying import runs. Use when loading records from a spreadsheet or another system, migrating history into Wayd, or finding out what became of an import someone submitted.
+description: Guides agents importing CSV data into Wayd via the Wayd MCP server — writing a file in the right format, checking it with a preflight, importing the rows it checked, and following, stopping, resuming or retrying import runs. Use when loading records from a spreadsheet or another system, migrating history into Wayd, checking whether a file would import cleanly and why rows would be refused, or finding out what became of an import someone submitted, including one submitted from Settings → Imports. Not for editing a handful of existing records, which the area's own create and update tools handle.
 ---
 
 # Wayd Imports (Preflight / Apply / Runs)
 
-## When to use
-
-- Loading records into Wayd from a spreadsheet or another system — `Imports_GetDefinitions` lists every kind of import
-- Checking whether a file would import cleanly, and why rows would be refused
-- Following a run that was still going when it was submitted
-- Finding out what became of an import someone submitted from Settings → Imports
-- Stopping a run, resuming one that stopped, or retrying rejected rows
-
 For editing a handful of records, use the area's own create and update tools instead: an import creates records, and most imports only create.
-
----
 
 ## A file only gets in through a preflight
 

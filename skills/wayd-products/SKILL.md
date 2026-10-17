@@ -1,25 +1,11 @@
 ---
 name: wayd-products
-description: Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag axes themselves.
+description: Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag axes themselves. For releases, versions, packages and deployments, use the wayd-delivery skill instead.
 ---
 
 # Wayd Products (Catalog / Dependencies / Types / Tags / Environments / Metrics)
 
-## When to use
-
-- Finding what the organization owns, and how it fits together
-- Creating a product, or moving one to a different parent
-- Changing a product's type or status, or tagging it
-- Deleting a product, and understanding why one refuses to delete
-- Recording what a product depends on, and answering what depends on it
-- Defining, updating or retiring deployment environments
-- Asking what is running in each environment right now
-- Reading delivery measures and version activity over a window, or what shipped recently
-- Managing the configuration itself — product types, tag axes and their tags
-
 For releases, versions, packages and deployments, use the **wayd-delivery** skill instead.
-
----
 
 ## Tool map
 

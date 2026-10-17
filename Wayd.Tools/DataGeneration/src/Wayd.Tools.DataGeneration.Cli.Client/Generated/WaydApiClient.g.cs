@@ -62542,6 +62542,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set how many hours an employee's working day has.
+        /// </summary>
+        /// <remarks>
+        /// For someone whose working day is shorter or longer than the system's, such as a part-timer contracted for 4 hours a day; with none (`workingDayHours` null) they have the system's. The same on every team. Their allocation is a share of this day, so a part-timer allocated in full adds 4 hours, half a person-day of an 8-hour system day, to a team's capacity; time away entered in hours is a share of it. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeWorkingDayHoursAsync(System.Guid id, ChangeEmployeeWorkingDayHoursRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the work items assigned to an employee.
         /// </summary>
         /// <returns>OK</returns>
@@ -64247,6 +64258,109 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("api/organization/employees/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/holiday-calendar");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set how many hours an employee's working day has.
+        /// </summary>
+        /// <remarks>
+        /// For someone whose working day is shorter or longer than the system's, such as a part-timer contracted for 4 hours a day; with none (`workingDayHours` null) they have the system's. The same on every team. Their allocation is a share of this day, so a part-timer allocated in full adds 4 hours, half a person-day of an 8-hour system day, to a team's capacity; time away entered in hours is a share of it. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeWorkingDayHoursAsync(System.Guid id, ChangeEmployeeWorkingDayHoursRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/employees/{id}/working-day-hours"
+                    urlBuilder_.Append("api/organization/employees/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/working-day-hours");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -88589,6 +88703,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// Sets how many hours an employee's working day has instead of the system's.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeEmployeeWorkingDayHoursRequest
+    {
+
+        /// <summary>
+        /// The hours of the employee's working day, from 1 to 24 with at most two decimal places, such as 4 for
+        /// <br/>someone contracted for half days; or null to give them the system's.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "1", "24")]
+        public decimal? WorkingDayHours { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The share of production deployments that failed or were rolled back.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -92296,7 +92427,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// When an employee is away from every team they are allocated to, and the holidays they take.
+    /// When an employee is away from every team they are allocated to, the holidays they take, and how long their
+    /// <br/>working day is.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EmployeeTimeAwayDto
@@ -92310,11 +92442,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanManage { get; set; } = default!;
 
         /// <summary>
-        /// How many hours a working day has, from the system settings, so a share of a day can be read and entered in
-        /// <br/>hours: 25% of an 8-hour day is 2 hours.
+        /// How many hours the employee's working day has, their own or else the system's, so a share of their day can
+        /// <br/>be read and entered in hours: 25% of an 8-hour day is 2 hours, of a 4-hour day 1 hour.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
         public decimal WorkingDayHours { get; set; } = default!;
+
+        /// <summary>
+        /// The hours of the employee's own working day, or null when they have the system's.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownWorkingDayHours")]
+        public decimal? OwnWorkingDayHours { get; set; } = default!;
+
+        /// <summary>
+        /// How many hours the system's working day has, from the scheduling settings.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("systemWorkingDayHours")]
+        public decimal SystemWorkingDayHours { get; set; } = default!;
 
         /// <summary>
         /// The holiday calendar the employee follows instead of the system default, or null when they follow the
@@ -106405,7 +106549,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     /// <summary>
     /// A team's capacity over a date range, from the time people are allocated to it, the days it works, and when
-    /// <br/>each of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day.
+    /// <br/>each of them is there. Capacity is in person-days: one person allocated in full, and there, for one system
+    /// <br/>working day. A part-timer whose working day is half the system's is worth half a person-day a day in full.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamCapacityDto
@@ -106461,8 +106606,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanManage { get; set; } = default!;
 
         /// <summary>
-        /// How many hours a working day has, from the system settings, so person-days and a share of a day can be read
-        /// <br/>in hours.
+        /// How many hours a working day has, from the system settings: the length of a person-day, so person-days can
+        /// <br/>be read in hours. A person with a working day of their own carries it on their line.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
         public decimal WorkingDayHours { get; set; } = default!;
@@ -106519,6 +106664,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("employee")]
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Employee { get; set; } = default!;
+
+        /// <summary>
+        /// How many hours their working day has: their own, or else the system's. A share of their day, such as an
+        /// <br/>allocation's percent or their time away, is a share of this many hours.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
 
         /// <summary>
         /// Their time allocated to the team in every role, in person-days.

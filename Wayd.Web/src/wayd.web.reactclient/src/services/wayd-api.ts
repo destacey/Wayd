@@ -53831,6 +53831,7 @@ export interface TeamOperatingModelListDto {
     methodology: Methodology;
     sizingMethod: SizingMethod;
     cadenceWeeks?: number | undefined;
+    cadenceAnchor?: string | undefined;
 }
 
 export interface TeamSprintMetricsDto {

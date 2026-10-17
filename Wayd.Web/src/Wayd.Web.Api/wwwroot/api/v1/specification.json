@@ -61343,6 +61343,11 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "cadenceAnchor": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
           }
         },
         "additionalProperties": false

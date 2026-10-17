@@ -362,6 +362,15 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               isActive: team!.isActive,
             }}
             teamType="Team"
+            cadence={
+              team!.operatingModel?.cadenceWeeks &&
+              team!.operatingModel.cadenceAnchor
+                ? {
+                    weeks: team!.operatingModel.cadenceWeeks,
+                    anchor: team!.operatingModel.cadenceAnchor,
+                  }
+                : undefined
+            }
           />
         ) : null
       case TeamTabs.CycleTimeReport:

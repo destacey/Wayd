@@ -2,6 +2,7 @@ import {
   capacityRows,
   formatPeriods,
   formatPersonDays,
+  cadencePeriodOf,
   monthOf,
   overProposed,
   proposalRequests,
@@ -20,6 +21,19 @@ describe('monthOf', () => {
     ['2027-09-30', '2027-09-01', '2027-09-30'],
   ])('spans the whole month %s falls in', (today, from, to) => {
     expect(monthOf(today)).toEqual({ from, to })
+  })
+})
+
+describe('cadencePeriodOf', () => {
+  const cadence = { weeks: 2, anchor: '2026-10-05' }
+
+  it.each([
+    ['2026-10-05', '2026-10-05', '2026-10-18'],
+    ['2026-10-18', '2026-10-05', '2026-10-18'],
+    ['2026-10-19', '2026-10-19', '2026-11-01'],
+    ['2026-10-04', '2026-09-21', '2026-10-04'],
+  ])('spans the whole two-week period %s falls in', (today, from, to) => {
+    expect(cadencePeriodOf(today, cadence)).toEqual({ from, to })
   })
 })
 

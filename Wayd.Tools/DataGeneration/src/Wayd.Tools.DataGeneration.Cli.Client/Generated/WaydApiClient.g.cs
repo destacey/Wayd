@@ -104147,6 +104147,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("cadenceWeeks")]
         public int? CadenceWeeks { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("cadenceAnchor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CadenceAnchor { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

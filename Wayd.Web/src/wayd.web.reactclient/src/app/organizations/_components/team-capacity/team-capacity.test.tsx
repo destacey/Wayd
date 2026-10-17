@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { calendarDaysBetween, todayCalendarDate } from '@/src/utils'
 import TeamCapacity from './team-capacity'
 
 jest.unmock('dayjs')
@@ -225,6 +226,26 @@ describe('TeamCapacity', () => {
     expect(arg).toMatchObject({ teamId: 'team-1', teamType: 'Team' })
     expect(arg.from).toMatch(/^\d{4}-\d{2}-01$/)
     expect(arg.to.slice(0, 7)).toBe(arg.from.slice(0, 7))
+  })
+
+  it('asks for the current cadence period by default for a team with a cadence', () => {
+    // Arrange
+    const today = todayCalendarDate()
+
+    // Act
+    render(
+      <TeamCapacity
+        team={team}
+        teamType="Team"
+        cadence={{ weeks: 2, anchor: '2026-10-05' }}
+      />,
+    )
+
+    // Assert
+    const { from, to } = mockCapacityArgs.mock.calls[0][0]
+    expect(calendarDaysBetween(from, to)).toBe(13)
+    expect(calendarDaysBetween('2026-10-05', from) % 14).toBe(0)
+    expect(from <= today && today <= to).toBe(true)
   })
 
   it('lists each allocation and capacity by role with a non-delivery line', () => {

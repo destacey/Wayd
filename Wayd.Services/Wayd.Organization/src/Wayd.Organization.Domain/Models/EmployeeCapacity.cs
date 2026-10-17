@@ -4,6 +4,7 @@ using NodaTime;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
+using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Organization.Domain.Models;
 
@@ -50,6 +51,13 @@ public sealed class EmployeeCapacity : BaseAuditableEntity
     /// follow the system default. A shared calendar, not one of their own: many employees follow the same one.
     /// </summary>
     public Guid? HolidayCalendarId { get; private set; }
+
+    /// <summary>
+    /// How many hours the employee's working day has, such as 4 for someone contracted for half days, or null when
+    /// it has the system's. The same on every team. Allocation is a share of this day, so a person-day of their
+    /// time is worth this much of a system working day.
+    /// </summary>
+    public decimal? WorkingDayHours { get; private set; }
 
     /// <summary>
     /// The days the employee is away from every team. Stretches may overlap, such as training in the morning
@@ -159,6 +167,32 @@ public sealed class EmployeeCapacity : BaseAuditableEntity
         Revision++;
 
         AddDomainEvent(new EmployeeHolidayCalendarChangedEvent(Id, previous, HolidayCalendarId, actor, timestamp));
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Sets how many hours the employee's working day has, or with null gives them the system's. Fails outside
+    /// the hours a working day may have, or with more than two decimal places.
+    /// </summary>
+    public Result ChangeWorkingDayHours(decimal? workingDayHours, EventActor actor, Instant timestamp)
+    {
+        if (workingDayHours is { } hours)
+        {
+            if (hours is < SchedulingSettings.MinWorkingDayHours or > SchedulingSettings.MaxWorkingDayHours)
+                return Result.Failure($"A working day must be between {SchedulingSettings.MinWorkingDayHours} and {SchedulingSettings.MaxWorkingDayHours} hours.");
+
+            if (hours != Math.Round(hours, SchedulingSettings.WorkingDayHoursDecimals))
+                return Result.Failure($"A working day's hours can have at most {SchedulingSettings.WorkingDayHoursDecimals} decimal places.");
+        }
+
+        if (WorkingDayHours == workingDayHours)
+            return Result.Success();
+
+        var previous = WorkingDayHours;
+        WorkingDayHours = workingDayHours;
+        Revision++;
+
+        AddDomainEvent(new EmployeeWorkingDayHoursChangedEvent(Id, previous, WorkingDayHours, actor, timestamp));
         return Result.Success();
     }
 

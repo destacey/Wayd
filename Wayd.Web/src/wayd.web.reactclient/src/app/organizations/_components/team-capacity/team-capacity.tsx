@@ -230,7 +230,7 @@ const TeamCapacity = ({ team, teamType, cadence, timeZone }: Props) => {
       cell: ({ row }) => {
         const lines = timeAwayLines(
           row.original.person.timeAway,
-          data?.workingDayHours ?? 8,
+          row.original.person.workingDayHours,
         )
         const away = formatPersonDays(row.original.person.awayPersonDays)
         return lines.length > 0 ? (

@@ -16,6 +16,9 @@ import {
 import EmployeeHolidayCalendarForm, {
   SYSTEM_DEFAULT_LABEL,
 } from './employee-holiday-calendar-form'
+import EmployeeWorkingDayForm, {
+  workingDayLabel,
+} from './employee-working-day-form'
 import TimeAwayForm from '@/src/app/organizations/_components/time-away/time-away-form'
 import {
   DEFAULT_WORKING_DAY_HOURS,
@@ -34,14 +37,16 @@ interface Props {
   onRefresh: () => void
 }
 
-/** Which form is open: recording afresh, changing one stretch, or the calendar. */
+/** Which form is open: recording afresh, changing one stretch, the calendar, or the working day. */
 type OpenForm =
   | { kind: 'record' }
   | { kind: 'change'; entry: EmployeeTimeAwayEntryDto }
   | { kind: 'calendar' }
+  | { kind: 'workingDay' }
 
 /**
- * When a person is away from every team, and the holidays they take. Anyone
+ * When a person is away from every team, the holidays they take, and how long
+ * their working day is. Anyone
  * who can see the person sees the days; the reason, and the actions, only
  * show for those the read says may manage their time away.
  */
@@ -59,8 +64,11 @@ const EmployeeTimeAway = ({
   const canChangeCalendar =
     hasPermissionClaim('Permissions.Employees.Update') &&
     hasPermissionClaim('Permissions.HolidayCalendars.View')
+  const canChangeWorkingDay = hasPermissionClaim('Permissions.Employees.Update')
   const canManage = timeAway?.canManage === true
   const workingDayHours = timeAway?.workingDayHours ?? DEFAULT_WORKING_DAY_HOURS
+  const systemWorkingDayHours =
+    timeAway?.systemWorkingDayHours ?? DEFAULT_WORKING_DAY_HOURS
 
   const { data: reasons } = useGetTimeAwayReasonsQuery(undefined, {
     skip: !canManage,
@@ -156,14 +164,34 @@ const EmployeeTimeAway = ({
   return (
     <div className={styles.timeAway}>
       <Title level={5}>Time away</Title>
-      <Flex gap="small" align="center" className={styles.holidayCalendar}>
+      <Flex gap="small" align="center" className={styles.personSetting}>
         <Text type="secondary">Holiday calendar:</Text>
         <Text>{timeAway?.holidayCalendar?.name ?? SYSTEM_DEFAULT_LABEL}</Text>
         {canChangeCalendar && (
           <Button
             type="link"
             size="small"
+            aria-label="Change holiday calendar"
             onClick={() => setOpenForm({ kind: 'calendar' })}
+          >
+            Change
+          </Button>
+        )}
+      </Flex>
+      <Flex gap="small" align="center" className={styles.personSetting}>
+        <Text type="secondary">Working day:</Text>
+        <Text>
+          {workingDayLabel(
+            timeAway?.ownWorkingDayHours,
+            systemWorkingDayHours,
+          )}
+        </Text>
+        {canChangeWorkingDay && (
+          <Button
+            type="link"
+            size="small"
+            aria-label="Change working day"
+            onClick={() => setOpenForm({ kind: 'workingDay' })}
           >
             Change
           </Button>
@@ -203,6 +231,16 @@ const EmployeeTimeAway = ({
         <EmployeeHolidayCalendarForm
           employeeId={employeeId}
           holidayCalendar={timeAway?.holidayCalendar}
+          onFormComplete={closeForm}
+          onFormCancel={closeForm}
+        />
+      )}
+
+      {openForm?.kind === 'workingDay' && (
+        <EmployeeWorkingDayForm
+          employeeId={employeeId}
+          ownWorkingDayHours={timeAway?.ownWorkingDayHours}
+          systemWorkingDayHours={systemWorkingDayHours}
           onFormComplete={closeForm}
           onFormCancel={closeForm}
         />

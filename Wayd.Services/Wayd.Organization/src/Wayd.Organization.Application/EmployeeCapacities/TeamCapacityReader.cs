@@ -86,6 +86,7 @@ internal sealed record TeamCapacityReading(
                 return new TeamCapacityPersonDto
                 {
                     Employee = NavigationDto.Create(person.Key, first.EmployeeKey, $"{first.FirstName} {first.LastName}"),
+                    WorkingDayHours = Availability.OwnWorkingDayHours(person.Key) ?? WorkingDayHours,
                     AllocatedPersonDays = capacity.AllocatedPersonDays,
                     DeliveryPersonDays = capacity.DeliveryPersonDays,
                     ElsewherePersonDays = capacity.ElsewherePersonDays,

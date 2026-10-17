@@ -233,6 +233,28 @@ public class TeamPeriodCapacityCalculatorTests
     }
 
     /// <summary>Monday to Friday of both weeks, with no team calendar, for each team.</summary>
+    [Fact]
+    public void Calculate_CountsAPartTimerAsTheirWorkingDaysShareOfTheSystems()
+    {
+        // Arrange — Ada works 4 hours of an 8-hour system day, in full, and is away half of the first Wednesday;
+        // Grace has the system's day
+        var allocations = Lookup(
+            new CapacityAllocation(Ada, Root, true, LongBefore, null, 100),
+            new CapacityAllocation(Grace, Root, true, LongBefore, null, 100));
+        var availability = new AvailabilityCalculator(
+            new Dictionary<Guid, Guid>(),
+            new Dictionary<Guid, IReadOnlySet<LocalDate>>(),
+            DefaultCalendar,
+            [new TimeAwaySpan(Ada, new LocalDate(2027, 2, 3), new LocalDate(2027, 2, 3), 50)],
+            new WorkingDayLengths(8m, new Dictionary<Guid, decimal> { [Ada] = 4m }));
+
+        // Act
+        var capacity = TeamPeriodCapacityCalculator.Calculate(Root, [FirstWeek], [], Days(Root), allocations, availability);
+
+        // Assert — Grace 5; Ada five half days less a quarter, which time away took
+        capacity.Should().Equal(new TeamPeriodCapacity(FirstWeek, 7.25m, 7.25m, 0.25m, true));
+    }
+
     private static Dictionary<Guid, IReadOnlyList<TeamDay>> Days(params Guid[] teams) =>
         teams.ToDictionary(
             t => t,

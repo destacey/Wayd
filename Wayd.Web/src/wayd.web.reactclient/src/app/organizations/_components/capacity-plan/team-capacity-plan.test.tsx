@@ -96,6 +96,7 @@ function plan(canManage = true): TeamCapacityPlanDto {
       people: [
         {
           employee: { id: 'ada', key: 1, name: 'Ada Lovelace' },
+          workingDayHours: 8,
           allocatedPersonDays: 5,
           deliveryPersonDays: 5,
           elsewherePersonDays: 0,

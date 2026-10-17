@@ -59,7 +59,10 @@ export interface CapacityPlanGridProps {
   onEditRow: (rowId: string, edits: RowEdits) => void
   /** What the cells show and take. */
   unit?: PlanUnit
-  /** How many hours a working day has, for the hours unit and time away. */
+  /**
+   * How many hours the system's working day has: a person-day, and the day a
+   * team day off is a share of. Each row carries its person's own.
+   */
   workingDayHours?: number
   /** Opens the time away form for a row's person; absent to offer none. */
   onRecordTimeAway?: (row: PlanRow) => void
@@ -69,8 +72,9 @@ export interface CapacityPlanGridProps {
 }
 
 /**
- * What a day cell says beneath its figure: the team's day off, a holiday the
- * person takes, or how long they are away. Nothing on an ordinary day.
+ * What a day cell says beneath its figure: the team's day off, in hours of the
+ * system's working day, a holiday the person takes, or how long they are away,
+ * in hours of theirs. Nothing on an ordinary day.
  */
 export function dayNote(
   row: PlanRow,
@@ -83,7 +87,7 @@ export function dayNote(
   const condition = row.conditionsByDate.get(day)
   if (condition?.isHoliday) return 'Holiday'
   if (condition && condition.percentAway > 0)
-    return `Away ${timeAwayLabel(condition.percentAway, workingDayHours).toLowerCase()}`
+    return `Away ${timeAwayLabel(condition.percentAway, row.workingDayHours).toLowerCase()}`
   return undefined
 }
 
@@ -129,8 +133,8 @@ const CapacityPlanGrid = ({
   isLoading,
 }: CapacityPlanGridProps) => {
   const inHours = unit === 'hours'
-  const figure = (cell: PlanCell) =>
-    inHours ? hoursLabel(cell, workingDayHours) : percentLabel(cell)
+  const figure = (row: PlanRow, cell: PlanCell) =>
+    inHours ? hoursLabel(cell, row.workingDayHours) : percentLabel(cell)
 
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
 
@@ -217,17 +221,19 @@ const CapacityPlanGrid = ({
               <InputNumber
                 size="small"
                 min={0}
-                max={workingDayHours}
+                max={row.workingDayHours}
                 step={0.25}
                 precision={2}
                 suffix="h"
                 className={styles.input}
                 aria-label={`${label} for ${row.employee.name}, ${row.role?.name ?? NO_ROLE_LABEL}, hours a day`}
-                placeholder={hoursLabel(pendingCell, workingDayHours)}
+                placeholder={hoursLabel(pendingCell, row.workingDayHours)}
                 value={
                   uniform === null
                     ? null
-                    : Number(formatHours(hoursFor(uniform, workingDayHours)))
+                    : Number(
+                        formatHours(hoursFor(uniform, row.workingDayHours)),
+                      )
                 }
                 onChange={(value) =>
                   onEditRow(
@@ -238,7 +244,7 @@ const CapacityPlanGrid = ({
                       day,
                       value === null
                         ? undefined
-                        : percentForHours(value, workingDayHours),
+                        : percentForHours(value, row.workingDayHours),
                     ),
                   )
                 }
@@ -274,7 +280,7 @@ const CapacityPlanGrid = ({
           className={className}
           data-testid={`cell-${row.id}-${day ? dayEditKey(day) : weekEditKey(week)}`}
         >
-          <Text>{figure(pendingCell)}</Text>
+          <Text>{figure(row, pendingCell)}</Text>
           {note && <div className={styles.note}>{note}</div>}
           {marked && !note && <span className={styles.marker} aria-hidden />}
         </div>
@@ -385,6 +391,7 @@ const CapacityPlanGrid = ({
       align: 'right',
       render: (_, row) => {
         const personDays = planCell(row, allDays).personDays
+        // A person-day is a system working day, whoever's time it is.
         return inHours
           ? formatHours(personDays * workingDayHours)
           : formatPersonDays(personDays)

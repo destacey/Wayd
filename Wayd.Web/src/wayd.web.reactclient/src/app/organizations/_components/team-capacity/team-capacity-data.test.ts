@@ -53,6 +53,7 @@ describe('capacityRows', () => {
   it('is a row per allocation, each carrying its person', () => {
     const ada = {
       employee: { id: 'e-1', key: 1, name: 'Ada Lovelace' },
+      workingDayHours: 8,
       allocatedPersonDays: 8,
       deliveryPersonDays: 5,
       elsewherePersonDays: 2,
@@ -82,6 +83,7 @@ describe('capacityRows', () => {
     }
     const grace = {
       employee: { id: 'e-2', key: 2, name: 'Grace Hopper' },
+      workingDayHours: 8,
       allocatedPersonDays: 10,
       deliveryPersonDays: 10,
       elsewherePersonDays: 0,

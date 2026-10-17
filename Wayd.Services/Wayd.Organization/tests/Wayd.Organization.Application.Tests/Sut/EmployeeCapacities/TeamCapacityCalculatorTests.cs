@@ -350,13 +350,137 @@ public class TeamCapacityCalculatorTests
         days.Should().BeEmpty();
     }
 
+    [Fact]
+    public void Calculate_ForAPartTimer_CountsTheirShareOfTheSystemsWorkingDay()
+    {
+        // Arrange — a 4-hour day against the system's 8, allocated in full here and a quarter of the second week away
+        CapacityAllocation[] allocations = [new(Employee, Team, true, LongBefore, null, 100)];
+        var availability = Availability(
+            timeAway: [new TimeAwaySpan(Employee, new LocalDate(2027, 2, 8), new LocalDate(2027, 2, 12), 25)],
+            ownHours: new() { [Employee] = 4m });
+
+        // Act
+        var capacity = TeamCapacityCalculator.Calculate(Team, TeamDays, allocations, availability);
+
+        // Assert — ten half days less a quarter of five of them
+        capacity[Employee].Should().Be(new PersonCapacity(4.375m, 4.375m, 0m, 0.625m));
+    }
+
+    [Fact]
+    public void PersonDays_ForSomeoneWithTheSystemsWorkingDayAsTheirOwn_IsUnchanged()
+    {
+        // Arrange
+        var availability = Availability(ownHours: new() { [Employee] = 8m });
+
+        // Act
+        var personDays = TeamCapacityCalculator.PersonDays(TeamDays, Employee, LongBefore, null, 50, availability);
+
+        // Assert
+        personDays.Should().Be(5m);
+    }
+
+    [Fact]
+    public void DeliveryAvailabilityByDay_WeighsAPartTimerByTheirWorkingDay()
+    {
+        // Arrange — two people in full; the one away all Wednesday works 4 hours of the system's 8
+        var partTimer = Guid.NewGuid();
+        List<CapacityAllocation> allocations =
+        [
+            new(partTimer, Team, true, LongBefore, null, 100),
+            new(Guid.NewGuid(), Team, true, LongBefore, null, 100),
+        ];
+        var availability = Availability(
+            timeAway: [new TimeAwaySpan(partTimer, Wednesday, Wednesday, 100)],
+            ownHours: new() { [partTimer] = 4m });
+
+        // Act
+        var byDay = TeamCapacityCalculator.DeliveryAvailabilityByDay(TeamDays, allocations, availability);
+
+        // Assert
+        byDay[Wednesday].Should().Be(new TeamDayAvailability(1.5m, 1m));
+        byDay[Monday].Should().Be(new TeamDayAvailability(1.5m, 1.5m));
+    }
+
+    [Fact]
+    public void DailyAllocation_ForAPartTimer_KeepsThePercentAndCountsTheirShareOfTheSystemsDay()
+    {
+        // Arrange
+        CapacityAllocation allocation = new(Employee, Team, true, LongBefore, null, 100);
+        var availability = Availability(ownHours: new() { [Employee] = 6m });
+
+        // Act
+        var days = TeamCapacityCalculator.DailyAllocation(TeamDays, Employee, [allocation], availability);
+
+        // Assert
+        days.Should().AllSatisfy(d =>
+        {
+            d.Percent.Should().Be(100);
+            d.PersonDays.Should().Be(0.75m);
+        });
+        days.Sum(d => d.PersonDays).Should().Be(
+            TeamCapacityCalculator.PersonDays(TeamDays, Employee, allocation.Start, allocation.End, allocation.Percent, availability));
+    }
+
+    [Theory]
+    [InlineData("4", 30)]
+    [InlineData("7", 35)]
+    [InlineData("5.25", 65)]
+    public void DailyAllocation_ForAWorkingDayThatDoesNotDivideTheSystems_AddsUpToExactlyPersonDays(string ownHoursText, int percent)
+    {
+        // Arrange — a 7.5-hour system day, partly away on some days and two allocations in the role
+        var ownHours = decimal.Parse(ownHoursText, System.Globalization.CultureInfo.InvariantCulture);
+        CapacityAllocation[] allocations =
+        [
+            new(Employee, Team, true, LongBefore, new LocalDate(2027, 2, 5), percent),
+            new(Employee, Team, true, new LocalDate(2027, 2, 8), null, 100 - percent),
+        ];
+        var availability = Availability(
+            timeAway:
+            [
+                new TimeAwaySpan(Employee, Monday.PlusDays(1), Monday.PlusDays(1), 25),
+                new TimeAwaySpan(Employee, Monday.PlusDays(3), Monday.PlusDays(3), 50),
+            ],
+            ownHours: new() { [Employee] = ownHours },
+            systemHours: 7.5m);
+
+        // Act
+        var days = TeamCapacityCalculator.DailyAllocation(TeamDays, Employee, allocations, availability);
+        var capacity = TeamCapacityCalculator.Calculate(Team, TeamDays, allocations, availability);
+
+        // Assert
+        days.Sum(d => d.PersonDays).Should().Be(capacity[Employee].AllocatedPersonDays);
+    }
+
+    [Fact]
+    public void PersonDays_ForAPartTimerOnAShorterDayThanTheSystems_IsExactWhereTheShareTerminates()
+    {
+        // Arrange — 4 hours of a 7.5-hour day at 30%, away a quarter of one day and half of another
+        var availability = Availability(
+            timeAway:
+            [
+                new TimeAwaySpan(Employee, Monday.PlusDays(1), Monday.PlusDays(1), 25),
+                new TimeAwaySpan(Employee, Monday.PlusDays(3), Monday.PlusDays(3), 50),
+            ],
+            ownHours: new() { [Employee] = 4m },
+            systemHours: 7.5m);
+
+        // Act
+        var personDays = TeamCapacityCalculator.PersonDays(TeamDays, Employee, LongBefore, Monday.PlusDays(6), 30, availability);
+
+        // Assert — five days of 0.16, less a quarter of one and half of another
+        personDays.Should().Be(0.68m);
+    }
+
     private static AvailabilityCalculator Availability(
         Dictionary<Guid, Guid>? calendars = null,
         Dictionary<Guid, LocalDate[]>? holidays = null,
-        TimeAwaySpan[]? timeAway = null) =>
+        TimeAwaySpan[]? timeAway = null,
+        Dictionary<Guid, decimal>? ownHours = null,
+        decimal systemHours = 8m) =>
         new(
             calendars ?? [],
             (holidays ?? []).ToDictionary(c => c.Key, c => (IReadOnlySet<LocalDate>)c.Value.ToHashSet()),
             DefaultCalendar,
-            timeAway ?? []);
+            timeAway ?? [],
+            new WorkingDayLengths(systemHours, ownHours ?? []));
 }

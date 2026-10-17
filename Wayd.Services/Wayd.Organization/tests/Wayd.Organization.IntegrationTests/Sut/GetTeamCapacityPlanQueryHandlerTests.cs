@@ -100,6 +100,99 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
     }
 
     [Fact]
+    public async Task Handle_ForAPartTimer_CountsTheirShareOfTheSystemsWorkingDayAndGivesTheirHours()
+    {
+        // Arrange — Ada works 4-hour days, in full here; Grace has the system's 8
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken);
+        Guid teamId, adaId, graceId;
+
+        await using (var seedContext = _fixture.CreateContext())
+        {
+            var team = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
+            var ada = await OrganizationSeeder.SeedEmployee(seedContext, "E-1001", "ada@acme.example", cancellationToken);
+            var grace = await OrganizationSeeder.SeedEmployee(seedContext, "E-1002", "grace@acme.example", cancellationToken);
+
+            var adaCapacity = EmployeeCapacity.Create(ada.Id);
+            adaCapacity.ChangeAllocations([new AllocationChange(team.Id, null, Jan1, null, 100)], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            adaCapacity.ChangeWorkingDayHours(4m, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+
+            var graceCapacity = EmployeeCapacity.Create(grace.Id);
+            graceCapacity.ChangeAllocations([new AllocationChange(team.Id, null, Jan1, null, 100)], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+
+            await seedContext.EmployeeCapacities.AddRangeAsync([adaCapacity, graceCapacity], cancellationToken);
+            await seedContext.SaveChangesAsync(cancellationToken);
+
+            (teamId, adaId, graceId) = (team.Id, ada.Id, grace.Id);
+        }
+
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var plan = await PlanHandler(context, defaultCalendarId).Handle(new GetTeamCapacityPlanQuery(teamId, TeamType.Team, SprintStart, SprintEnd), cancellationToken);
+
+        // Assert — ten half days and ten whole ones
+        plan.Should().NotBeNull();
+        plan!.Capacity.WorkingDayHours.Should().Be(8m);
+        plan.Capacity.AllocatedPersonDays.Should().Be(15m);
+
+        var adaLine = plan.Capacity.People.Single(p => p.Employee.Id == adaId);
+        adaLine.WorkingDayHours.Should().Be(4m);
+        adaLine.AllocatedPersonDays.Should().Be(5m);
+        plan.Capacity.People.Single(p => p.Employee.Id == graceId).WorkingDayHours.Should().Be(8m);
+
+        var adaRow = plan.People.Single(p => p.EmployeeId == adaId).Rows.Should().ContainSingle().Subject;
+        adaRow.Days.Should().OnlyContain(d => d.Percent == 100 && d.PersonDays == 0.5m);
+    }
+
+    [Fact]
+    public async Task Handle_ForAWorkingDayThatDoesNotDivideTheSystems_DaysAddUpToThePersonDays()
+    {
+        // Arrange — a 7.5-hour system day; Ada works 7-hour days, at 35% then 65% in no role and 30% as an
+        // engineer, and is away for a quarter of the 9th
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        var defaultCalendarId = await _fixture.SeedHolidayCalendar(cancellationToken, Holiday);
+        Guid teamId;
+
+        await using (var seedContext = _fixture.CreateContext())
+        {
+            var team = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
+            var ada = await OrganizationSeeder.SeedEmployee(seedContext, "E-1001", "ada@acme.example", cancellationToken);
+            var engineer = await OrganizationSeeder.SeedRole(seedContext, "Engineer", cancellationToken);
+
+            var capacity = EmployeeCapacity.Create(ada.Id);
+            capacity.ChangeAllocations(
+            [
+                new AllocationChange(team.Id, null, Jan1, new LocalDate(2027, 2, 5), 35),
+                new AllocationChange(team.Id, null, new LocalDate(2027, 2, 6), null, 65),
+                new AllocationChange(team.Id, engineer.Id, Jan1, null, 30),
+            ], EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            capacity.RecordTimeAway(new LocalDate(2027, 2, 9), new LocalDate(2027, 2, 9), 25, TimeAwayReason.Training, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            capacity.ChangeWorkingDayHours(7m, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+
+            await seedContext.EmployeeCapacities.AddAsync(capacity, cancellationToken);
+            await seedContext.SaveChangesAsync(cancellationToken);
+
+            teamId = team.Id;
+        }
+
+        await using var context = _fixture.CreateContext();
+        var handler = new GetTeamCapacityPlanQueryHandler(context, new Mock<IDispatcher>().Object, Administrator(), Settings(defaultCalendarId, 7.5m), Clock());
+
+        // Act
+        var plan = await handler.Handle(new GetTeamCapacityPlanQuery(teamId, TeamType.Team, SprintStart, SprintEnd), cancellationToken);
+
+        // Assert
+        plan.Should().NotBeNull();
+        var person = plan!.Capacity.People.Should().ContainSingle().Subject;
+        person.WorkingDayHours.Should().Be(7m);
+        plan.People.Single().Rows.Sum(r => r.Days.Sum(d => d.PersonDays)).Should().Be(person.AllocatedPersonDays);
+        plan.Capacity.Roles.Sum(r => r.PersonDays).Should().Be(plan.Capacity.AllocatedPersonDays);
+    }
+
+    [Fact]
     public async Task Handle_HasTheSameCapacityAsTheTeamCapacityRead()
     {
         // Arrange
@@ -317,10 +410,10 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
         return principal.Object;
     }
 
-    private static ISettings<SchedulingSettings> Settings(Guid? defaultCalendarId)
+    private static ISettings<SchedulingSettings> Settings(Guid? defaultCalendarId, decimal workingDayHours = 8m)
     {
         var settings = new Mock<ISettings<SchedulingSettings>>();
-        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings { DefaultHolidayCalendarId = defaultCalendarId });
+        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings { DefaultHolidayCalendarId = defaultCalendarId, WorkingDayHours = workingDayHours });
         return settings.Object;
     }
 

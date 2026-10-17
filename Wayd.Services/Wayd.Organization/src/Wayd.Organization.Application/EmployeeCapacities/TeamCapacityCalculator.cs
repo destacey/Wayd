@@ -30,7 +30,9 @@ public sealed record CapacityPlanPersonDay(LocalDate Date, bool IsHoliday, int P
 
 /// <summary>
 /// Turns allocations into person-days: an allocation of 50% over ten working days the person is there for is
-/// five. Pure: everything it needs is passed in.
+/// five. A person-day is a system working day, so for someone with a working day of their own the share is of
+/// theirs: a 4-hour part-timer allocated in full over those ten days is five against an 8-hour system day. Pure:
+/// everything it needs is passed in.
 /// </summary>
 public static class TeamCapacityCalculator
 {
@@ -76,11 +78,15 @@ public static class TeamCapacityCalculator
 
     /// <summary>
     /// The person-days one allocation is worth: its percent of each of the <paramref name="teamDays"/> it
-    /// covers, for as much of that day as the person is there.
+    /// covers, for as much of that day as the person is there, of a day as long as theirs.
     /// </summary>
+    /// <remarks>
+    /// Summed day by day, each worth what <see cref="DailyAllocation"/> gives it, so a plan's days add up to
+    /// exactly this however a part-timer's working day divides into the system's.
+    /// </remarks>
     /// <param name="end">The allocation's last day, or null when it has no end.</param>
     public static decimal PersonDays(IReadOnlyCollection<TeamDay> teamDays, Guid employeeId, LocalDate start, LocalDate? end, int percent, AvailabilityCalculator availability) =>
-        Covered(teamDays, start, end).Sum(day => availability.Available(employeeId, day)) * percent / Whole;
+        Covered(teamDays, start, end).Sum(day => DayWorth(employeeId, day, percent, availability));
 
     /// <summary>
     /// The person-days of one allocation that the person's time away takes: its percent of the share of each
@@ -90,7 +96,7 @@ public static class TeamCapacityCalculator
     public static decimal AwayPersonDays(IReadOnlyCollection<TeamDay> teamDays, Guid employeeId, LocalDate start, LocalDate? end, int percent, AvailabilityCalculator availability) =>
         Covered(teamDays, start, end)
             .Where(day => !availability.IsHoliday(employeeId, day))
-            .Sum(day => availability.ShareAway(employeeId, day.Date) * day.ShareWorked) * percent / Whole;
+            .Sum(day => availability.PersonDays(employeeId, availability.ShareAway(employeeId, day.Date) * day.ShareWorked * percent / Whole));
 
     /// <summary>
     /// How much of a team's delivery capacity is there on each of <paramref name="days"/>, by day: the time
@@ -113,8 +119,8 @@ public static class TeamCapacityCalculator
                 if (!allocation.CountsTowardDeliveryCapacity || allocation.Start > day.Date || allocation.End < day.Date)
                     continue;
 
-                allocated += allocation.Percent / Whole;
-                available += allocation.Percent / Whole * availability.Available(allocation.EmployeeId, day);
+                allocated += availability.PersonDays(allocation.EmployeeId, allocation.Percent / Whole);
+                available += DayWorth(allocation.EmployeeId, day, allocation.Percent, availability);
             }
 
             if (allocated > 0)
@@ -145,7 +151,7 @@ public static class TeamCapacityCalculator
                 .Sum(a => a.Percent);
 
             if (percent > 0)
-                days.Add(new CapacityPlanDay(day.Date, percent, percent / Whole * availability.Available(employeeId, day)));
+                days.Add(new CapacityPlanDay(day.Date, percent, DayWorth(employeeId, day, percent, availability)));
         }
 
         return days;
@@ -179,6 +185,10 @@ public static class TeamCapacityCalculator
 
         return days;
     }
+
+    /// <summary>The person-days <paramref name="percent"/> of the employee's time on one day is worth, for as much of it as they are there.</summary>
+    private static decimal DayWorth(Guid employeeId, TeamDay day, int percent, AvailabilityCalculator availability) =>
+        availability.PersonDays(employeeId, percent / Whole * availability.Available(employeeId, day));
 
     private static IEnumerable<TeamDay> Covered(IReadOnlyCollection<TeamDay> teamDays, LocalDate start, LocalDate? end) =>
         teamDays.Where(d => start <= d.Date && (end is null || d.Date <= end));

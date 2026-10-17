@@ -151,7 +151,7 @@ const SchedulingSettingsForm = ({
       <Form.Item
         name="workingDayHours"
         label="Working day hours"
-        extra="How long a working day is. Time away entered in hours is a share of it, and capacity can be read in hours: 2 hours away of an 8-hour day is a quarter of it. The same for every person and team."
+        extra="How long a working day is: a person-day of capacity, and the day of everyone without one of their own. Capacity can be read in hours, and time away and team days off entered in hours are a share of a day: 2 hours of an 8-hour day is a quarter of it. The same for every team."
         rules={[{ required: true, message: 'Enter the working day hours.' }]}
       >
         <InputNumber

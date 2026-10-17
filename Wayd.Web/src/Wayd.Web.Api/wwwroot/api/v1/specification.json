@@ -29817,6 +29817,70 @@
         ]
       }
     },
+    "/api/organization/employees/{id}/working-day-hours": {
+      "put": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Set how many hours an employee's working day has.",
+        "description": "For someone whose working day is shorter or longer than the system's, such as a part-timer contracted for 4 hours a day; with none (`workingDayHours` null) they have the system's. The same on every team. Their allocation is a share of this day, so a part-timer allocated in full adds 4 hours, half a person-day of an 8-hour system day, to a team's capacity; time away entered in hours is a share of it. Requires the team-capacity-management feature flag; returns 404 when it is off.",
+        "operationId": "Employees_ChangeWorkingDayHours",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmployeeWorkingDayHoursRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/organization/employees/{id}/work-items": {
       "get": {
         "tags": [
@@ -42718,6 +42782,21 @@
         "additionalProperties": false,
         "description": "Sets the holiday calendar an employee follows instead of the system default."
       },
+      "ChangeEmployeeWorkingDayHoursRequest": {
+        "type": "object",
+        "properties": {
+          "workingDayHours": {
+            "maximum": 24,
+            "minimum": 1,
+            "type": "number",
+            "description": "The hours of the employee's working day, from 1 to 24 with at most two decimal places, such as 4 for\nsomeone contracted for half days; or null to give them the system's.",
+            "format": "decimal",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Sets how many hours an employee's working day has instead of the system's."
+      },
       "ChangeFailureRateDto": {
         "required": [
           "totalDeployments",
@@ -46676,6 +46755,7 @@
         "required": [
           "canManage",
           "workingDayHours",
+          "systemWorkingDayHours",
           "entries"
         ],
         "type": "object",
@@ -46686,7 +46766,18 @@
           },
           "workingDayHours": {
             "type": "number",
-            "description": "How many hours a working day has, from the system settings, so a share of a day can be read and entered in\nhours: 25% of an 8-hour day is 2 hours.",
+            "description": "How many hours the employee's working day has, their own or else the system's, so a share of their day can\nbe read and entered in hours: 25% of an 8-hour day is 2 hours, of a 4-hour day 1 hour.",
+            "format": "decimal"
+          },
+          "ownWorkingDayHours": {
+            "type": "number",
+            "description": "The hours of the employee's own working day, or null when they have the system's.",
+            "format": "decimal",
+            "nullable": true
+          },
+          "systemWorkingDayHours": {
+            "type": "number",
+            "description": "How many hours the system's working day has, from the scheduling settings.",
             "format": "decimal"
           },
           "holidayCalendar": {
@@ -46707,7 +46798,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "When an employee is away from every team they are allocated to, and the holidays they take."
+        "description": "When an employee is away from every team they are allocated to, the holidays they take, and how long their\nworking day is."
       },
       "EmployeeTimeAwayEntryDto": {
         "required": [
@@ -61897,7 +61988,7 @@
           },
           "workingDayHours": {
             "type": "number",
-            "description": "How many hours a working day has, from the system settings, so person-days and a share of a day can be read\nin hours.",
+            "description": "How many hours a working day has, from the system settings: the length of a person-day, so person-days can\nbe read in hours. A person with a working day of their own carries it on their line.",
             "format": "decimal"
           },
           "roles": {
@@ -61916,7 +62007,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A team's capacity over a date range, from the time people are allocated to it, the days it works, and when\neach of them is there. Capacity is in person-days: one person allocated in full, and there, for one working day."
+        "description": "A team's capacity over a date range, from the time people are allocated to it, the days it works, and when\neach of them is there. Capacity is in person-days: one person allocated in full, and there, for one system\nworking day. A part-timer whose working day is half the system's is worth half a person-day a day in full."
       },
       "TeamCapacityPeriodDto": {
         "required": [
@@ -61942,6 +62033,7 @@
       "TeamCapacityPersonDto": {
         "required": [
           "employee",
+          "workingDayHours",
           "allocatedPersonDays",
           "deliveryPersonDays",
           "elsewherePersonDays",
@@ -61954,6 +62046,11 @@
         "properties": {
           "employee": {
             "$ref": "#/components/schemas/NavigationDto"
+          },
+          "workingDayHours": {
+            "type": "number",
+            "description": "How many hours their working day has: their own, or else the system's. A share of their day, such as an\nallocation's percent or their time away, is a share of this many hours.",
+            "format": "decimal"
           },
           "allocatedPersonDays": {
             "type": "number",

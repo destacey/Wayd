@@ -5,7 +5,7 @@ namespace Wayd.Web.Api.Mcp;
 
 /// <summary>
 /// Turns an operation in the API's OpenAPI 3.0 document into a tool's input schema (JSON Schema 2020-12):
-/// one property per path, query or header parameter, plus <c>requestBody</c> for a JSON body. Its success
+/// one property per path, query or header parameter, plus <c>requestBody</c> for a JSON or JSON Patch body. Its success
 /// response becomes the tool's output schema.
 /// </summary>
 /// <remarks>
@@ -19,6 +19,12 @@ public sealed class OpenApiToolSchema
 {
     /// <summary>The argument that carries an operation's JSON request body.</summary>
     public const string RequestBodyArgument = "requestBody";
+
+    /// <summary>
+    /// The JSON media types a tool can send a body as, in order of preference. A JSON Patch endpoint accepts
+    /// only <c>application/json-patch+json</c> and answers anything else 415.
+    /// </summary>
+    private static readonly string[] _bodyMediaTypes = ["application/json", "application/json-patch+json"];
 
     private static readonly HashSet<string> _inputKeywords =
     [
@@ -83,11 +89,11 @@ public sealed class OpenApiToolSchema
         if (operation["requestBody"] is JsonObject body)
         {
             var content = body["content"] as JsonObject ?? [];
-            if (content["application/json"]?["schema"] is not JsonObject bodySchema)
-                throw new NotSupportedException($"The request body is sent as {string.Join(", ", content.Select(c => c.Key))}; a tool can send only JSON.");
+            var mediaType = _bodyMediaTypes.FirstOrDefault(m => content[m]?["schema"] is JsonObject)
+                ?? throw new NotSupportedException($"The request body is sent as {string.Join(", ", content.Select(c => c.Key))}; a tool can send only JSON.");
 
-            properties[RequestBodyArgument] = Convert(bodySchema, [], _inputKeywords);
-            arguments.Add(new ToolArgument(RequestBodyArgument, ArgumentLocation.Body));
+            properties[RequestBodyArgument] = Convert(content[mediaType]!["schema"]!.AsObject(), [], _inputKeywords);
+            arguments.Add(new ToolArgument(RequestBodyArgument, ArgumentLocation.Body, mediaType));
             if (body["required"]?.GetValue<bool>() == true)
                 required.Add(RequestBodyArgument);
         }
@@ -401,4 +407,5 @@ public sealed record ToolOutput(JsonObject Schema, bool IsWrapped)
 /// <summary>A tool argument and where it is sent.</summary>
 /// <param name="Name">The argument name, as the operation names the parameter.</param>
 /// <param name="Location">Where the argument goes in the request.</param>
-public sealed record ToolArgument(string Name, ArgumentLocation Location);
+/// <param name="MediaType">The content type a <see cref="ArgumentLocation.Body"/> argument is sent as; null for any other.</param>
+public sealed record ToolArgument(string Name, ArgumentLocation Location, string? MediaType = null);

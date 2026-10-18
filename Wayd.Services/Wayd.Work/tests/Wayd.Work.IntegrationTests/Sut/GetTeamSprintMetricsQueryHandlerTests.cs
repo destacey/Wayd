@@ -185,7 +185,7 @@ public sealed class GetTeamSprintMetricsQueryHandlerTests(SqlServerDbContextFixt
 
     private async Task<Guid> SeedTeam(CancellationToken ct, TeamType type = TeamType.Team)
     {
-        var key = Random.Shared.Next(100_000, 999_999);
+        var key = UniqueKeys.Next();
         var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, "Atlas", new TeamCode($"T{key}"), type, true), SqlServerDbContextFixture.FixedNow);
 
         await using var accessor = new WaydDbContextAccessor(_fixture);

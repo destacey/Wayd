@@ -1,4 +1,5 @@
 using Wayd.Planning.Application.StoryMaps.Commands;
+using Wayd.Planning.Application.StoryMaps.Dtos;
 
 namespace Wayd.Web.Api.Models.Planning.StoryMaps;
 
@@ -62,14 +63,58 @@ public sealed class ReorderPersonaRequestValidator : CustomValidator<ReorderPers
 
 public class SetGoalPersonasRequest
 {
-    public IReadOnlyList<Guid> PersonaIds { get; set; } = [];
+    /// <summary>
+    /// Every persona tagged on the goal. A list rather than a read-only one so a JSON Patch can append to it.
+    /// </summary>
+    public List<Guid> PersonaIds { get; set; } = [];
 
     public SetGoalPersonasCommand ToCommand(Guid storyMapId, Guid goalId) => new(storyMapId, goalId, PersonaIds);
+
+    /// <summary>
+    /// The personas <paramref name="dto"/> is tagged with now: the record a JSON Patch is applied to.
+    /// </summary>
+    public static SetGoalPersonasRequest FromDto(StoryMapGoalDto dto) => new() { PersonaIds = [.. dto.PersonaIds] };
+}
+
+/// <summary>
+/// Rejects an empty persona id, so a malformed patch fails validation rather than in the domain.
+/// </summary>
+public sealed class SetGoalPersonasRequestValidator : CustomValidator<SetGoalPersonasRequest>
+{
+    public SetGoalPersonasRequestValidator()
+    {
+        RuleFor(r => r.PersonaIds)
+            .NotNull()
+            .Must(ids => ids is null || ids.All(id => id != Guid.Empty))
+            .WithMessage("PersonaIds cannot contain empty GUIDs.");
+    }
 }
 
 public class SetStepPersonasRequest
 {
-    public IReadOnlyList<Guid> PersonaIds { get; set; } = [];
+    /// <summary>
+    /// Every persona tagged on the step. A list rather than a read-only one so a JSON Patch can append to it.
+    /// </summary>
+    public List<Guid> PersonaIds { get; set; } = [];
 
     public SetStepPersonasCommand ToCommand(Guid storyMapId, Guid stepId) => new(storyMapId, stepId, PersonaIds);
+
+    /// <summary>
+    /// The personas <paramref name="dto"/> is tagged with now: the record a JSON Patch is applied to.
+    /// </summary>
+    public static SetStepPersonasRequest FromDto(StoryMapStepDto dto) => new() { PersonaIds = [.. dto.PersonaIds] };
+}
+
+/// <summary>
+/// Rejects an empty persona id, so a malformed patch fails validation rather than in the domain.
+/// </summary>
+public sealed class SetStepPersonasRequestValidator : CustomValidator<SetStepPersonasRequest>
+{
+    public SetStepPersonasRequestValidator()
+    {
+        RuleFor(r => r.PersonaIds)
+            .NotNull()
+            .Must(ids => ids is null || ids.All(id => id != Guid.Empty))
+            .WithMessage("PersonaIds cannot contain empty GUIDs.");
+    }
 }

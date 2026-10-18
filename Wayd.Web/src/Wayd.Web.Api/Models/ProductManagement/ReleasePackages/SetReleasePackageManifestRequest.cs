@@ -1,4 +1,5 @@
 ﻿using Wayd.ProductManagement.Application.ReleasePackages.Commands;
+using Wayd.ProductManagement.Application.ReleasePackages.Dtos;
 
 namespace Wayd.Web.Api.Models.ProductManagement.ReleasePackages;
 
@@ -18,6 +19,20 @@ public sealed record SetReleasePackageManifestRequest
 
     public SetReleasePackageManifestCommand ToSetReleasePackageManifestCommand(Guid id) =>
         new(id, [.. Components.Select(c => c.ToManifestEntry())]);
+
+    /// <summary>
+    /// The manifest <paramref name="dto"/> holds now: the record a JSON Patch is applied to.
+    /// </summary>
+    public static SetReleasePackageManifestRequest FromDto(ReleasePackageDto dto) => new()
+    {
+        Components = [.. dto.Components.Select(c => new ManifestEntryRequest
+        {
+            ProductId = c.Product.Id,
+            VersionId = c.VersionRecord?.Id,
+            Version = c.Version,
+            Kind = c.Kind,
+        })],
+    };
 }
 
 public sealed class SetReleasePackageManifestRequestValidator

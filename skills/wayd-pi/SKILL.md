@@ -120,7 +120,9 @@ When asked to evaluate an objective, recommend its health, or log a health check
 
 #### 1. Gather objective context and evidence
 
-Run these queries to assemble the complete picture:
+On the hosted server, call `PlanningIntervals_GetObjectiveHealthCheckEvidence` with `idOrKey` + `objectiveIdOrKey` (UUIDs or keys) — one read for everything below. It returns the PI and objective; `schedule` with the effective `startDate`/`targetDate` (PI dates filled in, flagged `startDateDefaulted`/`targetDateDefaulted`) and `elapsedShare`; `workItems` and the daily `workItemMetrics` (the CFD); `forecast`, or null with `forecastUnavailableReason` when forecasting is off — say so in the rationale; `healthChecks` (newest first); `sinceLastCheck` with the activity, `progressAtLastCheck` and `progressChange`; and `teamRisks`, the team's open risks. Read each part as the matching step below describes. A 404 means the objective is not in that PI.
+
+Where that tool is absent, run these queries to assemble the complete picture:
 
 1. **Objective details and timeline:** `PlanningIntervals_GetObjective` with `idOrKey` + `objectiveIdOrKey`.
    - Name (the actual commitment), description, status, current progress percentage.

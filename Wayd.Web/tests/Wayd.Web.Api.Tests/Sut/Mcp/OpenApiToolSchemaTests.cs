@@ -73,7 +73,7 @@ public sealed class OpenApiToolSchemaTests
         var (schema, arguments) = converter.Build(operation);
 
         // Assert
-        arguments.Should().Equal(new ToolArgument(OpenApiToolSchema.RequestBodyArgument, ArgumentLocation.Body));
+        arguments.Should().Equal(new ToolArgument(OpenApiToolSchema.RequestBodyArgument, ArgumentLocation.Body, "application/json"));
         schema["required"]!.AsArray().Select(r => (string?)r).Should().Equal("requestBody");
         var body = schema["properties"]!["requestBody"]!;
         body["properties"]!["name"]!.ToJsonString().Should().Be("""{"type":"string","maxLength":10}""");
@@ -111,6 +111,22 @@ public sealed class OpenApiToolSchemaTests
 
         // Assert
         schema["properties"]!["count"]!.ToJsonString().Should().Be("""{"type":"integer","exclusiveMinimum":0}""");
+    }
+
+    [Fact]
+    public void Build_SendsAJsonPatchBodyAsJsonPatch()
+    {
+        // Arrange
+        var operation = Operation("""
+            { "requestBody": { "required": true, "content": { "application/json-patch+json": { "schema": { "type": "array", "items": { "type": "object" } } } } } }
+            """);
+
+        // Act
+        var (schema, arguments) = Converter().Build(operation);
+
+        // Assert
+        arguments.Should().Equal(new ToolArgument(OpenApiToolSchema.RequestBodyArgument, ArgumentLocation.Body, "application/json-patch+json"));
+        schema["properties"]!["requestBody"]!["type"]!.GetValue<string>().Should().Be("array");
     }
 
     [Fact]

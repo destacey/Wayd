@@ -87,7 +87,7 @@ public sealed class ReplicaEntityBuilderExtensionsTests(SqlServerDbContextFixtur
 
     private async Task<WorkTeam> SeedTeam()
     {
-        var key = Random.Shared.Next(100_000, 999_999);
+        var key = UniqueKeys.Next();
         var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, "Atlas", new TeamCode($"T{key}"), TeamType.Team, true), Created);
 
         await using var context = new WaydDbContextAccessor(_fixture);

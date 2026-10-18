@@ -17,9 +17,21 @@ using Wayd.Common.Application.FeatureManagement.Commands;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Commands;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
+using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Web.Api.Mcp;
+using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Models;
+using Wayd.Organization.Application.Persistence;
+using Wayd.Planning.Application.Persistence;
+using PlanningInterval = Wayd.Planning.Domain.Models.PlanningInterval;
+using PlanningTeam = Wayd.Planning.Domain.Models.PlanningTeam;
+using Team = Wayd.Organization.Domain.Models.Team;
 
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
@@ -284,6 +296,67 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task CallTool_AnswersHealthCheckEvidenceItsOutputSchemaAccepts()
+    {
+        // Arrange — the evidence tool composes several queries' DTOs into one answer, so its schema is
+        // checked on its own: it needs a project, which the no-argument sweep above never has.
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Projects);
+        var (_, token) = await CreateUserWithToken(permission);
+        var projectKey = await CreateProject();
+        await using var mcp = await Connect(token);
+        var tool = (await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken))
+            .Select(t => t.ProtocolTool)
+            .Single(t => t.Name == "Projects_GetHealthCheckEvidence");
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            tool.Name,
+            new Dictionary<string, object?> { ["idOrKey"] = projectKey },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotEqual(true, result.IsError);
+        var structured = StructuredContentOf(result);
+        var schema = await JsonSchema.FromJsonAsync(Assert.NotNull(tool.OutputSchema).GetRawText(), TestContext.Current.CancellationToken);
+        Assert.Empty(schema.Validate(structured.ToJsonString()));
+        Assert.Equal(projectKey, structured["project"]?["key"]?.GetValue<string>());
+        Assert.False(string.IsNullOrEmpty(structured["criticalPathUnavailableReason"]?.GetValue<string>()));
+        Assert.True(structured["forecast"] is null != structured["forecastUnavailableReason"] is null,
+            "a forecast and the reason there is none are exclusive");
+    }
+
+    [Fact]
+    public async Task CallTool_AnswersObjectiveHealthCheckEvidenceItsOutputSchemaAccepts()
+    {
+        // Arrange
+        await SetFlag(true);
+        var (_, token) = await CreateUserWithToken(
+            ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.PlanningIntervals),
+            ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives));
+        var (planningIntervalId, objectiveId) = await CreatePlanningIntervalObjective();
+        await using var mcp = await Connect(token);
+        var tool = (await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken))
+            .Select(t => t.ProtocolTool)
+            .Single(t => t.Name == "PlanningIntervals_GetObjectiveHealthCheckEvidence");
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            tool.Name,
+            new Dictionary<string, object?> { ["idOrKey"] = planningIntervalId.ToString(), ["objectiveIdOrKey"] = objectiveId.ToString() },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotEqual(true, result.IsError);
+        var structured = StructuredContentOf(result);
+        var schema = await JsonSchema.FromJsonAsync(Assert.NotNull(tool.OutputSchema).GetRawText(), TestContext.Current.CancellationToken);
+        Assert.Empty(schema.Validate(structured.ToJsonString()));
+        Assert.Equal(objectiveId.ToString(), structured["objective"]?["id"]?.GetValue<string>());
+        Assert.True(structured["forecast"] is null != structured["forecastUnavailableReason"] is null,
+            "a forecast and the reason there is none are exclusive");
+    }
+
+    [Fact]
     public async Task CallTool_IsRefused_WhenTheCallerLacksTheEndpointsPermission()
     {
         // Arrange
@@ -320,6 +393,34 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
 
         // Assert
         Assert.False(direct.IsSuccessStatusCode, "the setup must be one the endpoint refuses");
+        Assert.True(result.IsError);
+        Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
+    }
+
+    [Fact]
+    public async Task CallTool_SendsAPatchAsJsonPatch_AndIsAnsweredAsTheEndpointAnswersIt()
+    {
+        // Arrange — the caller holds the update permission but no delivery-leadership role, so a patch that
+        // reaches the command is refused; one sent with the wrong content type would be a 415
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.ProjectPortfolios);
+        var (user, token) = await CreateUserWithToken(permission);
+        var portfolioId = await CreatePortfolio();
+        var patch = new[] { new { op = "replace", path = "/name", value = "Renamed through MCP" } };
+
+        using var content = new StringContent(JsonSerializer.Serialize(patch), System.Text.Encoding.UTF8, "application/json-patch+json");
+        var direct = await user.Client.PatchAsync($"/api/ppm/portfolios/{portfolioId}", content, TestContext.Current.CancellationToken);
+        await using var mcp = await Connect(token);
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Portfolios_Patch",
+            new Dictionary<string, object?> { ["id"] = portfolioId, ["requestBody"] = patch },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.False(direct.IsSuccessStatusCode, "the setup must be one the endpoint refuses");
+        Assert.NotEqual(HttpStatusCode.UnsupportedMediaType, direct.StatusCode);
         Assert.True(result.IsError);
         Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
     }
@@ -369,6 +470,66 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
             TestContext.Current.CancellationToken);
         Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
         return created.Value.Id;
+    }
+
+    /// <summary>Creates a project in a new, active portfolio and returns its key.</summary>
+    private async Task<string> CreateProject()
+    {
+        using var scope = _factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProjectPortfolioManagementDbContext>();
+        var now = SystemClock.Instance.GetCurrentInstant();
+
+        var category = ExpenditureCategory.Create($"MCP {Guid.NewGuid():N}"[..20], "Created by the MCP endpoint tests.", false, false);
+        var portfolio = ProjectPortfolio.Create($"MCP {Guid.NewGuid():N}"[..20], "Created by the MCP endpoint tests.", null, EventActor.System, now);
+        dbContext.ExpenditureCategories.Add(category);
+        dbContext.Portfolios.Add(portfolio);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        portfolio.Activate(PpmActor.System, now.InUtc().Date, now);
+        var key = new ProjectKey($"M{Guid.NewGuid():N}"[..12].ToUpperInvariant());
+        var project = portfolio.CreateProject(
+            "MCP evidence", "Created by the MCP endpoint tests.", key, category.Id, null, null, null, null, null, null, now, PpmActor.System);
+        Assert.True(project.IsSuccess, project.IsFailure ? project.Error : null);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return key.Value;
+    }
+
+    /// <summary>
+    /// Creates a planning interval spanning today with one team objective and returns both ids. The team's
+    /// Planning copy is written directly, with the team's events cleared so replication does not race it.
+    /// </summary>
+    private async Task<(Guid PlanningIntervalId, Guid ObjectiveId)> CreatePlanningIntervalObjective()
+    {
+        using var scope = _factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        var organizationDbContext = scope.ServiceProvider.GetRequiredService<IOrganizationDbContext>();
+        var planningDbContext = scope.ServiceProvider.GetRequiredService<IPlanningDbContext>();
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var today = now.InUtc().Date;
+
+        var code = $"M{Guid.NewGuid():N}"[..8].ToUpperInvariant();
+        var team = Team.Create($"MCP {code}", new TeamCode(code), null, today.PlusDays(-90),
+            Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, now);
+        team.ClearDomainEvents();
+        organizationDbContext.Teams.Add(team);
+        await organizationDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var planningTeam = new PlanningTeam(team, now);
+        planningDbContext.PlanningTeams.Add(planningTeam);
+        await planningDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var interval = PlanningInterval.Create($"MCP PI {Guid.NewGuid():N}"[..20], null,
+            new LocalDateRange(today.PlusDays(-28), today.PlusDays(28)), 2, "Iteration ", EventActor.System, now);
+        Assert.True(interval.IsSuccess, interval.IsFailure ? interval.Error : null);
+        interval.Value.ManageTeams([planningTeam.Id], EventActor.System, now);
+        var objective = interval.Value.CreateObjective(planningTeam, "MCP evidence", null, false, null, null, 1, EventActor.System, now);
+        Assert.True(objective.IsSuccess, objective.IsFailure ? objective.Error : null);
+        planningDbContext.PlanningIntervals.Add(interval.Value);
+        await planningDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return (interval.Value.Id, objective.Value.Id);
     }
 
     private async Task CreateTeam()

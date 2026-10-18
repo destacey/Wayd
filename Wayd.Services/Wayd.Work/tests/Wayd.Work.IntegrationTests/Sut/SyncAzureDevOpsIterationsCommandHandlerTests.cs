@@ -215,7 +215,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
 
 private async Task<Guid> SeedTeam(CancellationToken ct)
     {
-        var key = Random.Shared.Next(100_000, 999_999);
+        var key = UniqueKeys.Next();
         var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, $"Team {key}", new TeamCode($"T{key}"), TeamType.Team, true), SqlServerDbContextFixture.FixedNow);
 
         await using var context = new WaydDbContextAccessor(_fixture);

@@ -8484,7 +8484,7 @@
           "ReleasePackages"
         ],
         "summary": "Replace a package's manifest as a whole.",
-        "description": "**This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.",
+        "description": "**This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. To add or change a few lines, use ReleasePackages_PatchManifest instead. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.",
         "operationId": "ReleasePackages_SetManifest",
         "parameters": [
           {
@@ -8516,6 +8516,78 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Add, change or drop lines in a package's manifest with a JSON Patch (RFC 6902), keeping every line it does not name.",
+        "description": "Prefer this to ReleasePackages_SetManifest for adding a component or changing one. The path is /components, a list of lines each with productId, versionId (optional), version and kind (Changed or CarriedForward). `add` with `/components/-` appends one line; `replace` with `/components/<index>/version` changes one field of the line at that index in the order ReleasePackages_GetReleasePackage returns. To drop a line, `replace` /components with every line that should remain. A package keeps at least one line, and the manifest closes once the package is released or withdrawn. Confirm with the user before calling.",
+        "operationId": "ReleasePackages_PatchManifest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetReleasePackageManifestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -9272,7 +9344,7 @@
           "Releases"
         ],
         "summary": "Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.",
-        "description": "**This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.\n\nContents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).\n\n**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.\n\nAn empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.",
+        "description": "**This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding. To add or remove a few entries, use Releases_PatchContents instead.\n\nContents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).\n\n**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.\n\nAn empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.",
         "operationId": "Releases_SetContents",
         "parameters": [
           {
@@ -9308,6 +9380,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Add or remove packages and directly carried versions on a release with a JSON Patch (RFC 6902), leaving the rest of its contents as they are.",
+        "description": "Prefer this to Releases_SetContents for any partial change. Paths are /packageIds and /versionIds. `add` with `/packageIds/-` appends one package id; to remove, `replace` the whole list with the set that should remain — never remove by index. A list the patch does not name keeps its contents. The release's rules apply to the result exactly as Releases_SetContents applies them: a version shipping inside one of its packages cannot also be carried directly, and contents freeze once the release is announced or withdrawn. Confirm with the user before calling.",
+        "operationId": "Releases_PatchContents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetReleaseContentsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -11254,7 +11398,7 @@
           "Portfolios"
         ],
         "summary": "Update a portfolio's name, description, and role assignments.",
-        "description": "This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "description": "This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Portfolios_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
         "operationId": "Portfolios_Update",
         "parameters": [
           {
@@ -11286,6 +11430,78 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Portfolios"
+        ],
+        "summary": "Change some of a portfolio's details or roles with a JSON Patch (RFC 6902), leaving the rest as they are.",
+        "description": "Prefer this to Portfolios_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /sponsorIds, /ownerIds, /managerIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. Requires delivery leadership — the caller must be an Owner or Manager of the record; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "operationId": "Portfolios_PatchPortfolio",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdatePortfolioRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -12397,7 +12613,7 @@
           "Programs"
         ],
         "summary": "Update a program's name, description, dates, roles, and strategic themes.",
-        "description": "A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "description": "A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Programs_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
         "operationId": "Programs_Update",
         "parameters": [
           {
@@ -12429,6 +12645,78 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Programs"
+        ],
+        "summary": "Change some of a program's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.",
+        "description": "Prefer this to Programs_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The portfolio is not patchable. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "operationId": "Programs_PatchProgram",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProgramRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -14451,7 +14739,7 @@
           "Projects"
         ],
         "summary": "Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.",
-        "description": "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "description": "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Projects_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
         "operationId": "Projects_Update",
         "parameters": [
           {
@@ -14508,6 +14796,78 @@
           }
         ]
       },
+      "patch": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Change some of a project's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.",
+        "description": "Prefer this to Projects_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /businessCase, /expectedBenefits, /expenditureCategoryId, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /memberIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The key, program and lifecycle are not patchable (Projects_ChangeKey, Projects_ChangeProgram). Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "operationId": "Projects_PatchProject",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProjectRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
       "delete": {
         "tags": [
           "Projects"
@@ -14532,6 +14892,92 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{idOrKey}/health-check-evidence": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.",
+        "description": "Use it first when recommending a health check; classifying the evidence and drafting the note stay with you, and logging the check is Projects_CreateProjectHealthCheck after the user confirms. `overdueTasks` are the open tasks the plan summary counts as overdue. A stage with `pastEndNotComplete` ended before `asOf` and is neither completed nor canceled. `forecast` is the Projects_GetForecast result against the project's end, or null with `forecastUnavailableReason` when delivery forecasting is off — leave it out of the classification then. Critical-path evidence is never available (`criticalPathUnavailableReason`); never read that as \"no critical tasks\". `activitySinceLatestCheck` holds the project's own changes after the latest check, newest first, without tasks or stages; `activityTruncated` means there was more. The forecast options are those of Projects_GetForecast.",
+        "operationId": "Projects_GetHealthCheckEvidence",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "ignoreDependencies",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectHealthCheckEvidenceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -15666,6 +16112,7 @@
           "Projects"
         ],
         "summary": "Partially update a project stage using JSON Patch (RFC 6902).",
+        "description": "Paths are the update's camelCase fields: /description, /status (a task status id from Tasks_GetTaskStatuses), /plannedStart and /plannedEnd (set both, or clear both), /progress, /assigneeIds. `replace` changes a field; `add` with `/assigneeIds/-` appends one id; to remove from the list, `replace` it with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.",
         "operationId": "Projects_PatchProjectStage",
         "parameters": [
           {
@@ -16164,6 +16611,7 @@
           "ProjectTasks"
         ],
         "summary": "Update a project task.",
+        "description": "For a partial change, use Tasks_PatchProjectTask instead.",
         "operationId": "ProjectTasks_UpdateProjectTask",
         "parameters": [
           {
@@ -16234,7 +16682,7 @@
           "ProjectTasks"
         ],
         "summary": "Partially update a project task using JSON Patch (RFC 6902).",
-        "description": "Applies a JSON Patch document to update specific fields.",
+        "description": "Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.",
         "operationId": "ProjectTasks_PatchProjectTask",
         "parameters": [
           {
@@ -20938,6 +21386,110 @@
         ]
       }
     },
+    "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/health-check-evidence": {
+      "get": {
+        "tags": [
+          "PlanningIntervals"
+        ],
+        "summary": "Get everything needed to recommend a health check for a planning interval objective, in one read.",
+        "description": "Use this before recommending or logging a PI objective health check, in place of calling PlanningIntervals_GetPlanningInterval, PlanningIntervals_GetObjective, PlanningIntervals_GetObjectiveWorkItems, PlanningIntervals_GetObjectiveWorkItemMetrics, PlanningIntervals_GetObjectiveForecast, PlanningIntervals_GetObjectiveHealthChecks, PlanningIntervals_GetObjectiveActivities and PlanningIntervals_GetRisks one by one. Both ids accept a UUID or a key; an objective not in the planning interval is a 404. Returns the interval and objective; `schedule` with the effective `startDate` and `targetDate` (the interval's start or end when the objective has none, flagged `startDateDefaulted` / `targetDateDefaulted`) and `elapsedShare` of that window (0 to 1); the linked `workItems` by stack rank with their progress rollup and daily `workItemMetrics`; the delivery `forecast` against the effective target date, or null with `forecastUnavailableReason` when delivery forecasting is off; `healthChecks`, newest first; `sinceLastCheck` with the activity since the last check, the `progressAtLastCheck` and `progressChange` (percentage points), and `activityTruncated` when there is more; and `teamRisks`, the objective's team's open risks in this interval (closed ones too with includeClosedRisks=true) — risks link to a team, not to an objective. lookbackDays, ignoreDependencies and startedWorkFirst tune the forecast as on PlanningIntervals_GetObjectiveForecast. Read-only: log the check with PlanningIntervals_CreateObjectiveHealthCheck once the user agrees.",
+        "operationId": "PlanningIntervals_GetObjectiveHealthCheckEvidence",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "objectiveIdOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "ignoreDependencies",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 5
+          },
+          {
+            "name": "includeClosedRisks",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 6
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectiveHealthCheckEvidenceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/planning/planning-intervals/{id}/objectives/{objectiveId}/health-checks": {
       "get": {
         "tags": [
@@ -23385,7 +23937,7 @@
           "Roadmaps"
         ],
         "summary": "Partially update a roadmap item using JSON Patch (RFC 6902).",
-        "description": "Applies a JSON Patch document to update specific fields of an Activity, Timebox, or Milestone.",
+        "description": "Works for an Activity, Timebox or Milestone; the item keeps its type. Paths are the update's camelCase fields: /name, /description, /parentId, /color, plus /start and /end for an activity or timebox, or /date for a milestone. `replace` changes a field; a field the patch does not name keeps its value. Confirm with the user before calling.",
         "operationId": "Roadmaps_PatchRoadmapItem",
         "parameters": [
           {
@@ -24961,7 +25513,7 @@
           "StoryMaps"
         ],
         "summary": "Set the personas tagged on a task.",
-        "description": "Replaces the full set — pass every persona ID that should remain tagged.",
+        "description": "Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchTaskPersonas instead.",
         "operationId": "StoryMaps_SetTaskPersonas",
         "parameters": [
           {
@@ -25007,6 +25559,88 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Tag or untag personas on a task with a JSON Patch (RFC 6902), keeping the tags it does not name.",
+        "description": "Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.",
+        "operationId": "StoryMaps_PatchTaskPersonas",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetTaskPersonasRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -26034,7 +26668,7 @@
           "StoryMaps"
         ],
         "summary": "Set the personas tagged on a goal.",
-        "description": "Replaces the full set — pass every persona ID that should remain tagged.",
+        "description": "Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchGoalPersonas instead.",
         "operationId": "StoryMaps_SetGoalPersonas",
         "parameters": [
           {
@@ -26090,6 +26724,88 @@
             "ApiKey": [ ]
           }
         ]
+      },
+      "patch": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Tag or untag personas on a goal with a JSON Patch (RFC 6902), keeping the tags it does not name.",
+        "description": "Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.",
+        "operationId": "StoryMaps_PatchGoalPersonas",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "goalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetGoalPersonasRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
       }
     },
     "/api/planning/story-maps/{storyMapId}/steps/{stepId}/personas": {
@@ -26098,7 +26814,7 @@
           "StoryMaps"
         ],
         "summary": "Set the personas tagged on a step.",
-        "description": "Replaces the full set — pass every persona ID that should remain tagged.",
+        "description": "Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchStepPersonas instead.",
         "operationId": "StoryMaps_SetStepPersonas",
         "parameters": [
           {
@@ -26144,6 +26860,88 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Tag or untag personas on a step with a JSON Patch (RFC 6902), keeping the tags it does not name.",
+        "description": "Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.",
+        "operationId": "StoryMaps_PatchStepPersonas",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "stepId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetStepPersonasRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -50630,6 +51428,54 @@
         "additionalProperties": false,
         "description": "A job as it appears in a list."
       },
+      "JsonPatchDocumentOfSetGoalPersonasRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetReleaseContentsRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetReleasePackageManifestRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetStepPersonasRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetTaskPersonasRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfUpdatePortfolioRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfUpdateProgramRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfUpdateProjectRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
       "JsonPatchDocumentOfUpdateProjectStageRequest": {
         "type": "array",
         "items": {
@@ -51500,6 +52346,181 @@
           }
         },
         "additionalProperties": false
+      },
+      "ObjectiveChangesSinceLastCheckDto": {
+        "required": [
+          "activity",
+          "activityTruncated"
+        ],
+        "type": "object",
+        "properties": {
+          "lastCheckReportedOn": {
+            "type": "string",
+            "description": "When the last check was reported. Null when the objective has never been checked.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "progressAtLastCheck": {
+            "type": "number",
+            "description": "The objective's progress (0 to 100) when it was last checked. Null when it has never been\nchecked or the history read did not reach back that far.",
+            "format": "double",
+            "nullable": true
+          },
+          "progressChange": {
+            "type": "number",
+            "description": "Progress points gained (or, negative, lost) since the last check. Null when\n`progressAtLastCheck` is.",
+            "format": "double",
+            "nullable": true
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityLogDto"
+            },
+            "description": "The objective's activity since the last check, newest first. With no check, the most recent\nentries."
+          },
+          "activityTruncated": {
+            "type": "boolean",
+            "description": "True when there is more activity in that period than is listed; page\nPlanningIntervals_GetObjectiveActivities for the rest."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The objective's recorded changes since its last health check."
+      },
+      "ObjectiveHealthCheckEvidenceDto": {
+        "required": [
+          "planningInterval",
+          "objective",
+          "schedule",
+          "sinceLastCheck",
+          "workItemMetrics",
+          "healthChecks",
+          "teamRisks"
+        ],
+        "type": "object",
+        "properties": {
+          "planningInterval": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanningIntervalDetailsDto"
+              }
+            ],
+            "description": "The planning interval the objective belongs to."
+          },
+          "objective": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanningIntervalObjectiveDetailsDto"
+              }
+            ],
+            "description": "The objective: status, progress, dates, team and current health check."
+          },
+          "schedule": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectiveScheduleEvidenceDto"
+              }
+            ],
+            "description": "The objective's effective window and how much of it has passed."
+          },
+          "workItems": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkItemsSummaryDto"
+              }
+            ],
+            "description": "The linked work items, by backlog stack rank, with their progress rollup. Null when the\nobjective has no linked work.",
+            "nullable": true
+          },
+          "workItemMetrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkItemProgressDailyRollupDto"
+            },
+            "description": "Daily progress of the linked work from the interval's start to the earlier of today and the\ninterval's end."
+          },
+          "forecast": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkItemForecastDto"
+              }
+            ],
+            "description": "Monte Carlo forecast of the linked work against `schedule.targetDate`.\nNull when `forecastUnavailableReason` says why.",
+            "nullable": true
+          },
+          "forecastUnavailableReason": {
+            "type": "string",
+            "description": "Why `forecast` is null, such as delivery forecasting being turned off.",
+            "nullable": true
+          },
+          "healthChecks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningIntervalObjectiveHealthCheckDetailsDto"
+            },
+            "description": "The objective's health checks, newest first. The first is the last check."
+          },
+          "sinceLastCheck": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectiveChangesSinceLastCheckDto"
+              }
+            ],
+            "description": "What changed on the objective since the last check."
+          },
+          "teamRisks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskListDto"
+            },
+            "description": "The objective's team's risks in this interval — open ones only unless closed risks were asked\nfor. Risks link to a team, not an objective, so these are the risks the team carries."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Everything needed to recommend a health check for one planning interval objective, gathered in\none read: the objective and its interval, its schedule, linked work and its trend, the delivery\nforecast, its health check history, what changed since the last check, and its team's risks."
+      },
+      "ObjectiveScheduleEvidenceDto": {
+        "required": [
+          "startDate",
+          "startDateDefaulted",
+          "targetDate",
+          "targetDateDefaulted",
+          "today",
+          "elapsedShare"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "description": "The objective's start date, or the interval's start when it has none.",
+            "format": "date"
+          },
+          "startDateDefaulted": {
+            "type": "boolean",
+            "description": "True when `startDate` is the interval's start because the objective has none."
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "The objective's target date, or the interval's end when it has none.",
+            "format": "date"
+          },
+          "targetDateDefaulted": {
+            "type": "boolean",
+            "description": "True when `targetDate` is the interval's end because the objective has none."
+          },
+          "today": {
+            "type": "string",
+            "description": "Today's date, against which `elapsedShare` is measured.",
+            "format": "date"
+          },
+          "elapsedShare": {
+            "type": "number",
+            "description": "How much of the window from `startDate` to `targetDate` has passed,\nfrom 0 (not started) to 1 (target reached or passed).",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "An objective's effective start and target, and the share of that window already past."
       },
       "OidcProviderDto": {
         "required": [
@@ -54462,6 +55483,154 @@
           }
         },
         "additionalProperties": false
+      },
+      "ProjectHealthCheckEvidenceDto": {
+        "required": [
+          "project",
+          "planSummary",
+          "criticalPathUnavailableReason",
+          "asOf",
+          "overdueTasks",
+          "stages",
+          "activitySinceLatestCheck",
+          "activityTruncated"
+        ],
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "description": "The date the evidence was gathered on, which overdue and past-end are measured against.",
+            "format": "date"
+          },
+          "project": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectDetailsDto"
+              }
+            ],
+            "description": "The project: status, committed start and end, current health check and role lists."
+          },
+          "planSummary": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectPlanSummaryDto"
+              }
+            ],
+            "description": "Overdue, due this week, upcoming and total leaf task counts across the whole plan."
+          },
+          "overdueTasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectTaskListDto"
+            },
+            "description": "The open tasks (Not Started or In Progress) whose planned end has passed — the ones the plan\nsummary counts as overdue — with their keys, so a note can cite them."
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectHealthCheckEvidenceStageDto"
+            },
+            "description": "The project's stages in order; empty when no lifecycle is assigned."
+          },
+          "forecast": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkItemForecastDto"
+              }
+            ],
+            "description": "The delivery forecast against the project's end, or null when it could not be produced — see\nstring? ProjectHealthCheckEvidenceDto.ForecastUnavailableReason.",
+            "nullable": true
+          },
+          "forecastUnavailableReason": {
+            "type": "string",
+            "description": "Why WorkItemForecastDto? ProjectHealthCheckEvidenceDto.Forecast is null; null when there is a forecast.",
+            "nullable": true
+          },
+          "criticalPathUnavailableReason": {
+            "type": "string",
+            "description": "Why there is no critical-path evidence. Critical-path analysis is not implemented, so this is always\nset; do not read its absence as \"no critical tasks\"."
+          },
+          "latestHealthCheck": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectHealthCheckDetailsDto"
+              }
+            ],
+            "description": "The most recent health check, or null for a project never checked.",
+            "nullable": true
+          },
+          "activitySinceLatestCheck": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityLogDto"
+            },
+            "description": "The project's activity since ProjectHealthCheckDetailsDto? ProjectHealthCheckEvidenceDto.LatestHealthCheck was reported, newest first: schedule,\nstatus, role and detail changes. Tasks and stages are not included. For a project never checked, the\nmost recent entries."
+          },
+          "activityTruncated": {
+            "type": "boolean",
+            "description": "True when there was more activity than was returned, so the list is not the whole story."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Everything a project health-check recommendation weighs, gathered in one read. Classifying it and\ndrafting the note are left to the reader."
+      },
+      "ProjectHealthCheckEvidenceStageDto": {
+        "required": [
+          "name",
+          "status",
+          "id",
+          "order",
+          "progress",
+          "pastEndNotComplete"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The stage's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The stage's name."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ],
+            "description": "The stage's status."
+          },
+          "order": {
+            "type": "integer",
+            "description": "The stage's position in the lifecycle.",
+            "format": "int32"
+          },
+          "start": {
+            "type": "string",
+            "description": "The stage's planned start.",
+            "format": "date",
+            "nullable": true
+          },
+          "end": {
+            "type": "string",
+            "description": "The stage's planned end.",
+            "format": "date",
+            "nullable": true
+          },
+          "progress": {
+            "type": "number",
+            "description": "The stage's progress, 0 to 100.",
+            "format": "decimal"
+          },
+          "pastEndNotComplete": {
+            "type": "boolean",
+            "description": "True when the stage's end is before `asOf` and it is neither completed nor canceled."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One stage of a project's plan, flagged when its end has passed and it is not finished."
       },
       "ProjectHealthCheckSummaryDto": {
         "required": [
@@ -58396,7 +59565,8 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Every persona tagged on the goal. A list rather than a read-only one so a JSON Patch can append to it."
           }
         },
         "additionalProperties": false
@@ -58546,7 +59716,8 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Every persona tagged on the step. A list rather than a read-only one so a JSON Patch can append to it."
           }
         },
         "additionalProperties": false
@@ -58589,7 +59760,8 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Every persona tagged on the task. A list rather than a read-only one so a JSON Patch can append to it."
           }
         },
         "additionalProperties": false

@@ -30,16 +30,16 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     private readonly WaydApiFactory _factory = factory;
 
     [Fact]
-    public async Task GetTools_OffersExactlyTheNpmServersToolNames()
+    public async Task GetTools_OffersEveryToolTheNpmServerOffers()
     {
-        // Arrange
-        var expected = SnapshotTools().Select(t => (string)t["name"]!).Order(StringComparer.Ordinal).ToList();
+        // Arrange — the hosted server may offer more: composite tools exist only here
+        var expected = SnapshotTools().Select(t => (string)t["name"]!).ToList();
 
         // Act
-        var tools = await GetTools();
+        var names = (await GetTools()).Select(t => t.ProtocolTool.Name).ToHashSet(StringComparer.Ordinal);
 
         // Assert
-        Assert.Equal(expected, tools.Select(t => t.ProtocolTool.Name).Order(StringComparer.Ordinal).ToList());
+        Assert.Empty(expected.Where(n => !names.Contains(n)));
     }
 
     [Fact]

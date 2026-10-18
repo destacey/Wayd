@@ -15,11 +15,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm)]
-public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDispatcher dispatcher, IValidator<UpdateProjectTaskRequest> updateProjectTaskValidator) : ControllerBase
+public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ProjectTasksController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly IValidator<UpdateProjectTaskRequest> _updateProjectTaskValidator = updateProjectTaskValidator;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
@@ -116,51 +115,18 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> PatchProjectTask(
+    public Task<ActionResult> PatchProjectTask(
         string projectIdOrKey,
         Guid id,
         [FromBody] JsonPatchDocument<UpdateProjectTaskRequest> patchDocument,
         CancellationToken cancellationToken)
-    {
-        if (patchDocument == null)
-            return BadRequest("Patch document cannot be null.");
-
-        // Get the current task state
-        var taskDto = await _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), cancellationToken);
-        if (taskDto is null)
-            return NotFound($"Project task with ID '{id}' not found.");
-
-        // Convert DTO to UpdateProjectTaskRequest
-        var updateRequest = UpdateProjectTaskRequest.FromDto(taskDto);
-
-        // Apply the patch document to the update request
-        patchDocument.ApplyTo(updateRequest, error =>
-        {
-            ModelState.AddModelError(error.AffectedObject.GetType().Name, error.ErrorMessage);
-        });
-
-        // Validate the patched request with FluentValidation
-        var validationResult = await _updateProjectTaskValidator.ValidateAsync(updateRequest, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            foreach (var error in validationResult.Errors)
-            {
-                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-            }
-        }
-
-        // Return all validation errors (patch + business rules) as 422
-        if (!ModelState.IsValid)
-            return ValidationProblem(
-                modelStateDictionary: ModelState,
-                statusCode: StatusCodes.Status422UnprocessableEntity);
-
-        var result = await _dispatcher.Send(updateRequest.ToUpdateProjectTaskCommand(), cancellationToken);
-
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), ct),
+            $"Project task with ID '{id}' not found.",
+            UpdateProjectTaskRequest.FromDto,
+            (request, ct) => _dispatcher.Send(request.ToUpdateProjectTaskCommand(), ct),
+            cancellationToken);
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]

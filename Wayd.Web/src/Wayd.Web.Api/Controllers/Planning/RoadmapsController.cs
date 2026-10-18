@@ -18,22 +18,13 @@ public class RoadmapsController : ControllerBase
 {
     private readonly ILogger<RoadmapsController> _logger;
     private readonly IDispatcher _dispatcher;
-    private readonly IValidator<UpdateRoadmapActivityRequest> _updateActivityValidator;
-    private readonly IValidator<UpdateRoadmapMilestoneRequest> _updateMilestoneValidator;
-    private readonly IValidator<UpdateRoadmapTimeboxRequest> _updateTimeboxValidator;
 
     public RoadmapsController(
         ILogger<RoadmapsController> logger,
-        IDispatcher dispatcher,
-        IValidator<UpdateRoadmapActivityRequest> updateActivityValidator,
-        IValidator<UpdateRoadmapMilestoneRequest> updateMilestoneValidator,
-        IValidator<UpdateRoadmapTimeboxRequest> updateTimeboxValidator)
+        IDispatcher dispatcher)
     {
         _logger = logger;
         _dispatcher = dispatcher;
-        _updateActivityValidator = updateActivityValidator;
-        _updateMilestoneValidator = updateMilestoneValidator;
-        _updateTimeboxValidator = updateTimeboxValidator;
     }
 
     [HttpGet]
@@ -266,72 +257,18 @@ public class RoadmapsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> PatchRoadmapItem(
+    public Task<ActionResult> PatchRoadmapItem(
         Guid roadmapId,
         Guid itemId,
         [FromBody] JsonPatchDocument<UpdateRoadmapItemRequest> patchDocument,
         CancellationToken cancellationToken)
-    {
-        if (patchDocument == null)
-            return BadRequest("Patch document cannot be null.");
-
-        // Get the current item state
-        var itemDto = await _dispatcher.Send(new GetRoadmapItemQuery(roadmapId.ToString(), itemId), cancellationToken);
-        if (itemDto is null)
-            return NotFound($"Roadmap item with ID '{itemId}' not found.");
-
-        // Convert DTO to the appropriate UpdateRoadmapItemRequest type
-        UpdateRoadmapItemRequest updateRequest = itemDto switch
-        {
-            RoadmapActivityDetailsDto activity => UpdateRoadmapActivityRequest.FromDto(activity),
-            RoadmapMilestoneDetailsDto milestone => UpdateRoadmapMilestoneRequest.FromDto(milestone),
-            RoadmapTimeboxDetailsDto timebox => UpdateRoadmapTimeboxRequest.FromDto(timebox),
-            _ => throw new ArgumentException("Invalid roadmap item type", nameof(itemDto))
-        };
-
-        // Apply the patch document to the update request
-        patchDocument.ApplyTo(updateRequest, error =>
-        {
-            ModelState.AddModelError(error.AffectedObject.GetType().Name, error.ErrorMessage);
-        });
-
-        // Validate the patched request with FluentValidation
-        var validationResult = updateRequest switch
-        {
-            UpdateRoadmapActivityRequest activity => await _updateActivityValidator.ValidateAsync(activity, cancellationToken),
-            UpdateRoadmapMilestoneRequest milestone => await _updateMilestoneValidator.ValidateAsync(milestone, cancellationToken),
-            UpdateRoadmapTimeboxRequest timebox => await _updateTimeboxValidator.ValidateAsync(timebox, cancellationToken),
-            _ => throw new ArgumentException("Invalid roadmap item type", nameof(updateRequest))
-        };
-
-        if (!validationResult.IsValid)
-        {
-            foreach (var error in validationResult.Errors)
-            {
-                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-            }
-        }
-
-        // Return all validation errors (patch + business rules) as 422
-        if (!ModelState.IsValid)
-            return ValidationProblem(
-                modelStateDictionary: ModelState,
-                statusCode: StatusCodes.Status422UnprocessableEntity);
-
-        var command = updateRequest switch
-        {
-            UpdateRoadmapActivityRequest activity => activity.ToUpdateRoadmapItemCommand(),
-            UpdateRoadmapTimeboxRequest timebox => timebox.ToUpdateRoadmapItemCommand(),
-            UpdateRoadmapMilestoneRequest milestone => milestone.ToUpdateRoadmapItemCommand(),
-            _ => throw new ArgumentException("Invalid roadmap item type", nameof(updateRequest))
-        };
-
-        var result = await _dispatcher.Send(command, cancellationToken);
-
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetRoadmapItemQuery(roadmapId.ToString(), itemId), ct),
+            $"Roadmap item with ID '{itemId}' not found.",
+            UpdateRoadmapItemRequest.FromDto,
+            (request, ct) => _dispatcher.Send(request.ToUpdateRoadmapItemCommand(), ct),
+            cancellationToken);
 
     [HttpPut("{roadmapId}/items/{itemId}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]

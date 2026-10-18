@@ -709,36 +709,16 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> PatchProjectStage(
+    public Task<ActionResult> PatchProjectStage(
         Guid id,
         Guid stageId,
         [FromBody] JsonPatchDocument<UpdateProjectStageRequest> patchDocument,
         CancellationToken cancellationToken)
-    {
-        if (patchDocument == null)
-            return BadRequest("Patch document cannot be null.");
-
-        var stageDto = await _dispatcher.Send(new GetProjectStageQuery(id, stageId), cancellationToken);
-        if (stageDto is null)
-            return NotFound($"Project stage with ID '{stageId}' not found.");
-
-        var updateRequest = UpdateProjectStageRequest.FromDto(stageDto);
-
-        patchDocument.ApplyTo(updateRequest, error =>
-        {
-            ModelState.AddModelError(error.AffectedObject.GetType().Name, error.ErrorMessage);
-        });
-
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        if (!TryValidateModel(updateRequest))
-            return ValidationProblem(ModelState);
-
-        var result = await _dispatcher.Send(updateRequest.ToCommand(id, stageId), cancellationToken);
-
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetProjectStageQuery(id, stageId), ct),
+            $"Project stage with ID '{stageId}' not found.",
+            UpdateProjectStageRequest.FromDto,
+            (request, ct) => _dispatcher.Send(request.ToCommand(id, stageId), ct),
+            cancellationToken);
 }

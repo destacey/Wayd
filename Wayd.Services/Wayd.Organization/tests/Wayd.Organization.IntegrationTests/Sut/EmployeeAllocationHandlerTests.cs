@@ -216,6 +216,152 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
     }
 
     [Fact]
+    public async Task Change_ThatEndsForAnInactiveEmployee_PersistsTheAllocation()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        await SetActive(seeded.EmployeeId, false, cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = ChangeHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new ChangeEmployeeAllocationsCommand(seeded.EmployeeId, [new AllocationChange(seeded.TeamAId, seeded.RoleId, Feb1, Feb7, 60)]),
+            cancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.Where(a => a.EmployeeId == seeded.EmployeeId).ToListAsync(cancellationToken))
+            .Should().ContainSingle(a => a.TeamId == seeded.TeamAId && a.Start == Feb1 && a.End == Feb7 && a.Percent == 60);
+    }
+
+    [Fact]
+    public async Task Change_WithNoEndForAnInactiveEmployee_FailsAndSavesNothing()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        await SetActive(seeded.EmployeeId, false, cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = ChangeHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new ChangeEmployeeAllocationsCommand(seeded.EmployeeId, [new AllocationChange(seeded.TeamAId, null, Feb1, null, 60)]),
+            cancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(AllocationTargets.InactiveEmployeeOpenEndedError);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.AnyAsync(a => a.EmployeeId == seeded.EmployeeId, cancellationToken)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Change_ThatTakesTimeAwayWithNoEndForAnInactiveEmployee_Succeeds()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, Jan1, null, 60));
+        await SetActive(seeded.EmployeeId, false, cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = ChangeHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new ChangeEmployeeAllocationsCommand(seeded.EmployeeId, [new AllocationChange(seeded.TeamAId, null, Feb1, null, 0)]),
+            cancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.Where(a => a.EmployeeId == seeded.EmployeeId).ToListAsync(cancellationToken))
+            .Should().ContainSingle(a => a.Start == Jan1 && a.End == Feb1.PlusDays(-1));
+    }
+
+    [Fact]
+    public async Task Change_ThatReplacesAnOpenAllocationWithOneThatEndsForAnInactiveEmployee_Succeeds()
+    {
+        // Arrange — the shape the change form sends: clear the original range, then set the new one
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, Jan1, null, 50));
+        await SetActive(seeded.EmployeeId, false, cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = ChangeHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new ChangeEmployeeAllocationsCommand(seeded.EmployeeId,
+            [
+                new AllocationChange(seeded.TeamAId, null, Jan1, null, 0),
+                new AllocationChange(seeded.TeamAId, null, Jan1, Feb7, 60),
+            ]),
+            cancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.Where(a => a.EmployeeId == seeded.EmployeeId).ToListAsync(cancellationToken))
+            .Should().ContainSingle(a => a.Start == Jan1 && a.End == Feb7 && a.Percent == 60);
+    }
+
+    [Fact]
+    public async Task Move_WithNoEndForAnInactiveEmployee_FailsAndSavesNothing()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, Jan1, null, 100));
+        await SetActive(seeded.EmployeeId, false, cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = MoveHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new MoveEmployeeAllocationCommand(seeded.EmployeeId, seeded.TeamAId, null, seeded.TeamBId, null, Feb1, null, 50),
+            cancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(AllocationTargets.InactiveEmployeeOpenEndedError);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.CountAsync(a => a.EmployeeId == seeded.EmployeeId, cancellationToken)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Move_ThatEndsForAnInactiveEmployee_PersistsBothSidesOfTheMove()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        await Allocate(seeded.EmployeeId, cancellationToken, new AllocationChange(seeded.TeamAId, null, Jan1, null, 100));
+        await SetActive(seeded.EmployeeId, false, cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = MoveHandler(context, Administrator());
+
+        // Act
+        var result = await handler.Handle(
+            new MoveEmployeeAllocationCommand(seeded.EmployeeId, seeded.TeamAId, null, seeded.TeamBId, null, Feb1, Feb7, 50),
+            cancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.EmployeeTeamAllocations.Where(a => a.EmployeeId == seeded.EmployeeId).ToListAsync(cancellationToken))
+            .Should().ContainSingle(a => a.TeamId == seeded.TeamBId && a.Start == Feb1 && a.End == Feb7 && a.Percent == 50);
+    }
+
+    [Fact]
     public async Task GetEmployeeAllocations_ReturnsEachAllocationWithItsTeamAndRole()
     {
         // Arrange

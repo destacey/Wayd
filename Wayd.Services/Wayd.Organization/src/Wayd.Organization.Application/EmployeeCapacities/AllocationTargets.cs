@@ -4,17 +4,27 @@ namespace Wayd.Organization.Application.EmployeeCapacities;
 
 /// <summary>A team and role a command touches, and whether it gives them any of the employee's time.</summary>
 /// <param name="Allocates">False when the command only takes time away, which an inactive team or role allows.</param>
-internal sealed record AllocationTarget(Guid TeamId, Guid? RoleId, bool Allocates);
+/// <param name="OpenEnded">True when the time given has no last day.</param>
+internal sealed record AllocationTarget(Guid TeamId, Guid? RoleId, bool Allocates, bool OpenEnded);
 
 /// <summary>What the allocation commands share: checking who and what is being allocated, and loading the record.</summary>
 internal static class AllocationTargets
 {
     public const string ChangedElsewhereError = EmployeeCapacityRecords.ChangedElsewhereError;
 
+    public const string InactiveEmployeeOpenEndedError = "An inactive employee's allocations must have an end date.";
+
     /// <summary>
-    /// Fails when the employee, a team or a role does not exist, or when time is being given to or by one that
-    /// is inactive. Time can always be taken away.
+    /// Fails when the employee, a team or a role does not exist, when time is being given to a team or in a role
+    /// that is inactive, or when an inactive employee is given time with no last day. Time can always be taken
+    /// away.
     /// </summary>
+    /// <remarks>
+    /// An inactive employee can be allocated so their history can be filled in or corrected: employees carry no
+    /// leaving date, and the day they were deactivated is not always the day they left. Every such allocation
+    /// must end, because the capacity report takes an inactive employee's last allocated day as the day they
+    /// left, and an open-ended one would count them toward the team for good.
+    /// </remarks>
     public static async Task<Result> Validate(IOrganizationDbContext organizationDbContext, Guid employeeId, IReadOnlyCollection<AllocationTarget> targets, CancellationToken cancellationToken)
     {
         var employee = await organizationDbContext.Employees
@@ -24,9 +34,8 @@ internal static class AllocationTargets
         if (employee is null)
             return Result.Failure($"Employee {employeeId} not found.");
 
-        var allocates = targets.Any(t => t.Allocates);
-        if (allocates && !employee.IsActive)
-            return Result.Failure("An inactive employee cannot be allocated to a team.");
+        if (!employee.IsActive && targets.Any(t => t.Allocates && t.OpenEnded))
+            return Result.Failure(InactiveEmployeeOpenEndedError);
 
         var teamIds = targets.Select(t => t.TeamId).Distinct().ToList();
         var teams = await organizationDbContext.BaseTeams

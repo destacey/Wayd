@@ -9,7 +9,7 @@ import {
   getTeamsClient,
   getTeamsOfTeamsClient,
 } from '@/src/services/clients'
-import { Modal, Spin } from 'antd'
+import { Alert, Modal, Spin } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
@@ -195,6 +195,12 @@ const ManagePlanningIntervalTeamsForm = ({
     >
       {
         <Spin spinning={isLoading} size="large">
+          <Alert
+            type="info"
+            showIcon
+            title="When you add a Scrum team, Wayd tries to map its sprints to the iterations by their dates, shortly after you save. Check Team Sprints to review them and map any it could not match."
+            style={{ marginBottom: 12 }}
+          />
           <WaydGridTransfer
             leftData={sourceTeams}
             rightData={targetTeams}

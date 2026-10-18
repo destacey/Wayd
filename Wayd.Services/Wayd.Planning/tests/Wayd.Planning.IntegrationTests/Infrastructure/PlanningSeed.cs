@@ -54,10 +54,11 @@ internal static class PlanningSeed
     /// The Planning copy of a sprint, which PI sprint mappings point at. Replication delivers it asynchronously
     /// in production, so it is written here directly.
     /// </summary>
-    public static async Task<PlanningSprint> Sprint(WaydDbContext context, Guid teamId, CancellationToken ct)
+    /// <param name="dateRange">Defaults to January 5-30, 2026.</param>
+    public static async Task<PlanningSprint> Sprint(WaydDbContext context, Guid teamId, CancellationToken ct, IterationDateRange? dateRange = null)
     {
         var source = new SprintSource(Guid.NewGuid(), Random.Shared.Next(100_000, int.MaxValue), $"Atlas Sprint {Guid.NewGuid():N}"[..24],
-            IterationType.Sprint, IterationState.Active, new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 30)), teamId);
+            IterationType.Sprint, IterationState.Active, dateRange ?? new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 30)), teamId);
         var sprint = new PlanningSprint(source, SqlServerDbContextFixture.FixedNow);
         context.PlanningSprints.Add(sprint);
         await context.SaveChangesAsync(ct);

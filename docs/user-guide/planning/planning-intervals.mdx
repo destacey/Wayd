@@ -150,6 +150,17 @@ Team [Sprints](../work-management/sprints.mdx) are mapped to PI iterations. This
 - Removing a team from a PI also removes its sprint mappings
 - Removing an iteration removes the sprints mapped to it; the sprints themselves are untouched
 
+### Automatic mapping
+
+When a Scrum team is added to a PI, Wayd tries to map its sprints for you, shortly after the save; any it cannot match are left for you to map. A sprint is mapped to the iteration that holds more than half of its days, so sprints that start or end a day or two away from the iterations still line up. When more than one sprint belongs to the same iteration, as with one-week sprints in two-week iterations, the one with the most days in it is mapped and the rest are left for you.
+
+- Only fills gaps: an iteration the team already has a sprint in, and a sprint already mapped here or in another PI, are left as they are
+- Skips a sprint without both a start and an end date, and one split evenly between two iterations
+- Counts the team as Scrum for an iteration when its [operating model](../organizations/index.mdx#operating-model) on the iteration's first day is Scrum; Kanban teams get no mappings, and nor do teams of teams, which have no sprints
+- Runs once, when the team joins: sprints synced, or iterations added, after that are mapped on **Team Sprints**
+
+The mappings appear in the PI's [Activity](../activity-log.mdx) as **Automation**, started by whoever added the team. When the team came in with a PI import, no person is named. Change or remove any of them on **Team Sprints**.
+
 A mapped sprint takes its [sprint type](../work-management/sprints.mdx#sprint-type) from the iteration's category unless its team set one: a Development iteration's sprint is standard, and an Innovation and Planning iteration's is non-standard, left out of the [team's sprint metrics](../work-management/sprints.mdx#team-sprint-metrics).
 
 ## Objectives

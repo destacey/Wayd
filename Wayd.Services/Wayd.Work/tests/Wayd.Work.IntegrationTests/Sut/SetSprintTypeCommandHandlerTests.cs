@@ -95,7 +95,7 @@ public sealed class SetSprintTypeCommandHandlerTests(SqlServerDbContextFixture f
 
     private async Task<Guid> SeedSprint(CancellationToken cancellationToken)
     {
-        var key = Random.Shared.Next(100_000, 999_999);
+        var key = UniqueKeys.Next();
         var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, "Atlas", new TeamCode($"D{key}"), TeamType.Team, true), SqlServerDbContextFixture.FixedNow);
         var sprint = Iteration.Create("Sprint", IterationType.Sprint,
             new IterationDateRange(SprintStart, SprintStart.PlusDays(13)), team.Id,

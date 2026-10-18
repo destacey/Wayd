@@ -93,7 +93,7 @@ public sealed class GetTeamDaysOffQueryHandlerTests(SqlServerDbContextFixture fi
 
     private async Task<Guid> SeedTeam(string name, CancellationToken ct)
     {
-        var key = Random.Shared.Next(100_000, 999_999);
+        var key = UniqueKeys.Next();
         var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, name, new TeamCode($"T{key}"), TeamType.Team, true), SqlServerDbContextFixture.FixedNow);
 
         await using var accessor = new WaydDbContextAccessor(_fixture);

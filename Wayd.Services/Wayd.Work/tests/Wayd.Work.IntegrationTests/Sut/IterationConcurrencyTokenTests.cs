@@ -69,7 +69,7 @@ public sealed class IterationConcurrencyTokenTests(SqlServerDbContextFixture fix
 
     private async Task<Guid> SeedTeam(CancellationToken cancellationToken)
     {
-        var key = Random.Shared.Next(100_000, 999_999);
+        var key = UniqueKeys.Next();
         var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, "Atlas", new TeamCode($"T{key}"), TeamType.Team, true), Now);
 
         await using var context = new WaydDbContextAccessor(_fixture);

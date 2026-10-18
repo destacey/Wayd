@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
 
@@ -95,6 +96,10 @@ public static class DurableEventRoutes
         typeof(TeamDetailsUpdatedEvent),
         typeof(TeamActivatedEvent),
         typeof(TeamDeactivatedEvent),
+
+        // Planning: a team joining a planning interval → its sprints mapped automatically. A follow-up, not
+        // something the request that added the team reads, and a failure must not undo adding it.
+        typeof(PlanningIntervalTeamsChangedEvent),
 
         // Organization Employee → their EmployeeCapacity, whose allocations end when they are deactivated. No
         // in-request reader; a people sync deactivates many at once and none may be lost.

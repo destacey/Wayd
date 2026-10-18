@@ -5,7 +5,8 @@ namespace Wayd.Web.Api.Mcp;
 /// Cursor, ChatGPT, claude.ai connectors) still learn the rules that span all tools.
 /// </summary>
 /// <remarks>
-/// Keep it to those cross-tool rules: per-area guidance belongs in tool descriptions and skills, since
+/// Keep it to those cross-tool rules, plus the names of the workflows whose recipe a tool description
+/// carries, so a model knows to look there: per-area guidance belongs in tool descriptions and skills, since
 /// clients may place this text in every prompt.
 /// </remarks>
 public static class McpServerInstructions
@@ -18,5 +19,6 @@ public static class McpServerInstructions
         "Every list on a write replaces the whole set: role lists (sponsorIds, ownerIds, managerIds, memberIds) replace that role's membership, and lists such as assigneeIds, strategicThemeIds, personaIds, versionIds and packageIds replace theirs, so an omitted or empty list removes everything in it. " +
         "Role, assignee and employeeId parameters take employee ids, not user ids, unless the parameter's description says it takes a user id. " +
         "A parameter named idOrKey (or xxxIdOrKey) accepts a UUID or a key; any other id parameter takes a UUID only unless its description says it accepts a key, so look the UUID up with a read tool first. " +
-        "Send a moment as an ISO 8601 datetime with its offset, exactly as reported and never converted to a local date; a calendar date is yyyy-MM-dd.";
+        "Send a moment as an ISO 8601 datetime with its offset, exactly as reported and never converted to a local date; a calendar date is yyyy-MM-dd. " +
+        "Recommending and logging a project or PI objective health check follows a recipe in the description of Projects_CreateProjectHealthCheck or PlanningIntervals_CreateObjectiveHealthCheck, and of the matching health-check evidence tool where one is listed: read it before you gather evidence.";
 }

@@ -34,7 +34,7 @@ The MCP server exposes 150+ tools across Wayd's core modules:
 
 ## Hosted Endpoint (Preview)
 
-The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers a few tools the package lacks: partial updates that change only the fields you name, and single-call evidence reads for health checks. The npm package will be retired a few weeks after the hosted endpoint is generally available.
+The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers a few tools the package lacks: partial updates that change only the fields you name, and single-call evidence reads for health checks. Each of the [agent skills](#agent-skills) is served there as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …), so a client that lists prompts can load a skill's guidance without installing it. The npm package will be retired a few weeks after the hosted endpoint is generally available.
 
 An administrator turns it on with the **MCP Server** feature flag (**Settings > Feature Management > Feature Flags**); while the flag is off, `/mcp` answers 404. Authenticate with your [Personal Access Token](./your-profile.mdx#personal-access-tokens) in the `x-api-key` header. Hosted connectors that only support OAuth (claude.ai, ChatGPT) cannot connect yet.
 

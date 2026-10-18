@@ -46,7 +46,11 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Log a new health check on a project.")]
     [EndpointDescription(
-        "Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Caller must be the project, parent portfolio, or parent program owner or manager.")]
+        "Creating a new check automatically expires the previously active check (only one non-expired check can exist at a time). Caller must be the project, parent portfolio, or parent program owner or manager. " +
+        "To recommend a check, first gather the evidence with Projects_GetHealthCheckEvidence: the plan summary, overdue tasks, stages past their end, the delivery forecast, the latest check and the activity since it. " +
+        "Take the worst status any signal supports: Unhealthy for a forecast chance below 50% or an 85% date well past the project's end, a Blocked by Dependency outcome, a large share of tasks overdue, or a stage past its end with substantial work left; AtRisk for a chance of 50–80% or an 85% date just past the end, several overdue tasks, a predecessor with a high shareOfTrialsSettingFinish, or stage progress lagging elapsed time; otherwise Healthy. " +
+        "Draft a note (at most 1024 characters) citing that evidence — progress since the last check, schedule and forecast standing, overdue tasks by key — with an expiration two weeks out unless the user names a review date. " +
+        "Present the status, the signal that set it, the expiration and the note, and call this only after the user confirms.")]
     [McpTool("Projects_CreateProjectHealthCheck", "Log a project health check", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

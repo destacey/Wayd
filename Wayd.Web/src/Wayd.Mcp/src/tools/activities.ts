@@ -15,7 +15,7 @@ const readsOnly = {
 
 const ENTRY_SHAPE =
   'Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), ' +
-  'an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, ' +
+  'an `actorKind` (User, System, Import, Sync, Anonymous, Automation) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, ' +
   'and a `payload`: the event\'s fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. ' +
   'A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. ' +
   'An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). ' +

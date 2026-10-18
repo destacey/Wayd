@@ -341,6 +341,48 @@ describe('ActivityLogTimeline', () => {
     ).toBeInTheDocument()
   })
 
+  it('attributes an automation to who started it without presenting them as its author', () => {
+    const activities = [
+      createActivity({
+        id: 2,
+        actorKind: EventActorKind.Automation,
+        employee: {
+          id: 'emp-uuid-1',
+          key: 42,
+          name: 'Sarah Connor',
+        },
+      }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    expect(screen.getAllByText('Automation').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('started by Sarah Connor')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sarah Connor' })).toHaveAttribute(
+      'href',
+      '/organizations/employees/42',
+    )
+    expect(
+      screen.queryByText('Initiated by employee #42'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('describes an automation nobody started', () => {
+    const activities = [
+      createActivity({
+        id: 2,
+        actorKind: EventActorKind.Automation,
+        employee: undefined,
+      }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    expect(
+      screen.getByText('Automatic reaction to another change'),
+    ).toBeInTheDocument()
+  })
+
   it('filters activity items when typing in search input', async () => {
     const user = userEvent.setup()
     const activities = [

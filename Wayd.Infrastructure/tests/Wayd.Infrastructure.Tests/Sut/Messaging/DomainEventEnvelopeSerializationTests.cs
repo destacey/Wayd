@@ -138,4 +138,23 @@ public sealed class DomainEventEnvelopeSerializationTests
         restored.Actor.UserId.Should().BeNull();
         restored.Actor.HasOriginatingUser.Should().BeFalse();
     }
+
+    [Fact]
+    public void RoundTrip_OnAnAutomationActor_PreservesWhoTriggeredIt()
+    {
+        // Arrange — a reaction to a person's action: the mechanism, the account and the employee all matter.
+        var options = OutboxOptions();
+        var employeeId = Guid.CreateVersion7();
+        var original = new TeamDeletedEvent(Guid.CreateVersion7(), 1, new TeamCode("ABC01"), EventActor.Automation("user-200", employeeId), Instant.FromUnixTimeSeconds(1_700_000_500));
+
+        // Act
+        var json = JsonSerializer.Serialize(original, options);
+        var restored = JsonSerializer.Deserialize<TeamDeletedEvent>(json, options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Actor.Kind.Should().Be(EventActorKind.Automation);
+        restored.Actor.UserId.Should().Be("user-200");
+        restored.Actor.EmployeeId.Should().Be(employeeId);
+    }
 }

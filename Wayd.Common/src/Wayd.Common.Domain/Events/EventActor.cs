@@ -64,6 +64,17 @@ public sealed record EventActor(EventActorKind Kind, string? UserId, Guid? Emplo
     public static EventActor Sync(string? originatingUserId) => new(EventActorKind.Sync, originatingUserId);
 
     /// <summary>
+    /// The platform reacting to an event, attributed to whoever caused that event. The person chose the action
+    /// that triggered the reaction, not the change it made, so this is never recorded as a direct edit by them.
+    /// A handler passes the triggering event's <see cref="UserId"/> and <see cref="EmployeeId"/>; a reaction
+    /// to something nobody started is <see cref="System"/> instead.
+    /// </summary>
+    /// <param name="originatingUserId">The account whose action raised the triggering event.</param>
+    /// <param name="employeeId">The employee linked to that account, where there is one.</param>
+    public static EventActor Automation(string? originatingUserId, Guid? employeeId = null) =>
+        new(EventActorKind.Automation, originatingUserId, employeeId);
+
+    /// <summary>
     /// An anonymous caller — a live request with no authenticated user. Rare, and deliberately explicit so
     /// it reads as a real answer rather than a missing one.
     /// </summary>

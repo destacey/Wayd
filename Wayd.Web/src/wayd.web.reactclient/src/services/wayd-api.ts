@@ -51126,6 +51126,7 @@ export enum EventActorKind {
     Import = "Import",
     Sync = "Sync",
     Anonymous = "Anonymous",
+    Automation = "Automation",
 }
 
 /** Exchanges a token issued by an external OIDC provider for a Wayd JWT. The server validates `subjectToken` against the named provider and returns a Wayd JWT carrying the user's permission claims. */

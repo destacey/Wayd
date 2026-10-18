@@ -6,11 +6,11 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import {
-  isApiError,
   parseCalendarDate,
   toCalendarDate,
-  type ApiError,
+  toFormErrors,
   type CalendarDate,
+  toApiError,
 } from '@/src/utils'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
 import { useGetTeamMemberRolesQuery } from '@/src/store/features/organization/team-member-roles-api'
@@ -76,6 +76,10 @@ const sourcesOf = (allocations: EmployeeAllocationDto[]): Source[] => {
   )
 }
 
+/** Shows the server's errors for the source team or role on the From field. */
+export const fieldForError = (key: string) =>
+  key === 'fromTeamId' || key === 'fromRoleId' ? 'from' : undefined
+
 const MoveAllocationForm = ({
   employeeId,
   allocations,
@@ -92,7 +96,7 @@ const MoveAllocationForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<FormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const source = sources[values.from]
           const response = await moveAllocation({
@@ -111,8 +115,15 @@ const MoveAllocationForm = ({
           messageApi.success('Allocation moved.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(apiError.detail ?? 'Failed to move the allocation.')
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(
+              toFormErrors(apiError.errors, { fieldFor: fieldForError }),
+            )
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to move the allocation.')
+          }
           return false
         }
       },

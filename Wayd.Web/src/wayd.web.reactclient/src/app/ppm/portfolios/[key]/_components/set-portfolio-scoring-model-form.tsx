@@ -7,7 +7,7 @@ import {
   useAssignPortfolioScoringModelMutation,
   useClearPortfolioScoringModelMutation,
 } from '@/src/store/features/ppm/portfolios-api'
-import { isApiError, type ApiError } from '@/src/utils'
+import { toFormErrors, toApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Form, Modal, Select, Typography } from 'antd'
@@ -56,7 +56,7 @@ const SetPortfolioScoringModelForm = ({
 
   const { form, isOpen, isSaving, handleOk, handleCancel } =
     useModalForm<SetPortfolioScoringModelFormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const newModelId = values.scoringModelId ?? undefined
           const response = newModelId
@@ -75,11 +75,16 @@ const SetPortfolioScoringModelForm = ({
           )
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(
-            apiError.detail ??
-              'An error occurred while updating the scoring model.',
-          )
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(toFormErrors(apiError.errors))
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the scoring model.',
+            )
+          }
           return false
         }
       },

@@ -14,7 +14,7 @@ import {
 } from '@/src/store/features/ppm/projects-api'
 import { useGetTaskStatusOptionsQuery } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
-import { toFormErrors } from '@/src/utils'
+import { toFormErrors, rangeErrorsOn } from '@/src/utils'
 import { DatePicker, Form, InputNumber, Modal, Radio } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
@@ -147,7 +147,13 @@ const EditProjectStageForm = ({
           if ('error' in result && result.error) {
             const errorData = (result.error as { data?: any })?.data
             if (errorData?.errors) {
-              const formErrors = toFormErrors(errorData.errors)
+              const formErrors = toFormErrors(errorData.errors, {
+                fieldFor: rangeErrorsOn(
+                  'plannedRange',
+                  'plannedStart',
+                  'plannedEnd',
+                ),
+              })
               form.setFields(formErrors)
             }
             return false

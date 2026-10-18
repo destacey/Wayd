@@ -91,7 +91,7 @@ describe('EmployeeOverview', () => {
     mockTeams.mockReturnValue({
       data: [
         {
-          team: { id: 't1', key: 14, name: 'Platform Core' },
+          team: { id: 't1', key: 14, name: 'Platform Core', type: 'Team' },
           roles: [],
         },
       ],
@@ -104,6 +104,35 @@ describe('EmployeeOverview', () => {
     // Assert
     // Two now: the metric tile and the block heading below it.
     expect(screen.getAllByText('Teams')).toHaveLength(2)
+  })
+
+  it('links each team to the route for its type', () => {
+    // Arrange
+    mockTeams.mockReturnValue({
+      data: [
+        {
+          team: { id: 't1', key: 14, name: 'Platform Core', type: 'Team' },
+          roles: [],
+        },
+        {
+          team: { id: 't2', key: 3, name: 'Platform', type: 'Team of Teams' },
+          roles: [],
+        },
+      ],
+      isLoading: false,
+    })
+
+    // Act
+    renderOverview()
+
+    // Assert
+    expect(
+      screen.getByRole('link', { name: 'Platform Core' }),
+    ).toHaveAttribute('href', '/organizations/teams/14')
+    expect(screen.getByRole('link', { name: 'Platform' })).toHaveAttribute(
+      'href',
+      '/organizations/team-of-teams/3',
+    )
   })
 
   it('omits the assigned work items tile when there is no open work', () => {

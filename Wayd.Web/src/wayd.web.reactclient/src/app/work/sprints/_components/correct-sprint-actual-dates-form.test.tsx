@@ -1,7 +1,7 @@
 // The picker compares and formats real moments; the global mock only stubs format.
 jest.unmock('dayjs')
 
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   SprintDetailsDto,
@@ -239,5 +239,32 @@ describe('CorrectSprintActualDatesForm', () => {
     )
     expect(onFormComplete).not.toHaveBeenCalled()
     expect(within(document.body).getByText('203 - 26.3.4')).toBeInTheDocument()
+  })
+
+  it("marks the date the API's validation names", async () => {
+    // Arrange
+    correctActualDates.mockResolvedValue({
+      error: {
+        status: 422,
+        errors: { 'Sprints[0].Started': ['Started must be a valid moment.'] },
+      },
+    })
+    renderForm()
+
+    // Act
+    await clearPicker('26.3.4 started')
+    await act(() => userEvent.click(saveButton()))
+
+    // Assert
+    expect(errorMessage).toHaveBeenCalledWith(
+      'Correct the validation error(s) to continue.',
+    )
+    const field = screen
+      .getByLabelText('26.3.4 started')
+      .closest('.ant-form-item')
+    expect(field).toHaveClass('ant-form-item-has-error')
+    expect(
+      within(field as HTMLElement).getByText('Started must be a valid moment.'),
+    ).toBeInTheDocument()
   })
 })

@@ -199,10 +199,11 @@ public class RoadmapsController : ControllerBase
     [McpTool("Roadmaps_GetItem", "Get roadmap item")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RoadmapItemDetailsDto>> GetItem(string roadmapIdOrKey, Guid itemId, CancellationToken cancellationToken)
     {
         var item = await _dispatcher.Send(new GetRoadmapItemQuery(roadmapIdOrKey, itemId), cancellationToken);
-        return Ok(item);
+        return this.OkPolymorphic(item);
     }
 
     [HttpPost("{roadmapId}/items")]

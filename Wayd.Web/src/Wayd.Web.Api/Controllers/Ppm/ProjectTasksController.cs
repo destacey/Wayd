@@ -87,6 +87,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Update a project task.")]
+    [EndpointDescription("For a partial change, use Tasks_PatchProjectTask instead.")]
     [McpTool("Tasks_UpdateProjectTask", "Update a project task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -110,7 +111,9 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPatch("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Partially update a project task using JSON Patch (RFC 6902).")]
-    [EndpointDescription("Applies a JSON Patch document to update specific fields.")]
+    [EndpointDescription(
+        "Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.")]
+    [McpTool("Tasks_PatchProjectTask", "Patch a project task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -125,7 +128,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
             ct => _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), ct),
             $"Project task with ID '{id}' not found.",
             UpdateProjectTaskRequest.FromDto,
-            (request, ct) => _dispatcher.Send(request.ToUpdateProjectTaskCommand(), ct),
+            (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProjectTaskCommand(), ct),
             cancellationToken);
 
     [HttpDelete("{id}")]

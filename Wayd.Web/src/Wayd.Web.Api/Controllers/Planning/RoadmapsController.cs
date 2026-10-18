@@ -252,7 +252,9 @@ public class RoadmapsController : ControllerBase
     [HttpPatch("{roadmapId}/items/{itemId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
     [EndpointSummary("Partially update a roadmap item using JSON Patch (RFC 6902).")]
-    [EndpointDescription("Applies a JSON Patch document to update specific fields of an Activity, Timebox, or Milestone.")]
+    [EndpointDescription(
+        "Works for an Activity, Timebox or Milestone; the item keeps its type. Paths are the update's camelCase fields: /name, /description, /parentId, /color, plus /start and /end for an activity or timebox, or /date for a milestone. `replace` changes a field; a field the patch does not name keeps its value. Confirm with the user before calling.")]
+    [McpTool("Roadmaps_PatchItem", "Patch a roadmap item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -267,7 +269,7 @@ public class RoadmapsController : ControllerBase
             ct => _dispatcher.Send(new GetRoadmapItemQuery(roadmapId.ToString(), itemId), ct),
             $"Roadmap item with ID '{itemId}' not found.",
             UpdateRoadmapItemRequest.FromDto,
-            (request, ct) => _dispatcher.Send(request.ToUpdateRoadmapItemCommand(), ct),
+            (request, ct) => _dispatcher.Send((request with { RoadmapId = roadmapId, ItemId = itemId }).ToUpdateRoadmapItemCommand(), ct),
             cancellationToken);
 
     [HttpPut("{roadmapId}/items/{itemId}/dates")]

@@ -1,4 +1,5 @@
 ﻿using Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 
 namespace Wayd.Web.Api.Models.Ppm.Programs;
 
@@ -55,6 +56,22 @@ public sealed record UpdateProgramRequest
 
         return new UpdateProgramCommand(Id, Name, Description, dateRange, SponsorIds, OwnerIds, ManagerIds, StrategicThemeIds);
     }
+
+    /// <summary>
+    /// The update that would leave <paramref name="dto"/> exactly as it is: the record a JSON Patch is applied to.
+    /// </summary>
+    public static UpdateProgramRequest FromDto(ProgramDetailsDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Description = dto.Description,
+        Start = dto.Start,
+        End = dto.End,
+        SponsorIds = [.. dto.ProgramSponsors.Select(e => e.Id)],
+        OwnerIds = [.. dto.ProgramOwners.Select(e => e.Id)],
+        ManagerIds = [.. dto.ProgramManagers.Select(e => e.Id)],
+        StrategicThemeIds = [.. dto.StrategicThemes.Select(t => t.Id)],
+    };
 }
 
 public sealed class UpdateProgramRequestValidator : CustomValidator<UpdateProgramRequest>

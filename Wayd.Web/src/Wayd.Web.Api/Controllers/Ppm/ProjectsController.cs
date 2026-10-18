@@ -308,7 +308,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [EndpointSummary(
         "Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.")]
     [EndpointDescription(
-        "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+        "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Projects_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_Update", "Update project", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -324,6 +324,25 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPatch("{id}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
+    [EndpointSummary("Change some of a project's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.")]
+    [EndpointDescription(
+        "Prefer this to Projects_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /businessCase, /expectedBenefits, /expenditureCategoryId, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /memberIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The key, program and lifecycle are not patchable (Projects_ChangeKey, Projects_ChangeProgram). Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+    [McpTool("Projects_Patch", "Patch project")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchProject(Guid id, [FromBody] JsonPatchDocument<UpdateProjectRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetProjectQuery(id), ct),
+            $"Project with ID '{id}' not found.",
+            UpdateProjectRequest.FromDto,
+            (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProjectCommand(), ct),
+            cancellationToken);
 
     [HttpGet("{idOrKey}/health-check-evidence")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
@@ -705,6 +724,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [Consumes("application/json", "application/json-patch+json")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Partially update a project stage using JSON Patch (RFC 6902).")]
+    [EndpointDescription(
+        "Paths are the update's camelCase fields: /description, /status (a task status id from Tasks_GetTaskStatuses), /plannedStart and /plannedEnd (set both, or clear both), /progress, /assigneeIds. `replace` changes a field; `add` with `/assigneeIds/-` appends one id; to remove from the list, `replace` it with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.")]
+    [McpTool("Projects_PatchStage", "Patch a project stage")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

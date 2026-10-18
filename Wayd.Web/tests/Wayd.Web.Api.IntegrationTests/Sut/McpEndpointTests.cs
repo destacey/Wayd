@@ -397,6 +397,34 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
     }
 
+    [Fact]
+    public async Task CallTool_SendsAPatchAsJsonPatch_AndIsAnsweredAsTheEndpointAnswersIt()
+    {
+        // Arrange — the caller holds the update permission but no delivery-leadership role, so a patch that
+        // reaches the command is refused; one sent with the wrong content type would be a 415
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.ProjectPortfolios);
+        var (user, token) = await CreateUserWithToken(permission);
+        var portfolioId = await CreatePortfolio();
+        var patch = new[] { new { op = "replace", path = "/name", value = "Renamed through MCP" } };
+
+        using var content = new StringContent(JsonSerializer.Serialize(patch), System.Text.Encoding.UTF8, "application/json-patch+json");
+        var direct = await user.Client.PatchAsync($"/api/ppm/portfolios/{portfolioId}", content, TestContext.Current.CancellationToken);
+        await using var mcp = await Connect(token);
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Portfolios_Patch",
+            new Dictionary<string, object?> { ["id"] = portfolioId, ["requestBody"] = patch },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.False(direct.IsSuccessStatusCode, "the setup must be one the endpoint refuses");
+        Assert.NotEqual(HttpStatusCode.UnsupportedMediaType, direct.StatusCode);
+        Assert.True(result.IsError);
+        Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
+    }
+
     private static string TextOf(CallToolResult result) => Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text;
 
     private static JsonObject StructuredContentOf(CallToolResult result) =>

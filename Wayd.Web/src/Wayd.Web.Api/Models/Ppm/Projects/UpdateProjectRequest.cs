@@ -1,4 +1,5 @@
 ﻿using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 
 namespace Wayd.Web.Api.Models.Ppm.Projects;
 
@@ -78,6 +79,26 @@ public sealed record UpdateProjectRequest
 
         return new UpdateProjectCommand(Id, Name, Description, BusinessCase, ExpectedBenefits, ExpenditureCategoryId, dateRange, SponsorIds, OwnerIds, ManagerIds, MemberIds, StrategicThemeIds);
     }
+
+    /// <summary>
+    /// The update that would leave <paramref name="dto"/> exactly as it is: the record a JSON Patch is applied to.
+    /// </summary>
+    public static UpdateProjectRequest FromDto(ProjectDetailsDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Description = dto.Description,
+        BusinessCase = dto.BusinessCase,
+        ExpectedBenefits = dto.ExpectedBenefits,
+        ExpenditureCategoryId = dto.ExpenditureCategory.Id,
+        Start = dto.Start,
+        End = dto.End,
+        SponsorIds = [.. dto.ProjectSponsors.Select(e => e.Id)],
+        OwnerIds = [.. dto.ProjectOwners.Select(e => e.Id)],
+        ManagerIds = [.. dto.ProjectManagers.Select(e => e.Id)],
+        MemberIds = [.. dto.ProjectMembers.Select(e => e.Id)],
+        StrategicThemeIds = [.. dto.StrategicThemes.Select(t => t.Id)],
+    };
 }
 
 public sealed class UpdateProjectProjectRequestValidator : CustomValidator<UpdateProjectRequest>

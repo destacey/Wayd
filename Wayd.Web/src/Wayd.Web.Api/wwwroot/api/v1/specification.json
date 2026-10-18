@@ -8484,7 +8484,7 @@
           "ReleasePackages"
         ],
         "summary": "Replace a package's manifest as a whole.",
-        "description": "**This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.",
+        "description": "**This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. To add or change a few lines, use ReleasePackages_PatchManifest instead. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.",
         "operationId": "ReleasePackages_SetManifest",
         "parameters": [
           {
@@ -8516,6 +8516,78 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Add, change or drop lines in a package's manifest with a JSON Patch (RFC 6902), keeping every line it does not name.",
+        "description": "Prefer this to ReleasePackages_SetManifest for adding a component or changing one. The path is /components, a list of lines each with productId, versionId (optional), version and kind (Changed or CarriedForward). `add` with `/components/-` appends one line; `replace` with `/components/<index>/version` changes one field of the line at that index in the order ReleasePackages_GetReleasePackage returns. To drop a line, `replace` /components with every line that should remain. A package keeps at least one line, and the manifest closes once the package is released or withdrawn. Confirm with the user before calling.",
+        "operationId": "ReleasePackages_PatchManifest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetReleasePackageManifestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -9272,7 +9344,7 @@
           "Releases"
         ],
         "summary": "Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.",
-        "description": "**This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.\n\nContents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).\n\n**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.\n\nAn empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.",
+        "description": "**This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding. To add or remove a few entries, use Releases_PatchContents instead.\n\nContents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).\n\n**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.\n\nAn empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.",
         "operationId": "Releases_SetContents",
         "parameters": [
           {
@@ -9308,6 +9380,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Add or remove packages and directly carried versions on a release with a JSON Patch (RFC 6902), leaving the rest of its contents as they are.",
+        "description": "Prefer this to Releases_SetContents for any partial change. Paths are /packageIds and /versionIds. `add` with `/packageIds/-` appends one package id; to remove, `replace` the whole list with the set that should remain — never remove by index. A list the patch does not name keeps its contents. The release's rules apply to the result exactly as Releases_SetContents applies them: a version shipping inside one of its packages cannot also be carried directly, and contents freeze once the release is announced or withdrawn. Confirm with the user before calling.",
+        "operationId": "Releases_PatchContents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetReleaseContentsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -11254,7 +11398,7 @@
           "Portfolios"
         ],
         "summary": "Update a portfolio's name, description, and role assignments.",
-        "description": "This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "description": "This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Portfolios_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
         "operationId": "Portfolios_Update",
         "parameters": [
           {
@@ -11286,6 +11430,78 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Portfolios"
+        ],
+        "summary": "Change some of a portfolio's details or roles with a JSON Patch (RFC 6902), leaving the rest as they are.",
+        "description": "Prefer this to Portfolios_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /sponsorIds, /ownerIds, /managerIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. Requires delivery leadership — the caller must be an Owner or Manager of the record; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "operationId": "Portfolios_PatchPortfolio",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdatePortfolioRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -12397,7 +12613,7 @@
           "Programs"
         ],
         "summary": "Update a program's name, description, dates, roles, and strategic themes.",
-        "description": "A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "description": "A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Programs_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
         "operationId": "Programs_Update",
         "parameters": [
           {
@@ -12429,6 +12645,78 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Programs"
+        ],
+        "summary": "Change some of a program's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.",
+        "description": "Prefer this to Programs_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The portfolio is not patchable. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "operationId": "Programs_PatchProgram",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProgramRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -14451,7 +14739,7 @@
           "Projects"
         ],
         "summary": "Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.",
-        "description": "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "description": "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Projects_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
         "operationId": "Projects_Update",
         "parameters": [
           {
@@ -14483,6 +14771,78 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Change some of a project's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.",
+        "description": "Prefer this to Projects_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /businessCase, /expectedBenefits, /expenditureCategoryId, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /memberIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The key, program and lifecycle are not patchable (Projects_ChangeKey, Projects_ChangeProgram). Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.",
+        "operationId": "Projects_PatchProject",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProjectRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -15752,6 +16112,7 @@
           "Projects"
         ],
         "summary": "Partially update a project stage using JSON Patch (RFC 6902).",
+        "description": "Paths are the update's camelCase fields: /description, /status (a task status id from Tasks_GetTaskStatuses), /plannedStart and /plannedEnd (set both, or clear both), /progress, /assigneeIds. `replace` changes a field; `add` with `/assigneeIds/-` appends one id; to remove from the list, `replace` it with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.",
         "operationId": "Projects_PatchProjectStage",
         "parameters": [
           {
@@ -16250,6 +16611,7 @@
           "ProjectTasks"
         ],
         "summary": "Update a project task.",
+        "description": "For a partial change, use Tasks_PatchProjectTask instead.",
         "operationId": "ProjectTasks_UpdateProjectTask",
         "parameters": [
           {
@@ -16320,7 +16682,7 @@
           "ProjectTasks"
         ],
         "summary": "Partially update a project task using JSON Patch (RFC 6902).",
-        "description": "Applies a JSON Patch document to update specific fields.",
+        "description": "Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.",
         "operationId": "ProjectTasks_PatchProjectTask",
         "parameters": [
           {
@@ -23575,7 +23937,7 @@
           "Roadmaps"
         ],
         "summary": "Partially update a roadmap item using JSON Patch (RFC 6902).",
-        "description": "Applies a JSON Patch document to update specific fields of an Activity, Timebox, or Milestone.",
+        "description": "Works for an Activity, Timebox or Milestone; the item keeps its type. Paths are the update's camelCase fields: /name, /description, /parentId, /color, plus /start and /end for an activity or timebox, or /date for a milestone. `replace` changes a field; a field the patch does not name keeps its value. Confirm with the user before calling.",
         "operationId": "Roadmaps_PatchRoadmapItem",
         "parameters": [
           {
@@ -25151,7 +25513,7 @@
           "StoryMaps"
         ],
         "summary": "Set the personas tagged on a task.",
-        "description": "Replaces the full set — pass every persona ID that should remain tagged.",
+        "description": "Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchTaskPersonas instead.",
         "operationId": "StoryMaps_SetTaskPersonas",
         "parameters": [
           {
@@ -25197,6 +25559,88 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Tag or untag personas on a task with a JSON Patch (RFC 6902), keeping the tags it does not name.",
+        "description": "Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.",
+        "operationId": "StoryMaps_PatchTaskPersonas",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetTaskPersonasRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -26224,7 +26668,7 @@
           "StoryMaps"
         ],
         "summary": "Set the personas tagged on a goal.",
-        "description": "Replaces the full set — pass every persona ID that should remain tagged.",
+        "description": "Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchGoalPersonas instead.",
         "operationId": "StoryMaps_SetGoalPersonas",
         "parameters": [
           {
@@ -26280,6 +26724,88 @@
             "ApiKey": [ ]
           }
         ]
+      },
+      "patch": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Tag or untag personas on a goal with a JSON Patch (RFC 6902), keeping the tags it does not name.",
+        "description": "Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.",
+        "operationId": "StoryMaps_PatchGoalPersonas",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "goalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetGoalPersonasRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
       }
     },
     "/api/planning/story-maps/{storyMapId}/steps/{stepId}/personas": {
@@ -26288,7 +26814,7 @@
           "StoryMaps"
         ],
         "summary": "Set the personas tagged on a step.",
-        "description": "Replaces the full set — pass every persona ID that should remain tagged.",
+        "description": "Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchStepPersonas instead.",
         "operationId": "StoryMaps_SetStepPersonas",
         "parameters": [
           {
@@ -26334,6 +26860,88 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Tag or untag personas on a step with a JSON Patch (RFC 6902), keeping the tags it does not name.",
+        "description": "Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.",
+        "operationId": "StoryMaps_PatchStepPersonas",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "stepId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatchDocumentOfSetStepPersonasRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "patchDocument",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -50733,6 +51341,54 @@
         "additionalProperties": false,
         "description": "A job as it appears in a list."
       },
+      "JsonPatchDocumentOfSetGoalPersonasRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetReleaseContentsRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetReleasePackageManifestRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetStepPersonasRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfSetTaskPersonasRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfUpdatePortfolioRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfUpdateProgramRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
+      "JsonPatchDocumentOfUpdateProjectRequest": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/JsonPatchOperation"
+        }
+      },
       "JsonPatchDocumentOfUpdateProjectStageRequest": {
         "type": "array",
         "items": {
@@ -58799,7 +59455,8 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Every persona tagged on the goal. A list rather than a read-only one so a JSON Patch can append to it."
           }
         },
         "additionalProperties": false
@@ -58949,7 +59606,8 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Every persona tagged on the step. A list rather than a read-only one so a JSON Patch can append to it."
           }
         },
         "additionalProperties": false
@@ -58992,7 +59650,8 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Every persona tagged on the task. A list rather than a read-only one so a JSON Patch can append to it."
           }
         },
         "additionalProperties": false

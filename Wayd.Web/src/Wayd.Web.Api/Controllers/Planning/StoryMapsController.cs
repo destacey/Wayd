@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
@@ -313,7 +314,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{storyMapId}/tasks/{taskId}/personas")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set the personas tagged on a task.")]
-    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged.")]
+    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchTaskPersonas instead.")]
     [McpTool("StoryMaps_SetTaskPersonas", "Set a task's personas")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -322,6 +323,28 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToCommand(storyMapId, taskId), cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPatch("{storyMapId}/tasks/{taskId}/personas")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Tag or untag personas on a task with a JSON Patch (RFC 6902), keeping the tags it does not name.")]
+    [EndpointDescription(PersonaPatchGuidance)]
+    [McpTool("StoryMaps_PatchTaskPersonas", "Patch a task's personas")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchTaskPersonas(
+        Guid storyMapId, Guid taskId, [FromBody] JsonPatchDocument<SetTaskPersonasRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            async ct => (await _dispatcher.Send(new GetStoryMapQuery(storyMapId), ct))?.Goals
+                .SelectMany(g => g.Steps)
+                .SelectMany(s => s.Tasks)
+                .FirstOrDefault(t => t.Id == taskId),
+            $"Task with ID '{taskId}' not found on story map '{storyMapId}'.",
+            SetTaskPersonasRequest.FromDto,
+            (request, ct) => _dispatcher.Send(request.ToCommand(storyMapId, taskId), ct),
+            cancellationToken);
 
     // ---------------------------------------------------------------------------------------------
     // Checklist
@@ -539,7 +562,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{storyMapId}/goals/{goalId}/personas")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set the personas tagged on a goal.")]
-    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged.")]
+    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchGoalPersonas instead.")]
     [McpTool("StoryMaps_SetGoalPersonas", "Set a goal's personas")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -549,10 +572,30 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPatch("{storyMapId}/goals/{goalId}/personas")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Tag or untag personas on a goal with a JSON Patch (RFC 6902), keeping the tags it does not name.")]
+    [EndpointDescription(PersonaPatchGuidance)]
+    [McpTool("StoryMaps_PatchGoalPersonas", "Patch a goal's personas")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchGoalPersonas(
+        Guid storyMapId, Guid goalId, [FromBody] JsonPatchDocument<SetGoalPersonasRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            async ct => (await _dispatcher.Send(new GetStoryMapQuery(storyMapId), ct))?.Goals
+                .FirstOrDefault(g => g.Id == goalId),
+            $"Goal with ID '{goalId}' not found on story map '{storyMapId}'.",
+            SetGoalPersonasRequest.FromDto,
+            (request, ct) => _dispatcher.Send(request.ToCommand(storyMapId, goalId), ct),
+            cancellationToken);
+
     [HttpPut("{storyMapId}/steps/{stepId}/personas")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set the personas tagged on a step.")]
-    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged.")]
+    [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchStepPersonas instead.")]
     [McpTool("StoryMaps_SetStepPersonas", "Set a step's personas")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -561,4 +604,29 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToCommand(storyMapId, stepId), cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPatch("{storyMapId}/steps/{stepId}/personas")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Tag or untag personas on a step with a JSON Patch (RFC 6902), keeping the tags it does not name.")]
+    [EndpointDescription(PersonaPatchGuidance)]
+    [McpTool("StoryMaps_PatchStepPersonas", "Patch a step's personas")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchStepPersonas(
+        Guid storyMapId, Guid stepId, [FromBody] JsonPatchDocument<SetStepPersonasRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            async ct => (await _dispatcher.Send(new GetStoryMapQuery(storyMapId), ct))?.Goals
+                .SelectMany(g => g.Steps)
+                .FirstOrDefault(s => s.Id == stepId),
+            $"Step with ID '{stepId}' not found on story map '{storyMapId}'.",
+            SetStepPersonasRequest.FromDto,
+            (request, ct) => _dispatcher.Send(request.ToCommand(storyMapId, stepId), ct),
+            cancellationToken);
+
+    /// <summary>What an agent needs to build a persona-tag patch; shared by the goal, step and task endpoints.</summary>
+    private const string PersonaPatchGuidance =
+        "Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.";
 }

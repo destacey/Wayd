@@ -1,4 +1,5 @@
 using CsvHelper;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Settings;
 using Wayd.Web.Api.Models.ProductManagement;
@@ -242,7 +243,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [EndpointSummary("Replace a package's manifest as a whole.")]
     [EndpointDescription(
-        "**This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.")]
+        "**This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. To add or change a few lines, use ReleasePackages_PatchManifest instead. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.")]
     [McpTool("ReleasePackages_SetManifest", "Replace a package manifest", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -256,6 +257,27 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPatch("{id}/manifest")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
+    [EndpointSummary(
+        "Add, change or drop lines in a package's manifest with a JSON Patch (RFC 6902), keeping every line it does not name.")]
+    [EndpointDescription(
+        "Prefer this to ReleasePackages_SetManifest for adding a component or changing one. The path is /components, a list of lines each with productId, versionId (optional), version and kind (Changed or CarriedForward). `add` with `/components/-` appends one line; `replace` with `/components/<index>/version` changes one field of the line at that index in the order ReleasePackages_GetReleasePackage returns. To drop a line, `replace` /components with every line that should remain. A package keeps at least one line, and the manifest closes once the package is released or withdrawn. Confirm with the user before calling.")]
+    [McpTool("ReleasePackages_PatchManifest", "Patch a package manifest")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchManifest(
+        Guid id, [FromBody] JsonPatchDocument<SetReleasePackageManifestRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetReleasePackageQuery(new IdOrKey(id)), ct),
+            $"Release package with ID '{id}' not found.",
+            SetReleasePackageManifestRequest.FromDto,
+            (request, ct) => _dispatcher.Send(request.ToSetReleasePackageManifestCommand(id), ct),
+            cancellationToken);
 
     [HttpPost("{id}/release")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]

@@ -1,4 +1,5 @@
 using Wayd.Planning.Application.StoryMaps.Commands;
+using Wayd.Planning.Application.StoryMaps.Dtos;
 
 namespace Wayd.Web.Api.Models.Planning.StoryMaps;
 
@@ -91,7 +92,28 @@ public sealed class MoveTaskRequestValidator : CustomValidator<MoveTaskRequest>
 
 public class SetTaskPersonasRequest
 {
-    public IReadOnlyList<Guid> PersonaIds { get; set; } = [];
+    /// <summary>
+    /// Every persona tagged on the task. A list rather than a read-only one so a JSON Patch can append to it.
+    /// </summary>
+    public List<Guid> PersonaIds { get; set; } = [];
 
     public SetTaskPersonasCommand ToCommand(Guid storyMapId, Guid taskId) => new(storyMapId, taskId, PersonaIds);
+
+    /// <summary>
+    /// The personas <paramref name="dto"/> is tagged with now: the record a JSON Patch is applied to.
+    /// </summary>
+    public static SetTaskPersonasRequest FromDto(StoryMapTaskDto dto) => new() { PersonaIds = [.. dto.PersonaIds] };
+}
+
+/// <summary>
+/// Rejects an empty persona id, so a malformed patch fails validation rather than in the domain.
+/// </summary>
+public sealed class SetTaskPersonasRequestValidator : CustomValidator<SetTaskPersonasRequest>
+{
+    public SetTaskPersonasRequestValidator()
+    {
+        RuleFor(r => r.PersonaIds)
+            .Must(ids => ids.All(id => id != Guid.Empty))
+            .WithMessage("PersonaIds cannot contain empty GUIDs.");
+    }
 }

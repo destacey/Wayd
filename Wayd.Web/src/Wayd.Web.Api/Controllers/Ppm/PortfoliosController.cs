@@ -1,4 +1,5 @@
 using CsvHelper;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
@@ -198,7 +199,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
     [EndpointSummary("Update a portfolio's name, description, and role assignments.")]
     [EndpointDescription(
-        "This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+        "This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Portfolios_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Portfolios_Update", "Update portfolio", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -214,6 +215,25 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPatch("{id}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
+    [EndpointSummary("Change some of a portfolio's details or roles with a JSON Patch (RFC 6902), leaving the rest as they are.")]
+    [EndpointDescription(
+        "Prefer this to Portfolios_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /sponsorIds, /ownerIds, /managerIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. Requires delivery leadership — the caller must be an Owner or Manager of the record; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+    [McpTool("Portfolios_Patch", "Patch portfolio")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchPortfolio(Guid id, [FromBody] JsonPatchDocument<UpdatePortfolioRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetProjectPortfolioQuery(id), ct),
+            $"Portfolio with ID '{id}' not found.",
+            UpdatePortfolioRequest.FromDto,
+            (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProjectPortfolioCommand(), ct),
+            cancellationToken);
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]

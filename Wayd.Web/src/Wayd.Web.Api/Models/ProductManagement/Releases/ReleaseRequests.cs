@@ -1,4 +1,5 @@
 ﻿using Wayd.ProductManagement.Application.Releases.Commands;
+using Wayd.ProductManagement.Application.Releases.Dtos;
 
 namespace Wayd.Web.Api.Models.ProductManagement.Releases;
 
@@ -133,6 +134,32 @@ public sealed record SetReleaseContentsRequest
     /// The packages this release shipped.
     /// </summary>
     public List<Guid> PackageIds { get; set; } = [];
+
+    /// <summary>
+    /// The contents <paramref name="dto"/> announces now: the record a JSON Patch is applied to.
+    /// </summary>
+    public static SetReleaseContentsRequest FromDto(ReleaseDto dto) => new()
+    {
+        VersionIds = [.. dto.Versions.Select(v => v.Version.Id)],
+        PackageIds = [.. dto.Packages.Select(p => p.Package.Id)],
+    };
+}
+
+/// <summary>
+/// Rejects an empty id in either list, so a malformed patch fails validation rather than in the domain.
+/// </summary>
+public sealed class SetReleaseContentsRequestValidator : CustomValidator<SetReleaseContentsRequest>
+{
+    public SetReleaseContentsRequestValidator()
+    {
+        RuleFor(r => r.VersionIds)
+            .Must(ids => ids.All(id => id != Guid.Empty))
+            .WithMessage("VersionIds cannot contain empty GUIDs.");
+
+        RuleFor(r => r.PackageIds)
+            .Must(ids => ids.All(id => id != Guid.Empty))
+            .WithMessage("PackageIds cannot contain empty GUIDs.");
+    }
 }
 
 /// <summary>

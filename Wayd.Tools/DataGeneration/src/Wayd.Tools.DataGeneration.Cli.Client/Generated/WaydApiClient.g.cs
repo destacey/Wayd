@@ -66751,6 +66751,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report the capacity of a team over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person and team member role allocated to the team. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` holds the team alone, as `nodeId` 0. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated to other teams and `unallocatedPersonDays` allocated nowhere. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCapacityReportDto> GetCapacityReportAsync(System.Guid id, string? from = null, string? to = null, CapacityReportInterval? interval = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the capacity of a team over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
@@ -68863,6 +68874,122 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Report the capacity of a team over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person and team member role allocated to the team. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` holds the team alone, as `nodeId` 0. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated to other teams and `unallocatedPersonDays` allocated nowhere. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCapacityReportDto> GetCapacityReportAsync(System.Guid id, string? from = null, string? to = null, CapacityReportInterval? interval = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{id}/capacity/report"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity/report");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (interval != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("interval")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(interval, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityReportDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -71812,6 +71939,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report the capacity of a team of teams and every team beneath it over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person, team member role and team: the team of teams itself and every team beneath it at any depth, each counted only for the days it was in the hierarchy. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` lists the team of teams first (`nodeId` 0) and each team beneath it with its `parentNodeId`; a team that moved between two parents appears under each. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated elsewhere and `unallocatedPersonDays` allocated nowhere. An allocation counts once, on the team it was made to, so every grouping of the lines gives `total`. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamCapacityReportDto> GetCapacityReportAsync(System.Guid id, string? from = null, string? to = null, CapacityReportInterval? interval = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the capacity of a team of teams over a date range day by day, to plan against.
         /// </summary>
         /// <remarks>
@@ -72826,6 +72964,122 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityRollupDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Report the capacity of a team of teams and every team beneath it over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person, team member role and team: the team of teams itself and every team beneath it at any depth, each counted only for the days it was in the hierarchy. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` lists the team of teams first (`nodeId` 0) and each team beneath it with its `parentNodeId`; a team that moved between two parents appears under each. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated elsewhere and `unallocatedPersonDays` allocated nowhere. An allocation counts once, on the team it was made to, so every grouping of the lines gives `total`. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamCapacityReportDto> GetCapacityReportAsync(System.Guid id, string? from = null, string? to = null, CapacityReportInterval? interval = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/capacity/report"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/capacity/report");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (interval != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("interval")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(interval, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamCapacityReportDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -88678,6 +88932,57 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("periods")]
         public int Periods { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Time in person-days, from what was allocated to what was left after holidays and time away.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CapacityMeasuresDto
+    {
+
+        /// <summary>
+        /// The time allocated over the working days, before holidays and time away.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("allocatedPersonDays")]
+        public decimal AllocatedPersonDays { get; set; } = default!;
+
+        /// <summary>
+        /// The part of `allocatedPersonDays` on holidays in the calendar each person takes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("holidayPersonDays")]
+        public decimal HolidayPersonDays { get; set; } = default!;
+
+        /// <summary>
+        /// The part of `allocatedPersonDays` taken by time away.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeAwayPersonDays")]
+        public decimal TimeAwayPersonDays { get; set; } = default!;
+
+        /// <summary>
+        /// What is left of `allocatedPersonDays` after holidays and time away.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("availablePersonDays")]
+        public decimal AvailablePersonDays { get; set; } = default!;
+
+        /// <summary>
+        /// The part of `availablePersonDays` in roles that count toward delivery capacity.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryPersonDays")]
+        public decimal DeliveryPersonDays { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum CapacityReportInterval
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Week")]
+        Week = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Month")]
+        Month = 1,
 
     }
 
@@ -106899,6 +107204,248 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TeamCapacityPlanDayDto> Days { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPlanDayDto>();
+
+    }
+
+    /// <summary>
+    /// The capacity of a team, or of a team of teams with every team beneath it, over a date range: who had time on
+    /// <br/>each team, what holidays and time away took from it, and what was left. Capacity is in person-days: one
+    /// <br/>person allocated in full for one system working day.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityReportDto
+    {
+
+        /// <summary>
+        /// The first day of the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        /// <summary>
+        /// The last day of the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        /// <summary>
+        /// How the range is bucketed, or null when it is not.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("interval")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<CapacityReportInterval>))]
+        public CapacityReportInterval? Interval { get; set; } = default!;
+
+        /// <summary>
+        /// The buckets of the range in date order, the first and last cut to it. Empty when it is not bucketed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("buckets")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPeriodDto> Buckets { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPeriodDto>();
+
+        /// <summary>
+        /// The hours in a person-day, from the system working day, for showing person-days as hours.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDayHours")]
+        public decimal WorkingDayHours { get; set; } = default!;
+
+        /// <summary>
+        /// The time across every line of the report.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("total")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public CapacityMeasuresDto Total { get; set; } = new CapacityMeasuresDto();
+
+        /// <summary>
+        /// The time across the report by team member role, by role name with the time in no role last. The lines add up to `total`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roles")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityReportRoleDto> Roles { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityReportRoleDto>();
+
+        /// <summary>
+        /// The team the report is for, first, then every team beneath it depth first. A team that moved between two
+        /// <br/>parents in the range appears under each, as a node of its own.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityReportTeamDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityReportTeamDto>();
+
+        /// <summary>
+        /// Everyone with a line in the report, by name, with their time outside it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("people")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityReportPersonDto> People { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityReportPersonDto>();
+
+        /// <summary>
+        /// One person's time in one role on one team, by team then person then role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lines")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityReportLineDto> Lines { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityReportLineDto>();
+
+    }
+
+    /// <summary>
+    /// One person's time in one role on one team of a capacity report.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityReportLineDto
+    {
+
+        /// <summary>
+        /// The `nodeId` of the team in `teams`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("nodeId")]
+        public int NodeId { get; set; } = default!;
+
+        /// <summary>
+        /// The person, whose details are in `people`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid EmployeeId { get; set; } = default!;
+
+        /// <summary>
+        /// The team member role the time is in, or null for none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        public NavigationDto? Role { get; set; } = default!;
+
+        /// <summary>
+        /// Whether time in the role counts toward delivery capacity.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
+        public bool CountsTowardDeliveryCapacity { get; set; } = default!;
+
+        /// <summary>
+        /// The time over the days the team counts for.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("total")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public CapacityMeasuresDto Total { get; set; } = new CapacityMeasuresDto();
+
+        /// <summary>
+        /// The time in each of the report's buckets.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("buckets")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<CapacityMeasuresDto> Buckets { get; set; } = new System.Collections.ObjectModel.Collection<CapacityMeasuresDto>();
+
+    }
+
+    /// <summary>
+    /// A person in a capacity report, with their time outside it over the system default working days, before
+    /// <br/>holidays and time away.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityReportPersonDto
+    {
+
+        /// <summary>
+        /// The person.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employee")]
+        public NavigationDto Employee { get; set; } = default!;
+
+        /// <summary>
+        /// Their time allocated to teams outside the report, or to a team in it on days it was not in the hierarchy.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outsidePersonDays")]
+        public decimal OutsidePersonDays { get; set; } = default!;
+
+        /// <summary>
+        /// Their time allocated to no team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unallocatedPersonDays")]
+        public decimal UnallocatedPersonDays { get; set; } = default!;
+
+        /// <summary>
+        /// `outsidePersonDays` in each of the report's buckets.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outsideBuckets")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<decimal> OutsideBuckets { get; set; } = new System.Collections.ObjectModel.Collection<decimal>();
+
+        /// <summary>
+        /// `unallocatedPersonDays` in each of the report's buckets.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unallocatedBuckets")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<decimal> UnallocatedBuckets { get; set; } = new System.Collections.ObjectModel.Collection<decimal>();
+
+    }
+
+    /// <summary>
+    /// The time across a capacity report in one team member role.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityReportRoleDto
+    {
+
+        /// <summary>
+        /// The role, or null for time allocated in no role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        public NavigationDto? Role { get; set; } = default!;
+
+        /// <summary>
+        /// Whether time in the role counts toward delivery capacity.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("countsTowardDeliveryCapacity")]
+        public bool CountsTowardDeliveryCapacity { get; set; } = default!;
+
+        /// <summary>
+        /// The time in the role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("total")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public CapacityMeasuresDto Total { get; set; } = new CapacityMeasuresDto();
+
+    }
+
+    /// <summary>
+    /// A team as a capacity report counts it: the team the report is for, or one place beneath it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamCapacityReportTeamDto
+    {
+
+        /// <summary>
+        /// The node's id within the report: 0 for the team the report is for.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("nodeId")]
+        public int NodeId { get; set; } = default!;
+
+        /// <summary>
+        /// The node directly above it, or null for the team the report is for.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentNodeId")]
+        public int? ParentNodeId { get; set; } = default!;
+
+        /// <summary>
+        /// The team or team of teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        public TeamNavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// The days of the range it counts for, in date order: the whole range for the team the report is for, and
+        /// <br/>for a team beneath it the days it was in the hierarchy.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamCapacityPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<TeamCapacityPeriodDto>();
+
+        /// <summary>
+        /// Its own working days within `periods` that are not team holidays. A team of teams has the system defaults.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workingDays")]
+        public int WorkingDays { get; set; } = default!;
 
     }
 

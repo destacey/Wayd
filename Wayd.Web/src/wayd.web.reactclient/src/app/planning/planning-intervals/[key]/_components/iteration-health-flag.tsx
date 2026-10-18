@@ -1,6 +1,7 @@
 'use client'
 
 import { useGetPlanningIntervalIterationMetricsQuery } from '@/src/store/features/planning/planning-interval-api'
+import { sprintCompletedWorkItems } from '@/src/components/common/metrics/sprint-completed-work-items'
 import {
   calculateIterationHealth,
   IterationHealthStatus,
@@ -49,7 +50,7 @@ const IterationHealthFlag = ({
     startDate: start,
     endDate: end,
     total: metrics.totalWorkItems,
-    completed: metrics.completedWorkItems,
+    completed: sprintCompletedWorkItems(metrics),
   })
 
   const color = statusToColorVar(status)

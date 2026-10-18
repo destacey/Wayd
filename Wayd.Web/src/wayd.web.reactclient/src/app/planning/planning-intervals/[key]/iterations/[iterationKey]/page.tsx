@@ -71,6 +71,7 @@ const PlanningIntervalIterationPage = (props: {
     { skip: activeSection !== IterationSections.Backlog },
   )
 
+  // The backlog holds sprint work only, so it is shown in the sprints' unit, never a Kanban team's.
   // Null when the iteration's sprints size differently, so the backlog shows Story Points.
   const { data: iterationMetrics } =
     useGetPlanningIntervalIterationMetricsQuery(
@@ -116,7 +117,7 @@ const PlanningIntervalIterationPage = (props: {
             workItems={backlog ?? []}
             isLoading={backlogIsLoading}
             refetch={refetchBacklog}
-            sizingMethod={iterationMetrics?.sizingMethod}
+            sizingMethod={iterationMetrics?.sprintSizingMethod}
             persistStateKey="iteration-backlog"
           />
         )

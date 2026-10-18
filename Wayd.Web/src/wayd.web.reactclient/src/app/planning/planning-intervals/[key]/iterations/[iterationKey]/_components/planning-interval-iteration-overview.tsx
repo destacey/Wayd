@@ -4,9 +4,11 @@ import {
   CompletionRateMetric,
   CycleTimeMetric,
   MetricCard,
+  sprintCompletedWorkItems,
   StatusMetric,
   VelocityMetric,
 } from '@/src/components/common/metrics'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import useTheme from '@/src/components/contexts/theme'
 import { PlanningIntervalIterationDetailsDto } from '@/src/services/wayd-api'
@@ -22,7 +24,7 @@ import {
   Typography,
 } from 'antd'
 import { FC, ReactNode, useEffect, useState } from 'react'
-import { SprintCard } from '.'
+import { KanbanTeamCard, SprintCard } from '.'
 import { IterationHealthIndicator } from '@/src/components/common/planning'
 
 const TEAM_SIZING = 'Team Sizing'
@@ -50,19 +52,27 @@ const PlanningIntervalIterationOverview: FC<
   const sortedSprints = !metrics
     ? []
     : [...metrics.sprintMetrics].sort((a, b) =>
-        a.team.name.localeCompare(b.team.name),
+        caseInsensitiveCompare(a.team.name, b.team.name),
+      )
+  const sortedKanbanTeams = !metrics
+    ? []
+    : [...metrics.dateMeasuredTeamMetrics].sort((a, b) =>
+        caseInsensitiveCompare(a.team.name, b.team.name),
       )
 
   const displayValues = !metrics
     ? {
         total: 0,
         completed: 0,
+        sprintCompleted: 0,
         inProgress: 0,
         notStarted: 0,
       }
     : {
         total: metrics.totalWorkItems,
         completed: metrics.completedWorkItems,
+        // Kanban teams have no scope, so completion and health are measured on the sprints alone.
+        sprintCompleted: sprintCompletedWorkItems(metrics),
         inProgress: metrics.inProgressWorkItems,
         notStarted: metrics.notStartedWorkItems,
       }
@@ -75,12 +85,12 @@ const PlanningIntervalIterationOverview: FC<
           startDate={iteration.start}
           endDate={iteration.end}
           total={displayValues.total}
-          completed={displayValues.completed}
+          completed={displayValues.sprintCompleted}
         />,
       )
     }
   }, [
-    displayValues.completed,
+    displayValues.sprintCompleted,
     displayValues.total,
     isLoading,
     metrics,
@@ -94,6 +104,7 @@ const PlanningIntervalIterationOverview: FC<
   }
 
   const isFuture = iteration.state === 'Future'
+  const hasKanbanTeams = sortedKanbanTeams.length > 0
 
   return (
     <Flex vertical gap="middle">
@@ -106,17 +117,17 @@ const PlanningIntervalIterationOverview: FC<
       <Row gutter={[8, 8]}>
         <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
           <MetricCard
-            title="Team Sprints"
+            title="Teams"
             value={metrics.teamCount}
-            tooltip="Number of teams with sprints mapped to this iteration."
+            tooltip="Number of teams measured in this iteration: teams with sprints mapped to it, and Kanban teams, which are measured by its dates."
           />
         </Col>
         {!isFuture && (
           <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
             <CompletionRateMetric
-              completed={displayValues.completed}
+              completed={displayValues.sprintCompleted}
               total={displayValues.total}
-              tooltip="Percentage of work items across all team sprints that are completed (Done or Removed)."
+              tooltip="Percentage of work items across all team sprints that are completed (Done or Removed). Kanban teams have no scope, so they are not included."
             />
           </Col>
         )}
@@ -124,26 +135,43 @@ const PlanningIntervalIterationOverview: FC<
           <MetricCard
             title="Total"
             value={displayValues.total}
-            tooltip="Total number of work items across all team sprints in this iteration."
+            tooltip="Total number of work items across all team sprints in this iteration. Kanban teams have no scope, so they are not included."
           />
         </Col>
         {!isFuture && (
           <>
             <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-              <VelocityMetric
-                completed={displayValues.completed}
-                total={displayValues.total}
-                tooltip="Total completed work items across all team sprints (Done or Removed)."
-              />
+              {hasKanbanTeams ? (
+                <MetricCard
+                  title="Velocity"
+                  value={displayValues.completed}
+                  valueStyle={{ color: token.colorSuccess }}
+                  tooltip="Total completed work items across all team sprints (Done or Removed), plus the work items Kanban teams completed (Done) within the iteration's dates."
+                />
+              ) : (
+                <VelocityMetric
+                  completed={displayValues.completed}
+                  total={displayValues.total}
+                  tooltip="Total completed work items across all team sprints (Done or Removed)."
+                />
+              )}
             </Col>
             <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-              <StatusMetric
-                title="In Progress"
-                value={displayValues.inProgress}
-                total={displayValues.total}
-                color={token.colorInfo}
-                tooltip="Total in-progress work items across all team sprints."
-              />
+              {hasKanbanTeams ? (
+                <MetricCard
+                  title="In Progress"
+                  value={displayValues.inProgress}
+                  tooltip="Total in-progress work items across all team sprints, plus those in progress for Kanban teams."
+                />
+              ) : (
+                <StatusMetric
+                  title="In Progress"
+                  value={displayValues.inProgress}
+                  total={displayValues.total}
+                  color={token.colorInfo}
+                  tooltip="Total in-progress work items across all team sprints."
+                />
+              )}
             </Col>
             <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
               <StatusMetric
@@ -167,13 +195,13 @@ const PlanningIntervalIterationOverview: FC<
 
       <Divider />
 
-      {sortedSprints.length > 0 && (
+      {(sortedSprints.length > 0 || hasKanbanTeams) && (
         <Flex vertical gap="small">
           <Flex gap="small" justify="space-between">
             <Title level={5} style={{ margin: 0 }}>
-              Team Sprints
+              {sortedSprints.length > 0 ? 'Team Sprints' : 'Kanban Teams'}
             </Title>
-            <Tooltip title="Switch between showing each team's sprint in its own sizing method and counting work items">
+            <Tooltip title="Switch between showing each team in its own sizing method and counting work items">
               <Segmented<string>
                 options={[TEAM_SIZING, COUNT]}
                 value={byCount ? COUNT : TEAM_SIZING}
@@ -186,6 +214,20 @@ const PlanningIntervalIterationOverview: FC<
               <SprintCard
                 key={sprint.sprintId}
                 sprint={sprint}
+                byCount={byCount}
+              />
+            ))}
+          </Flex>
+          {sortedSprints.length > 0 && hasKanbanTeams && (
+            <Title level={5} style={{ margin: 0 }}>
+              Kanban Teams
+            </Title>
+          )}
+          <Flex vertical gap={8}>
+            {sortedKanbanTeams.map((team) => (
+              <KanbanTeamCard
+                key={team.team.id}
+                team={team}
                 byCount={byCount}
               />
             ))}

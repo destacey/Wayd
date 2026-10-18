@@ -153,11 +153,13 @@ public sealed class SetReleaseContentsRequestValidator : CustomValidator<SetRele
     public SetReleaseContentsRequestValidator()
     {
         RuleFor(r => r.VersionIds)
-            .Must(ids => ids.All(id => id != Guid.Empty))
+            .NotNull()
+            .Must(ids => ids is null || ids.All(id => id != Guid.Empty))
             .WithMessage("VersionIds cannot contain empty GUIDs.");
 
         RuleFor(r => r.PackageIds)
-            .Must(ids => ids.All(id => id != Guid.Empty))
+            .NotNull()
+            .Must(ids => ids is null || ids.All(id => id != Guid.Empty))
             .WithMessage("PackageIds cannot contain empty GUIDs.");
     }
 }

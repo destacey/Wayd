@@ -176,6 +176,10 @@ ids from the route, not from the patched request. To offer the patch to agents, 
 full tool's name and its verb swapped for `Patch` (`Projects_Update` → `Projects_Patch`), and say in its
 description which paths exist.
 
+A patch reads the record and then sends the whole request, with no concurrency check between the two, so two
+patches that append to the same list at once can lose one append. That is the same exposure as a full update
+from an edit form.
+
 ### Closed sets and entities
 
 Before exposing a set of values, decide which kind it is. The question is whether code branches on

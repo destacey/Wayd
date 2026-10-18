@@ -84,7 +84,8 @@ public sealed class SetGoalPersonasRequestValidator : CustomValidator<SetGoalPer
     public SetGoalPersonasRequestValidator()
     {
         RuleFor(r => r.PersonaIds)
-            .Must(ids => ids.All(id => id != Guid.Empty))
+            .NotNull()
+            .Must(ids => ids is null || ids.All(id => id != Guid.Empty))
             .WithMessage("PersonaIds cannot contain empty GUIDs.");
     }
 }
@@ -112,7 +113,8 @@ public sealed class SetStepPersonasRequestValidator : CustomValidator<SetStepPer
     public SetStepPersonasRequestValidator()
     {
         RuleFor(r => r.PersonaIds)
-            .Must(ids => ids.All(id => id != Guid.Empty))
+            .NotNull()
+            .Must(ids => ids is null || ids.All(id => id != Guid.Empty))
             .WithMessage("PersonaIds cannot contain empty GUIDs.");
     }
 }

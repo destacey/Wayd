@@ -113,7 +113,8 @@ public sealed class SetTaskPersonasRequestValidator : CustomValidator<SetTaskPer
     public SetTaskPersonasRequestValidator()
     {
         RuleFor(r => r.PersonaIds)
-            .Must(ids => ids.All(id => id != Guid.Empty))
+            .NotNull()
+            .Must(ids => ids is null || ids.All(id => id != Guid.Empty))
             .WithMessage("PersonaIds cannot contain empty GUIDs.");
     }
 }

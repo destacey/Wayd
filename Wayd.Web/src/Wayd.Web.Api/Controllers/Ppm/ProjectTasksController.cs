@@ -125,7 +125,13 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
         CancellationToken cancellationToken)
         => this.Patch(
             patchDocument,
-            ct => _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), ct),
+            async ct =>
+            {
+                // The command is keyed on the task alone, so a task outside the routed project must read as missing.
+                var projectId = await ResolveProjectId(projectIdOrKey, ct);
+                var task = await _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), ct);
+                return task is not null && task.ProjectId == projectId ? task : null;
+            },
             $"Project task with ID '{id}' not found.",
             UpdateProjectTaskRequest.FromDto,
             (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProjectTaskCommand(), ct),

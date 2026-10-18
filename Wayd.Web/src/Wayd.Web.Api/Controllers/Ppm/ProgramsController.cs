@@ -1,4 +1,5 @@
 using CsvHelper;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
@@ -142,7 +143,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Programs)]
     [EndpointSummary("Update a program's name, description, dates, roles, and strategic themes.")]
     [EndpointDescription(
-        "A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+        "A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Programs_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Programs_Update", "Update program", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -158,6 +159,25 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPatch("{id}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Programs)]
+    [EndpointSummary("Change some of a program's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.")]
+    [EndpointDescription(
+        "Prefer this to Programs_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The portfolio is not patchable. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+    [McpTool("Programs_Patch", "Patch program")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchProgram(Guid id, [FromBody] JsonPatchDocument<UpdateProgramRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetProgramQuery(id), ct),
+            $"Program with ID '{id}' not found.",
+            UpdateProgramRequest.FromDto,
+            (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProgramCommand(), ct),
+            cancellationToken);
 
     [HttpPost("{id}/activate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Programs)]

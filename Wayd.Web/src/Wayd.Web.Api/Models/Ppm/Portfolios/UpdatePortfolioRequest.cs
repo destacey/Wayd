@@ -1,4 +1,5 @@
 ﻿using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 
 namespace Wayd.Web.Api.Models.Ppm.Portfolios;
 
@@ -38,6 +39,19 @@ public sealed record UpdatePortfolioRequest
     {
         return new UpdateProjectPortfolioCommand(Id, Name, Description, SponsorIds, OwnerIds, ManagerIds);
     }
+
+    /// <summary>
+    /// The update that would leave <paramref name="dto"/> exactly as it is: the record a JSON Patch is applied to.
+    /// </summary>
+    public static UpdatePortfolioRequest FromDto(ProjectPortfolioDetailsDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Description = dto.Description,
+        SponsorIds = [.. dto.PortfolioSponsors.Select(e => e.Id)],
+        OwnerIds = [.. dto.PortfolioOwners.Select(e => e.Id)],
+        ManagerIds = [.. dto.PortfolioManagers.Select(e => e.Id)],
+    };
 }
 
 public sealed class UpdateProjectPortfolioRequestValidator : CustomValidator<UpdatePortfolioRequest>

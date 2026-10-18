@@ -8,7 +8,7 @@ The skills spend most of their words on two things a server can do better: **rea
 
 Twenty candidates follow, in three tiers:
 
-- **Tier 1, six write tools that remove an overwrite trap at its source.** Role changes and partial detail updates on portfolios, programs and projects; partial task updates; release contents; package manifests; story map persona tags.
+- **Tier 1, six write tools that remove an overwrite trap at its source.** Role changes and partial detail updates on portfolios, programs and projects; partial task updates; release contents; package manifests; story map persona tags. Decided in #975: each is a JSON Patch endpoint over the record's existing Update or Set command, not a new command (see [Partial writes are a JSON Patch](#partial-writes-are-a-json-patch-over-the-existing-command)).
 - **Tier 2, eleven read-only tools** that replace an evidence or lookup recipe. The two health-check evidence tools the issue owner proposed lead.
 - **Tier 3, three write sequences** with no overwrite trap, worth building only after the first two tiers.
 
@@ -34,36 +34,41 @@ Two prerequisites block #975 before any candidate can ship or be measured (see [
 
 The two hand-written import tools (`Mcp/ImportTools.cs`) remain the exception, because they front every import endpoint at once.
 
-### Writes are one new command, not a chain
+### Partial writes are a JSON Patch over the existing command
 
-Every existing command handler calls `SaveChangesAsync` itself, and several catch exceptions and reload the entity on a domain failure. Chaining a query and a command from a controller is therefore two units of work with a gap in which someone else's change can land, and chaining two commands is two commits.
+A record keeps **one** Update (or Set) command. The full update (PUT) sends it the whole request; the partial update (PATCH) takes a `JsonPatchDocument<TRequest>` over the same request type and goes through `JsonPatchControllerExtensions.Patch`: load the record with the existing Get query, convert it to the update request (`TRequest.FromDto`), apply the patch, validate with the request's validator, and send the same command. The endpoint is marked `[McpTool]`, named after the full tool with its verb swapped for `Patch` (`Projects_Update` → `Projects_Patch`).
 
-Each write composite is **one new command** whose handler loads the aggregate once, merges the request into its current state, and calls the domain method the existing command already calls. It saves once. The candidates below name the existing query and command each one replaces for the agent and the domain method its new command calls.
+Why not a new merge command per record, as this audit first proposed:
 
-`BaseDbContext.BeginUnitOfWork` spans several saves, but only `IWorkDbContext` exposes it today; no PPM, Planning or ProductManagement interface does. None of the tier 1 candidates need it. Tier 3 candidates reuse the import handlers, which already walk a record through several states in one save.
+- **One command per record.** A second command that "merges, then calls the same domain methods" duplicates the load, the `.Include`s for ancestor roles, the delivery-leadership resolution and the validation — every rule a PPM write must not miss. The patch reuses all of it unchanged, and the domain already ignores unchanged values and raises events only on real change, so sending the full request back is safe.
+- **No new shape to learn.** RFC 6902 already says how to append to a list (`add` at `/managerIds/-`) and change one field (`replace` at `/name`); omitted fields keep their value. Removing from a list is a `replace` of the whole list, which the descriptions say.
+
+The cost is that the read and the write are two units of work: a change landing between them is overwritten, as with the read-then-update agents do today. The one place a full update and a patch can disagree is `FromDto`: a request property it forgets is cleared by every patch. Each patch endpoint therefore has a **drift test** in `Wayd.Web.Api.Tests/Sut/Models/` that converts a fully populated DTO and asserts every request property is set (`PatchRequestAssertions.ShouldSetEveryProperty`).
+
+`BaseDbContext.BeginUnitOfWork` spans several saves, but only `IWorkDbContext` exposes it today; no PPM, Planning or ProductManagement interface does. Tier 3 candidates reuse the import handlers, which already walk a record through several states in one save.
 
 ### PPM writes keep the delivery-leadership rule
 
-A PPM composite follows the Authorization section of the root `AGENTS.md`, as `UpdateProjectCommand` does:
+A PPM patch inherits this from the command it sends. Any new PPM write command follows the Authorization section of the root `AGENTS.md`, as `UpdateProjectCommand` does:
 
 1. The command is `IRequireLinkedEmployee`.
 2. The handler injects `ICurrentPrincipal` and `ICurrentUser` and calls `ResolvePpmActor`.
 3. The query includes `.Include(p => p.Portfolio).ThenInclude(p => p!.Roles)` and, for a project, `.Include(p => p.Program).ThenInclude(p => p!.Roles)`.
 4. The domain method receives `actor` and `project.AncestryRoles()`.
 
-Project task changes are permission-only (`UpdateProjectTaskCommand` is not `IRequireLinkedEmployee`), so a task composite must not add the leadership check either.
+Project task changes are permission-only (`UpdateProjectTaskCommand` is not `IRequireLinkedEmployee`), so the task patch adds no leadership check either.
 
 ### Confirmation: `validateOnly` or a separate preview
 
 Every skill that can change data opens with "Before any change": describe the change, wait for the go-ahead, then do only what was approved. A composite has to leave room for that.
 
-- **Write composites take `validateOnly`**, the name the import endpoints already use. With it set, the handler loads, merges, runs the validator and the domain method's authorization and rules, and returns the resolved change — each field and list before and after, with people who would lose a role named — without calling `SaveChangesAsync`. The agent shows that to the user, then calls again without the flag. The tool keeps its destructive annotation, so clients that confirm destructive calls still ask.
+- **Patch tools take no `validateOnly`.** The agent reads the record, describes the change in the user's terms, and sends the patch once approved; each description ends "confirm with the user before calling", and the tool keeps PATCH's destructive annotation, so clients that confirm destructive calls still ask. A server-side preview remains possible later as a `validateOnly` query parameter on the patch endpoints.
 - **Creates that follow an evidence read** (logging a health check) need no flag: the tier 2 evidence tool is the preview, and the write stays the existing create tool. This is the `Imports_Preflight` → `Imports_Apply` split.
 - **Deletes stay separate destructive tools.** A read-only impact tool is the preview.
 
 ### Prerequisites for #975
 
-1. **Tool parity.** `McpToolCatalogTests` asserts the hosted tool names equal the npm package's (`Wayd.Web/tests/Wayd.Web.Api.IntegrationTests/Sut/McpToolCatalogTests.cs:37`). A hosted-only composite fails it. Either add each composite to `@wayd/mcp` as well, relax the test to "every npm tool is hosted", or ship composites after #979 retires the package.
+1. **Tool parity.** Resolved: `McpToolCatalogTests` now asserts only that every npm tool is hosted, so hosted-only composites and patch tools pass. The skills keep the npm package's read-then-full-update sequence as a fallback until #979 retires it.
 2. **The evaluation stub.** `evals/stub-server.ts` advertises the tools in the npm package's `build/` (README, Known limits). A composite cannot be offered to the agent, and so cannot be measured, until the stub serves the hosted catalogue.
 3. **Scenario assertions.** Several scenarios assert `called` on today's tools (`Projects_Update`, `Releases_SetContents`, `PlanningIntervals_GetObjectiveWorkItems`). Each needs an alternative accepting the composite, and scenarios that assert a change was *not* made need a matching `notCalled` for the composite. Make these edits in a new variant so the old one still runs beside it.
 
@@ -73,12 +78,12 @@ Every skill that can change data opens with "Before any change": describe the ch
 
 | # | Tool | Kind | Replaces | Removes overwrite trap | Scenarios |
 |---|---|---|---|---|---|
-| 1 | `Projects_ChangeRoles`, `Programs_ChangeRoles`, `Portfolios_ChangeRoles` | Write | ppm "Updating a record", users "Resolve name" use | **Yes** | `users-add-project-manager` |
-| 2 | `Projects_ChangeDetails`, `Programs_ChangeDetails`, `Portfolios_ChangeDetails` | Write | ppm "Updating a record (checklist)" | **Yes** | `ppm-rename-project` |
-| 3 | `Tasks_ChangeProjectTask` | Write | ppm "Updating a task" | **Yes** | `users-assign-task-no-employee` |
-| 4 | `Releases_ChangeContents` | Write | delivery "Overwrite, not patch" | **Yes** | `delivery-add-package-to-release`, `delivery-announce-unshipped-content` |
-| 5 | `ReleasePackages_ChangeManifest` | Write | delivery "Recording what shipped" step 3 | **Yes** | none (gap) |
-| 6 | `StoryMaps_ChangePersonaTags` | Write | story-maps "Persona sets replace" | **Yes** | `story-maps-add-task-persona`, `story-maps-persona-coverage` |
+| 1 | `Projects_Patch`, `Programs_Patch`, `Portfolios_Patch` (roles) | Write | ppm "Updating a record", users "Resolve name" use | **Yes** | `users-add-project-manager` |
+| 2 | `Projects_Patch`, `Programs_Patch`, `Portfolios_Patch` (details) | Write | ppm "Updating a record (checklist)" | **Yes** | `ppm-rename-project` |
+| 3 | `Tasks_PatchProjectTask` (and `Projects_PatchStage`, `Roadmaps_PatchItem`) | Write | ppm "Updating a task" | **Yes** | `users-assign-task-no-employee` |
+| 4 | `Releases_PatchContents` | Write | delivery "Overwrite, not patch" | **Yes** | `delivery-add-package-to-release`, `delivery-announce-unshipped-content` |
+| 5 | `ReleasePackages_PatchManifest` | Write | delivery "Recording what shipped" step 3 | **Yes** | none (gap) |
+| 6 | `StoryMaps_PatchGoalPersonas`, `StoryMaps_PatchStepPersonas`, `StoryMaps_PatchTaskPersonas` | Write | story-maps "Persona sets replace" | **Yes** | `story-maps-add-task-persona`, `story-maps-persona-coverage` |
 | 7 | `Projects_GetHealthCheckEvidence` | Read | health-checks.md checklist steps 1–6 | No | none (gap) |
 | 8 | `PlanningIntervals_GetObjectiveHealthCheckEvidence` | Read | pi health-check recipe step 1 | No | `pi-recommend-health-check`, `pi-log-objective-health-check` |
 | 9 | `PlanningIntervals_GetHealthSummary` | Read | pi health report step 1 | No | `pi-health-report` |
@@ -98,53 +103,46 @@ Paths below are shortened: `PPM/` is `Wayd.Services/Wayd.ProjectPortfolioManagem
 
 ### Tier 1: writes that remove an overwrite trap
 
-#### 1. `Projects_ChangeRoles` (and `Programs_ChangeRoles`, `Portfolios_ChangeRoles`)
+Each is a PATCH endpoint beside the existing PUT, through `JsonPatchControllerExtensions.Patch`, with a drift test for its `FromDto`. None adds a command or a handler.
+
+#### 1. Roles: `Projects_Patch`, `Programs_Patch`, `Portfolios_Patch`
 
 - **Replaces:** wayd-ppm "Updating a record (checklist)" for role changes, and the main use of wayd-users ("add Priya as a manager"). Removes the trap the server instructions and `Projects_Update`'s description spend most words on: an omitted or empty role list removes everyone in that role.
-- **Input:** `id` (UUID or key); for each of `sponsorIds`, `ownerIds`, `managerIds`, `memberIds` an `add` and a `remove` list of employee ids (portfolios have no members); `validateOnly`.
-- **Agent's sequence today:** `GetProjectQuery` (`PPM/Projects/Queries/GetProjectQuery.cs`) → `UpdateProjectCommand` (`PPM/Projects/Commands/UpdateProjectCommand.cs`), mapping `projectManagers[].id` to `managerIds`, `start`/`end` to the date range and `expenditureCategory.id` to `expenditureCategoryId` on the way.
-- **New command:** `ChangeProjectRolesCommand : ICommand, IRequireLinkedEmployee`. Loads `Projects.Include(Roles)` plus ancestor roles as `UpdateProjectCommand` does, builds the current role map from `project.Roles`, applies the deltas, and calls `Project.UpdateRoles(actor, ancestry, merged, now)` (`Project.cs:317`). `UpdateRoles` stays the single entry point its documentation describes; the composite only computes the set. Programs call `Program.UpdateRoles` with portfolio roles loaded; portfolios call `ProjectPortfolio.UpdateRoles`, which takes no ancestry.
-- **Confirmation:** `validateOnly` returns each role before and after, naming anyone removed. Removing the last Owner and Manager is allowed by the domain today; the preview should call it out.
-- **Why not chain into `UpdateProjectCommand`:** it rewrites name, description, dates, themes and expenditure category from a DTO round trip just to change one role.
+- **Patch:** `PATCH /api/ppm/projects/{id}` (programs, portfolios alike) over `UpdateProjectRequest` / `UpdateProgramRequest` / `UpdatePortfolioRequest`. Add a manager with `{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }`; remove one by replacing `/managerIds` with the people who stay.
+- **Conversion:** `UpdateProjectRequest.FromDto(ProjectDetailsDto)` maps `projectManagers[].id` to `managerIds` (likewise sponsors, owners, members), `expenditureCategory.id` to `expenditureCategoryId`, `strategicThemes[].id` to `strategicThemeIds`, and keeps `start`/`end`. Programs and portfolios map their own role holders the same way.
+- **Command:** `UpdateProjectCommand` / `UpdateProgramCommand` / `UpdateProjectPortfolioCommand`, unchanged — `IRequireLinkedEmployee`, ancestor roles loaded, delivery leadership enforced in the domain. The route id overrides any `/id` in the patch.
+- **Not done:** a preview naming anyone who would lose a role. Removing the last Owner and Manager is allowed by the domain today.
 
-#### 2. `Projects_ChangeDetails` (and `Programs_ChangeDetails`, `Portfolios_ChangeDetails`)
+#### 2. Details: the same three tools
 
 - **Replaces:** wayd-ppm "Updating a record (checklist)" steps 1–4 and 7 for everything except roles.
-- **Input:** `id` (UUID or key) and any of `name`, `description`, `businessCase`, `expectedBenefits`, `expenditureCategoryId`, `start`/`end`, `strategicThemeIds` (as `add`/`remove`); omitted fields are kept. `validateOnly`.
-- **Agent's sequence today:** `GetProjectQuery` → `UpdateProjectCommand`. Programs: `GetProgramQuery` → `UpdateProgramCommand`; portfolios: `GetProjectPortfolioQuery` → `UpdateProjectPortfolioCommand`.
-- **New command:** loads as `UpdateProjectCommand` does and calls only the domain methods whose inputs changed — `UpdateDetails`, `UpdateTimeline`, `UpdateStrategicThemes` — never `UpdateRoles`. A rename can then never touch the role lists.
-- **Clearing a field** needs an explicit signal distinct from omission (JSON `null` versus absent, or a `clear` list). Decide in #975; the clearable fields are `businessCase`, `expectedBenefits` and the date range.
+- **Patch:** `replace` at `/name`, `/description`, `/businessCase`, `/expectedBenefits`, `/expenditureCategoryId`, `/start` with `/end`, `/strategicThemeIds`. A rename patch names only `/name`; every role list goes back unchanged, and the domain raises no event for an unchanged set.
+- **Clearing a field** is `replace` with `null` (`businessCase`, `expectedBenefits`, or both dates together). Omission keeps the value, so the null-versus-absent question this audit raised does not arise.
 
-#### 3. `Tasks_ChangeProjectTask`
+#### 3. `Tasks_PatchProjectTask`
 
 - **Replaces:** wayd-ppm "Updating a task" steps 1–2, including the `parentId`-or-`projectStageId` rule and "an omitted or empty `assigneeIds` removes every assignee".
-- **Input:** `projectIdOrKey`, `taskIdOrKey`; any of the task's fields; `addAssigneeIds`/`removeAssigneeIds`; `validateOnly`.
-- **Agent's sequence today:** `GetProjectTaskQuery` (`PPM/ProjectTasks/Queries/GetProjectTaskQuery.cs`) → `UpdateProjectTaskCommand` (`PPM/ProjectTasks/Commands/UpdateProjectTaskCommand.cs`).
-- **Precedent:** `ProjectTasksController.PatchProjectTask` already reads the task, applies a JSON Patch to `UpdateProjectTaskRequest.FromDto(...)`, validates and sends `UpdateProjectTaskCommand` — the merge exists, but as JSON Patch, which agents handle poorly, and with no `[McpTool]`. The composite is the same merge with a plain partial body, ideally moved into one command so the read and write share a unit of work.
+- **Patch:** the existing `PATCH /api/ppm/projects/{projectIdOrKey}/tasks/{id}` over `UpdateProjectTaskRequest`, now an `[McpTool]`. `FromDto` already resolves a top-level task's parent to its stage. The stage and roadmap item patches (`Projects_PatchStage`, `Roadmaps_PatchItem`) became tools on the same terms.
 - **Authorization:** permission only (`Update` on `Projects`), as today.
 
-#### 4. `Releases_ChangeContents`
+#### 4. `Releases_PatchContents`
 
 - **Replaces:** wayd-delivery "Overwrite, not patch", "Recording what shipped" step 5, and wayd-products purge step 2.
-- **Input:** `id`; `addVersionIds`, `removeVersionIds`, `addPackageIds`, `removePackageIds`; `validateOnly`. Moving a version into a package is one call (remove the version, add the package), so the "a version is announced once" check runs against the end state.
-- **Agent's sequence today:** `GetReleaseQuery` (`PM/Releases/Queries/GetReleaseQuery.cs`) → `SetReleaseContentsCommand` (`PM/Releases/Commands/SetReleaseContentsCommand.cs`), mapping `versions[].version.id` to `versionIds` and `packages[].package.id` to `packageIds`.
-- **New command:** `ChangeReleaseContentsCommand : IRequireLinkedEmployee`, reusing `SetReleaseContentsCommand`'s load (`Releases.Include(Versions).Include(Packages)`) and its versions-in-packages resolution, then `Release.SetContents`. A frozen release is refused as it is today.
+- **Patch:** `PATCH /api/product-management/releases/{id}/contents` over `SetReleaseContentsRequest`, converted from `ReleaseDto` (`versions[].version.id` → `versionIds`, `packages[].package.id` → `packageIds`). Moving a version into a package is one patch (replace `/versionIds`, add to `/packageIds`), so the "a version is announced once" check runs against the end state.
+- **Command:** `SetReleaseContentsCommand`, unchanged. A frozen release is refused as it is today. The request gained a validator (no empty ids), because a patched request must be validated.
 
-#### 5. `ReleasePackages_ChangeManifest`
+#### 5. `ReleasePackages_PatchManifest`
 
 - **Replaces:** wayd-delivery "Recording what shipped" step 3 and the overwrite table row for manifests; wayd-products purge step 3.
-- **Input:** `id`; `upsert` entries keyed by `productId` (`versionId`, `version`, `kind`) — the manifest allows one line per product; `removeProductIds`; `validateOnly`.
-- **Agent's sequence today:** `GetReleasePackageQuery` (`PM/ReleasePackages/Queries/GetReleasePackageQuery.cs`) → `SetReleasePackageManifestCommand` (`PM/ReleasePackages/Commands/SetReleasePackageManifestCommand.cs`).
-- **Silent data loss it removes:** the read shape is `components[].product.id` and `components[].versionRecord.id`; the write shape is `productId` and `versionId`. An agent that echoes `versionRecord` back sends no `versionId`, and the release no longer knows the version is inside the package.
-- **New command:** loads `ReleasePackages.Include(Components)`, merges, calls `ReleasePackage.SetManifest`. It should also enforce "a version is announced once" against unannounced releases that list the package, which `SetManifest` does not do today (finding D3).
+- **Patch:** `PATCH /api/product-management/release-packages/{id}/manifest` over `SetReleasePackageManifestRequest`. `add` at `/components/-` appends a line; `replace` at `/components/<index>/version` edits one; dropping a line replaces `/components`.
+- **Silent data loss it removes:** the read shape is `components[].product.id` and `components[].versionRecord.id`; the write shape is `productId` and `versionId`. `FromDto` does that mapping, so a line the patch does not touch keeps its version record.
+- **Still open:** enforcing "a version is announced once" against unannounced releases that list the package, which `SetManifest` does not do today (finding D3).
 
-#### 6. `StoryMaps_ChangePersonaTags`
+#### 6. `StoryMaps_PatchGoalPersonas`, `StoryMaps_PatchStepPersonas`, `StoryMaps_PatchTaskPersonas`
 
 - **Replaces:** wayd-story-maps "Persona sets replace" and the read → merge → `StoryMaps_SetTaskPersonas` sequence; likewise for goals and steps.
-- **Input:** `storyMapId`, `targetType` (`Goal`, `Step`, `Task`), `targetId`, `addPersonaIds`, `removePersonaIds`, `validateOnly`.
-- **Agent's sequence today:** `GetStoryMapQuery` (`Planning/StoryMaps/Queries/GetStoryMapQuery.cs`) → `SetTaskPersonasCommand` / `SetGoalPersonasCommand` / `SetStepPersonasCommand` (`Planning/StoryMaps/Commands/`).
-- **New command:** loads the map as `SetTaskPersonasCommandHandler` does, merges, calls `StoryMap.SetTaskPersonas` (or the goal and step equivalents), inside `StoryMapMutation.Apply` so the map's row version is checked. The existing `Set*Personas` handlers skip `StoryMapMutation` and are last-write-wins.
-- An add-only call purely adds tags; the tool can still not be `Destructive = false`, since the same tool removes.
+- **Patch:** one per existing Set endpoint, e.g. `PATCH /api/planning/story-maps/{storyMapId}/tasks/{taskId}/personas` with `{ "op": "add", "path": "/personaIds/-", "value": "<personaId>" }`. The current tags come from `GetStoryMapQuery`, found by id within the map.
+- **Command:** `SetTaskPersonasCommand` / `SetGoalPersonasCommand` / `SetStepPersonasCommand`, unchanged; they skip `StoryMapMutation` and are last-write-wins, as before. The requests' `personaIds` became `List<Guid>` so a patch can append, and each gained a validator.
 
 ### Tier 2: read-only evidence and lookups
 

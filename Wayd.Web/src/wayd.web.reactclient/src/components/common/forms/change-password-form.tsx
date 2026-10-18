@@ -5,6 +5,7 @@ import { useChangePasswordMutation } from '@/src/store/features/user-management/
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import useAuth from '@/src/components/contexts/auth'
+import { toFormErrors, toApiError } from '@/src/utils'
 
 const { Item } = Form
 
@@ -32,7 +33,7 @@ const ChangePasswordForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<ChangePasswordFormValues>({
-      onSubmit: async (values: ChangePasswordFormValues) => {
+      onSubmit: async (values: ChangePasswordFormValues, form) => {
         try {
           const response = await changePassword({
             currentPassword: values.currentPassword,
@@ -47,12 +48,14 @@ const ChangePasswordForm = ({
           // Log out after a brief delay so the user sees the success message
           setTimeout(() => logout(), 1500)
           return true
-        } catch (error: any) {
-          messageApi.error(
-            error.data?.detail ??
-              error.detail ??
-              'Failed to change password.',
-          )
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(toFormErrors(apiError.errors))
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to change password.')
+          }
           return false
         }
       },

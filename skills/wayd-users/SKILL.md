@@ -22,6 +22,8 @@ A user is a sign-in account; an employee is the person record that holds roles a
 
 A user `id` in any of these does not identify the person.
 
+To give someone a role on the hosted server, append their employee id with a patch tool — `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) with `[{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }]`, or `Tasks_PatchProjectTask` with `/assigneeIds/-` — which keeps everyone already in the role. Without a patch tool, follow wayd-ppm's update checklist.
+
 The exception is a story map's owner: `StoryMaps_ChangeStoryMapOwner` takes the user `id`.
 
 ## Resolving a name to an employee id

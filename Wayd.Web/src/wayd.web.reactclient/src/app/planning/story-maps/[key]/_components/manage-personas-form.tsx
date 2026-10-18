@@ -12,7 +12,12 @@ import {
   useReorderPersonaMutation,
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { nextUnusedPersonaColor, personaColorPalette } from '@/src/utils'
+import {
+  nextUnusedPersonaColor,
+  personaColorPalette,
+  toFormErrors,
+  toApiError,
+} from '@/src/utils'
 import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons'
 import {
   Button,
@@ -306,8 +311,9 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
           ...patch,
         },
       }).unwrap()
-    } catch {
-      messageApi.error('Failed to update persona.')
+    } catch (error) {
+      const apiError = toApiError(error)
+      messageApi.error(apiError.detail ?? 'Failed to update persona.')
     }
   }
 
@@ -318,8 +324,9 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
         storyMapKey,
         personaId: persona.id,
       }).unwrap()
-    } catch {
-      messageApi.error('Failed to delete persona.')
+    } catch (error) {
+      const apiError = toApiError(error)
+      messageApi.error(apiError.detail ?? 'Failed to delete persona.')
     }
   }
 
@@ -338,8 +345,9 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
         personaId: String(active.id),
         newOrder: newIndex,
       }).unwrap()
-    } catch {
-      messageApi.error('Failed to reorder persona.')
+    } catch (error) {
+      const apiError = toApiError(error)
+      messageApi.error(apiError.detail ?? 'Failed to reorder persona.')
     }
   }
 
@@ -376,8 +384,14 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
         },
       }).unwrap()
       cancelAdd()
-    } catch {
-      messageApi.error('Failed to add persona.')
+    } catch (error) {
+      const apiError = toApiError(error)
+      if (apiError.status === 422 && apiError.errors) {
+        form.setFields(toFormErrors(apiError.errors))
+        messageApi.error('Correct the validation error(s) to continue.')
+      } else {
+        messageApi.error(apiError.detail ?? 'Failed to add persona.')
+      }
     }
   }
 

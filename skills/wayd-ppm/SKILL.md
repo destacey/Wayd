@@ -94,6 +94,7 @@ The metrics tools return counts only; follow up with `Projects_GetProjects` when
 | Linked work items                        | `Projects_GetWorkItems`                                                  |
 | When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)     |
 | Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath` |
+| Evidence for a health check (hosted)     | `Projects_GetHealthCheckEvidence` (see [health-checks.md](health-checks.md)) |
 
 When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
 
@@ -113,7 +114,9 @@ A project needs an assigned lifecycle before it can hold tasks.
 
 ### Updating a task
 
-`Tasks_UpdateProjectTask` overwrites the whole task: an omitted description, effort, date, or assignee list is cleared. An omitted or empty `assigneeIds` removes every assignee.
+**When `Tasks_PatchProjectTask` is available (the hosted server), use it**: send only the change as a JSON Patch, and every field it does not name keeps its value — e.g. `[{ "op": "add", "path": "/assigneeIds/-", "value": "<employeeId>" }]` to add an assignee, `[{ "op": "replace", "path": "/statusId", "value": <id from Tasks_GetTaskStatuses> }]` to change status. To remove an assignee, `replace` `/assigneeIds` with everyone who stays (read the task first). `Projects_PatchStage` patches a stage the same way.
+
+Otherwise, `Tasks_UpdateProjectTask` overwrites the whole task: an omitted description, effort, date, or assignee list is cleared. An omitted or empty `assigneeIds` removes every assignee.
 
 1. Read the task with `Tasks_GetProjectTask`.
 2. Build the body from what you read, changing only what the user asked for:
@@ -135,15 +138,27 @@ A project needs an assigned lifecycle before it can hold tasks.
 | Goal                                             | Tool                                                                                           |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
 | Create                                           | `Portfolios_Create`, `Programs_Create`, `Projects_Create`                                      |
-| Update                                           | `Portfolios_Update`, `Programs_Update`, `Projects_Update`                                      |
+| Change some fields or roles (hosted)             | `Portfolios_Patch`, `Programs_Patch`, `Projects_Patch`                                         |
+| Update the whole record                          | `Portfolios_Update`, `Programs_Update`, `Projects_Update`                                      |
 | Move a project to another program, or out of one | `Projects_ChangeProgram` (target must be in the same portfolio; `null` detaches)               |
 | Change a project's key                           | `Projects_ChangeKey` — only when the user explicitly asks; it breaks task keys and saved links |
 
 New records start in **Proposed**. Creating a project needs an `expenditureCategoryId` from `ExpenditureCategories_GetOptions`. Updates never change status, a project's key, program, or lifecycle, or a program's portfolio.
 
+### Patching a record (hosted server)
+
+When `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) is available, use it for any partial change. The body is a JSON Patch over the update's fields; anything it does not name keeps its value, role lists included.
+
+- Rename: `[{ "op": "replace", "path": "/name", "value": "Apollo 2" }]`
+- Add a manager: `[{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }]` (likewise `/sponsorIds`, `/ownerIds`, `/memberIds`, `/strategicThemeIds`)
+- Remove someone from a role: read the record, then `replace` the whole list with everyone who stays — never remove by index.
+- Dates: `replace` `/start` and `/end` together.
+
+Show the user the change, naming anyone who would lose a role, and confirm before calling. Delivery leadership still applies.
+
 ### Updating a record (checklist)
 
-Every update overwrites the whole record: an omitted field is cleared. Role lists replace that role's membership, and **an omitted or empty list removes everyone in that role** — a rename that leaves them out strips every Owner and Manager, leaving a record nobody is authorized to manage.
+Without a patch tool, every update overwrites the whole record: an omitted field is cleared. Role lists replace that role's membership, and **an omitted or empty list removes everyone in that role** — a rename that leaves them out strips every Owner and Manager, leaving a record nobody is authorized to manage.
 
 1. **Read** the record: `Portfolios_GetPortfolio`, `Programs_GetProgram`, or `Projects_GetProject`.
 2. **Copy every role list and theme set** into the request as employee or theme ids:

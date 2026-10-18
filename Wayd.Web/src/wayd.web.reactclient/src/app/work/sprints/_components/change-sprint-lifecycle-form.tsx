@@ -9,10 +9,11 @@ import {
   useStartSprintMutation,
 } from '@/src/store/features/work-management/sprints-api'
 import {
+  errorsByField,
   formatCalendarDate,
-  isApiError,
   pickerTimeZoneNote,
   sprintActiveDays,
+  toApiError,
 } from '@/src/utils'
 import { disabledTimeAfter } from './past-moment'
 import { Alert, DatePicker, Form, Modal, Space } from 'antd'
@@ -105,6 +106,8 @@ const ChangeSprintLifecycleForm = ({
   const [moment, setMoment] = useState<Dayjs | null>(
     () => pickable?.latest ?? dayjs(),
   )
+  // The server's errors for the moment, until it is changed.
+  const [momentErrors, setMomentErrors] = useState<string[]>()
 
   const momentInWindow =
     !pickable ||
@@ -138,9 +141,20 @@ const ChangeSprintLifecycleForm = ({
         messageApi.success(`Successfully ${pastTense[action]} sprint.`)
         return true
       } catch (error) {
-        messageApi.error(
-          (isApiError(error) ? error.detail : undefined) ?? errorMessage,
-        )
+        const apiError = toApiError(error)
+        const errors = apiError.errors
+          ? errorsByField(apiError.errors, (key) =>
+              key === 'startedAt' || key === 'completedAt'
+                ? 'moment'
+                : undefined,
+            ).moment
+          : undefined
+        if (apiError.status === 422 && errors) {
+          setMomentErrors(errors)
+          messageApi.error('Correct the validation error(s) to continue.')
+        } else {
+          messageApi.error(apiError.detail ?? errorMessage)
+        }
         return false
       }
     },
@@ -175,14 +189,19 @@ const ChangeSprintLifecycleForm = ({
             <Form.Item
               label={momentLabel}
               required
-              validateStatus={momentInWindow ? undefined : 'error'}
-              help={`Between ${pickable.earliest.format(MOMENT_FORMAT)} and ${pickable.latest ? pickable.latest.format(MOMENT_FORMAT) : 'now'}, in ${pickerTimeZoneNote(sprint.timeZone)}.`}
+              validateStatus={
+                momentInWindow && !momentErrors ? undefined : 'error'
+              }
+              help={momentErrors?.join(' ') ?? `Between ${pickable.earliest.format(MOMENT_FORMAT)} and ${pickable.latest ? pickable.latest.format(MOMENT_FORMAT) : 'now'}, in ${pickerTimeZoneNote(sprint.timeZone)}.`}
             >
               <DatePicker
                 showTime={{ format: 'h:mm A' }}
                 format={MOMENT_FORMAT}
                 value={moment}
-                onChange={setMoment}
+                onChange={(value) => {
+                  setMoment(value)
+                  setMomentErrors(undefined)
+                }}
                 minDate={pickable.earliest}
                 maxDate={pickable.latest ?? dayjs()}
                 disabledTime={disabledTimeAfter(pickable.latest ?? dayjs())}

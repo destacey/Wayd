@@ -29,7 +29,8 @@ public sealed record UpdateRoadmapMilestoneRequest : UpdateRoadmapItemRequest
         };
     }
 
-    public UpdateRoadmapItemCommand ToUpdateRoadmapItemCommand()
+    /// <inheritdoc />
+    public override UpdateRoadmapItemCommand ToUpdateRoadmapItemCommand()
     {
         return new UpdateRoadmapItemCommand(RoadmapId, ItemId, OneOf<IUpsertRoadmapActivity, IUpsertRoadmapMilestone, IUpsertRoadmapTimebox>.FromT1(new UpsertRoadmapMilestoneAdapter(this)));
     }

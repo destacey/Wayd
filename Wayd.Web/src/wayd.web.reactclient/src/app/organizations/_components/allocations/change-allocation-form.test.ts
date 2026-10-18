@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { changesFor } from './change-allocation-form'
+import { changesFor, fieldForError } from './change-allocation-form'
 
 jest.unmock('dayjs')
 
@@ -96,5 +96,18 @@ describe('changesFor', () => {
 
     expect(changes.every((c) => c.teamId === 'team-1')).toBe(true)
     expect(changes.every((c) => c.roleId === 'role-1')).toBe(true)
+  })
+})
+
+describe('fieldForError', () => {
+  it("shows a change's error on the field that set it", () => {
+    // Arrange / Act / Assert
+    expect(fieldForError('changes[1].percent')).toBe('percent')
+    expect(fieldForError('changes[0].end')).toBe('end')
+  })
+
+  it('leaves other errors to the default field names', () => {
+    // Arrange / Act / Assert
+    expect(fieldForError('employeeId')).toBeUndefined()
   })
 })

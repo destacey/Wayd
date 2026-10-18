@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Wayd.Planning.Application.Roadmaps.Commands;
+using Wayd.Planning.Application.Roadmaps.Dtos;
 
 namespace Wayd.Web.Api.Models.Planning.Roadmaps;
 
@@ -36,6 +38,23 @@ public abstract record UpdateRoadmapItemRequest
     /// The color of the Roadmap Item. This is used to display the Roadmap Item in the UI.
     /// </summary>
     public string? Color { get; set; }
+
+    /// <summary>
+    /// Creates the update request matching the item's type from its current details, for applying a patch to.
+    /// </summary>
+    /// <exception cref="ArgumentException">The details are not an activity, milestone or timebox.</exception>
+    public static UpdateRoadmapItemRequest FromDto(RoadmapItemDetailsDto dto) => dto switch
+    {
+        RoadmapActivityDetailsDto activity => UpdateRoadmapActivityRequest.FromDto(activity),
+        RoadmapMilestoneDetailsDto milestone => UpdateRoadmapMilestoneRequest.FromDto(milestone),
+        RoadmapTimeboxDetailsDto timebox => UpdateRoadmapTimeboxRequest.FromDto(timebox),
+        _ => throw new ArgumentException("Invalid roadmap item type", nameof(dto))
+    };
+
+    /// <summary>
+    /// Builds the update command for this item's type.
+    /// </summary>
+    public abstract UpdateRoadmapItemCommand ToUpdateRoadmapItemCommand();
 }
 
 public sealed class UpdateRoadmapItemRequestValidator : CustomValidator<UpdateRoadmapItemRequest>

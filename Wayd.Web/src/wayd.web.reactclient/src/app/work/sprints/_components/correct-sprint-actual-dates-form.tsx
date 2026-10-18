@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
 import { SprintDetailsDto, SprintListDto } from '@/src/services/wayd-api'
 import { useCorrectSprintActualDatesMutation } from '@/src/store/features/work-management/sprints-api'
-import { isApiError, pickerTimeZoneNote } from '@/src/utils'
+import { errorsByField, pickerTimeZoneNote, toApiError } from '@/src/utils'
 import { disabledTimeAfter } from './past-moment'
 import { DatePicker, Flex, Form, Modal, Space, Typography } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
@@ -81,11 +81,16 @@ const CorrectSprintActualDatesForm = ({
     Object.fromEntries(sprints.map((s) => [s.id, actualDatesOf(s)])),
   )
 
-  const setDate = (id: string, field: keyof ActualDates, value: Dayjs | null) =>
+  // The server's errors, keyed `${sprintId}.${field}`, until that date changes.
+  const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
+
+  const setDate = (id: string, field: keyof ActualDates, value: Dayjs | null) => {
     setDates((current) => ({
       ...current,
       [id]: { ...current[id], [field]: value },
     }))
+    setServerErrors(({ [`${id}.${field}`]: _, ...rest }) => rest)
+  }
 
   const completedBeforeStarted = (id: string) => {
     const { started, completed } = dates[id]
@@ -95,15 +100,18 @@ const CorrectSprintActualDatesForm = ({
   // A typed time can still pass the picker's limits.
   const inFuture = (value: Dayjs | null) => !!value && value.isAfter(dayjs())
 
-  const fieldError = (id: string, field: keyof ActualDates) =>
+  const clientError = (id: string, field: keyof ActualDates) =>
     inFuture(dates[id][field])
       ? "Can't be in the future."
       : field === 'completed' && completedBeforeStarted(id)
         ? 'Must be after the start.'
         : undefined
 
+  const fieldError = (id: string, field: keyof ActualDates) =>
+    clientError(id, field) ?? serverErrors[`${id}.${field}`]
+
   const invalid = sprints.some(
-    (s) => fieldError(s.id, 'started') || fieldError(s.id, 'completed'),
+    (s) => clientError(s.id, 'started') || clientError(s.id, 'completed'),
   )
   const changed = sprints.filter((s) => isChanged(s, dates[s.id]))
 
@@ -124,9 +132,27 @@ const CorrectSprintActualDatesForm = ({
         messageApi.success('Successfully corrected the actual dates.')
         return true
       } catch (error) {
-        messageApi.error(
-          (isApiError(error) ? error.detail : undefined) ?? errorMessage,
-        )
+        const apiError = toApiError(error)
+        // `sprints[i]` is the i-th sprint sent, which is the i-th changed one.
+        const errors = apiError.errors
+          ? errorsByField(apiError.errors, (key) => {
+              const match = /^sprints\[(\d+)\]\.(started|completed)$/.exec(
+                key,
+              )
+              const sent = match ? changed[Number(match[1])] : undefined
+              return sent ? `${sent.id}.${match![2]}` : undefined
+            })
+          : {}
+        if (apiError.status === 422 && Object.keys(errors).length > 0) {
+          setServerErrors(
+            Object.fromEntries(
+              Object.entries(errors).map(([name, e]) => [name, e.join(' ')]),
+            ),
+          )
+          messageApi.error('Correct the validation error(s) to continue.')
+        } else {
+          messageApi.error(apiError.detail ?? errorMessage)
+        }
         return false
       }
     },

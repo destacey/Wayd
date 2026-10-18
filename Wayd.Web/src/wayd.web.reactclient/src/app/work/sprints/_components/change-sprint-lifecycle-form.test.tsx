@@ -1,7 +1,7 @@
 // The picker compares and formats real moments; the global mock only stubs format.
 jest.unmock('dayjs')
 
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   SprintDetailsDto,
@@ -258,5 +258,29 @@ describe('ChangeSprintLifecycleForm', () => {
     // Assert
     expect(screen.queryByLabelText('Started')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Completed')).not.toBeInTheDocument()
+  })
+
+  it("marks the moment when the API's validation names it", async () => {
+    // Arrange
+    startSprint.mockResolvedValue({
+      error: {
+        status: 422,
+        errors: { StartedAt: ['Started must be within the start window.'] },
+      },
+    })
+    renderForm(SprintLifecycleAction.Start)
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Start Sprint' })),
+    )
+
+    // Assert
+    expect(errorMessage).toHaveBeenCalledWith(
+      'Correct the validation error(s) to continue.',
+    )
+    expect(
+      await screen.findByText('Started must be within the start window.'),
+    ).toBeInTheDocument()
   })
 })

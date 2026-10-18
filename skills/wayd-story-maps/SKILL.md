@@ -41,7 +41,8 @@ Tasks may also have:
 - **Archived maps** — the list excludes archived maps unless `includeArchived: true`. An archived map can be read or deleted but refuses every other change
 - **Feature flag** — story maps are gated by the `StoryMaps` feature flag; if the instance has it disabled the endpoints return 404
 - **Ordering** — `newOrder` values are zero-based positions among siblings
-- **Persona sets replace** — `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` replace the full tag set; include every persona ID that should remain
+- **Persona tags: patch on the hosted server** — `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` tag one more persona with `[{ "op": "add", "path": "/personaIds/-", "value": "<personaId>" }]` and keep the rest; to untag, `replace` `/personaIds` with the ids that stay
+- **Persona sets replace** — otherwise `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` replace the full tag set; include every persona ID that should remain
 
 ## Instructions
 

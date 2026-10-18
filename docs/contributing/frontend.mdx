@@ -68,6 +68,49 @@ An array of calendar dates (`List<LocalDate>`, such as a sprint's holidays) is t
 same way. The template cannot see an array's item format, so an array of instants would be typed
 `string[]` too; the API publishes none, and its elements would arrive as strings regardless.
 
+## Form Validation Errors
+
+**Every form marks the fields the API's validation names.** A request that fails validation returns 422
+with an `errors` object keyed by request property (`{ "End": ["..."] }`). Put each message on its field
+so the person sees exactly what to fix, and show a short toast as well. Any other failure — a 400 from a
+domain rule, which belongs to no single field — shows its `detail` in the toast.
+
+```typescript
+} catch (error) {
+  const apiError = toApiError(error)
+  if (apiError.status === 422 && apiError.errors) {
+    form.setFields(toFormErrors(apiError.errors))
+    messageApi.error('Correct the validation error(s) to continue.')
+  } else {
+    messageApi.error(apiError.detail ?? 'Failed to save the widget.')
+  }
+  return false
+}
+```
+
+`useModalForm` passes the form instance to `onSubmit` as its second argument for this.
+
+**Read the error with `toApiError`, not `isApiError`.** The generated client returns the problem details
+only for a status the endpoint documents. Most endpoints do not document 422, so their validation
+failures arrive as an `ApiException` with the body in `response`, and `isApiError(error) ? error : {}`
+finds no `errors` — the form falls back to a toast and marks nothing. `toApiError` reads both.
+
+`toFormErrors` matches a key to a field of the same name, whatever its casing. When a field is named
+differently from the request property it sets, pass `fieldFor` to say where the error goes:
+
+- **A date range picker** holding a required start and end sends two properties from one field. Use
+  `rangeErrorsOn`: `toFormErrors(apiError.errors, { fieldFor: rangeErrorsOn('dates') })`, or
+  `rangeErrorsOn('plannedRange', 'plannedStart', 'plannedEnd')` for other property names.
+- **A list of rows** (`iterations[2].end`) returns a name path to that row's field, such as
+  `['iterations', 2, 'dates']`.
+
+A form that keeps its values in component state rather than antd fields — one picker per sprint, one
+rating per criterion — uses `errorsByField` to get the messages by its own names, holds them in state,
+shows them through the `Form.Item`'s `validateStatus` and `help`, and clears one when its value changes.
+
+To test one, wrap the submitting click in `act` (`await act(() => userEvent.click(save))`): the error
+state is set after the request settles, and outside `act` that update is never rendered.
+
 ## Styling
 
 Use **Ant Design theme tokens**. Never hardcode colors.

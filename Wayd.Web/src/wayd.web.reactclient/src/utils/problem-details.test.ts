@@ -1,4 +1,9 @@
-import toFormErrors, { isApiError } from './problem-details'
+import { ApiException } from '@/src/services/wayd-api'
+import toFormErrors, {
+  errorsByField,
+  isApiError,
+  toApiError,
+} from './problem-details'
 
 describe('isApiError', () => {
   it('returns true for object with status', () => {
@@ -15,7 +20,11 @@ describe('isApiError', () => {
 
   it('returns true for fully populated ApiError', () => {
     expect(
-      isApiError({ status: 422, detail: 'Validation failed', errors: { Key: ['must be unique'] } }),
+      isApiError({
+        status: 422,
+        detail: 'Validation failed',
+        errors: { Key: ['must be unique'] },
+      }),
     ).toBe(true)
   })
 
@@ -125,5 +134,103 @@ describe('toFormErrors', () => {
     const result = toFormErrors(problemDetails as any)
 
     expect(result).toEqual([])
+  })
+
+  it('places an error only on the field the form maps its key to', () => {
+    // Arrange
+    const problemDetails = {
+      '$.Start': ['Start is required'],
+      Name: ['Name is required'],
+    }
+
+    // Act
+    const result = toFormErrors(problemDetails, {
+      fieldFor: (key) => (key === 'start' ? ['dates'] : undefined),
+    })
+
+    // Assert
+    expect(result).toEqual([
+      { name: ['dates'], errors: ['Start is required'] },
+      { name: 'Name', errors: ['Name is required'] },
+      { name: 'name', errors: ['Name is required'] },
+    ])
+  })
+})
+
+describe('errorsByField', () => {
+  it('keeps only the keys the form maps, under its names', () => {
+    // Arrange
+    const problemDetails = {
+      'Ratings[1].Value': ['Value is required'],
+      'Ratings[1].RatingLevelId': ['Pick a level'],
+      Id: ['Id is required'],
+    }
+
+    // Act
+    const result = errorsByField(problemDetails, (key) =>
+      key.startsWith('ratings[1].') ? 'criterion-2' : undefined,
+    )
+
+    // Assert
+    expect(result).toEqual({
+      'criterion-2': ['Value is required', 'Pick a level'],
+    })
+  })
+})
+
+describe('toApiError', () => {
+  it('reads the problem details an undocumented response leaves as a string', () => {
+    // Arrange
+    const exception = new ApiException(
+      'An unexpected server error occurred.',
+      422,
+      JSON.stringify({ errors: { End: ['End is required'] } }),
+      {},
+      null,
+    )
+
+    // Act
+    const result = toApiError(exception)
+
+    // Assert
+    expect(result).toEqual({ status: 422, errors: { End: ['End is required'] } })
+  })
+
+  it('reads a body Axios has already parsed', () => {
+    // Arrange
+    const exception = new ApiException(
+      'An unexpected server error occurred.',
+      422,
+      { errors: { End: ['End is required'] } } as unknown as string,
+      {},
+      null,
+    )
+
+    // Act
+    const result = toApiError(exception)
+
+    // Assert
+    expect(result).toEqual({ status: 422, errors: { End: ['End is required'] } })
+  })
+
+  it('reads a plain-text body as the detail', () => {
+    // Arrange
+    const exception = new ApiException('Bad', 400, 'Not allowed.', {}, null)
+
+    // Act / Assert
+    expect(toApiError(exception)).toEqual({ status: 400, detail: 'Not allowed.' })
+  })
+
+  it('passes documented problem details through', () => {
+    // Arrange
+    const problem = { status: 422, errors: { Name: ['Name is required'] } }
+
+    // Act / Assert
+    expect(toApiError(problem)).toBe(problem)
+  })
+
+  it('reads anything else as no error response', () => {
+    // Arrange / Act / Assert
+    expect(toApiError(new Error('Network Error'))).toEqual({})
   })
 })

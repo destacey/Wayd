@@ -15,11 +15,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm)]
-public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDispatcher dispatcher, IValidator<UpdateProjectTaskRequest> updateProjectTaskValidator) : ControllerBase
+public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ProjectTasksController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly IValidator<UpdateProjectTaskRequest> _updateProjectTaskValidator = updateProjectTaskValidator;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
@@ -88,6 +87,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Update a project task.")]
+    [EndpointDescription("For a partial change, use Tasks_PatchProjectTask instead.")]
     [McpTool("Tasks_UpdateProjectTask", "Update a project task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -111,56 +111,31 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPatch("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Partially update a project task using JSON Patch (RFC 6902).")]
-    [EndpointDescription("Applies a JSON Patch document to update specific fields.")]
+    [EndpointDescription(
+        "Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.")]
+    [McpTool("Tasks_PatchProjectTask", "Patch a project task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> PatchProjectTask(
+    public Task<ActionResult> PatchProjectTask(
         string projectIdOrKey,
         Guid id,
         [FromBody] JsonPatchDocument<UpdateProjectTaskRequest> patchDocument,
         CancellationToken cancellationToken)
-    {
-        if (patchDocument == null)
-            return BadRequest("Patch document cannot be null.");
-
-        // Get the current task state
-        var taskDto = await _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), cancellationToken);
-        if (taskDto is null)
-            return NotFound($"Project task with ID '{id}' not found.");
-
-        // Convert DTO to UpdateProjectTaskRequest
-        var updateRequest = UpdateProjectTaskRequest.FromDto(taskDto);
-
-        // Apply the patch document to the update request
-        patchDocument.ApplyTo(updateRequest, error =>
-        {
-            ModelState.AddModelError(error.AffectedObject.GetType().Name, error.ErrorMessage);
-        });
-
-        // Validate the patched request with FluentValidation
-        var validationResult = await _updateProjectTaskValidator.ValidateAsync(updateRequest, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            foreach (var error in validationResult.Errors)
+        => this.Patch(
+            patchDocument,
+            async ct =>
             {
-                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-            }
-        }
-
-        // Return all validation errors (patch + business rules) as 422
-        if (!ModelState.IsValid)
-            return ValidationProblem(
-                modelStateDictionary: ModelState,
-                statusCode: StatusCodes.Status422UnprocessableEntity);
-
-        var result = await _dispatcher.Send(updateRequest.ToUpdateProjectTaskCommand(), cancellationToken);
-
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
+                // The command is keyed on the task alone, so a task outside the routed project must read as missing.
+                var projectId = await ResolveProjectId(projectIdOrKey, ct);
+                var task = await _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), ct);
+                return task is not null && task.ProjectId == projectId ? task : null;
+            },
+            $"Project task with ID '{id}' not found.",
+            UpdateProjectTaskRequest.FromDto,
+            (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProjectTaskCommand(), ct),
+            cancellationToken);
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]

@@ -11,7 +11,12 @@ import {
   useGetRoadmapItemQuery,
   useUpdateRoadmapItemMutation,
 } from '@/src/store/features/planning/roadmaps-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  rangeErrorsOn,
+  toApiError,
+} from '@/src/utils'
 import { Alert, DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
@@ -100,9 +105,11 @@ const EditRoadmapTimeboxForm = ({
             messageApi.success('Roadmap Timebox updated successfully.')
             return true
           } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
+            const apiError = toApiError(error)
             if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
+              const formErrors = toFormErrors(apiError.errors, {
+                fieldFor: rangeErrorsOn('range'),
+              })
               form.setFields(formErrors)
               messageApi.error('Correct the validation error(s) to continue.')
             } else {

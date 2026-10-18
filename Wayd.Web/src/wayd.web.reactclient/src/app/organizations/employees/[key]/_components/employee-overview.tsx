@@ -4,6 +4,7 @@ import { CycleTimeMetric, MetricCard } from '@/src/components/common/metrics'
 import { getCycleTimeWorkItems } from '@/src/components/common/work/cycle-time-report.filtering'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { EmployeeDetailsDto, WorkStatusCategory } from '@/src/services/wayd-api'
+import { teamUrl } from '@/src/utils'
 import {
   useGetDirectReportsQuery,
   useGetEmployeeWorkItemsQuery,
@@ -198,7 +199,7 @@ const EmployeeOverview = ({
               wrap
               justify="space-between"
             >
-              <Link href={`/organizations/teams/${m.team.key}`}>
+              <Link href={teamUrl(m.team)}>
                 {m.team.name}
               </Link>
               <Flex gap={4} wrap>

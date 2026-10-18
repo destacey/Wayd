@@ -3,7 +3,7 @@
 import { Form, Modal, Select } from 'antd'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { isApiError, type ApiError } from '@/src/utils'
+import { toFormErrors, toApiError } from '@/src/utils'
 import { useGetTeamMemberRolesQuery } from '@/src/store/features/organization/team-member-roles-api'
 import {
   TeamMemberDto,
@@ -34,7 +34,7 @@ const EditTeamMemberForm = ({ teamId, teamType, member, onFormComplete, onFormCa
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<FormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const response = await updateMember({
             teamId,
@@ -45,8 +45,13 @@ const EditTeamMemberForm = ({ teamId, teamType, member, onFormComplete, onFormCa
           messageApi.success('Team member updated.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(apiError.detail ?? 'Failed to update team member.')
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(toFormErrors(apiError.errors))
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to update team member.')
+          }
           return false
         }
       },

@@ -20029,11 +20029,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Replace a package's manifest as a whole.
         /// </summary>
         /// <remarks>
-        /// **This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.
+        /// **This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. To add or change a few lines, use ReleasePackages_PatchManifest instead. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetManifestAsync(System.Guid id, SetReleasePackageManifestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Add, change or drop lines in a package's manifest with a JSON Patch (RFC 6902), keeping every line it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to ReleasePackages_SetManifest for adding a component or changing one. The path is /components, a list of lines each with productId, versionId (optional), version and kind (Changed or CarriedForward). `add` with `/components/-` appends one line; `replace` with `/components/&lt;index&gt;/version` changes one field of the line at that index in the order ReleasePackages_GetReleasePackage returns. To drop a line, `replace` /components with every line that should remain. A package keeps at least one line, and the manifest closes once the package is released or withdrawn. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchManifestAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -20766,7 +20777,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Replace a package's manifest as a whole.
         /// </summary>
         /// <remarks>
-        /// **This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.
+        /// **This is a whole-set replacement: a line left out is removed from the package.** Components carry no identifier of their own and cannot be addressed individually, so read the package first and send back every line it should end up with. To add or change a few lines, use ReleasePackages_PatchManifest instead. The manifest closes once the package is released or withdrawn — what was in the box cannot be rewritten after the box shipped.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -20833,6 +20844,119 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Add, change or drop lines in a package's manifest with a JSON Patch (RFC 6902), keeping every line it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to ReleasePackages_SetManifest for adding a component or changing one. The path is /components, a list of lines each with productId, versionId (optional), version and kind (Changed or CarriedForward). `add` with `/components/-` appends one line; `replace` with `/components/&lt;index&gt;/version` changes one field of the line at that index in the order ReleasePackages_GetReleasePackage returns. To drop a line, `replace` /components with every line that should remain. A package keeps at least one line, and the manifest closes once the package is released or withdrawn. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchManifestAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/release-packages/{id}/manifest"
+                    urlBuilder_.Append("api/product-management/release-packages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/manifest");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -21454,7 +21578,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.
         /// </summary>
         /// <remarks>
-        /// **This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.
+        /// **This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding. To add or remove a few entries, use Releases_PatchContents instead.
         /// <br/>
         /// <br/>Contents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).
         /// <br/>
@@ -21465,6 +21589,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetContentsAsync(System.Guid id, SetReleaseContentsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Add or remove packages and directly carried versions on a release with a JSON Patch (RFC 6902), leaving the rest of its contents as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Releases_SetContents for any partial change. Paths are /packageIds and /versionIds. `add` with `/packageIds/-` appends one package id; to remove, `replace` the whole list with the set that should remain — never remove by index. A list the patch does not name keeps its contents. The release's rules apply to the result exactly as Releases_SetContents applies them: a version shipping inside one of its packages cannot also be carried directly, and contents freeze once the release is announced or withdrawn. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchContentsAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -22393,7 +22528,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.
         /// </summary>
         /// <remarks>
-        /// **This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.
+        /// **This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding. To add or remove a few entries, use Releases_PatchContents instead.
         /// <br/>
         /// <br/>Contents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).
         /// <br/>
@@ -22466,6 +22601,119 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Add or remove packages and directly carried versions on a release with a JSON Patch (RFC 6902), leaving the rest of its contents as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Releases_SetContents for any partial change. Paths are /packageIds and /versionIds. `add` with `/packageIds/-` appends one package id; to remove, `replace` the whole list with the set that should remain — never remove by index. A list the patch does not name keeps its contents. The release's rules apply to the result exactly as Releases_SetContents applies them: a version shipping inside one of its packages cannot also be carried directly, and contents freeze once the release is announced or withdrawn. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchContentsAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/releases/{id}/contents"
+                    urlBuilder_.Append("api/product-management/releases/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/contents");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -25842,11 +26090,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a portfolio's name, description, and role assignments.
         /// </summary>
         /// <remarks>
-        /// This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Portfolios_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdatePortfolioRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change some of a portfolio's details or roles with a JSON Patch (RFC 6902), leaving the rest as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Portfolios_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /sponsorIds, /ownerIds, /managerIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. Requires delivery leadership — the caller must be an Owner or Manager of the record; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchPortfolioAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -26671,7 +26930,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a portfolio's name, description, and role assignments.
         /// </summary>
         /// <remarks>
-        /// This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Portfolios_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -26737,6 +26996,118 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change some of a portfolio's details or roles with a JSON Patch (RFC 6902), leaving the rest as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Portfolios_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /sponsorIds, /ownerIds, /managerIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. Requires delivery leadership — the caller must be an Owner or Manager of the record; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchPortfolioAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/portfolios/{id}"
+                    urlBuilder_.Append("api/ppm/portfolios/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -28269,11 +28640,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a program's name, description, dates, roles, and strategic themes.
         /// </summary>
         /// <remarks>
-        /// A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Programs_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProgramRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change some of a program's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Programs_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The portfolio is not patchable. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchProgramAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -28910,7 +29292,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a program's name, description, dates, roles, and strategic themes.
         /// </summary>
         /// <remarks>
-        /// A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// A program cannot be moved to a different portfolio through this call. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Programs_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -28976,6 +29358,118 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change some of a program's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Programs_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The portfolio is not patchable. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchProgramAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/programs/{id}"
+                    urlBuilder_.Append("api/ppm/programs/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -31847,11 +32341,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.
         /// </summary>
         /// <remarks>
-        /// The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Projects_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateProjectRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change some of a project's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Projects_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /businessCase, /expectedBenefits, /expenditureCategoryId, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /memberIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The key, program and lifecycle are not patchable (Projects_ChangeKey, Projects_ChangeProgram). Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchProjectAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -31860,6 +32365,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.
+        /// </summary>
+        /// <remarks>
+        /// Use it first when recommending a health check; classifying the evidence and drafting the note stay with you, and logging the check is Projects_CreateProjectHealthCheck after the user confirms. `overdueTasks` are the open tasks the plan summary counts as overdue. A stage with `pastEndNotComplete` ended before `asOf` and is neither completed nor canceled. `forecast` is the Projects_GetForecast result against the project's end, or null with `forecastUnavailableReason` when delivery forecasting is off — leave it out of the classification then. Critical-path evidence is never available (`criticalPathUnavailableReason`); never read that as "no critical tasks". `activitySinceLatestCheck` holds the project's own changes after the latest check, newest first, without tasks or stages; `activityTruncated` means there was more. The forecast options are those of Projects_GetForecast.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ProjectHealthCheckEvidenceDto> GetHealthCheckEvidenceAsync(string idOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -32050,6 +32566,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Partially update a project stage using JSON Patch (RFC 6902).
         /// </summary>
+        /// <remarks>
+        /// Paths are the update's camelCase fields: /description, /status (a task status id from Tasks_GetTaskStatuses), /plannedStart and /plannedEnd (set both, or clear both), /progress, /assigneeIds. `replace` changes a field; `add` with `/assigneeIds/-` appends one id; to remove from the list, `replace` it with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -33244,7 +33763,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.
         /// </summary>
         /// <remarks>
-        /// The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Projects_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -33343,6 +33862,118 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Change some of a project's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to Projects_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /businessCase, /expectedBenefits, /expenditureCategoryId, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /memberIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The key, program and lifecycle are not patchable (Projects_ChangeKey, Projects_ChangeProgram). Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchProjectAsync(System.Guid id, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/{id}"
+                    urlBuilder_.Append("api/ppm/projects/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Delete a project.
         /// </summary>
         /// <returns>No Content</returns>
@@ -33402,6 +34033,122 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.
+        /// </summary>
+        /// <remarks>
+        /// Use it first when recommending a health check; classifying the evidence and drafting the note stay with you, and logging the check is Projects_CreateProjectHealthCheck after the user confirms. `overdueTasks` are the open tasks the plan summary counts as overdue. A stage with `pastEndNotComplete` ended before `asOf` and is neither completed nor canceled. `forecast` is the Projects_GetForecast result against the project's end, or null with `forecastUnavailableReason` when delivery forecasting is off — leave it out of the classification then. Critical-path evidence is never available (`criticalPathUnavailableReason`); never read that as "no critical tasks". `activitySinceLatestCheck` holds the project's own changes after the latest check, newest first, without tasks or stages; `activityTruncated` means there was more. The forecast options are those of Projects_GetForecast.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ProjectHealthCheckEvidenceDto> GetHealthCheckEvidenceAsync(string idOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/{idOrKey}/health-check-evidence"
+                    urlBuilder_.Append("api/ppm/projects/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/health-check-evidence");
+                    urlBuilder_.Append('?');
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (ignoreDependencies != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProjectHealthCheckEvidenceDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -35267,6 +36014,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Partially update a project stage using JSON Patch (RFC 6902).
         /// </summary>
+        /// <remarks>
+        /// Paths are the update's camelCase fields: /description, /status (a task status id from Tasks_GetTaskStatuses), /plannedStart and /plannedEnd (set both, or clear both), /progress, /assigneeIds. `replace` changes a field; `add` with `/assigneeIds/-` appends one id; to remove from the list, `replace` it with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -36138,6 +36888,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a project task.
         /// </summary>
+        /// <remarks>
+        /// For a partial change, use Tasks_PatchProjectTask instead.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateProjectTaskAsync(string projectIdOrKey, System.Guid id, UpdateProjectTaskRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -36147,7 +36900,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Partially update a project task using JSON Patch (RFC 6902).
         /// </summary>
         /// <remarks>
-        /// Applies a JSON Patch document to update specific fields.
+        /// Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -36578,6 +37331,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a project task.
         /// </summary>
+        /// <remarks>
+        /// For a partial change, use Tasks_PatchProjectTask instead.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateProjectTaskAsync(string projectIdOrKey, System.Guid id, UpdateProjectTaskRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -36683,7 +37439,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Partially update a project task using JSON Patch (RFC 6902).
         /// </summary>
         /// <remarks>
-        /// Applies a JSON Patch document to update specific fields.
+        /// Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -41762,6 +42518,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get everything needed to recommend a health check for a planning interval objective, in one read.
+        /// </summary>
+        /// <remarks>
+        /// Use this before recommending or logging a PI objective health check, in place of calling PlanningIntervals_GetPlanningInterval, PlanningIntervals_GetObjective, PlanningIntervals_GetObjectiveWorkItems, PlanningIntervals_GetObjectiveWorkItemMetrics, PlanningIntervals_GetObjectiveForecast, PlanningIntervals_GetObjectiveHealthChecks, PlanningIntervals_GetObjectiveActivities and PlanningIntervals_GetRisks one by one. Both ids accept a UUID or a key; an objective not in the planning interval is a 404. Returns the interval and objective; `schedule` with the effective `startDate` and `targetDate` (the interval's start or end when the objective has none, flagged `startDateDefaulted` / `targetDateDefaulted`) and `elapsedShare` of that window (0 to 1); the linked `workItems` by stack rank with their progress rollup and daily `workItemMetrics`; the delivery `forecast` against the effective target date, or null with `forecastUnavailableReason` when delivery forecasting is off; `healthChecks`, newest first; `sinceLastCheck` with the activity since the last check, the `progressAtLastCheck` and `progressChange` (percentage points), and `activityTruncated` when there is more; and `teamRisks`, the objective's team's open risks in this interval (closed ones too with includeClosedRisks=true) — risks link to a team, not to an objective. lookbackDays, ignoreDependencies and startedWorkFirst tune the forecast as on PlanningIntervals_GetObjectiveForecast. Read-only: log the check with PlanningIntervals_CreateObjectiveHealthCheck once the user agrees.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ObjectiveHealthCheckEvidenceDto> GetObjectiveHealthCheckEvidenceAsync(string idOrKey, string objectiveIdOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, bool? includeClosedRisks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the full health check history for a planning interval objective, ordered newest first.
         /// </summary>
         /// <returns>OK</returns>
@@ -45519,6 +46286,131 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get everything needed to recommend a health check for a planning interval objective, in one read.
+        /// </summary>
+        /// <remarks>
+        /// Use this before recommending or logging a PI objective health check, in place of calling PlanningIntervals_GetPlanningInterval, PlanningIntervals_GetObjective, PlanningIntervals_GetObjectiveWorkItems, PlanningIntervals_GetObjectiveWorkItemMetrics, PlanningIntervals_GetObjectiveForecast, PlanningIntervals_GetObjectiveHealthChecks, PlanningIntervals_GetObjectiveActivities and PlanningIntervals_GetRisks one by one. Both ids accept a UUID or a key; an objective not in the planning interval is a 404. Returns the interval and objective; `schedule` with the effective `startDate` and `targetDate` (the interval's start or end when the objective has none, flagged `startDateDefaulted` / `targetDateDefaulted`) and `elapsedShare` of that window (0 to 1); the linked `workItems` by stack rank with their progress rollup and daily `workItemMetrics`; the delivery `forecast` against the effective target date, or null with `forecastUnavailableReason` when delivery forecasting is off; `healthChecks`, newest first; `sinceLastCheck` with the activity since the last check, the `progressAtLastCheck` and `progressChange` (percentage points), and `activityTruncated` when there is more; and `teamRisks`, the objective's team's open risks in this interval (closed ones too with includeClosedRisks=true) — risks link to a team, not to an objective. lookbackDays, ignoreDependencies and startedWorkFirst tune the forecast as on PlanningIntervals_GetObjectiveForecast. Read-only: log the check with PlanningIntervals_CreateObjectiveHealthCheck once the user agrees.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ObjectiveHealthCheckEvidenceDto> GetObjectiveHealthCheckEvidenceAsync(string idOrKey, string objectiveIdOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, bool? includeClosedRisks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            if (objectiveIdOrKey == null)
+                throw new System.ArgumentNullException("objectiveIdOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/health-check-evidence"
+                    urlBuilder_.Append("api/planning/planning-intervals/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/objectives/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(objectiveIdOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/health-check-evidence");
+                    urlBuilder_.Append('?');
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (ignoreDependencies != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (includeClosedRisks != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("includeClosedRisks")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(includeClosedRisks, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ObjectiveHealthCheckEvidenceDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the full health check history for a planning interval objective, ordered newest first.
         /// </summary>
         /// <returns>OK</returns>
@@ -49140,7 +50032,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Partially update a roadmap item using JSON Patch (RFC 6902).
         /// </summary>
         /// <remarks>
-        /// Applies a JSON Patch document to update specific fields of an Activity, Timebox, or Milestone.
+        /// Works for an Activity, Timebox or Milestone; the item keeps its type. Paths are the update's camelCase fields: /name, /description, /parentId, /color, plus /start and /end for an activity or timebox, or /date for a milestone. `replace` changes a field; a field the patch does not name keeps its value. Confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -50531,7 +51423,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Partially update a roadmap item using JSON Patch (RFC 6902).
         /// </summary>
         /// <remarks>
-        /// Applies a JSON Patch document to update specific fields of an Activity, Timebox, or Milestone.
+        /// Works for an Activity, Timebox or Milestone; the item keeps its type. Paths are the update's camelCase fields: /name, /description, /parentId, /color, plus /start and /end for an activity or timebox, or /date for a milestone. `replace` changes a field; a field the patch does not name keeps its value. Confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -51430,11 +52322,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the personas tagged on a task.
         /// </summary>
         /// <remarks>
-        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchTaskPersonas instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetTaskPersonasAsync(System.Guid storyMapId, System.Guid taskId, SetTaskPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Tag or untag personas on a task with a JSON Patch (RFC 6902), keeping the tags it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchTaskPersonasAsync(System.Guid storyMapId, System.Guid taskId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -51584,7 +52487,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the personas tagged on a goal.
         /// </summary>
         /// <remarks>
-        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchGoalPersonas instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -51592,14 +52495,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Tag or untag personas on a goal with a JSON Patch (RFC 6902), keeping the tags it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchGoalPersonasAsync(System.Guid storyMapId, System.Guid goalId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Set the personas tagged on a step.
         /// </summary>
         /// <remarks>
-        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchStepPersonas instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task SetStepPersonasAsync(System.Guid storyMapId, System.Guid stepId, SetStepPersonasRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Tag or untag personas on a step with a JSON Patch (RFC 6902), keeping the tags it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task PatchStepPersonasAsync(System.Guid storyMapId, System.Guid stepId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -53689,7 +54614,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the personas tagged on a task.
         /// </summary>
         /// <remarks>
-        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchTaskPersonas instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -53761,6 +54686,124 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Tag or untag personas on a task with a JSON Patch (RFC 6902), keeping the tags it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchTaskPersonasAsync(System.Guid storyMapId, System.Guid taskId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (storyMapId == null)
+                throw new System.ArgumentNullException("storyMapId");
+
+            if (taskId == null)
+                throw new System.ArgumentNullException("taskId");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{storyMapId}/tasks/{taskId}/personas"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(storyMapId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/tasks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(taskId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/personas");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -55328,7 +56371,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the personas tagged on a goal.
         /// </summary>
         /// <remarks>
-        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchGoalPersonas instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -55423,10 +56466,128 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Tag or untag personas on a goal with a JSON Patch (RFC 6902), keeping the tags it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchGoalPersonasAsync(System.Guid storyMapId, System.Guid goalId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (storyMapId == null)
+                throw new System.ArgumentNullException("storyMapId");
+
+            if (goalId == null)
+                throw new System.ArgumentNullException("goalId");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{storyMapId}/goals/{goalId}/personas"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(storyMapId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/goals/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(goalId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/personas");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Set the personas tagged on a step.
         /// </summary>
         /// <remarks>
-        /// Replaces the full set — pass every persona ID that should remain tagged.
+        /// Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchStepPersonas instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -55498,6 +56659,124 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Tag or untag personas on a step with a JSON Patch (RFC 6902), keeping the tags it does not name.
+        /// </summary>
+        /// <remarks>
+        /// Prefer this to the matching Set*Personas tool for tagging or untagging a few personas. The path is /personaIds, holding persona ids from the map's personas. `add` with `/personaIds/-` tags one more persona; to untag, `replace` /personaIds with the set that should remain — never remove by index. Confirm with the user before calling.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task PatchStepPersonasAsync(System.Guid storyMapId, System.Guid stepId, System.Collections.Generic.IEnumerable<JsonPatchOperation> patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (storyMapId == null)
+                throw new System.ArgumentNullException("storyMapId");
+
+            if (stepId == null)
+                throw new System.ArgumentNullException("stepId");
+
+            if (patchDocument == null)
+                throw new System.ArgumentNullException("patchDocument");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(patchDocument, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json-patch+json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PATCH");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{storyMapId}/steps/{stepId}/personas"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(storyMapId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/steps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(stepId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/personas");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -96232,6 +97511,54 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfSetGoalPersonasRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfSetReleaseContentsRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfSetReleasePackageManifestRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfSetStepPersonasRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfSetTaskPersonasRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfUpdatePortfolioRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfUpdateProgramRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JsonPatchDocumentOfUpdateProjectRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
+    {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class JsonPatchDocumentOfUpdateProjectStageRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
     {
 
@@ -97061,6 +98388,184 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The objective's recorded changes since its last health check.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ObjectiveChangesSinceLastCheckDto
+    {
+
+        /// <summary>
+        /// When the last check was reported. Null when the objective has never been checked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lastCheckReportedOn")]
+        public System.DateTimeOffset? LastCheckReportedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's progress (0 to 100) when it was last checked. Null when it has never been
+        /// <br/>checked or the history read did not reach back that far.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progressAtLastCheck")]
+        public double? ProgressAtLastCheck { get; set; } = default!;
+
+        /// <summary>
+        /// Progress points gained (or, negative, lost) since the last check. Null when
+        /// <br/>`progressAtLastCheck` is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progressChange")]
+        public double? ProgressChange { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's activity since the last check, newest first. With no check, the most recent
+        /// <br/>entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activity")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ActivityLogDto> Activity { get; set; } = new System.Collections.ObjectModel.Collection<ActivityLogDto>();
+
+        /// <summary>
+        /// True when there is more activity in that period than is listed; page
+        /// <br/>PlanningIntervals_GetObjectiveActivities for the rest.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activityTruncated")]
+        public bool ActivityTruncated { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Everything needed to recommend a health check for one planning interval objective, gathered in
+    /// <br/>one read: the objective and its interval, its schedule, linked work and its trend, the delivery
+    /// <br/>forecast, its health check history, what changed since the last check, and its team's risks.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ObjectiveHealthCheckEvidenceDto
+    {
+
+        /// <summary>
+        /// The planning interval the objective belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planningInterval")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public PlanningIntervalDetailsDto PlanningInterval { get; set; } = new PlanningIntervalDetailsDto();
+
+        /// <summary>
+        /// The objective: status, progress, dates, team and current health check.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("objective")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public PlanningIntervalObjectiveDetailsDto Objective { get; set; } = new PlanningIntervalObjectiveDetailsDto();
+
+        /// <summary>
+        /// The objective's effective window and how much of it has passed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("schedule")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ObjectiveScheduleEvidenceDto Schedule { get; set; } = new ObjectiveScheduleEvidenceDto();
+
+        /// <summary>
+        /// The linked work items, by backlog stack rank, with their progress rollup. Null when the
+        /// <br/>objective has no linked work.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItems")]
+        public WorkItemsSummaryDto? WorkItems { get; set; } = default!;
+
+        /// <summary>
+        /// Daily progress of the linked work from the interval's start to the earlier of today and the
+        /// <br/>interval's end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItemMetrics")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkItemProgressDailyRollupDto> WorkItemMetrics { get; set; } = new System.Collections.ObjectModel.Collection<WorkItemProgressDailyRollupDto>();
+
+        /// <summary>
+        /// Monte Carlo forecast of the linked work against `schedule.targetDate`.
+        /// <br/>Null when `forecastUnavailableReason` says why.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecast")]
+        public WorkItemForecastDto? Forecast { get; set; } = default!;
+
+        /// <summary>
+        /// Why `forecast` is null, such as delivery forecasting being turned off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecastUnavailableReason")]
+        public string? ForecastUnavailableReason { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's health checks, newest first. The first is the last check.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("healthChecks")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningIntervalObjectiveHealthCheckDetailsDto> HealthChecks { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalObjectiveHealthCheckDetailsDto>();
+
+        /// <summary>
+        /// What changed on the objective since the last check.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sinceLastCheck")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ObjectiveChangesSinceLastCheckDto SinceLastCheck { get; set; } = new ObjectiveChangesSinceLastCheckDto();
+
+        /// <summary>
+        /// The objective's team's risks in this interval — open ones only unless closed risks were asked
+        /// <br/>for. Risks link to a team, not an objective, so these are the risks the team carries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamRisks")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<RiskListDto> TeamRisks { get; set; } = new System.Collections.ObjectModel.Collection<RiskListDto>();
+
+    }
+
+    /// <summary>
+    /// An objective's effective start and target, and the share of that window already past.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ObjectiveScheduleEvidenceDto
+    {
+
+        /// <summary>
+        /// The objective's start date, or the interval's start when it has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startDate")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset StartDate { get; set; } = default!;
+
+        /// <summary>
+        /// True when `startDate` is the interval's start because the objective has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startDateDefaulted")]
+        public bool StartDateDefaulted { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's target date, or the interval's end when it has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// True when `targetDate` is the interval's end because the objective has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDateDefaulted")]
+        public bool TargetDateDefaulted { get; set; } = default!;
+
+        /// <summary>
+        /// Today's date, against which `elapsedShare` is measured.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("today")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Today { get; set; } = default!;
+
+        /// <summary>
+        /// How much of the window from `startDate` to `targetDate` has passed,
+        /// <br/>from 0 (not started) to 1 (target reached or passed).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("elapsedShare")]
+        public double ElapsedShare { get; set; } = default!;
 
     }
 
@@ -99860,6 +101365,157 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         public string? Note { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Everything a project health-check recommendation weighs, gathered in one read. Classifying it and
+    /// <br/>drafting the note are left to the reader.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProjectHealthCheckEvidenceDto
+    {
+
+        /// <summary>
+        /// The date the evidence was gathered on, which overdue and past-end are measured against.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("asOf")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset AsOf { get; set; } = default!;
+
+        /// <summary>
+        /// The project: status, committed start and end, current health check and role lists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("project")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ProjectDetailsDto Project { get; set; } = new ProjectDetailsDto();
+
+        /// <summary>
+        /// Overdue, due this week, upcoming and total leaf task counts across the whole plan.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planSummary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ProjectPlanSummaryDto PlanSummary { get; set; } = new ProjectPlanSummaryDto();
+
+        /// <summary>
+        /// The open tasks (Not Started or In Progress) whose planned end has passed — the ones the plan
+        /// <br/>summary counts as overdue — with their keys, so a note can cite them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("overdueTasks")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ProjectTaskListDto> OverdueTasks { get; set; } = new System.Collections.ObjectModel.Collection<ProjectTaskListDto>();
+
+        /// <summary>
+        /// The project's stages in order; empty when no lifecycle is assigned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stages")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ProjectHealthCheckEvidenceStageDto> Stages { get; set; } = new System.Collections.ObjectModel.Collection<ProjectHealthCheckEvidenceStageDto>();
+
+        /// <summary>
+        /// The delivery forecast against the project's end, or null when it could not be produced — see
+        /// <br/>string? ProjectHealthCheckEvidenceDto.ForecastUnavailableReason.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecast")]
+        public WorkItemForecastDto? Forecast { get; set; } = default!;
+
+        /// <summary>
+        /// Why WorkItemForecastDto? ProjectHealthCheckEvidenceDto.Forecast is null; null when there is a forecast.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecastUnavailableReason")]
+        public string? ForecastUnavailableReason { get; set; } = default!;
+
+        /// <summary>
+        /// Why there is no critical-path evidence. Critical-path analysis is not implemented, so this is always
+        /// <br/>set; do not read its absence as "no critical tasks".
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("criticalPathUnavailableReason")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CriticalPathUnavailableReason { get; set; } = default!;
+
+        /// <summary>
+        /// The most recent health check, or null for a project never checked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("latestHealthCheck")]
+        public ProjectHealthCheckDetailsDto? LatestHealthCheck { get; set; } = default!;
+
+        /// <summary>
+        /// The project's activity since ProjectHealthCheckDetailsDto? ProjectHealthCheckEvidenceDto.LatestHealthCheck was reported, newest first: schedule,
+        /// <br/>status, role and detail changes. Tasks and stages are not included. For a project never checked, the
+        /// <br/>most recent entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activitySinceLatestCheck")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ActivityLogDto> ActivitySinceLatestCheck { get; set; } = new System.Collections.ObjectModel.Collection<ActivityLogDto>();
+
+        /// <summary>
+        /// True when there was more activity than was returned, so the list is not the whole story.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activityTruncated")]
+        public bool ActivityTruncated { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One stage of a project's plan, flagged when its end has passed and it is not finished.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProjectHealthCheckEvidenceStageDto
+    {
+
+        /// <summary>
+        /// The stage's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
+
+        /// <summary>
+        /// The stage's position in the lifecycle.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        public int Order { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's planned start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? Start { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's planned end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's progress, 0 to 100.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progress")]
+        public decimal Progress { get; set; } = default!;
+
+        /// <summary>
+        /// True when the stage's end is before `asOf` and it is neither completed nor canceled.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pastEndNotComplete")]
+        public bool PastEndNotComplete { get; set; } = default!;
 
     }
 
@@ -103293,6 +104949,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class SetGoalPersonasRequest
     {
 
+        /// <summary>
+        /// Every persona tagged on the goal. A list rather than a read-only one so a JSON Patch can append to it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personaIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> PersonaIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
@@ -103439,6 +105098,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class SetStepPersonasRequest
     {
 
+        /// <summary>
+        /// Every persona tagged on the step. A list rather than a read-only one so a JSON Patch can append to it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personaIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> PersonaIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
@@ -103473,6 +105135,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class SetTaskPersonasRequest
     {
 
+        /// <summary>
+        /// Every persona tagged on the task. A list rather than a read-only one so a JSON Patch can append to it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personaIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> PersonaIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();

@@ -5,11 +5,11 @@ import type { Dayjs } from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
-  isApiError,
   parseCalendarDate,
   toCalendarDate,
-  type ApiError,
+  toFormErrors,
   type CalendarDate,
+  toApiError,
 } from '@/src/utils'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
@@ -94,6 +94,13 @@ export const changesFor = (
     : [entered]
 }
 
+/**
+ * Shows the server's errors for a change on the field that set it. Every change
+ * in a request comes from the same fields, so the index does not matter.
+ */
+export const fieldForError = (key: string) =>
+  /^changes\[\d+\]\.(\w+)$/.exec(key)?.[1]
+
 const ChangeAllocationForm = ({
   employeeId,
   employeeName,
@@ -116,7 +123,7 @@ const ChangeAllocationForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<FormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const response = await changeAllocations({
             employeeId: employeeId ?? values.employeeId!,
@@ -131,8 +138,17 @@ const ChangeAllocationForm = ({
           messageApi.success('Allocation saved.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(apiError.detail ?? 'Failed to save the allocation.')
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(
+              toFormErrors(apiError.errors, {
+                fieldFor: fieldForError,
+              }),
+            )
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to save the allocation.')
+          }
           return false
         }
       },

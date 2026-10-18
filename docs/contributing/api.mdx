@@ -158,6 +158,28 @@ values; a new kind of pass that writes differently needs its own case there.
 - Use `CancellationToken` in all async endpoints
 - Validate input through FluentValidation (run automatically by the Wolverine handler pipeline)
 
+### Partial updates
+
+A record has one Update (or Set) command, and a full and a partial update share it. PUT sends the whole
+request to the command. PATCH takes a `JsonPatchDocument<TRequest>` (RFC 6902) over the same request type and
+returns `this.Patch(...)` from `JsonPatchControllerExtensions`: it loads the record with the existing Get query,
+converts it with the request's static `FromDto`, applies the patch, validates with the request's
+`IValidator<TRequest>` (a request with none throws, so register one), and sends the same command. It answers
+204, 404 when the record is missing, 422 with every patch and validation error, and 400 when the domain refuses.
+Never write a separate merge command for a partial change.
+
+`FromDto` is where the two can drift apart: a request property it leaves unset is cleared by every patch. Each
+patch endpoint has a test in `Wayd.Web.Api.Tests/Sut/Models/` that converts a fully populated DTO and calls
+`PatchRequestAssertions.ShouldSetEveryProperty`, excluding (with a comment) only properties the record has no
+source for. A list in the request is a `List<T>`, so a patch can append with `/listName/-`. Take the record's
+ids from the route, not from the patched request. To offer the patch to agents, mark it `[McpTool]` with the
+full tool's name and its verb swapped for `Patch` (`Projects_Update` → `Projects_Patch`), and say in its
+description which paths exist.
+
+A patch reads the record and then sends the whole request, with no concurrency check between the two, so two
+patches that append to the same list at once can lose one append. That is the same exposure as a full update
+from an edit form.
+
 ### Closed sets and entities
 
 Before exposing a set of values, decide which kind it is. The question is whether code branches on

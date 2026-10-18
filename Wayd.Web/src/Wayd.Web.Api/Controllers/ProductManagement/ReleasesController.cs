@@ -1,4 +1,5 @@
 using CsvHelper;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Microsoft.FeatureManagement.Mvc;
@@ -266,7 +267,7 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [EndpointSummary(
         "Set everything a release announces — the packages it shipped and the versions it carries directly — in one call.")]
     [EndpointDescription(
-        "**This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding.\n\nContents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).\n\n**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.\n\nAn empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.")]
+        "**This is a whole-set replacement of both routes: anything left out is removed, and sending two empty lists clears the release entirely.** Read the release first and send back the full intended result, not just what you are adding. To add or remove a few entries, use Releases_PatchContents instead.\n\nContents arrive two ways and a release may use both: packages (the usual route, since a package is the deployment unit) and versions carried directly (for a single artifact that shipped alone, where nobody assembled a package).\n\n**A version shipping inside one of the supplied packages cannot also be carried directly** — that would announce the same shipment twice. The rule is judged against what the release ends up containing, so moving a version out of the direct list and into a package that ships it is allowed in this one call. A manifest line naming no version record covers nothing and never conflicts.\n\nAn empty release is legitimate rather than a draft: a repackaging or a pricing change is announced with nothing deployed. Contents freeze once the release is announced or withdrawn.")]
     [McpTool("Releases_SetContents", "Set what a release announces", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -280,6 +281,27 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPatch("{id}/contents")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
+    [EndpointSummary(
+        "Add or remove packages and directly carried versions on a release with a JSON Patch (RFC 6902), leaving the rest of its contents as they are.")]
+    [EndpointDescription(
+        "Prefer this to Releases_SetContents for any partial change. Paths are /packageIds and /versionIds. `add` with `/packageIds/-` appends one package id; to remove, `replace` the whole list with the set that should remain — never remove by index. A list the patch does not name keeps its contents. The release's rules apply to the result exactly as Releases_SetContents applies them: a version shipping inside one of its packages cannot also be carried directly, and contents freeze once the release is announced or withdrawn. Confirm with the user before calling.")]
+    [McpTool("Releases_PatchContents", "Patch what a release announces")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<ActionResult> PatchContents(
+        Guid id, [FromBody] JsonPatchDocument<SetReleaseContentsRequest> patchDocument, CancellationToken cancellationToken)
+        => this.Patch(
+            patchDocument,
+            ct => _dispatcher.Send(new GetReleaseQuery(new IdOrKey(id)), ct),
+            $"Release with ID '{id}' not found.",
+            SetReleaseContentsRequest.FromDto,
+            (request, ct) => _dispatcher.Send(new SetReleaseContentsCommand(id, request.VersionIds, request.PackageIds), ct),
+            cancellationToken);
 
     [HttpPut("{id}/target-date")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]

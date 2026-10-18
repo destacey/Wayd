@@ -12,7 +12,12 @@ import {
   useUpdateProjectMutation,
 } from '@/src/store/features/ppm/projects-api'
 import { useGetStrategicThemeOptionsQuery } from '@/src/store/features/strategic-management/strategic-themes-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  rangeErrorsOn,
+  toApiError,
+} from '@/src/utils'
 import { projectHelpText } from './project-help-text'
 import { DatePicker, Form, Modal, Select } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
@@ -97,9 +102,11 @@ const EditProjectForm = ({
             messageApi.success('Project updated successfully.')
             return true
           } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
+            const apiError = toApiError(error)
             if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
+              const formErrors = toFormErrors(apiError.errors, {
+                fieldFor: rangeErrorsOn('dateRange'),
+              })
               form.setFields(formErrors)
               messageApi.error('Correct the validation error(s) to continue.')
             } else {
@@ -155,7 +162,7 @@ const EditProjectForm = ({
       )
       messageApi.error(
         (isApiError(expenditureOptionsError) ? expenditureOptionsError.detail : undefined) ??
-          (isApiError(error) ? error.detail : undefined) ??
+          toApiError(error).detail ??
           (isApiError(employeeOptionsError) ? employeeOptionsError.detail : undefined) ??
           (isApiError(strategicThemeOptionsError) ? strategicThemeOptionsError.detail : undefined) ??
           'An error occurred while loading form data. Please try again.',

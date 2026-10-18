@@ -470,6 +470,90 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
     }
 
     [Fact]
+    public async Task EmployeeDeactivated_RedeliveredAfterTheAllocationsWereCorrected_KeepsTheCorrection()
+    {
+        // Arrange — deactivated a day before FixedNow; someone then extends the allocation to the real last day
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        var started = new LocalDate(2026, 1, 1);
+        var realLastDay = new LocalDate(2026, 1, 31);
+        var deactivatedAt = SqlServerDbContextFixture.FixedNow.Minus(Duration.FromDays(1));
+        await AllocateAt(deactivatedAt.Minus(Duration.FromDays(7)), seeded.EmployeeId, cancellationToken,
+            new AllocationChange(seeded.TeamAId, null, started, null, 60),
+            new AllocationChange(seeded.TeamBId, null, started, null, 40));
+        await SetActive(seeded.EmployeeId, false, cancellationToken, deactivatedAt);
+        var @event = new EmployeeDeactivatedEvent(seeded.EmployeeId, EventActor.System, deactivatedAt);
+
+        await using (var firstContext = _fixture.CreateContext())
+        {
+            await DeactivationHandler(firstContext).Handle(@event, cancellationToken);
+        }
+
+        await using (var changeContext = _fixture.CreateContext())
+        {
+            var corrected = await ChangeHandler(changeContext, Administrator()).Handle(
+                new ChangeEmployeeAllocationsCommand(seeded.EmployeeId, [new AllocationChange(seeded.TeamAId, null, started, realLastDay, 60)]),
+                cancellationToken);
+            corrected.IsSuccess.Should().BeTrue(corrected.IsFailure ? corrected.Error : null);
+        }
+
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await DeactivationHandler(context).Handle(@event, cancellationToken);
+
+        // Assert
+        await using var assertContext = _fixture.CreateContext();
+        var allocations = await assertContext.EmployeeTeamAllocations.Where(a => a.EmployeeId == seeded.EmployeeId).ToListAsync(cancellationToken);
+        allocations.Select(a => (a.TeamId, a.Start, a.End, a.Percent)).Should().BeEquivalentTo(
+        [
+            (seeded.TeamAId, started, (LocalDate?)realLastDay, 60),
+            (seeded.TeamBId, started, (LocalDate?)new LocalDate(2026, 1, 14), 40),
+        ]);
+    }
+
+    [Fact]
+    public async Task EmployeeDeactivated_DeliveredLateAfterTheAllocationsWereChanged_EndsOnlyOpenAllocations()
+    {
+        // Arrange — the change lands before the event is first handled, leaving team B open-ended
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeded = await Seed(cancellationToken);
+        var started = new LocalDate(2026, 1, 1);
+        var realLastDay = new LocalDate(2026, 1, 31);
+        var deactivatedAt = SqlServerDbContextFixture.FixedNow.Minus(Duration.FromDays(1));
+        await AllocateAt(deactivatedAt.Minus(Duration.FromDays(7)), seeded.EmployeeId, cancellationToken,
+            new AllocationChange(seeded.TeamAId, null, started, null, 60),
+            new AllocationChange(seeded.TeamBId, null, started, null, 40));
+        await SetActive(seeded.EmployeeId, false, cancellationToken, deactivatedAt);
+
+        await using (var changeContext = _fixture.CreateContext())
+        {
+            var corrected = await ChangeHandler(changeContext, Administrator()).Handle(
+                new ChangeEmployeeAllocationsCommand(seeded.EmployeeId,
+                [
+                    new AllocationChange(seeded.TeamAId, null, started, null, 0),
+                    new AllocationChange(seeded.TeamAId, null, started, realLastDay, 60),
+                ]),
+                cancellationToken);
+            corrected.IsSuccess.Should().BeTrue(corrected.IsFailure ? corrected.Error : null);
+        }
+
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await DeactivationHandler(context).Handle(new EmployeeDeactivatedEvent(seeded.EmployeeId, EventActor.System, deactivatedAt), cancellationToken);
+
+        // Assert
+        await using var assertContext = _fixture.CreateContext();
+        var allocations = await assertContext.EmployeeTeamAllocations.Where(a => a.EmployeeId == seeded.EmployeeId).ToListAsync(cancellationToken);
+        allocations.Select(a => (a.TeamId, a.Start, a.End, a.Percent)).Should().BeEquivalentTo(
+        [
+            (seeded.TeamAId, started, (LocalDate?)realLastDay, 60),
+            (seeded.TeamBId, started, (LocalDate?)new LocalDate(2026, 1, 14), 40),
+        ]);
+    }
+
+    [Fact]
     public async Task Change_ByAnAdministratorWhoIsNotAMember_Succeeds()
     {
         // Arrange
@@ -605,11 +689,14 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         return (employee.Id, teamA.Id, teamB.Id, role.Id);
     }
 
-    private async Task Allocate(Guid employeeId, CancellationToken cancellationToken, params AllocationChange[] changes)
+    private Task Allocate(Guid employeeId, CancellationToken cancellationToken, params AllocationChange[] changes) =>
+        AllocateAt(SqlServerDbContextFixture.FixedNow, employeeId, cancellationToken, changes);
+
+    private async Task AllocateAt(Instant at, Guid employeeId, CancellationToken cancellationToken, params AllocationChange[] changes)
     {
         await using var context = _fixture.CreateContext();
         var capacity = EmployeeCapacity.Create(employeeId);
-        capacity.ChangeAllocations(changes, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+        capacity.ChangeAllocations(changes, EventActor.System, at).IsSuccess.Should().BeTrue();
         await context.EmployeeCapacities.AddAsync(capacity, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
     }

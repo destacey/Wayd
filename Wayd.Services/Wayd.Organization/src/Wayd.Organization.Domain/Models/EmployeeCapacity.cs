@@ -139,6 +139,25 @@ public sealed class EmployeeCapacity : BaseAuditableEntity
         EndAfter(lastDay, _ => true, actor, timestamp);
 
     /// <summary>
+    /// Ends the employee's allocations that have no end, leaving every allocation with an end as it is: one that
+    /// started by <paramref name="lastDay"/> ends that day, and one starting later is removed.
+    /// </summary>
+    public Result EndOpenAllocations(LocalDate lastDay, EventActor actor, Instant timestamp)
+    {
+        var target = Current();
+        var firstDayOff = lastDay.PlusDays(1);
+
+        // An open allocation is the last of its team and role, so clearing from its start, or the day after
+        // the last day when it started earlier, reaches nothing else of theirs.
+        foreach (var open in target.Where(a => a.End is null).ToList())
+        {
+            target = AllocationTimeline.Set(target, new AllocationChange(open.TeamId, open.RoleId, LocalDate.Max(open.Start, firstDayOff), null, 0));
+        }
+
+        return Apply(target, actor, timestamp);
+    }
+
+    /// <summary>
     /// Ends the employee's time on one team, in every role, after <paramref name="lastDay"/>: an allocation
     /// running past it ends that day, and one starting later is removed. What came before, and the time on
     /// every other team, is kept.

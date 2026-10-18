@@ -160,7 +160,7 @@ npx skills add destacey/Wayd
 
 Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-products`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, `/wayd-users`, or `/wayd-imports`.
 
-Clients that don't load skills still receive the rules that apply to every tool: the server sends them as MCP `instructions` when a client connects — updates overwrite the whole record, which parameters accept a key, and that status changes and deletes need the user's confirmation.
+Clients that don't load skills still receive the rules that apply to every tool: the server sends them as MCP `instructions` when a client connects — updates overwrite the whole record, which parameters accept a key, and that status changes and deletes need the user's confirmation. They also name the workflows whose recipe a tool description carries: recommending and logging a project or PI objective health check is described on `Projects_CreateProjectHealthCheck` and `PlanningIntervals_CreateObjectiveHealthCheck`, so an agent without the skills still gathers the evidence first and waits for the user's confirmation before logging.
 
 ## Confirmation before status changes
 

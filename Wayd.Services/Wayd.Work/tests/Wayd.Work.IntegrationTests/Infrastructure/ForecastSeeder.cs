@@ -124,7 +124,8 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         Guid? parentId = null,
         Guid? projectId = null,
         Guid? parentProjectId = null,
-        double? storyPoints = null)
+        double? storyPoints = null,
+        Instant? activated = null)
     {
         var id = Guid.CreateVersion7();
         var number = _nextNumber++;
@@ -134,6 +135,7 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         // Rows are created in order, so creation date breaks rank ties the way it would in a sync.
         var created = Instant.FromUtc(2026, 1, 1, 0, 0).Plus(Duration.FromMinutes(number)).ToDateTimeUtc();
         var doneAt = done?.ToDateTimeUtc();
+        var activatedAt = activated?.ToDateTimeUtc();
 
         await using var context = _fixture.CreateContext();
         await context.Database.ExecuteSqlInterpolatedAsync(
@@ -143,17 +145,45 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
 
             INSERT INTO [Work].[WorkItems]
                 ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
-                 [StatusCategory], [Created], [LastModified], [StackRank], [DoneTimestamp],
+                 [StatusCategory], [Created], [LastModified], [StackRank], [ActivatedTimestamp], [DoneTimestamp],
                  [TeamId], [ParentId], [ProjectId], [ParentProjectId], [StoryPoints],
                  [SystemCreated], [SystemLastModified])
             VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId,
-                    {category}, {created}, {created}, {stackRank}, {doneAt},
+                    {category}, {created}, {created}, {stackRank}, {activatedAt}, {doneAt},
                     {teamId}, {parentId}, {projectId}, {parentProjectId}, {storyPoints},
                     SYSUTCDATETIME(), SYSUTCDATETIME());
             """,
             cancellationToken);
 
         return (id, key);
+    }
+
+    /// <summary>One history period of a seeded item, as a "Forecast Story" in <paramref name="statusCategory"/>.</summary>
+    public async Task AddPeriod(Guid workItemId, int revision, Instant from, Instant? to, WorkStatusCategory statusCategory, CancellationToken cancellationToken, double? storyPoints = null)
+    {
+        var validFrom = from.ToDateTimeUtc();
+        var validTo = to?.ToDateTimeUtc();
+        var category = statusCategory.ToString();
+
+        await using var context = _fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO [Work].[WorkItemStateHistory]
+                ([WorkItemId], [WorkspaceId], [Revision], [ValidFrom], [ValidTo],
+                 [StatusName], [StatusCategory], [WorkTypeId], [WorkTypeName], [StoryPoints])
+            SELECT {workItemId}, {_workspaceId}, {revision}, {validFrom}, {validTo},
+                   {category}, {category}, [Id], [Name], {storyPoints}
+            FROM [Work].[WorkTypes] WHERE [Name] = 'Forecast Story';
+            """,
+            cancellationToken);
+    }
+
+    /// <summary>Records that the seeded workspace's history has been read through to the end.</summary>
+    public async Task MarkHistoryReadToEnd(CancellationToken cancellationToken)
+    {
+        await using var context = _fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [Work].[Workspaces] SET [WorkItemHistoryBackfilledOn] = SYSUTCDATETIME() WHERE [Id] = {_workspaceId};", cancellationToken);
     }
 
     public async Task AddDependency(Guid predecessorId, Guid successorId, CancellationToken cancellationToken)

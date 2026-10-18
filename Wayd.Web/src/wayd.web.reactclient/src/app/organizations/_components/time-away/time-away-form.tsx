@@ -10,6 +10,7 @@ import {
   isApiError,
   parseCalendarDate,
   toCalendarDate,
+  toFormErrors,
   type ApiError,
 } from '@/src/utils'
 import {
@@ -25,6 +26,7 @@ import {
 } from './time-away-duration'
 
 const { Item: FormItem } = Form
+const { RangePicker } = DatePicker
 
 interface Props {
   employeeId: string
@@ -39,8 +41,8 @@ interface Props {
 }
 
 export interface TimeAwayFormValues {
-  start: Dayjs
-  end: Dayjs
+  /** The first and last days away; the same day twice for a single day. */
+  dates: [Dayjs, Dayjs]
   duration: TimeAwayDuration
   /** The hours away each day, when the duration is in hours. */
   hours?: number
@@ -52,11 +54,23 @@ export const timeAwayRequestFor = (
   values: TimeAwayFormValues,
   workingDayHours: number,
 ) => ({
-  start: toCalendarDate(values.start),
-  end: toCalendarDate(values.end),
+  start: toCalendarDate(values.dates[0]),
+  end: toCalendarDate(values.dates[1]),
   percentAway: percentAwayFor(values.duration, values.hours, workingDayHours),
   reason: values.reason,
 })
+
+/**
+ * Shows the server's errors on the fields the person filled in: `start` and
+ * `end` on the range picker, and `percentAway` on whichever field set it.
+ */
+export const fieldForError =
+  (duration: TimeAwayDuration) =>
+  (key: string): string | undefined => {
+    if (key === 'start' || key === 'end') return 'dates'
+    if (key === 'percentAway') return duration === 'hours' ? 'hours' : 'duration'
+    return undefined
+  }
 
 const TimeAwayForm = ({
   employeeId,
@@ -73,7 +87,7 @@ const TimeAwayForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<TimeAwayFormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const request = timeAwayRequestFor(values, workingDayHours)
           const response = timeAway
@@ -88,7 +102,18 @@ const TimeAwayForm = ({
           return true
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(apiError.detail ?? 'Failed to save the time away.')
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(
+              toFormErrors(apiError.errors, {
+                fieldFor: fieldForError(values.duration),
+              }),
+            )
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ?? 'Failed to save the time away.',
+            )
+          }
           return false
         }
       },
@@ -129,36 +154,24 @@ const TimeAwayForm = ({
         layout="vertical"
         name="time-away-form"
         initialValues={{
-          start: start ? parseCalendarDate(start) : undefined,
-          end: end ? parseCalendarDate(end) : undefined,
+          dates:
+            start && end
+              ? [parseCalendarDate(start), parseCalendarDate(end)]
+              : undefined,
           duration: recorded.duration,
           hours: recorded.hours,
           reason: timeAway?.reason,
         }}
       >
-        <FormItem name="start" label="First day" rules={[{ required: true }]}>
-          <DatePicker />
-        </FormItem>
         <FormItem
-          name="end"
-          label="Last day"
-          dependencies={['start']}
-          extra="The same as the first day for a single day."
+          name="dates"
+          label="Date Range"
+          extra="Pick the same day twice for a single day."
           rules={[
-            { required: true },
-            ({ getFieldValue }) => ({
-              validator: (_, value: Dayjs | null | undefined) => {
-                const first: Dayjs | undefined = getFieldValue('start')
-                return !value || !first || !value.isBefore(first, 'day')
-                  ? Promise.resolve()
-                  : Promise.reject(
-                      new Error('The last day cannot be before the first.'),
-                    )
-              },
-            }),
+            { required: true, message: 'Select the first and last days.' },
           ]}
         >
-          <DatePicker />
+          <RangePicker />
         </FormItem>
         <FormItem
           name="duration"

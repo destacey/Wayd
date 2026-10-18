@@ -2,7 +2,13 @@
 
 import { DatePicker, Form, Input, InputNumber, Modal, Typography } from 'antd'
 import { CreatePlanningIntervalRequest } from '@/src/services/wayd-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toCalendarDate,
+  toFormErrors,
+  isApiError,
+  type ApiError,
+  rangeErrorsOn,
+} from '@/src/utils'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useCreatePlanningIntervalMutation } from '@/src/store/features/planning/planning-interval-api'
@@ -10,6 +16,7 @@ import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
 
 const { Item } = Form
+const { RangePicker } = DatePicker
 const { TextArea } = Input
 const { Text } = Typography
 
@@ -21,8 +28,8 @@ export interface CreatePlanningIntervalFormProps {
 interface CreatePlanningIntervalFormValues {
   name: string
   description?: string
-  start: Dayjs
-  end: Dayjs
+  /** The PI's first and last days. */
+  dates: [Dayjs, Dayjs]
   iterationWeeks: number
   iterationPrefix?: string
 }
@@ -33,8 +40,8 @@ const mapToRequestValues = (
   return {
     name: values.name,
     description: values.description,
-    start: values.start?.format('YYYY-MM-DD'),
-    end: values.end?.format('YYYY-MM-DD'),
+    start: toCalendarDate(values.dates[0]),
+    end: toCalendarDate(values.dates[1]),
     iterationWeeks: values.iterationWeeks,
     iterationPrefix: values.iterationPrefix,
   } as unknown as CreatePlanningIntervalRequest
@@ -62,7 +69,9 @@ const CreatePlanningIntervalForm = ({
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
           if (apiError.status === 422 && apiError.errors) {
-            const formErrors = toFormErrors(apiError.errors)
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('dates'),
+            })
             form.setFields(formErrors)
             messageApi.error('Correct the validation error(s) to continue.')
           } else {
@@ -120,11 +129,14 @@ const CreatePlanningIntervalForm = ({
             maxLength={2048}
           />
         </Item>
-        <Item label="Start" name="start" rules={[{ required: true }]}>
-          <DatePicker />
-        </Item>
-        <Item label="End" name="end" rules={[{ required: true }]}>
-          <DatePicker />
+        <Item
+          label="Date Range"
+          name="dates"
+          rules={[
+            { required: true, message: 'Select the start and end dates.' },
+          ]}
+        >
+          <RangePicker />
         </Item>
         <Item
           label="Iteration Weeks"

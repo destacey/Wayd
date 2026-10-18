@@ -12,8 +12,14 @@ import {
 } from 'antd'
 import { useEffect } from 'react'
 import { ManagePlanningIntervalDatesRequest } from '@/src/services/wayd-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import dayjs, { type Dayjs } from 'dayjs'
+import {
+  parseCalendarDate,
+  toCalendarDate,
+  toFormErrors,
+  isApiError,
+  type ApiError,
+} from '@/src/utils'
+import { type Dayjs } from 'dayjs'
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
@@ -25,6 +31,7 @@ import {
 import { useModalForm } from '@/src/hooks'
 
 const { Item, List } = Form
+const { RangePicker } = DatePicker
 
 export interface ManagePlanningIntervalDatesFormProps {
   id: string
@@ -37,13 +44,13 @@ interface UpsertIterationFormValues {
   iterationId?: string
   name: string
   categoryId: number
-  start: Dayjs
-  end: Dayjs
+  /** The iteration's first and last days. */
+  dates: [Dayjs, Dayjs]
 }
 
 interface ManagePlanningIntervalDatesFormValues {
-  start: Dayjs
-  end: Dayjs
+  /** The PI's first and last days. */
+  dates: [Dayjs, Dayjs]
   iterations: UpsertIterationFormValues[]
 }
 
@@ -53,16 +60,26 @@ const mapToRequestValues = (
 ) => {
   return {
     id,
-    start: values.start?.format('YYYY-MM-DD'),
-    end: values.end?.format('YYYY-MM-DD'),
+    start: toCalendarDate(values.dates[0]),
+    end: toCalendarDate(values.dates[1]),
     iterations: values.iterations.map((iteration) => ({
       iterationId: iteration.iterationId,
       name: iteration.name,
       categoryId: iteration.categoryId,
-      start: iteration.start?.format('YYYY-MM-DD'),
-      end: iteration.end?.format('YYYY-MM-DD'),
+      start: toCalendarDate(iteration.dates[0]),
+      end: toCalendarDate(iteration.dates[1]),
     })),
   } as unknown as ManagePlanningIntervalDatesRequest
+}
+
+/**
+ * Shows the server's `start` and `end` errors on the range picker that holds
+ * both, for the PI and for each iteration row.
+ */
+export const fieldForError = (key: string) => {
+  if (key === 'start' || key === 'end') return 'dates'
+  const iteration = /^iterations\[(\d+)\]\.(start|end)$/.exec(key)
+  return iteration ? ['iterations', Number(iteration[1]), 'dates'] : undefined
 }
 
 const ManagePlanningIntervalDatesForm = ({
@@ -99,7 +116,9 @@ const ManagePlanningIntervalDatesForm = ({
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
           if (apiError.status === 422 && apiError.errors) {
-            const formErrors = toFormErrors(apiError.errors)
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: fieldForError,
+            })
             form.setFields(formErrors)
             messageApi.error('Correct the validation error(s) to continue.')
           } else {
@@ -122,14 +141,18 @@ const ManagePlanningIntervalDatesForm = ({
   useEffect(() => {
     if (!planningIntervalData || !iterationsData) return
     form.setFieldsValue({
-      start: dayjs(planningIntervalData.start),
-      end: dayjs(planningIntervalData.end),
+      dates: [
+        parseCalendarDate(planningIntervalData.start),
+        parseCalendarDate(planningIntervalData.end),
+      ],
       iterations: iterationsData.map((iteration) => ({
         iterationId: iteration.id,
         name: iteration.name,
         categoryId: iteration.category.id,
-        start: dayjs(iteration.start),
-        end: dayjs(iteration.end),
+        dates: [
+          parseCalendarDate(iteration.start),
+          parseCalendarDate(iteration.end),
+        ],
       })),
     })
   }, [planningIntervalData, iterationsData, form])
@@ -152,29 +175,22 @@ const ManagePlanningIntervalDatesForm = ({
         layout="vertical"
         name="manage-planning-interval-dates-form"
       >
-        <Item label="Start" name="start" rules={[{ required: true }]}>
-          <DatePicker />
-        </Item>
         <Item
-          label="End"
-          name="end"
-          dependencies={['start']}
+          label="Date Range"
+          name="dates"
           rules={[
-            { required: true },
-            ({ getFieldValue }) => ({
-              validator(_, value) {
-                const start = getFieldValue('start')
-                if (!value || !start || start < value) {
-                  return Promise.resolve()
-                }
-                return Promise.reject(
-                  new Error('End date must be after start date'),
-                )
-              },
-            }),
+            { required: true, message: 'Select the start and end dates.' },
+            {
+              validator: (_, value?: [Dayjs, Dayjs]) =>
+                !value || value[1].isAfter(value[0], 'day')
+                  ? Promise.resolve()
+                  : Promise.reject(
+                      new Error('End date must be after start date'),
+                    ),
+            },
           ]}
         >
-          <DatePicker />
+          <RangePicker />
         </Item>
 
         <Divider titlePlacement="start">Iterations</Divider>
@@ -220,19 +236,11 @@ const ManagePlanningIntervalDatesForm = ({
                         </Item>
                         <Item
                           {...restField}
-                          style={{ margin: '0' }}
-                          name={[name, 'start']}
-                          rules={[{ required: true, message: 'Missing start' }]}
+                          style={{ margin: '0', flex: 1 }}
+                          name={[name, 'dates']}
+                          rules={[{ required: true, message: 'Missing dates' }]}
                         >
-                          <DatePicker />
-                        </Item>
-                        <Item
-                          {...restField}
-                          style={{ margin: '0' }}
-                          name={[name, 'end']}
-                          rules={[{ required: true, message: 'Missing end' }]}
-                        >
-                          <DatePicker />
+                          <RangePicker style={{ width: '100%' }} />
                         </Item>
                       </Flex>
                     </Flex>

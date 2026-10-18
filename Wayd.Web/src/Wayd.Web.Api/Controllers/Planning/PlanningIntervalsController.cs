@@ -27,6 +27,7 @@ using Wayd.Web.Api.Models.Planning.PlanningIntervals;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Work.Application.WorkTeams.Queries;
 
 namespace Wayd.Web.Api.Controllers.Planning;
 
@@ -504,9 +505,9 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpGet("{idOrKey}/iterations/{iterationIdOrKey}/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
-    [EndpointSummary("Get metrics for a PI iteration aggregated across all mapped sprints.")]
+    [EndpointSummary("Get metrics for a PI iteration aggregated across its mapped sprints and Kanban teams.")]
     [EndpointDescription(
-        "Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.")]
+        "Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. A Kanban team in the planning interval with no sprint mapped to the iteration has an entry in `dateMeasuredTeamMetrics` instead, measured by the iteration's dates in the team's time zone: Requirement-tier work completed (Done-category, not Removed) by done date within them, and work in progress at the iteration's end (from work item history; now for the current iteration). Work counts for the team an item is on now. A Kanban team has no scope, so it has no total or not-started figures and adds nothing to the iteration's `totalWorkItems` or `notStartedWorkItems`, while its completed, in-progress, unestimated and cycle-time figures are in the iteration's totals; take a completion rate from the sprint entries. `isHistoryIncomplete` marks a Kanban team whose past in-progress figure may be short because its workspace's history has not been read through. The iteration's `totalEstimate` and `notStartedEstimate` are in `sprintSizingMethod`, the sprints' shared unit; its `completedEstimate` and `inProgressEstimate` are in `sizingMethod`, the unit shared by its sprints and Kanban teams. Each is null, with its totals, when they use different sizing methods: estimates in different units are never added.")]
     [McpTool("PlanningIntervals_GetIterationMetrics", "Get PI iteration metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -565,33 +566,31 @@ public class PlanningIntervalsController : ControllerBase
             };
         }).ToList();
 
-        var sizingMethod = SprintMetricsSummary.CommonSizingMethod(sprintMetricsSummaries);
-        double? EstimateTotal(Func<SprintMetricsSummary, double> estimate) =>
-            sizingMethod is null ? null : sprintMetricsSummaries.Sum(estimate);
+        var piTeamIds = await _dispatcher.Send(new GetPlanningIntervalTeamsQuery(idOrKey), cancellationToken);
+        var kanbanMetrics = await _dispatcher.Send(
+            new GetKanbanTeamsWindowMetricsQuery(PlanningIntervalIterationMetricsResponse.TeamsWithoutSprint(piTeamIds, iteration), iteration.Start, iteration.End),
+            cancellationToken);
 
-        return Ok(new PlanningIntervalIterationMetricsResponse
-        {
-            IterationId = iteration.Id,
-            IterationKey = iteration.Key,
-            IterationName = iteration.Name,
-            Start = iteration.Start,
-            End = iteration.End,
-            Category = iteration.Category,
-            TeamCount = iteration.Sprints.Select(s => s.Team.Id).Distinct().Count(),
-            SprintCount = iteration.Sprints.Count,
-            SizingMethod = sizingMethod,
-            TotalWorkItems = sprintMetricsSummaries.Sum(s => s.TotalWorkItems),
-            TotalEstimate = EstimateTotal(s => s.TotalEstimate),
-            CompletedWorkItems = sprintMetricsSummaries.Sum(s => s.CompletedWorkItems),
-            CompletedEstimate = EstimateTotal(s => s.CompletedEstimate),
-            InProgressWorkItems = sprintMetricsSummaries.Sum(s => s.InProgressWorkItems),
-            InProgressEstimate = EstimateTotal(s => s.InProgressEstimate),
-            NotStartedWorkItems = sprintMetricsSummaries.Sum(s => s.NotStartedWorkItems),
-            NotStartedEstimate = EstimateTotal(s => s.NotStartedEstimate),
-            UnestimatedWorkItems = sprintMetricsSummaries.Sum(s => s.UnestimatedWorkItems),
-            CycleTime = CycleTimeSummary.Combine(sprintMetricsSummaries.Select(s => s.CycleTime)),
-            SprintMetrics = sprintMetricsSummaries
-        });
+        var teamMetricsSummaries = kanbanMetrics
+            .Select(m => new DateMeasuredTeamMetricsSummary
+            {
+                Team = m.Team,
+                From = m.From,
+                Until = m.Until,
+                TimeZone = m.TimeZone,
+                SizingMethod = m.SizingMethod,
+                CompletedWorkItems = m.CompletedWorkItems,
+                CompletedEstimate = m.CompletedEstimate,
+                InProgressWorkItems = m.InProgressWorkItems,
+                InProgressEstimate = m.InProgressEstimate,
+                InProgressAsOf = m.InProgressAsOf,
+                UnestimatedWorkItems = m.UnestimatedWorkItems,
+                CycleTime = m.CycleTime,
+                IsHistoryIncomplete = m.IsHistoryIncomplete,
+            })
+            .ToList();
+
+        return Ok(PlanningIntervalIterationMetricsResponse.Create(iteration, sprintMetricsSummaries, teamMetricsSummaries));
     }
 
     [HttpGet("{idOrKey}/iterations/{iterationIdOrKey}/backlog")]

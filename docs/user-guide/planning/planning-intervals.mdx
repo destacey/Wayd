@@ -117,15 +117,17 @@ A PI iteration groups all matching [sprints](../work-management/sprints.mdx) fro
 
 **Overview:**
 - **Timeline progress bar** — Visual indicator of time elapsed from start to end date
-- **Team Count** — Number of distinct teams with sprints mapped to this iteration
+- **Teams** — Number of teams measured in this iteration: teams with sprints mapped to it, and the PI's Kanban teams
 - **Sprint Count** — Total number of sprints included in the aggregation
 - **Aggregate Metrics** (for Active/Completed iterations, see [Sprint Metrics](../work-management/sprints.mdx#sprint-metrics) for definitions):
   - Total/Completed/Remaining work items
-  - Completion Rate percentage
-  - Velocity
-  - Average Cycle Time across all teams' sprints
+  - Completion Rate percentage, from the sprints alone
+  - Velocity, including what Kanban teams completed
+  - Average Cycle Time across all teams' sprints and Kanban teams
 - **Team sprint cards** show each team's sprint in its own [sizing method](../organizations/index.mdx#operating-model), labelled with the unit, or switch to counting work items with the **Team Sizing / Count** selector. Teams that size in different units are never added together
 - Each started sprint's card shows the same figures as the team's sprint card on Home: **Predictability**, **Velocity**, **In Progress** (with what's not started) — or **Carried Over** once the sprint has ended — and **Say/Do**, from the sprint's [scope](../work-management/sprints.mdx#sprint-scope), and its health tag [measures delivery against the commitment](../work-management/sprints.mdx#the-sprint-overview). Until a sprint has a commitment, Completion Rate and Avg Cycle Time stand in. A future sprint shows its planned total
+- **Kanban team cards** — A [Kanban](../organizations/index.mdx#operating-model) team has no sprints, so each Kanban team in the PI is measured by the iteration's dates, counted in the team's time zone, and its card is marked **Measured by dates**. **Velocity** is the requirement-level work it moved to a Done status within those dates; work moved to Removed is not counted. **In Progress** is what was in progress at the iteration's end, or what is in progress now for the current iteration. Nothing is scoped to an iteration for a Kanban team, so **Scope** shows as not applicable, and the team adds nothing to the iteration's Total, Not Started or Completion Rate. Its completed and in-progress work does count toward the iteration's Velocity, In Progress and Avg Cycle Time. The team's reporting cadence plays no part, and work counts for the team an item is on now
+- A past iteration's in progress is read from work item history. Until a workspace's [history is complete](../work-management/sprints.mdx#sprint-scope), a Kanban team with work in it is marked **History incomplete**, as its in-progress figure may be short; a full sync of the connection completes it
 
 **Backlog:**
 - Combined sprint backlog grid showing [work items](../work-management/work-items.mdx#work-items) from all mapped sprints

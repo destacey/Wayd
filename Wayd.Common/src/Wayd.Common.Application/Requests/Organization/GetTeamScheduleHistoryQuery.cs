@@ -23,6 +23,11 @@ public sealed record GetTeamsScheduleHistoryQuery(IReadOnlyCollection<Guid> Team
 /// <param name="SizingMethod">Which of a work item's estimates the team's sprints in the period are measured in.</param>
 public sealed record TeamSchedulePeriodDto(LocalDate Start, LocalDate? End, string TimeZone, int CommitmentGraceDays, SizingMethod SizingMethod)
 {
+    /// <summary>
+    /// How the team works in the period: a Scrum team is measured by its sprints, a Kanban team by dates.
+    /// </summary>
+    public Methodology Methodology { get; init; } = Methodology.Scrum;
+
     /// <summary>The days of the week the team works in the period.</summary>
     public WorkingWeek WorkingWeek { get; init; } = WorkingWeek.MondayToFriday;
 

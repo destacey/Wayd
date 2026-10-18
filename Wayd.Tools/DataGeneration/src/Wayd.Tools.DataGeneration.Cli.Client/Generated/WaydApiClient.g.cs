@@ -42364,10 +42364,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get metrics for a PI iteration aggregated across all mapped sprints.
+        /// Get metrics for a PI iteration aggregated across its mapped sprints and Kanban teams.
         /// </summary>
         /// <remarks>
-        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.
+        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. A Kanban team in the planning interval with no sprint mapped to the iteration has an entry in `dateMeasuredTeamMetrics` instead, measured by the iteration's dates in the team's time zone: Requirement-tier work completed (Done-category, not Removed) by done date within them, and work in progress at the iteration's end (from work item history; now for the current iteration). Work counts for the team an item is on now. A Kanban team has no scope, so it has no total or not-started figures and adds nothing to the iteration's `totalWorkItems` or `notStartedWorkItems`, while its completed, in-progress, unestimated and cycle-time figures are in the iteration's totals; take a completion rate from the sprint entries. `isHistoryIncomplete` marks a Kanban team whose past in-progress figure may be short because its workspace's history has not been read through. The iteration's `totalEstimate` and `notStartedEstimate` are in `sprintSizingMethod`, the sprints' shared unit; its `completedEstimate` and `inProgressEstimate` are in `sizingMethod`, the unit shared by its sprints and Kanban teams. Each is null, with its totals, when they use different sizing methods: estimates in different units are never added.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -44479,10 +44479,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get metrics for a PI iteration aggregated across all mapped sprints.
+        /// Get metrics for a PI iteration aggregated across its mapped sprints and Kanban teams.
         /// </summary>
         /// <remarks>
-        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `sizingMethod` and estimate totals are null when its sprints use different sizing methods: estimates in different units are never added.
+        /// Each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. A Kanban team in the planning interval with no sprint mapped to the iteration has an entry in `dateMeasuredTeamMetrics` instead, measured by the iteration's dates in the team's time zone: Requirement-tier work completed (Done-category, not Removed) by done date within them, and work in progress at the iteration's end (from work item history; now for the current iteration). Work counts for the team an item is on now. A Kanban team has no scope, so it has no total or not-started figures and adds nothing to the iteration's `totalWorkItems` or `notStartedWorkItems`, while its completed, in-progress, unestimated and cycle-time figures are in the iteration's totals; take a completion rate from the sprint entries. `isHistoryIncomplete` marks a Kanban team whose past in-progress figure may be short because its workspace's history has not been read through. The iteration's `totalEstimate` and `notStartedEstimate` are in `sprintSizingMethod`, the sprints' shared unit; its `completedEstimate` and `inProgressEstimate` are in `sizingMethod`, the unit shared by its sprints and Kanban teams. Each is null, with its totals, when they use different sizing methods: estimates in different units are never added.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -93105,6 +93105,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A Kanban team's metrics for the PI Iteration, measured by the iteration's dates in the team's time zone. Nothing
+    /// <br/>is scoped to an iteration for a Kanban team, so it has no total, committed or not-started figures.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DateMeasuredTeamMetricsSummary
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public NavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// When the measured window begins: the start of the iteration's first day in the team's time zone that day,
+        /// <br/>or in its zone on the last day when it has no operating model on the first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        /// <summary>
+        /// When the measured window ends, exclusive: the start of the day after the iteration's last, in
+        /// <br/>`timeZone`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("until")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Until { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA time zone the team's operating model has on the iteration's last day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TimeZone { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate the team is measured in: its sizing method on the iteration's first day, or on its last when
+        /// <br/>its operating models begin inside the iteration.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// Requirement-tier items that reached a Done-category status within the window, by done date. Removed work is left out.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
+        public int CompletedWorkItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double CompletedEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// Requirement-tier items in an In Progress-category status at `inProgressAsOf`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
+        public int InProgressWorkItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
+        public double InProgressEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// When in progress was read: the window's end for a past iteration, now for the current one, and null for a
+        /// <br/>future one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressAsOf")]
+        public System.DateTimeOffset? InProgressAsOf { get; set; } = default!;
+
+        /// <summary>
+        /// Completed and in-progress items with no value in `sizingMethod`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
+        public int UnestimatedWorkItems { get; set; } = default!;
+
+        /// <summary>
+        /// Cycle-time rollup of the completed items.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cycleTime")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public CycleTimeSummary CycleTime { get; set; } = new CycleTimeSummary();
+
+        /// <summary>
+        /// Whether in progress for a past iteration may be short, because a workspace holding the team's work has not
+        /// <br/>had its history read through to the end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isHistoryIncomplete")]
+        public bool IsHistoryIncomplete { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DeactivateTeamOfTeamsRequest
     {
@@ -99249,7 +99340,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Response containing PI Iteration metrics aggregated across all mapped sprints.
+    /// Response containing PI Iteration metrics aggregated across the sprints mapped to it and the planning
+    /// <br/>interval's Kanban teams, which are measured by the iteration's dates.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalIterationMetricsResponse
@@ -99280,6 +99372,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Category { get; set; } = new SimpleNavigationDto();
 
+        /// <summary>
+        /// Teams measured in the iteration: those with a sprint mapped to it, and its Kanban teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamCount")]
         public int TeamCount { get; set; } = default!;
 
@@ -99287,32 +99382,56 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int SprintCount { get; set; } = default!;
 
         /// <summary>
-        /// The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null
-        /// <br/>when the sprints use different sizing methods, or there are none: estimates in different units are never
-        /// <br/>added, so the estimate totals are null too and only the counts roll up.
+        /// The sizing method every sprint and Kanban team in the iteration is measured in, which
+        /// <br/>`completedEstimate` and `inProgressEstimate` are in. Null when they use different sizing methods,
+        /// <br/>or there are none: estimates in different units are never added, so those totals are null too and only the
+        /// <br/>counts roll up.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
         public SizingMethod? SizingMethod { get; set; } = default!;
 
+        /// <summary>
+        /// The sizing method every sprint in the iteration is measured in, which `totalEstimate` and
+        /// <br/>`notStartedEstimate` are in, since only sprints add to them. Null when the sprints use different
+        /// <br/>sizing methods, or there are none. Kanban teams play no part, so this is the unit of the iteration's
+        /// <br/>backlog.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sprintSizingMethod")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod? SprintSizingMethod { get; set; } = default!;
+
+        /// <summary>
+        /// Items scoped to the iteration's sprints. Kanban teams have no scope, so they add nothing here; take a
+        /// <br/>completion rate from the sprint entries, not from this and `completedWorkItems`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
         public double? TotalEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// Items completed in the iteration's sprints, plus those the Kanban teams completed within its dates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
         public int CompletedWorkItems { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
         public double? CompletedEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// Items in progress in the iteration's sprints, plus those in progress for the Kanban teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
         public int InProgressWorkItems { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
         public double? InProgressEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// Items not started in the iteration's sprints. Kanban teams have no scope, so they add nothing here.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("notStartedWorkItems")]
         public int NotStartedWorkItems { get; set; } = default!;
 
@@ -99320,21 +99439,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public double? NotStartedEstimate { get; set; } = default!;
 
         /// <summary>
-        /// Items with no value in their own sprint's sizing method, across every sprint.
+        /// Items with no value in their own sprint's or Kanban team's sizing method, across all of them.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
         public int UnestimatedWorkItems { get; set; } = default!;
 
         /// <summary>
-        /// Cycle-time rollup across all sprints in this iteration.
+        /// Cycle-time rollup across all sprints and Kanban teams in this iteration.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cycleTime")]
         [System.ComponentModel.DataAnnotations.Required]
         public CycleTimeSummary CycleTime { get; set; } = new CycleTimeSummary();
 
+        /// <summary>
+        /// One entry per sprint mapped to the iteration.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sprintMetrics")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintMetricsSummary> SprintMetrics { get; set; } = new System.Collections.ObjectModel.Collection<SprintMetricsSummary>();
+
+        /// <summary>
+        /// One entry per Kanban team in the planning interval with no sprint mapped to the iteration, measured by the
+        /// <br/>iteration's dates rather than by a sprint.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dateMeasuredTeamMetrics")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DateMeasuredTeamMetricsSummary> DateMeasuredTeamMetrics { get; set; } = new System.Collections.ObjectModel.Collection<DateMeasuredTeamMetricsSummary>();
 
     }
 

@@ -5,6 +5,7 @@ using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Extensions;
@@ -988,6 +989,48 @@ public class PlanningIntervalsController : ControllerBase
     #endregion Objectives
 
     #region Objective Health Checks
+
+    [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/health-check-evidence")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
+    [EndpointSummary(
+        "Get everything needed to recommend a health check for a planning interval objective, in one read.")]
+    [EndpointDescription(
+        "Use this before recommending or logging a PI objective health check, in place of calling PlanningIntervals_GetPlanningInterval, PlanningIntervals_GetObjective, PlanningIntervals_GetObjectiveWorkItems, PlanningIntervals_GetObjectiveWorkItemMetrics, PlanningIntervals_GetObjectiveForecast, PlanningIntervals_GetObjectiveHealthChecks, PlanningIntervals_GetObjectiveActivities and PlanningIntervals_GetRisks one by one. Both ids accept a UUID or a key; an objective not in the planning interval is a 404. "
+        + "Returns the interval and objective; `schedule` with the effective `startDate` and `targetDate` (the interval's start or end when the objective has none, flagged `startDateDefaulted` / `targetDateDefaulted`) and `elapsedShare` of that window (0 to 1); the linked `workItems` by stack rank with their progress rollup and daily `workItemMetrics`; the delivery `forecast` against the effective target date, or null with `forecastUnavailableReason` when delivery forecasting is off; `healthChecks`, newest first; `sinceLastCheck` with the activity since the last check, the `progressAtLastCheck` and `progressChange` (percentage points), and `activityTruncated` when there is more; and `teamRisks`, the objective's team's open risks in this interval (closed ones too with includeClosedRisks=true) — risks link to a team, not to an objective. "
+        + "lookbackDays, ignoreDependencies and startedWorkFirst tune the forecast as on PlanningIntervals_GetObjectiveForecast. Read-only: log the check with PlanningIntervals_CreateObjectiveHealthCheck once the user agrees.")]
+    [McpTool("PlanningIntervals_GetObjectiveHealthCheckEvidence", "Get PI objective health check evidence")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ObjectiveHealthCheckEvidenceDto>> GetObjectiveHealthCheckEvidence(
+        string idOrKey,
+        string objectiveIdOrKey,
+        [FromServices] IFeatureFlags featureFlags,
+        [FromQuery] int? lookbackDays,
+        [FromQuery] bool? ignoreDependencies,
+        [FromQuery] bool? startedWorkFirst,
+        [FromQuery] bool? includeClosedRisks,
+        CancellationToken cancellationToken)
+    {
+        if (lookbackDays is < ForecastOptions.MinLookbackDays or > ForecastOptions.MaxLookbackDays)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                $"lookbackDays must be between {ForecastOptions.MinLookbackDays} and {ForecastOptions.MaxLookbackDays}.", HttpContext));
+
+        var options = new ForecastOptions
+        {
+            LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
+            IgnoreDependencies = ignoreDependencies ?? false,
+            StartedWorkFirst = startedWorkFirst ?? true,
+        };
+
+        var evidence = await new ObjectiveHealthCheckEvidenceComposer(_dispatcher, featureFlags, _dateTimeProvider)
+            .Compose(idOrKey, objectiveIdOrKey, options, includeClosedRisks ?? false, cancellationToken);
+
+        return evidence is not null
+            ? Ok(evidence)
+            : NotFound();
+    }
 
     [HttpGet("{id}/objectives/{objectiveId}/health-checks")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]

@@ -17688,6 +17688,84 @@ export class ProjectsClient {
     }
 
     /**
+     * Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.
+     * @param lookbackDays (optional) 
+     * @param ignoreDependencies (optional) 
+     * @param startedWorkFirst (optional) 
+     * @return OK
+     */
+    getHealthCheckEvidence(idOrKey: string, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, startedWorkFirst?: boolean | null | undefined, cancelToken?: CancelToken): Promise<ProjectHealthCheckEvidenceDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/health-check-evidence?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (ignoreDependencies !== undefined && ignoreDependencies !== null)
+            url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
+            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetHealthCheckEvidence(_response);
+        });
+    }
+
+    protected processGetHealthCheckEvidence(response: AxiosResponse): Promise<ProjectHealthCheckEvidenceDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProjectHealthCheckEvidenceDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProjectHealthCheckEvidenceDto>(null as any);
+    }
+
+    /**
      * Move a project into a different program, or out of its program entirely by passing a null programId.
      * @return No Content
      */
@@ -24864,6 +24942,90 @@ export class PlanningIntervalsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PlanningIntervalObjectiveStatusDto[]>(null as any);
+    }
+
+    /**
+     * Get everything needed to recommend a health check for a planning interval objective, in one read.
+     * @param lookbackDays (optional) 
+     * @param ignoreDependencies (optional) 
+     * @param startedWorkFirst (optional) 
+     * @param includeClosedRisks (optional) 
+     * @return OK
+     */
+    getObjectiveHealthCheckEvidence(idOrKey: string, objectiveIdOrKey: string, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, startedWorkFirst?: boolean | null | undefined, includeClosedRisks?: boolean | null | undefined, cancelToken?: CancelToken): Promise<ObjectiveHealthCheckEvidenceDto> {
+        let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/health-check-evidence?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (objectiveIdOrKey === undefined || objectiveIdOrKey === null)
+            throw new globalThis.Error("The parameter 'objectiveIdOrKey' must be defined.");
+        url_ = url_.replace("{objectiveIdOrKey}", encodeURIComponent("" + objectiveIdOrKey));
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (ignoreDependencies !== undefined && ignoreDependencies !== null)
+            url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
+            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
+        if (includeClosedRisks !== undefined && includeClosedRisks !== null)
+            url_ += "includeClosedRisks=" + encodeURIComponent("" + includeClosedRisks) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetObjectiveHealthCheckEvidence(_response);
+        });
+    }
+
+    protected processGetObjectiveHealthCheckEvidence(response: AxiosResponse): Promise<ObjectiveHealthCheckEvidenceDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ObjectiveHealthCheckEvidenceDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectiveHealthCheckEvidenceDto>(null as any);
     }
 
     /**
@@ -51625,6 +51787,69 @@ export interface ObjectIdAndKey {
     key: number;
 }
 
+/** The objective's recorded changes since its last health check. */
+export interface ObjectiveChangesSinceLastCheckDto {
+    /** When the last check was reported. Null when the objective has never been checked. */
+    lastCheckReportedOn?: Date | undefined;
+    /** The objective's progress (0 to 100) when it was last checked. Null when it has never been
+checked or the history read did not reach back that far. */
+    progressAtLastCheck?: number | undefined;
+    /** Progress points gained (or, negative, lost) since the last check. Null when
+`progressAtLastCheck` is. */
+    progressChange?: number | undefined;
+    /** The objective's activity since the last check, newest first. With no check, the most recent
+entries. */
+    activity: ActivityLogDto[];
+    /** True when there is more activity in that period than is listed; page
+PlanningIntervals_GetObjectiveActivities for the rest. */
+    activityTruncated: boolean;
+}
+
+/** Everything needed to recommend a health check for one planning interval objective, gathered in one read: the objective and its interval, its schedule, linked work and its trend, the delivery forecast, its health check history, what changed since the last check, and its team's risks. */
+export interface ObjectiveHealthCheckEvidenceDto {
+    /** The planning interval the objective belongs to. */
+    planningInterval: PlanningIntervalDetailsDto;
+    /** The objective: status, progress, dates, team and current health check. */
+    objective: PlanningIntervalObjectiveDetailsDto;
+    /** The objective's effective window and how much of it has passed. */
+    schedule: ObjectiveScheduleEvidenceDto;
+    /** The linked work items, by backlog stack rank, with their progress rollup. Null when the
+objective has no linked work. */
+    workItems?: WorkItemsSummaryDto | undefined;
+    /** Daily progress of the linked work from the interval's start to the earlier of today and the
+interval's end. */
+    workItemMetrics: WorkItemProgressDailyRollupDto[];
+    /** Monte Carlo forecast of the linked work against `schedule.targetDate`.
+Null when `forecastUnavailableReason` says why. */
+    forecast?: WorkItemForecastDto | undefined;
+    /** Why `forecast` is null, such as delivery forecasting being turned off. */
+    forecastUnavailableReason?: string | undefined;
+    /** The objective's health checks, newest first. The first is the last check. */
+    healthChecks: PlanningIntervalObjectiveHealthCheckDetailsDto[];
+    /** What changed on the objective since the last check. */
+    sinceLastCheck: ObjectiveChangesSinceLastCheckDto;
+    /** The objective's team's risks in this interval — open ones only unless closed risks were asked
+for. Risks link to a team, not an objective, so these are the risks the team carries. */
+    teamRisks: RiskListDto[];
+}
+
+/** An objective's effective start and target, and the share of that window already past. */
+export interface ObjectiveScheduleEvidenceDto {
+    /** The objective's start date, or the interval's start when it has none. */
+    startDate: string;
+    /** True when `startDate` is the interval's start because the objective has none. */
+    startDateDefaulted: boolean;
+    /** The objective's target date, or the interval's end when it has none. */
+    targetDate: string;
+    /** True when `targetDate` is the interval's end because the objective has none. */
+    targetDateDefaulted: boolean;
+    /** Today's date, against which `elapsedShare` is measured. */
+    today: string;
+    /** How much of the window from `startDate` to `targetDate` has passed,
+from 0 (not started) to 1 (target reached or passed). */
+    elapsedShare: number;
+}
+
 /** An OIDC identity provider's full configuration, as an administrator edits it. */
 export interface OidcProviderDto {
     id: string;
@@ -52517,6 +52742,57 @@ export interface ProjectHealthCheckDto {
     reportedOn: Date;
     expiration: Date;
     note?: string | undefined;
+}
+
+/** Everything a project health-check recommendation weighs, gathered in one read. Classifying it and drafting the note are left to the reader. */
+export interface ProjectHealthCheckEvidenceDto {
+    /** The date the evidence was gathered on, which overdue and past-end are measured against. */
+    asOf: string;
+    /** The project: status, committed start and end, current health check and role lists. */
+    project: ProjectDetailsDto;
+    /** Overdue, due this week, upcoming and total leaf task counts across the whole plan. */
+    planSummary: ProjectPlanSummaryDto;
+    /** The open tasks (Not Started or In Progress) whose planned end has passed — the ones the plan
+summary counts as overdue — with their keys, so a note can cite them. */
+    overdueTasks: ProjectTaskListDto[];
+    /** The project's stages in order; empty when no lifecycle is assigned. */
+    stages: ProjectHealthCheckEvidenceStageDto[];
+    /** The delivery forecast against the project's end, or null when it could not be produced — see
+string? ProjectHealthCheckEvidenceDto.ForecastUnavailableReason. */
+    forecast?: WorkItemForecastDto | undefined;
+    /** Why WorkItemForecastDto? ProjectHealthCheckEvidenceDto.Forecast is null; null when there is a forecast. */
+    forecastUnavailableReason?: string | undefined;
+    /** Why there is no critical-path evidence. Critical-path analysis is not implemented, so this is always
+set; do not read its absence as "no critical tasks". */
+    criticalPathUnavailableReason: string;
+    /** The most recent health check, or null for a project never checked. */
+    latestHealthCheck?: ProjectHealthCheckDetailsDto | undefined;
+    /** The project's activity since ProjectHealthCheckDetailsDto? ProjectHealthCheckEvidenceDto.LatestHealthCheck was reported, newest first: schedule,
+status, role and detail changes. Tasks and stages are not included. For a project never checked, the
+most recent entries. */
+    activitySinceLatestCheck: ActivityLogDto[];
+    /** True when there was more activity than was returned, so the list is not the whole story. */
+    activityTruncated: boolean;
+}
+
+/** One stage of a project's plan, flagged when its end has passed and it is not finished. */
+export interface ProjectHealthCheckEvidenceStageDto {
+    /** The stage's id. */
+    id: string;
+    /** The stage's name. */
+    name: string;
+    /** The stage's status. */
+    status: SimpleNavigationDto;
+    /** The stage's position in the lifecycle. */
+    order: number;
+    /** The stage's planned start. */
+    start?: string | undefined;
+    /** The stage's planned end. */
+    end?: string | undefined;
+    /** The stage's progress, 0 to 100. */
+    progress: number;
+    /** True when the stage's end is before `asOf` and it is neither completed nor canceled. */
+    pastEndNotComplete: boolean;
 }
 
 export interface ProjectHealthCheckSummaryDto {

@@ -14548,6 +14548,92 @@
         ]
       }
     },
+    "/api/ppm/projects/{idOrKey}/health-check-evidence": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.",
+        "description": "Use it first when recommending a health check; classifying the evidence and drafting the note stay with you, and logging the check is Projects_CreateProjectHealthCheck after the user confirms. `overdueTasks` are the open tasks the plan summary counts as overdue. A stage with `pastEndNotComplete` ended before `asOf` and is neither completed nor canceled. `forecast` is the Projects_GetForecast result against the project's end, or null with `forecastUnavailableReason` when delivery forecasting is off — leave it out of the classification then. Critical-path evidence is never available (`criticalPathUnavailableReason`); never read that as \"no critical tasks\". `activitySinceLatestCheck` holds the project's own changes after the latest check, newest first, without tasks or stages; `activityTruncated` means there was more. The forecast options are those of Projects_GetForecast.",
+        "operationId": "Projects_GetHealthCheckEvidence",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "ignoreDependencies",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectHealthCheckEvidenceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/ppm/projects/{id}/program": {
       "put": {
         "tags": [
@@ -20922,6 +21008,110 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/health-check-evidence": {
+      "get": {
+        "tags": [
+          "PlanningIntervals"
+        ],
+        "summary": "Get everything needed to recommend a health check for a planning interval objective, in one read.",
+        "description": "Use this before recommending or logging a PI objective health check, in place of calling PlanningIntervals_GetPlanningInterval, PlanningIntervals_GetObjective, PlanningIntervals_GetObjectiveWorkItems, PlanningIntervals_GetObjectiveWorkItemMetrics, PlanningIntervals_GetObjectiveForecast, PlanningIntervals_GetObjectiveHealthChecks, PlanningIntervals_GetObjectiveActivities and PlanningIntervals_GetRisks one by one. Both ids accept a UUID or a key; an objective not in the planning interval is a 404. Returns the interval and objective; `schedule` with the effective `startDate` and `targetDate` (the interval's start or end when the objective has none, flagged `startDateDefaulted` / `targetDateDefaulted`) and `elapsedShare` of that window (0 to 1); the linked `workItems` by stack rank with their progress rollup and daily `workItemMetrics`; the delivery `forecast` against the effective target date, or null with `forecastUnavailableReason` when delivery forecasting is off; `healthChecks`, newest first; `sinceLastCheck` with the activity since the last check, the `progressAtLastCheck` and `progressChange` (percentage points), and `activityTruncated` when there is more; and `teamRisks`, the objective's team's open risks in this interval (closed ones too with includeClosedRisks=true) — risks link to a team, not to an objective. lookbackDays, ignoreDependencies and startedWorkFirst tune the forecast as on PlanningIntervals_GetObjectiveForecast. Read-only: log the check with PlanningIntervals_CreateObjectiveHealthCheck once the user agrees.",
+        "operationId": "PlanningIntervals_GetObjectiveHealthCheckEvidence",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "objectiveIdOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "ignoreDependencies",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 5
+          },
+          {
+            "name": "includeClosedRisks",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 6
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectiveHealthCheckEvidenceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -51414,6 +51604,181 @@
         },
         "additionalProperties": false
       },
+      "ObjectiveChangesSinceLastCheckDto": {
+        "required": [
+          "activity",
+          "activityTruncated"
+        ],
+        "type": "object",
+        "properties": {
+          "lastCheckReportedOn": {
+            "type": "string",
+            "description": "When the last check was reported. Null when the objective has never been checked.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "progressAtLastCheck": {
+            "type": "number",
+            "description": "The objective's progress (0 to 100) when it was last checked. Null when it has never been\nchecked or the history read did not reach back that far.",
+            "format": "double",
+            "nullable": true
+          },
+          "progressChange": {
+            "type": "number",
+            "description": "Progress points gained (or, negative, lost) since the last check. Null when\n`progressAtLastCheck` is.",
+            "format": "double",
+            "nullable": true
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityLogDto"
+            },
+            "description": "The objective's activity since the last check, newest first. With no check, the most recent\nentries."
+          },
+          "activityTruncated": {
+            "type": "boolean",
+            "description": "True when there is more activity in that period than is listed; page\nPlanningIntervals_GetObjectiveActivities for the rest."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The objective's recorded changes since its last health check."
+      },
+      "ObjectiveHealthCheckEvidenceDto": {
+        "required": [
+          "planningInterval",
+          "objective",
+          "schedule",
+          "sinceLastCheck",
+          "workItemMetrics",
+          "healthChecks",
+          "teamRisks"
+        ],
+        "type": "object",
+        "properties": {
+          "planningInterval": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanningIntervalDetailsDto"
+              }
+            ],
+            "description": "The planning interval the objective belongs to."
+          },
+          "objective": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanningIntervalObjectiveDetailsDto"
+              }
+            ],
+            "description": "The objective: status, progress, dates, team and current health check."
+          },
+          "schedule": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectiveScheduleEvidenceDto"
+              }
+            ],
+            "description": "The objective's effective window and how much of it has passed."
+          },
+          "workItems": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkItemsSummaryDto"
+              }
+            ],
+            "description": "The linked work items, by backlog stack rank, with their progress rollup. Null when the\nobjective has no linked work.",
+            "nullable": true
+          },
+          "workItemMetrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkItemProgressDailyRollupDto"
+            },
+            "description": "Daily progress of the linked work from the interval's start to the earlier of today and the\ninterval's end."
+          },
+          "forecast": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkItemForecastDto"
+              }
+            ],
+            "description": "Monte Carlo forecast of the linked work against `schedule.targetDate`.\nNull when `forecastUnavailableReason` says why.",
+            "nullable": true
+          },
+          "forecastUnavailableReason": {
+            "type": "string",
+            "description": "Why `forecast` is null, such as delivery forecasting being turned off.",
+            "nullable": true
+          },
+          "healthChecks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningIntervalObjectiveHealthCheckDetailsDto"
+            },
+            "description": "The objective's health checks, newest first. The first is the last check."
+          },
+          "sinceLastCheck": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectiveChangesSinceLastCheckDto"
+              }
+            ],
+            "description": "What changed on the objective since the last check."
+          },
+          "teamRisks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskListDto"
+            },
+            "description": "The objective's team's risks in this interval — open ones only unless closed risks were asked\nfor. Risks link to a team, not an objective, so these are the risks the team carries."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Everything needed to recommend a health check for one planning interval objective, gathered in\none read: the objective and its interval, its schedule, linked work and its trend, the delivery\nforecast, its health check history, what changed since the last check, and its team's risks."
+      },
+      "ObjectiveScheduleEvidenceDto": {
+        "required": [
+          "startDate",
+          "startDateDefaulted",
+          "targetDate",
+          "targetDateDefaulted",
+          "today",
+          "elapsedShare"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "description": "The objective's start date, or the interval's start when it has none.",
+            "format": "date"
+          },
+          "startDateDefaulted": {
+            "type": "boolean",
+            "description": "True when `startDate` is the interval's start because the objective has none."
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "The objective's target date, or the interval's end when it has none.",
+            "format": "date"
+          },
+          "targetDateDefaulted": {
+            "type": "boolean",
+            "description": "True when `targetDate` is the interval's end because the objective has none."
+          },
+          "today": {
+            "type": "string",
+            "description": "Today's date, against which `elapsedShare` is measured.",
+            "format": "date"
+          },
+          "elapsedShare": {
+            "type": "number",
+            "description": "How much of the window from `startDate` to `targetDate` has passed,\nfrom 0 (not started) to 1 (target reached or passed).",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "An objective's effective start and target, and the share of that window already past."
+      },
       "OidcProviderDto": {
         "required": [
           "name",
@@ -54352,6 +54717,154 @@
           }
         },
         "additionalProperties": false
+      },
+      "ProjectHealthCheckEvidenceDto": {
+        "required": [
+          "project",
+          "planSummary",
+          "criticalPathUnavailableReason",
+          "asOf",
+          "overdueTasks",
+          "stages",
+          "activitySinceLatestCheck",
+          "activityTruncated"
+        ],
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "description": "The date the evidence was gathered on, which overdue and past-end are measured against.",
+            "format": "date"
+          },
+          "project": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectDetailsDto"
+              }
+            ],
+            "description": "The project: status, committed start and end, current health check and role lists."
+          },
+          "planSummary": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectPlanSummaryDto"
+              }
+            ],
+            "description": "Overdue, due this week, upcoming and total leaf task counts across the whole plan."
+          },
+          "overdueTasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectTaskListDto"
+            },
+            "description": "The open tasks (Not Started or In Progress) whose planned end has passed — the ones the plan\nsummary counts as overdue — with their keys, so a note can cite them."
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectHealthCheckEvidenceStageDto"
+            },
+            "description": "The project's stages in order; empty when no lifecycle is assigned."
+          },
+          "forecast": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkItemForecastDto"
+              }
+            ],
+            "description": "The delivery forecast against the project's end, or null when it could not be produced — see\nstring? ProjectHealthCheckEvidenceDto.ForecastUnavailableReason.",
+            "nullable": true
+          },
+          "forecastUnavailableReason": {
+            "type": "string",
+            "description": "Why WorkItemForecastDto? ProjectHealthCheckEvidenceDto.Forecast is null; null when there is a forecast.",
+            "nullable": true
+          },
+          "criticalPathUnavailableReason": {
+            "type": "string",
+            "description": "Why there is no critical-path evidence. Critical-path analysis is not implemented, so this is always\nset; do not read its absence as \"no critical tasks\"."
+          },
+          "latestHealthCheck": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectHealthCheckDetailsDto"
+              }
+            ],
+            "description": "The most recent health check, or null for a project never checked.",
+            "nullable": true
+          },
+          "activitySinceLatestCheck": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityLogDto"
+            },
+            "description": "The project's activity since ProjectHealthCheckDetailsDto? ProjectHealthCheckEvidenceDto.LatestHealthCheck was reported, newest first: schedule,\nstatus, role and detail changes. Tasks and stages are not included. For a project never checked, the\nmost recent entries."
+          },
+          "activityTruncated": {
+            "type": "boolean",
+            "description": "True when there was more activity than was returned, so the list is not the whole story."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Everything a project health-check recommendation weighs, gathered in one read. Classifying it and\ndrafting the note are left to the reader."
+      },
+      "ProjectHealthCheckEvidenceStageDto": {
+        "required": [
+          "name",
+          "status",
+          "id",
+          "order",
+          "progress",
+          "pastEndNotComplete"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The stage's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The stage's name."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ],
+            "description": "The stage's status."
+          },
+          "order": {
+            "type": "integer",
+            "description": "The stage's position in the lifecycle.",
+            "format": "int32"
+          },
+          "start": {
+            "type": "string",
+            "description": "The stage's planned start.",
+            "format": "date",
+            "nullable": true
+          },
+          "end": {
+            "type": "string",
+            "description": "The stage's planned end.",
+            "format": "date",
+            "nullable": true
+          },
+          "progress": {
+            "type": "number",
+            "description": "The stage's progress, 0 to 100.",
+            "format": "decimal"
+          },
+          "pastEndNotComplete": {
+            "type": "boolean",
+            "description": "True when the stage's end is before `asOf` and it is neither completed nor canceled."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One stage of a project's plan, flagged when its end has passed and it is not finished."
       },
       "ProjectHealthCheckSummaryDto": {
         "required": [

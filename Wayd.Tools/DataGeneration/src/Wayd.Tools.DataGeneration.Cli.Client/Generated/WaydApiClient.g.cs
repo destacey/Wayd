@@ -31863,6 +31863,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.
+        /// </summary>
+        /// <remarks>
+        /// Use it first when recommending a health check; classifying the evidence and drafting the note stay with you, and logging the check is Projects_CreateProjectHealthCheck after the user confirms. `overdueTasks` are the open tasks the plan summary counts as overdue. A stage with `pastEndNotComplete` ended before `asOf` and is neither completed nor canceled. `forecast` is the Projects_GetForecast result against the project's end, or null with `forecastUnavailableReason` when delivery forecasting is off — leave it out of the classification then. Critical-path evidence is never available (`criticalPathUnavailableReason`); never read that as "no critical tasks". `activitySinceLatestCheck` holds the project's own changes after the latest check, newest first, without tasks or stages; `activityTruncated` means there was more. The forecast options are those of Projects_GetForecast.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ProjectHealthCheckEvidenceDto> GetHealthCheckEvidenceAsync(string idOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Move a project into a different program, or out of its program entirely by passing a null programId.
         /// </summary>
         /// <remarks>
@@ -33402,6 +33413,122 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.
+        /// </summary>
+        /// <remarks>
+        /// Use it first when recommending a health check; classifying the evidence and drafting the note stay with you, and logging the check is Projects_CreateProjectHealthCheck after the user confirms. `overdueTasks` are the open tasks the plan summary counts as overdue. A stage with `pastEndNotComplete` ended before `asOf` and is neither completed nor canceled. `forecast` is the Projects_GetForecast result against the project's end, or null with `forecastUnavailableReason` when delivery forecasting is off — leave it out of the classification then. Critical-path evidence is never available (`criticalPathUnavailableReason`); never read that as "no critical tasks". `activitySinceLatestCheck` holds the project's own changes after the latest check, newest first, without tasks or stages; `activityTruncated` means there was more. The forecast options are those of Projects_GetForecast.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ProjectHealthCheckEvidenceDto> GetHealthCheckEvidenceAsync(string idOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/{idOrKey}/health-check-evidence"
+                    urlBuilder_.Append("api/ppm/projects/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/health-check-evidence");
+                    urlBuilder_.Append('?');
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (ignoreDependencies != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProjectHealthCheckEvidenceDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -41762,6 +41889,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get everything needed to recommend a health check for a planning interval objective, in one read.
+        /// </summary>
+        /// <remarks>
+        /// Use this before recommending or logging a PI objective health check, in place of calling PlanningIntervals_GetPlanningInterval, PlanningIntervals_GetObjective, PlanningIntervals_GetObjectiveWorkItems, PlanningIntervals_GetObjectiveWorkItemMetrics, PlanningIntervals_GetObjectiveForecast, PlanningIntervals_GetObjectiveHealthChecks, PlanningIntervals_GetObjectiveActivities and PlanningIntervals_GetRisks one by one. Both ids accept a UUID or a key; an objective not in the planning interval is a 404. Returns the interval and objective; `schedule` with the effective `startDate` and `targetDate` (the interval's start or end when the objective has none, flagged `startDateDefaulted` / `targetDateDefaulted`) and `elapsedShare` of that window (0 to 1); the linked `workItems` by stack rank with their progress rollup and daily `workItemMetrics`; the delivery `forecast` against the effective target date, or null with `forecastUnavailableReason` when delivery forecasting is off; `healthChecks`, newest first; `sinceLastCheck` with the activity since the last check, the `progressAtLastCheck` and `progressChange` (percentage points), and `activityTruncated` when there is more; and `teamRisks`, the objective's team's open risks in this interval (closed ones too with includeClosedRisks=true) — risks link to a team, not to an objective. lookbackDays, ignoreDependencies and startedWorkFirst tune the forecast as on PlanningIntervals_GetObjectiveForecast. Read-only: log the check with PlanningIntervals_CreateObjectiveHealthCheck once the user agrees.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ObjectiveHealthCheckEvidenceDto> GetObjectiveHealthCheckEvidenceAsync(string idOrKey, string objectiveIdOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, bool? includeClosedRisks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the full health check history for a planning interval objective, ordered newest first.
         /// </summary>
         /// <returns>OK</returns>
@@ -45496,6 +45634,131 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get everything needed to recommend a health check for a planning interval objective, in one read.
+        /// </summary>
+        /// <remarks>
+        /// Use this before recommending or logging a PI objective health check, in place of calling PlanningIntervals_GetPlanningInterval, PlanningIntervals_GetObjective, PlanningIntervals_GetObjectiveWorkItems, PlanningIntervals_GetObjectiveWorkItemMetrics, PlanningIntervals_GetObjectiveForecast, PlanningIntervals_GetObjectiveHealthChecks, PlanningIntervals_GetObjectiveActivities and PlanningIntervals_GetRisks one by one. Both ids accept a UUID or a key; an objective not in the planning interval is a 404. Returns the interval and objective; `schedule` with the effective `startDate` and `targetDate` (the interval's start or end when the objective has none, flagged `startDateDefaulted` / `targetDateDefaulted`) and `elapsedShare` of that window (0 to 1); the linked `workItems` by stack rank with their progress rollup and daily `workItemMetrics`; the delivery `forecast` against the effective target date, or null with `forecastUnavailableReason` when delivery forecasting is off; `healthChecks`, newest first; `sinceLastCheck` with the activity since the last check, the `progressAtLastCheck` and `progressChange` (percentage points), and `activityTruncated` when there is more; and `teamRisks`, the objective's team's open risks in this interval (closed ones too with includeClosedRisks=true) — risks link to a team, not to an objective. lookbackDays, ignoreDependencies and startedWorkFirst tune the forecast as on PlanningIntervals_GetObjectiveForecast. Read-only: log the check with PlanningIntervals_CreateObjectiveHealthCheck once the user agrees.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ObjectiveHealthCheckEvidenceDto> GetObjectiveHealthCheckEvidenceAsync(string idOrKey, string objectiveIdOrKey, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, bool? includeClosedRisks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            if (objectiveIdOrKey == null)
+                throw new System.ArgumentNullException("objectiveIdOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/health-check-evidence"
+                    urlBuilder_.Append("api/planning/planning-intervals/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/objectives/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(objectiveIdOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/health-check-evidence");
+                    urlBuilder_.Append('?');
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (ignoreDependencies != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (includeClosedRisks != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("includeClosedRisks")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(includeClosedRisks, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ObjectiveHealthCheckEvidenceDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -96971,6 +97234,184 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The objective's recorded changes since its last health check.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ObjectiveChangesSinceLastCheckDto
+    {
+
+        /// <summary>
+        /// When the last check was reported. Null when the objective has never been checked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lastCheckReportedOn")]
+        public System.DateTimeOffset? LastCheckReportedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's progress (0 to 100) when it was last checked. Null when it has never been
+        /// <br/>checked or the history read did not reach back that far.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progressAtLastCheck")]
+        public double? ProgressAtLastCheck { get; set; } = default!;
+
+        /// <summary>
+        /// Progress points gained (or, negative, lost) since the last check. Null when
+        /// <br/>`progressAtLastCheck` is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progressChange")]
+        public double? ProgressChange { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's activity since the last check, newest first. With no check, the most recent
+        /// <br/>entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activity")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ActivityLogDto> Activity { get; set; } = new System.Collections.ObjectModel.Collection<ActivityLogDto>();
+
+        /// <summary>
+        /// True when there is more activity in that period than is listed; page
+        /// <br/>PlanningIntervals_GetObjectiveActivities for the rest.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activityTruncated")]
+        public bool ActivityTruncated { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Everything needed to recommend a health check for one planning interval objective, gathered in
+    /// <br/>one read: the objective and its interval, its schedule, linked work and its trend, the delivery
+    /// <br/>forecast, its health check history, what changed since the last check, and its team's risks.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ObjectiveHealthCheckEvidenceDto
+    {
+
+        /// <summary>
+        /// The planning interval the objective belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planningInterval")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public PlanningIntervalDetailsDto PlanningInterval { get; set; } = new PlanningIntervalDetailsDto();
+
+        /// <summary>
+        /// The objective: status, progress, dates, team and current health check.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("objective")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public PlanningIntervalObjectiveDetailsDto Objective { get; set; } = new PlanningIntervalObjectiveDetailsDto();
+
+        /// <summary>
+        /// The objective's effective window and how much of it has passed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("schedule")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ObjectiveScheduleEvidenceDto Schedule { get; set; } = new ObjectiveScheduleEvidenceDto();
+
+        /// <summary>
+        /// The linked work items, by backlog stack rank, with their progress rollup. Null when the
+        /// <br/>objective has no linked work.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItems")]
+        public WorkItemsSummaryDto? WorkItems { get; set; } = default!;
+
+        /// <summary>
+        /// Daily progress of the linked work from the interval's start to the earlier of today and the
+        /// <br/>interval's end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItemMetrics")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkItemProgressDailyRollupDto> WorkItemMetrics { get; set; } = new System.Collections.ObjectModel.Collection<WorkItemProgressDailyRollupDto>();
+
+        /// <summary>
+        /// Monte Carlo forecast of the linked work against `schedule.targetDate`.
+        /// <br/>Null when `forecastUnavailableReason` says why.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecast")]
+        public WorkItemForecastDto? Forecast { get; set; } = default!;
+
+        /// <summary>
+        /// Why `forecast` is null, such as delivery forecasting being turned off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecastUnavailableReason")]
+        public string? ForecastUnavailableReason { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's health checks, newest first. The first is the last check.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("healthChecks")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningIntervalObjectiveHealthCheckDetailsDto> HealthChecks { get; set; } = new System.Collections.ObjectModel.Collection<PlanningIntervalObjectiveHealthCheckDetailsDto>();
+
+        /// <summary>
+        /// What changed on the objective since the last check.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sinceLastCheck")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ObjectiveChangesSinceLastCheckDto SinceLastCheck { get; set; } = new ObjectiveChangesSinceLastCheckDto();
+
+        /// <summary>
+        /// The objective's team's risks in this interval — open ones only unless closed risks were asked
+        /// <br/>for. Risks link to a team, not an objective, so these are the risks the team carries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamRisks")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<RiskListDto> TeamRisks { get; set; } = new System.Collections.ObjectModel.Collection<RiskListDto>();
+
+    }
+
+    /// <summary>
+    /// An objective's effective start and target, and the share of that window already past.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ObjectiveScheduleEvidenceDto
+    {
+
+        /// <summary>
+        /// The objective's start date, or the interval's start when it has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startDate")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset StartDate { get; set; } = default!;
+
+        /// <summary>
+        /// True when `startDate` is the interval's start because the objective has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startDateDefaulted")]
+        public bool StartDateDefaulted { get; set; } = default!;
+
+        /// <summary>
+        /// The objective's target date, or the interval's end when it has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// True when `targetDate` is the interval's end because the objective has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDateDefaulted")]
+        public bool TargetDateDefaulted { get; set; } = default!;
+
+        /// <summary>
+        /// Today's date, against which `elapsedShare` is measured.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("today")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Today { get; set; } = default!;
+
+        /// <summary>
+        /// How much of the window from `startDate` to `targetDate` has passed,
+        /// <br/>from 0 (not started) to 1 (target reached or passed).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("elapsedShare")]
+        public double ElapsedShare { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// An OIDC identity provider's full configuration, as an administrator edits it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -99727,6 +100168,157 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         public string? Note { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Everything a project health-check recommendation weighs, gathered in one read. Classifying it and
+    /// <br/>drafting the note are left to the reader.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProjectHealthCheckEvidenceDto
+    {
+
+        /// <summary>
+        /// The date the evidence was gathered on, which overdue and past-end are measured against.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("asOf")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset AsOf { get; set; } = default!;
+
+        /// <summary>
+        /// The project: status, committed start and end, current health check and role lists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("project")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ProjectDetailsDto Project { get; set; } = new ProjectDetailsDto();
+
+        /// <summary>
+        /// Overdue, due this week, upcoming and total leaf task counts across the whole plan.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planSummary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ProjectPlanSummaryDto PlanSummary { get; set; } = new ProjectPlanSummaryDto();
+
+        /// <summary>
+        /// The open tasks (Not Started or In Progress) whose planned end has passed — the ones the plan
+        /// <br/>summary counts as overdue — with their keys, so a note can cite them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("overdueTasks")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ProjectTaskListDto> OverdueTasks { get; set; } = new System.Collections.ObjectModel.Collection<ProjectTaskListDto>();
+
+        /// <summary>
+        /// The project's stages in order; empty when no lifecycle is assigned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stages")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ProjectHealthCheckEvidenceStageDto> Stages { get; set; } = new System.Collections.ObjectModel.Collection<ProjectHealthCheckEvidenceStageDto>();
+
+        /// <summary>
+        /// The delivery forecast against the project's end, or null when it could not be produced — see
+        /// <br/>string? ProjectHealthCheckEvidenceDto.ForecastUnavailableReason.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecast")]
+        public WorkItemForecastDto? Forecast { get; set; } = default!;
+
+        /// <summary>
+        /// Why WorkItemForecastDto? ProjectHealthCheckEvidenceDto.Forecast is null; null when there is a forecast.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forecastUnavailableReason")]
+        public string? ForecastUnavailableReason { get; set; } = default!;
+
+        /// <summary>
+        /// Why there is no critical-path evidence. Critical-path analysis is not implemented, so this is always
+        /// <br/>set; do not read its absence as "no critical tasks".
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("criticalPathUnavailableReason")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CriticalPathUnavailableReason { get; set; } = default!;
+
+        /// <summary>
+        /// The most recent health check, or null for a project never checked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("latestHealthCheck")]
+        public ProjectHealthCheckDetailsDto? LatestHealthCheck { get; set; } = default!;
+
+        /// <summary>
+        /// The project's activity since ProjectHealthCheckDetailsDto? ProjectHealthCheckEvidenceDto.LatestHealthCheck was reported, newest first: schedule,
+        /// <br/>status, role and detail changes. Tasks and stages are not included. For a project never checked, the
+        /// <br/>most recent entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activitySinceLatestCheck")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ActivityLogDto> ActivitySinceLatestCheck { get; set; } = new System.Collections.ObjectModel.Collection<ActivityLogDto>();
+
+        /// <summary>
+        /// True when there was more activity than was returned, so the list is not the whole story.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activityTruncated")]
+        public bool ActivityTruncated { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One stage of a project's plan, flagged when its end has passed and it is not finished.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProjectHealthCheckEvidenceStageDto
+    {
+
+        /// <summary>
+        /// The stage's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
+
+        /// <summary>
+        /// The stage's position in the lifecycle.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        public int Order { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's planned start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? Start { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's planned end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        /// <summary>
+        /// The stage's progress, 0 to 100.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progress")]
+        public decimal Progress { get; set; } = default!;
+
+        /// <summary>
+        /// True when the stage's end is before `asOf` and it is neither completed nor canceled.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pastEndNotComplete")]
+        public bool PastEndNotComplete { get; set; } = default!;
 
     }
 

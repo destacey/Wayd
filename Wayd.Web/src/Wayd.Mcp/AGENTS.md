@@ -10,7 +10,7 @@ npm run lint      # Run linter
 npm test          # Build, then run the test suite
 ```
 
-Tool definitions live one file per area under `src/tools/`, registered in the `src/tools/index.ts` barrel. Agent-facing usage guidance lives in `skills/` at the repo root (`skills/wayd-ppm/SKILL.md` is the largest).
+Tool definitions live one file per area under `src/tools/`, registered in the `src/tools/index.ts` barrel. Agent-facing usage guidance lives in `skills/` at the repo root (a skill's `SKILL.md` is the overview, and situational detail sits in its `reference/*.md`; see [mcp-server.mdx](../../../docs/contributing/mcp-server.mdx#skill-layout)).
 
 - **Skill evaluation** lives in `evals/` (see its README): scenarios per skill, run through Claude Code against a stub server, with and without skills. A skill change should be measured there before and after; a new rule in a skill deserves a scenario. Don't run it unprompted — it spends the user's Claude Code usage.
 

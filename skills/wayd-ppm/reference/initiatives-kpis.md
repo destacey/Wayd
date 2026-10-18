@@ -2,7 +2,7 @@
 
 A **strategic initiative** is a portfolio-level outcome — the _why_ behind the work. It belongs to one portfolio, has sponsors and owners, links to the projects delivering it, and measures success through **KPIs**. Each KPI has **checkpoints** (dated targets — the plan) and **measurements** (observed values — the actuals).
 
-Through MCP, initiatives and KPI definitions are read-only: they cannot be created, edited, reordered, or deleted. Initiative status can be changed (see "Changing status" in SKILL.md), and KPI measurements can be added and removed.
+Through MCP, initiatives and KPI definitions are read-only: they cannot be created, edited, reordered, or deleted. Initiative status can be changed (see "Changing an initiative's status" below), and KPI measurements can be added and removed.
 
 ## Tools
 
@@ -24,6 +24,18 @@ Through MCP, initiatives and KPI definitions are read-only: they cannot be creat
 For "is this KPI on track?", use `StrategicInitiatives_GetKpiCheckpointPlan` — it is the one call that sets actuals against the plan.
 
 Read tools accept an id or a key for both the initiative and the KPI. The two measurement write tools take **UUIDs only**: the initiative's from `StrategicInitiatives_GetStrategicInitiative`, the KPI's from `StrategicInitiatives_GetKpis`.
+
+## Changing an initiative's status
+
+Status changes only through dedicated transition tools, never through an update. **Confirm every transition with the user first**, naming the initiative and the transition: others rely on the status, and initiative transitions cannot be undone. Initiative transitions check permissions only, not delivery leadership.
+
+| Record               | Tools and allowed from                                                                                                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Strategic initiative | `StrategicInitiatives_Approve` (Proposed), `StrategicInitiatives_Activate` (Approved), `StrategicInitiatives_Complete` (Active or OnHold), `StrategicInitiatives_Cancel` (any status not already closed) |
+
+Every transition tool takes the initiative's UUID, not its key. No transition records a reason; the status history shows who and when, but not why.
+
+**Completing or cancelling a strategic initiative closes it**: its KPIs and linked projects are frozen, though measurements can still be recorded.
 
 ## Reading a KPI
 

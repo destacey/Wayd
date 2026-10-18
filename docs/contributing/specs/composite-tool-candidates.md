@@ -17,7 +17,7 @@ Two prerequisites block #975 before any candidate can ship or be measured (see [
 ## Scope and non-goals
 
 - This is an audit. No tool is implemented here; each candidate becomes part of #975.
-- Every skill in `skills/` was classified: `wayd-ppm` (with `health-checks.md`, `kpis.md`, `scoring.md`), `wayd-pi`, `wayd-teams`, `wayd-delivery`, `wayd-products`, `wayd-imports`, `wayd-roadmaps`, `wayd-story-maps`, `wayd-users`.
+- Every skill in `skills/` was classified: `wayd-ppm` (with `reference/health-checks.md`, `reference/initiatives-kpis.md`, `reference/scoring.md`), `wayd-pi`, `wayd-teams`, `wayd-delivery`, `wayd-products`, `wayd-imports`, `wayd-roadmaps`, `wayd-story-maps`, `wayd-users`.
 - Every command, query, permission and authorization rule named below was checked against the code. Where a skill and the code disagree, it is listed under [Findings](#findings-where-a-skill-and-the-code-disagree), not silently resolved.
 - The evaluation was not run. Each candidate names the scenarios in `Wayd.Web/src/Wayd.Mcp/evals/scenarios/` that exercise the sequence it replaces, so #975 can measure before and after.
 
@@ -84,7 +84,7 @@ Every skill that can change data opens with "Before any change": describe the ch
 | 4 | `Releases_PatchContents` | Write | delivery "Overwrite, not patch" | **Yes** | `delivery-add-package-to-release`, `delivery-announce-unshipped-content` |
 | 5 | `ReleasePackages_PatchManifest` | Write | delivery "Recording what shipped" step 3 | **Yes** | none (gap) |
 | 6 | `StoryMaps_PatchGoalPersonas`, `StoryMaps_PatchStepPersonas`, `StoryMaps_PatchTaskPersonas` | Write | story-maps "Persona sets replace" | **Yes** | `story-maps-add-task-persona`, `story-maps-persona-coverage` |
-| 7 | `Projects_GetHealthCheckEvidence` | Read | health-checks.md checklist steps 1–6 | No | none (gap) |
+| 7 | `Projects_GetHealthCheckEvidence` | Read | reference/health-checks.md checklist steps 1–6 | No | none (gap) |
 | 8 | `PlanningIntervals_GetObjectiveHealthCheckEvidence` | Read | pi health-check recipe step 1 | No | `pi-recommend-health-check`, `pi-log-objective-health-check` |
 | 9 | `PlanningIntervals_GetHealthSummary` | Read | pi health report step 1 | No | `pi-health-report` |
 | 10 | `Versions_GetDeliveryTrail` | Read | delivery "Where did this version go" | No | `delivery-where-did-version-go` |
@@ -150,7 +150,7 @@ Each is a PATCH endpoint beside the existing PUT, through `JsonPatchControllerEx
 
 Proposed by the issue owner on #975.
 
-- **Replaces:** `health-checks.md` "Recommending a health check" steps 1–6. Steps 7–8 (classify, draft, re-check) stay in the skill; the write stays `Projects_CreateProjectHealthCheck` after the user confirms.
+- **Replaces:** `reference/health-checks.md` "Recommending a health check" steps 1–6. Steps 7–8 (classify, draft, re-check) stay in the skill; the write stays `Projects_CreateProjectHealthCheck` after the user confirms.
 - **Input:** `idOrKey`; optional forecast options (`lookbackDays`, `ignoreDependencies`, `startedWorkFirst`).
 - **Dispatches:**
   1. `GetProjectQuery` (`PPM/Projects/Queries/GetProjectQuery.cs`) — status, committed `start`/`end`, current `healthCheck`, roles.
@@ -275,7 +275,7 @@ Proposed by the issue owner on #975.
 | ppm "Prerequisites that cause rejections" for program complete | Have the refusal name the projects still open. The check is already server-side. |
 | delivery "Announce checklist" | Judgment per entry. Have the `MarkReleased` refusal list the unshipped entries. |
 | story-maps rename or describe a task via `StoryMaps_UpdateTask` (overwrites both) | `RenameTask` and `SetTaskDescription` endpoints exist without `[McpTool]`. Expose them. |
-| kpis.md "Recording a measurement" | The domain already rejects a duplicate date. Let the add tool accept keys and return the KPI's new `actualValue` and `progress`. |
+| reference/initiatives-kpis.md "Recording a measurement" | The domain already rejects a duplicate date. Let the add tool accept keys and return the KPI's new `actualValue` and `progress`. |
 | ppm "Moving a project backwards", imports dependency order and Cancel/Resume/Retry, teams forecasts and work distribution, PI predictability | Judgment on what earlier calls returned. Stays in the skills. |
 
 ## Cross-tool rules for server instructions and tool descriptions
@@ -358,13 +358,13 @@ Scenarios no candidate touches, useful as controls: `ppm-complete-program-open-p
 | | Updating a record (checklist) | F | 1, 2 |
 | | Changing status, prerequisites, side effects | R | |
 | | Moving a project backwards | J | |
-| health-checks.md | Tools and fields, read/write shapes | R | |
+| reference/health-checks.md | Tools and fields, read/write shapes | R | |
 | | Log, correct, or delete | J | |
 | | Recommending, steps 1–6 | F | 7 |
 | | Steps 7–8, classification, presenting | J | |
-| kpis.md | Reading a KPI | R | |
+| reference/initiatives-kpis.md | Reading a KPI | R | |
 | | Recording a measurement | F (small) | Not a candidate |
-| scoring.md | Traps | R | |
+| reference/scoring.md | Traps | R | |
 | wayd-pi | Health-check recipe step 1 | F | 8 |
 | | Recipe steps 2–3 | J | |
 | | PI health report step 1 | F | 9 |

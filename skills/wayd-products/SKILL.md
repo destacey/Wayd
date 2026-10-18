@@ -24,6 +24,17 @@ When the user approves, do exactly what they approved. An option you offered tha
 | Environments | `DeploymentEnvironments_GetDeploymentEnvironments`, `DeploymentEnvironments_GetRollout` | `DeploymentEnvironments_Create`, `DeploymentEnvironments_Update`, `DeploymentEnvironments_SetActive`, `DeploymentEnvironments_Delete` |
 | Measures | `DeliveryMetrics_GetDeliveryMetrics`, `DeliveryOverview_GetDeliveryOverview`, `DeliveryOverview_GetRecentDeliveryEvents` | — |
 
+## Reference
+
+Read the matching file before working in these areas. The rules on this page still apply there.
+
+| File | Read it when |
+| --- | --- |
+| [reference/deleting-a-product.md](reference/deleting-a-product.md) | Deleting a product, purging its history, or answering why one cannot be deleted |
+| [reference/dependencies.md](reference/dependencies.md) | Reading, recording, changing, ending or removing product dependencies, or answering what would be hit if a product went down |
+| [reference/configuration.md](reference/configuration.md) | Creating, changing, deactivating or deleting product types, tag axes or tags |
+| [reference/environments-metrics.md](reference/environments-metrics.md) | Defining, changing or retiring deployment environments, asking what is running where, or reading delivery measures and recent shipping activity |
+
 ---
 
 ## The catalog is one typed tree
@@ -60,7 +71,7 @@ is what makes a refusal say which rule refused.
 | `Products_Retype` | The product has versions and the new type is not releasable, or the new type is inactive |
 | `Products_Reparent` | The new parent is the product itself or one of its descendants, or the move would put two products with an open dependency above and below one another (end the dependency first) |
 | `Products_ChangeStatus` | The status id does not come from `Products_GetStatusOptions` |
-| `Products_Delete` | See **Deleting a product** |
+| `Products_Delete` | See [reference/deleting-a-product.md](reference/deleting-a-product.md) |
 
 ---
 
@@ -76,127 +87,7 @@ what will be replaced. An inactive tag, or a tag on an inactive axis, is refused
 ## Deleting a product
 
 `Products_Delete` is a **hard delete**. If the product has merely stopped being current, change its
-status instead.
-
-It refuses while any of these exist, each with its own reason:
-
-| Blocker | Check with | Cleared by |
-| --- | --- | --- |
-| Child products | `Products_GetProducts` with `parentId` | `Products_Reparent`, or deleting each child first |
-| Versions | `Versions_GetVersions` with `productId` | `Versions_Delete` |
-| Lines in a package manifest | `ReleasePackages_GetReleasePackages` with `containingProductId` | `ReleasePackages_SetManifest` without the line, or `ReleasePackages_Delete` |
-| A dependency on either end, **ended ones included** | `Products_GetDependencies` with `includeEnded: true` — once the product has no children | `Products_RemoveDependency` |
-
-The manifest is checked separately from versions because a carried-forward line can name the product
-with no version record at all. Check dependencies last: `Products_GetDependencies` rolls up the whole
-subtree, so while children remain it lists their links rather than the product's own and misses links
-between two products inside it. The delete checks only the product's own.
-
-`Products_Delete` never deletes anything else for you. Purge a product's history only when the user
-asks for it, bottom up:
-
-1. Children: each child is reparented or purged first, by these same steps. Agree which with the user.
-   Until then the dependency check below describes the children, not this product.
-2. Run the four checks above. List everything that will go — including the deployments that
-   `Versions_Delete` and `ReleasePackages_Delete` take with them — and confirm the whole list with the
-   user.
-3. Releases: for each release listing one of its versions or one of the packages from step 4, remove
-   the entry with `Releases_SetContents` (or, hosted, `Releases_PatchContents` replacing that list with
-   the ids that stay) while the release is unannounced. An announced or withdrawn
-   release's contents are frozen, so it can only be removed with `Releases_Delete`.
-   `Releases_GetReleases` with `containingVersionId` finds a release carrying the version directly or
-   inside a package. There is no package filter, so a package whose line names no version record is
-   found only by reading each release's `packages`.
-4. Packages: drop the product's line with `ReleasePackages_SetManifest` (or `ReleasePackages_PatchManifest`,
-   replacing `/components` with the lines that stay) while the package is neither
-   released nor withdrawn and has other lines. Otherwise use `ReleasePackages_Delete`, which is refused while a
-   release still lists the package — go back to step 3 for that release.
-5. Versions: `Versions_Delete` for each.
-6. Dependencies: `Products_RemoveDependency` for each, ended ones included. Its `id` is the product
-   that *has* the dependency — `product.id` on the row — so a `usedBy` row is removed through the
-   other product's id.
-7. Re-run the four checks. Repeat from step 3 until all four come back empty, then call
-   `Products_Delete`.
-
----
-
-## Product dependencies
-
-A product can record which other products it relies on. Each dependency has a **strength**, optional
-**interaction styles**, an optional description, and the days it held (`startsOn`, and `endsOn` once
-it stopped).
-
-### Reading them rolls up the tree
-
-`Products_GetDependencies` reports `dependsOn` and `usedBy` **across everything beneath the
-product**: a product line's `dependsOn` includes its services' links to outside products, and a link
-with both ends inside the line appears in neither list. `productPath` and `dependsOnProductPath` say
-which descendant each row starts or lands on.
-
-An empty answer means nothing has been **recorded** — dependencies are entered by hand or imported,
-never discovered — so say that rather than "nothing depends on it".
-
-### Recording them
-
-Record each with `Products_AddDependency`.
-
-- **Record the most specific product known** — the service that makes the call, not its platform.
-  The read side rolls it up to every ancestor anyway, and a link on the platform cannot be rolled
-  down.
-- **Strength has no default.** `Hard`: the product stops working without it. `Soft`: it degrades or
-  loses a feature but keeps working. Impact attribution reads this, so ask the person if they have not
-  said rather than guessing.
-- **Interaction styles refine strength.** A Hard **synchronous** dependency caps the consumer's
-  availability at the provider's; a Hard **asynchronous** one turns the provider's downtime into a
-  backlog worked through afterwards. Omitting them records nothing rather than recording that there
-  are none, so `null` is never evidence either way.
-
-### Changing them keeps history
-
-| The situation | Tool |
-| --- | --- |
-| Strength or styles changed, or styles are being written down for the first time | `Products_ChangeDependencyTerms` — the default for any terms change. A real change ends the dependency and opens a new one; first-time styles are filled in place |
-| Styles never recorded, on an ended dependency | `Products_UpdateDependency` (`Products_ChangeDependencyTerms` refuses ended dependencies) |
-| The description is wrong | `Products_UpdateDependency` |
-| It was true and has stopped | `Products_EndDependency` — kept, and still counts for the days it held |
-| It was recorded on the wrong terms from its first day | `Products_RemoveDependency`, then `Products_AddDependency` — terms can only change from the day after it started |
-| It was never true | `Products_RemoveDependency` — deletes it, with a reason |
-
-After `Products_ChangeDependencyTerms`, use the id it returns for any further call: when the terms
-changed, the id you passed now belongs to the ended dependency.
-
-Every tool that changes a dependency takes, as `id`, the product that *has* it — `product.id` on the
-row, which on a `usedBy` row or a rolled-up row is not the product you asked about.
-
-For many at once, the `product-management.product-dependencies` import (see **wayd-imports**) applies
-**product by product** — every row for one `ProductId` saves together or not at all, and the other
-products still import — so read a preflight's rejected rows by product.
-
----
-
-## Managing the configuration itself
-
-Types and tag categories are administrator-managed, organization-wide configuration. Two rules run
-through every tool that changes them.
-
-**Seeded system records cannot be modified or deleted — but they can be deactivated.** The guard
-protects what a seeded record *means*: its name, its tags, whether it takes many. Whether the
-organization currently uses it is a different question, so `ProductTypes_SetActive` and
-`ProductTagCategories_SetActive` work on system records. An organization that does not ship libraries
-hides that type rather than fighting the seeder.
-
-The exception is at the tag level. `ProductTagCategories_AddTag`, `ProductTagCategories_RenameTag`,
-`ProductTagCategories_SetTagActive` and `ProductTagCategories_DeleteTag` are **all** refused on a
-system category, deactivation included — there is no per-tag fallback. Retire the whole axis instead.
-
-**Nothing in use can be deleted.** A type is in use when any product carries it; an axis is in use
-when any product is tagged along it; a tag is in use when any product carries it (its `productCount`
-is above zero). All three refuse with "Deactivate it instead", so in practice delete only removes
-something created by mistake and never applied.
-
-**`allowsMany` is set once, by `ProductTagCategories_Create`.** No tool changes it afterwards, and it
-decides whether a second tag joins the first or silently replaces it — confirm it with the user before
-creating the axis.
+status instead. Before deleting, read [reference/deleting-a-product.md](reference/deleting-a-product.md).
 
 ---
 
@@ -210,61 +101,6 @@ For what changed on a product, `Products_GetStatusHistory` covers status moves a
 activity entry's `payload` carries the value before and after. A `Baseline` entry marks where tracking
 began for a product that already existed; nothing before it is recorded. Check `hasNextPage` before
 concluding something never happened.
-
----
-
-## Environments and metrics
-
-An **environment** is a named deployment target, defined once for the organization. Each carries a
-**category** — Development, Testing, Staging, Production, or Other for a target that is none of those
-(a sandbox, a demo box) — and a ring order for progressive rollout.
-
-**The category is what every production-scoped measure counts on, not the name.** Pipeline
-environment names are free text and endlessly varied (`prod`, `Production`, `prd`, `live`), so
-filtering or reasoning by name will give wrong answers.
-
-| The situation | Tool |
-| --- | --- |
-| A new deployment target | `DeploymentEnvironments_Create` — set the category deliberately |
-| Rename it, reclassify it, or move its ring | `DeploymentEnvironments_Update` — resend every field; refused on a retired environment, so reinstate it first |
-| It is no longer used | `DeploymentEnvironments_SetActive` with `isActive: false` — its deployments are kept and keep counting |
-| It is back in use | `DeploymentEnvironments_SetActive` with `isActive: true` |
-| The user explicitly wants it and its history gone | `DeploymentEnvironments_Delete` — takes **every deployment into it**; state its `deploymentCount` from `DeploymentEnvironments_GetDeploymentEnvironments` before confirming |
-
-**Reclassifying changes the future, not the past.** Each deployment froze its environment's category
-at the time, so promoting a staging environment to production does not retroactively inflate
-deployment frequency.
-
-### What is running where
-
-`DeploymentEnvironments_GetRollout` lists every active environment in ring order with what is
-**running** there: one entry per product, each the latest deployment that succeeded and was not
-rolled back, with packages expanded into their components. A failed attempt leaves its predecessor
-running, so check `hasFailedAttemptSince` before saying an environment is healthy.
-
-### Two kinds of measure
-
-`DeliveryMetrics_GetDeliveryMetrics` measures **deployments**; `DeliveryOverview_GetDeliveryOverview`
-measures **versions** — what was cut and shipped, whether or not a pipeline recorded deployments. Use
-the one that matches the question, and do not mix their figures.
-
-From `DeliveryMetrics_GetDeliveryMetrics`, read the `unavailable` list rather than treating a missing
-measure as zero, and report change failure rate as approximate: it is a pipeline proxy.
-
-`DeliveryOverview_GetDeliveryOverview` scopes to a product **and everything beneath it** — a product
-line is a valid scope. Pass the reader's IANA `timeZone`: it counts versions by the day they shipped,
-and without it the days are UTC days, so a late-evening US release lands on the next day. Carry three
-things into an answer:
-
-- **Give the denominator.** `scope.releasableNodeCount` says how many products the figures cover.
-- **A null `previousPerWeek` or `previousAverageDays` means nothing shipped in the prior window**, so
-  there is no trend to report — not a rise from zero.
-- **Cut-to-released excludes versions released without ever being cut** (imports and backfills).
-  Report `measuredCount` of `releasedCount` alongside the average.
-
-`DeliveryOverview_GetRecentDeliveryEvents` is the feed of what shipped lately. Reason on `alias`
-(Ready, Released, Withdrawn), not on `statusName`, which is per-organization. Scoping it to a product
-leaves packages out entirely.
 
 ---
 
@@ -298,4 +134,4 @@ Mention any entry with `hasFailedAttemptSince`.
 
 ### Answering "why can't I delete this?"
 
-`Products_Delete` names the reason. To check ahead, run the four checks in **Deleting a product**.
+`Products_Delete` names the reason. To check ahead, run the four checks in [reference/deleting-a-product.md](reference/deleting-a-product.md).

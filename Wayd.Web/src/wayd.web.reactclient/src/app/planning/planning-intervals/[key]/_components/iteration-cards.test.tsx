@@ -37,6 +37,17 @@ const mockQuery = useGetPlanningIntervalIterationsQuery as unknown as jest.Mock
 const mockMetricsQuery =
   useGetPlanningIntervalIterationMetricsQuery as unknown as jest.Mock
 
+// Iteration metrics from one sprint, plus what Kanban teams completed by date.
+const metricsData = (
+  total: number,
+  sprintCompleted: number,
+  kanbanCompleted = 0,
+) => ({
+  totalWorkItems: total,
+  completedWorkItems: sprintCompleted + kanbanCompleted,
+  sprintMetrics: [{ completedWorkItems: sprintCompleted }],
+})
+
 // The fake clock must sit on the local day, or "today" drifts a day in
 // negative-offset zones.
 const localDate = (isoDay: string) => {
@@ -305,13 +316,24 @@ describe('IterationCards', () => {
         ],
         isLoading: false,
       })
-      mockMetricsQuery.mockReturnValue({
-        data: { totalWorkItems: 10, completedWorkItems: 10 },
-      })
+      mockMetricsQuery.mockReturnValue({ data: metricsData(10, 10) })
 
       const { container } = render(<IterationsCards piKey={1} />)
 
       expect(container.querySelector('.anticon-flag')).toBeNull()
+    })
+
+    it('measures health on the sprints alone, leaving out what Kanban teams completed', () => {
+      setupActive()
+      // 1 of 10 sprint items done is Off Track, however much the Kanban teams completed.
+      mockMetricsQuery.mockReturnValue({ data: metricsData(10, 1, 9) })
+
+      const { container } = render(<IterationsCards piKey={1} />)
+
+      const flag = container.querySelector(
+        '.anticon-flag',
+      ) as HTMLElement | null
+      expect(flag?.style.color).toBe('var(--ant-color-error)')
     })
 
     it.each([
@@ -328,12 +350,7 @@ describe('IterationCards', () => {
       'colors the flag based on health (completed=%i → %s)',
       (completed, expectedColor) => {
         setupActive()
-        mockMetricsQuery.mockReturnValue({
-          data: {
-            totalWorkItems: 10,
-            completedWorkItems: completed,
-          },
-        })
+        mockMetricsQuery.mockReturnValue({ data: metricsData(10, completed) })
 
         const { container } = render(<IterationsCards piKey={1} />)
 
@@ -347,9 +364,7 @@ describe('IterationCards', () => {
 
     it('fetches metrics scoped to the active iteration', () => {
       setupActive()
-      mockMetricsQuery.mockReturnValue({
-        data: { totalWorkItems: 10, completedWorkItems: 5 },
-      })
+      mockMetricsQuery.mockReturnValue({ data: metricsData(10, 5) })
 
       render(<IterationsCards piKey={99} />)
 

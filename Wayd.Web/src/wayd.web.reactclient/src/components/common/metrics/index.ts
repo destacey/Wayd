@@ -14,6 +14,7 @@ export {
   type SprintOverviewFigures,
   type SprintScopeFigures,
 } from './sprint-overview-figures'
+export { sprintCompletedWorkItems } from './sprint-completed-work-items'
 export {
   sprintMetricValues,
   type SprintMetricFigures,

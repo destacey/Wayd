@@ -65,16 +65,16 @@ public sealed class GetTeamCapacityReportQueryHandler(
         // Every membership in the range: which ones are beneath the root is only known once the tree has been
         // walked, and the table is small.
         var memberships = await _organizationDbContext.BaseTeams
-            .SelectMany(t => t.ParentMemberships)
-            .Where(m => m.DateRange.Start <= lastDay && (m.DateRange.End == null || m.DateRange.End >= firstDay))
-            .Select(m => new { m.SourceId, m.TargetId, m.DateRange.Start, m.DateRange.End })
+            .SelectMany(t => t.ParentMemberships, (t, m) => new { m.SourceId, m.TargetId, m.DateRange.Start, m.DateRange.End, ChildName = t.Name })
+            .Where(m => m.Start <= lastDay && (m.End == null || m.End >= firstDay))
             .ToListAsync(cancellationToken);
 
+        // Names order each team's children, so the report reads the same on every load.
         var hierarchy = TeamHierarchyPeriods.Descendants(
             rootId,
             firstDay,
             lastDay,
-            memberships.Select(m => new HierarchyMembership(m.SourceId, m.TargetId, m.Start, m.End)));
+            memberships.Select(m => new HierarchyMembership(m.SourceId, m.TargetId, m.Start, m.End, m.ChildName)));
 
         List<Guid> teamIds = [rootId, .. TeamIdsOf(hierarchy).Distinct()];
 

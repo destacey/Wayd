@@ -82,6 +82,8 @@ Planning Interval (PI)
 
 Reading iteration metrics: each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `*Estimate` totals and `sizingMethod` are null when the teams size in different units — report counts then, and never add estimates across units yourself. `unestimatedWorkItems` counts items with no value in their team's unit (0 is an estimate).
 
+Kanban teams have no sprints, so each one in the PI appears in `dateMeasuredTeamMetrics` instead, measured by the iteration's dates: what it completed within them and what it had in progress at their end. A Kanban team has no scope — no total, committed or not-started figures — so report those as not applicable, never as zero. Its completed and in-progress figures are in the iteration's totals but not in `totalWorkItems`, so take a completion rate from `sprintMetrics` alone. `totalEstimate` and `notStartedEstimate` are in `sprintSizingMethod`, the sprints' unit; `completedEstimate` and `inProgressEstimate` are in `sizingMethod`, the unit shared with the Kanban teams. When `isHistoryIncomplete` is true, say that the team's past in-progress figure may be short.
+
 ### Objectives
 
 - List objectives (all teams): `PlanningIntervals_GetObjectives` with `idOrKey`

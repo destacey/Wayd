@@ -15,6 +15,7 @@ public sealed class GetTeamScheduleHistoryQueryHandler(IOrganizationDbContext or
             .OrderBy(m => m.DateRange.Start)
             .Select(m => new TeamSchedulePeriodDto(m.DateRange.Start, m.DateRange.End, m.TimeZone, m.CommitmentGraceDays, m.SizingMethod)
             {
+                Methodology = m.Methodology,
                 WorkingWeek = m.WorkingWeek,
                 HolidayCalendarId = m.HolidayCalendarId,
                 Cadence = m.Cadence,

@@ -33,6 +33,44 @@ public class TeamHierarchyPeriodsTests
     }
 
     [Fact]
+    public void Descendants_OrdersSiblingsByNameIgnoringCase_WhateverOrderTheyArriveIn()
+    {
+        // Arrange — siblings out of name order, as rows read without an ORDER BY can arrive
+        var lending = Guid.NewGuid();
+        var cards = Guid.NewGuid();
+        var accounts = Guid.NewGuid();
+        HierarchyMembership[] memberships =
+        [
+            new(lending, Root, From, null, "Lending"),
+            new(cards, Root, From, null, "cards"),
+            new(accounts, Root, From, null, "Accounts"),
+        ];
+
+        // Act
+        var nodes = TeamHierarchyPeriods.Descendants(Root, From, To, memberships);
+        var reversed = TeamHierarchyPeriods.Descendants(Root, From, To, memberships.Reverse());
+
+        // Assert
+        nodes.Select(n => n.TeamId).Should().Equal(accounts, cards, lending);
+        reversed.Select(n => n.TeamId).Should().Equal(accounts, cards, lending);
+    }
+
+    [Fact]
+    public void Descendants_WithoutNames_OrdersSiblingsById()
+    {
+        // Arrange
+        var first = new Guid("00000000-0000-0000-0000-000000000001");
+        var second = new Guid("00000000-0000-0000-0000-000000000002");
+        HierarchyMembership[] memberships = [new(second, Root, From, null), new(first, Root, From, null)];
+
+        // Act
+        var nodes = TeamHierarchyPeriods.Descendants(Root, From, To, memberships);
+
+        // Assert
+        nodes.Select(n => n.TeamId).Should().Equal(first, second);
+    }
+
+    [Fact]
     public void Descendants_ForAChildThatLeftAndCameBack_GivesOneNodeWithBothPeriodsInDateOrder()
     {
         // Arrange — the later membership first

@@ -26,7 +26,9 @@ import {
 import useAuth from '@/src/components/contexts/auth'
 import { IterationState } from '@/src/components/types'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
+import { useAppDispatch, useDocumentTitle, useFeatureFlag } from '@/src/hooks'
+import { apiSlice } from '@/src/store/features/apiSlice'
+import { QueryTags } from '@/src/store/features/query-tags'
 import {
   useGetPlanningIntervalActivitiesQuery,
   useGetPlanningIntervalBacklogQuery,
@@ -93,13 +95,13 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
   } = useGetPlanningIntervalQuery(piKey)
 
   useDocumentTitle(`${planningInterval?.name ?? piKey} - Planning Interval`)
+  const dispatch = useAppDispatch()
 
   // A new objective must have a team to own it, so the create action can only
   // be offered once we know the PI has one.
-  const { data: teams, refetch: refetchTeams } =
-    useGetPlanningIntervalTeamsQuery(piKey, {
-      skip: activeSection !== PlanningIntervalSections.Objectives,
-    })
+  const { data: teams } = useGetPlanningIntervalTeamsQuery(piKey, {
+    skip: activeSection !== PlanningIntervalSections.Objectives,
+  })
 
   // Every work item in every sprint of the PI, so it waits for its section.
   const {
@@ -145,7 +147,15 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
     setOpenManageTeamsForm(false)
     if (wasSaved) {
       refetchPlanningInterval()
-      refetchTeams()
+      // Invalidated rather than refetched: the teams query is skipped outside
+      // the Objectives section, and refetching a skipped query throws. Iteration
+      // metrics measure the PI's Kanban teams, so they change with the team set.
+      dispatch(
+        apiSlice.util.invalidateTags([
+          { type: QueryTags.PlanningIntervalTeam, id: piKey },
+          QueryTags.PlanningIntervalIterationMetrics,
+        ]),
+      )
     }
   }
 

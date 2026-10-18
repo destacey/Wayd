@@ -131,6 +131,31 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Prompts_OfferEverySkill_WhateverToolsetsTheConnectionChose()
+    {
+        // Arrange
+        await SetFlag(true);
+        var token = await CreateToken();
+        await using var mcp = await Connect(token, "?toolsets=teams&readonly=true");
+
+        // Act
+        var prompts = await mcp.ListPromptsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var ppm = await mcp.GetPromptAsync("wayd-ppm", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(mcp.ServerCapabilities.Prompts);
+        Assert.Equal(SkillPrompts.All.Select(p => p.ProtocolPrompt.Name), prompts.Select(p => p.Name).Order(StringComparer.Ordinal));
+        var listed = Assert.Single(prompts, p => p.Name == "wayd-ppm");
+        var expected = SkillPrompts.All.Single(p => p.ProtocolPrompt.Name == "wayd-ppm");
+        Assert.Equal(expected.ProtocolPrompt.Title, listed.ProtocolPrompt.Title);
+        Assert.Equal(expected.ProtocolPrompt.Description, listed.ProtocolPrompt.Description);
+        Assert.Equal(
+            expected.Result.Messages.Select(m => ((TextContentBlock)m.Content).Text),
+            ppm.Messages.Select(m => Assert.IsType<TextContentBlock>(m.Content).Text));
+        Assert.All(ppm.Messages, m => Assert.Equal(Role.User, m.Role));
+    }
+
+    [Fact]
     public async Task CallTool_IsRefused_WhenTheToolIsOutsideTheChosenToolsets()
     {
         // Arrange

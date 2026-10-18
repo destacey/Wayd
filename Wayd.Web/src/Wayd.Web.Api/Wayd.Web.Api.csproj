@@ -77,6 +77,14 @@
         </Content>
     </ItemGroup>
 
+    <!-- The published skills, served as MCP prompts (Mcp/SkillPrompts.cs) under the logical name
+         skills/<folder>/<path>, with / whichever platform builds it. -->
+    <ItemGroup>
+        <EmbeddedResource Include="..\..\..\skills\**\*.md" Visible="false">
+            <LogicalName>skills/$([System.String]::Copy('%(RecursiveDir)').Replace('\', '/'))%(Filename)%(Extension)</LogicalName>
+        </EmbeddedResource>
+    </ItemGroup>
+
     <ItemGroup>
         <Folder Include="wwwroot\api\v1\" />
     </ItemGroup>

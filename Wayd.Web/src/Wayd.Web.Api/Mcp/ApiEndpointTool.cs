@@ -73,7 +73,7 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
                     break;
 
                 case ArgumentLocation.Body when hasValue:
-                    body = (JsonSerializer.SerializeToUtf8Bytes(value), "application/json");
+                    body = (JsonSerializer.SerializeToUtf8Bytes(value), argument.MediaType ?? "application/json");
                     break;
             }
         }

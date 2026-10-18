@@ -1,11 +1,18 @@
 import { getTeamsClient, getTeamsOfTeamsClient } from '@/src/services/clients'
 import {
+  CapacityMeasuresDto,
+  CapacityReportInterval,
   TeamAllocationProposalDto,
   TeamAllocationProposalRowDto,
   TeamCapacityAllocationDto,
   TeamCapacityDto,
   TeamCapacityPersonDto,
   TeamCapacityPlanDto,
+  TeamCapacityReportDto,
+  TeamCapacityReportLineDto,
+  TeamCapacityReportPersonDto,
+  TeamCapacityReportRoleDto,
+  TeamCapacityReportTeamDto,
   TeamCapacityRoleDto,
   TeamCapacityRollupDto,
   TeamCapacityRollupNodeDto,
@@ -16,7 +23,15 @@ import { CalendarDate, teamDayOffParam } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
+export { CapacityReportInterval }
+
 export type {
+  CapacityMeasuresDto,
+  TeamCapacityReportDto,
+  TeamCapacityReportLineDto,
+  TeamCapacityReportPersonDto,
+  TeamCapacityReportRoleDto,
+  TeamCapacityReportTeamDto,
   TeamAllocationProposalDto,
   TeamAllocationProposalRowDto,
   TeamCapacityAllocationDto,
@@ -118,6 +133,39 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getTeamCapacityReport: builder.query<
+      TeamCapacityReportDto,
+      {
+        teamId: string
+        teamType: CapacityTeamType
+        from: CalendarDate
+        to: CalendarDate
+        interval?: CapacityReportInterval
+      }
+    >({
+      queryFn: async ({ teamId, teamType, from, to, interval }) => {
+        try {
+          const data = await clientFor(teamType).getCapacityReport(
+            teamId,
+            from,
+            to,
+            interval,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // A team of teams' report is made of the allocations of every team
+      // beneath it and of which teams those are, so a change to either
+      // refetches it.
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.TeamCapacity, id: arg.teamId },
+        { type: QueryTags.TeamMembership, id: 'LIST' },
+      ],
+    }),
+
     getTeamAllocationProposal: builder.query<
       TeamAllocationProposalDto,
       { teamId: string; teamType: CapacityTeamType; from: CalendarDate }
@@ -145,5 +193,6 @@ export const {
   useGetTeamCapacityQuery,
   useGetTeamCapacityPlanQuery,
   useGetTeamOfTeamsCapacityRollupQuery,
+  useGetTeamCapacityReportQuery,
   useGetTeamAllocationProposalQuery,
 } = teamCapacityApi

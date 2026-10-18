@@ -1,11 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using NJsonSchema;
 using NodaTime;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
@@ -13,6 +15,8 @@ using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth;
 using Wayd.Common.Application.FeatureManagement.Commands;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Organization.Application.Teams.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Web.Api.Mcp;
@@ -184,6 +188,102 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task CallTool_AnswersWithAnArrayAsStructuredContentUnderResult()
+    {
+        // Arrange
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Projects);
+        var (user, token) = await CreateUserWithToken(permission);
+        await using var mcp = await Connect(token);
+        var direct = JsonNode.Parse(await user.Client.GetStringAsync("/api/ppm/projects/statuses", TestContext.Current.CancellationToken));
+
+        // Act
+        var result = await mcp.CallToolAsync("Projects_GetStatuses", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotEqual(true, result.IsError);
+        Assert.IsType<JsonArray>(direct);
+        Assert.True(JsonNode.DeepEquals(direct, StructuredContentOf(result)[ToolOutput.ResultProperty]));
+    }
+
+    [Fact]
+    public async Task CallTool_AnswersWithAnObjectAsTheStructuredContentItself()
+    {
+        // Arrange
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.ProjectPortfolios);
+        var (user, token) = await CreateUserWithToken(permission);
+        var portfolioId = await CreatePortfolio();
+        await using var mcp = await Connect(token);
+        var direct = JsonNode.Parse(await user.Client.GetStringAsync($"/api/ppm/portfolios/{portfolioId}", TestContext.Current.CancellationToken));
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Portfolios_GetPortfolio",
+            new Dictionary<string, object?> { ["idOrKey"] = portfolioId.ToString() },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotEqual(true, result.IsError);
+        Assert.True(JsonNode.DeepEquals(direct, StructuredContentOf(result)));
+    }
+
+    [Fact]
+    public async Task CallTool_AnswersWithStructuredContentItsOutputSchemaAccepts()
+    {
+        // Arrange — clients may reject a result that breaks the tool's schema, so a schema the OpenAPI
+        // document gets wrong breaks the tool. Calls every read-only tool that needs no arguments, one that
+        // answers with a record and both import tools, as a caller holding every permission, with a team and
+        // a portfolio in place so the lists have an item to check.
+        await SetFlag(true);
+        var (_, token) = await CreateUserWithToken([.. ApplicationPermissions.All.Select(p => p.Name)]);
+        var portfolioId = await CreatePortfolio();
+        await CreateTeam();
+        await using var mcp = await Connect(token);
+        var tools = (await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(t => t.ProtocolTool).ToList();
+        var calls = tools
+            .Where(t => t.Annotations?.ReadOnlyHint == true && !t.InputSchema.TryGetProperty("required", out _))
+            .Select(t => (Tool: t, Arguments: (Dictionary<string, object?>?)null))
+            .Append((tools.Single(t => t.Name == "Portfolios_GetPortfolio"), new Dictionary<string, object?> { ["idOrKey"] = portfolioId.ToString() }))
+            .Append((tools.Single(t => t.Name == "Imports_GetFileFormat"), new Dictionary<string, object?> { ["importType"] = "strategic.themes" }))
+            .Append((tools.Single(t => t.Name == "Imports_Preflight"), new Dictionary<string, object?>
+            {
+                ["importType"] = "strategic.themes",
+                ["file"] = $"ImportId,Name,Description,State\ns1,MCP {Guid.NewGuid():N},Checked through MCP.,Active\n",
+            }));
+
+        // Act
+        var answered = 0;
+        var skipped = new List<string>();
+        var violations = new List<string>();
+        foreach (var (tool, arguments) in calls)
+        {
+            var result = await mcp.CallToolAsync(tool.Name, arguments, cancellationToken: TestContext.Current.CancellationToken);
+            if (result.IsError == true)
+            {
+                skipped.Add(tool.Name);
+                continue;
+            }
+
+            answered++;
+            if (tool.OutputSchema is not { } outputSchema || result.StructuredContent is not { } structured)
+            {
+                violations.Add($"{tool.Name}: answered without an output schema and structured content");
+                continue;
+            }
+
+            var schema = await JsonSchema.FromJsonAsync(outputSchema.GetRawText(), TestContext.Current.CancellationToken);
+            violations.AddRange(schema.Validate(structured.GetRawText()).Select(e => $"{tool.Name}: {e}"));
+        }
+
+        // Assert
+        Assert.Empty(violations);
+        Assert.True(answered >= 25, $"only {answered} tools answered, too few to trust the check; refused: {string.Join(", ", skipped)}");
+        Assert.DoesNotContain("Imports_GetFileFormat", skipped);
+        Assert.DoesNotContain("Imports_Preflight", skipped);
+    }
+
+    [Fact]
     public async Task CallTool_IsRefused_WhenTheCallerLacksTheEndpointsPermission()
     {
         // Arrange
@@ -226,6 +326,9 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
 
     private static string TextOf(CallToolResult result) => Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text;
 
+    private static JsonObject StructuredContentOf(CallToolResult result) =>
+        Assert.IsType<JsonObject>(JsonNode.Parse(Assert.NotNull(result.StructuredContent).GetRawText()));
+
     private async Task<McpClient> Connect(string token, string query = "", Dictionary<string, string>? headers = null)
     {
         headers ??= [];
@@ -266,6 +369,16 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
             TestContext.Current.CancellationToken);
         Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
         return created.Value.Id;
+    }
+
+    private async Task CreateTeam()
+    {
+        using var scope = _factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        var created = await scope.ServiceProvider.GetRequiredService<IDispatcher>().Send(
+            new CreateTeamCommand($"MCP {Guid.NewGuid():N}"[..20], new TeamCode($"M{Guid.NewGuid():N}"[..8].ToUpperInvariant()), null, new LocalDate(2026, 1, 1)),
+            TestContext.Current.CancellationToken);
+        Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
     }
 
     private async Task SetFlag(bool enabled)

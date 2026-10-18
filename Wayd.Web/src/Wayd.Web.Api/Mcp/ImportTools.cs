@@ -18,9 +18,12 @@ namespace Wayd.Web.Api.Mcp;
 /// </remarks>
 public static class ImportTools
 {
-    /// <summary>Both tools, described from <paramref name="formats"/>.</summary>
-    public static IEnumerable<McpServerTool> Create(ImportFormats formats) =>
-        [new FileFormatTool(formats), new PreflightTool(formats)];
+    /// <summary>
+    /// Both tools, described from <paramref name="formats"/>; a preflight answers in the shape of
+    /// <paramref name="preflightOutput"/>, the response the import endpoints share.
+    /// </summary>
+    public static IEnumerable<McpServerTool> Create(ImportFormats formats, ToolOutput? preflightOutput) =>
+        [new FileFormatTool(formats), new PreflightTool(formats, preflightOutput)];
 
     private static JsonObject ImportTypeSchema(ImportFormats formats) => new()
     {
@@ -52,6 +55,7 @@ public static class ImportTools
                 ["properties"] = new JsonObject { ["importType"] = ImportTypeSchema(formats) },
                 ["required"] = new JsonArray("importType"),
             }),
+            OutputSchema = JsonSerializer.SerializeToElement(FileFormatSchema()),
             Annotations = McpToolAnnotationDefaults.For("GET", "Get import file format"),
         };
 
@@ -76,7 +80,57 @@ public static class ImportTools
                 })]),
             };
 
-            return ValueTask.FromResult(ApiToolResult.Text(answer.ToJsonString()));
+            return ValueTask.FromResult(ApiToolResult.Structured(answer));
+        }
+
+        /// <summary>The shape of the answer <see cref="InvokeAsync"/> builds.</summary>
+        private static JsonObject FileFormatSchema()
+        {
+            static JsonObject Of(string type) => new() { ["type"] = type };
+            static JsonObject Nullable(string type) => new() { ["type"] = new JsonArray(type, "null") };
+
+            var column = new JsonObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JsonObject
+                {
+                    ["name"] = Of("string"),
+                    ["type"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray("text", "id", "date", "timestamp", "integer", "number", "boolean") },
+                    ["required"] = Of("boolean"),
+                    ["description"] = Of("string"),
+                    ["values"] = new JsonObject { ["type"] = "array", ["items"] = Of("string") },
+                    ["maxLength"] = Of("integer"),
+                },
+                ["required"] = new JsonArray("name", "type", "required"),
+            };
+
+            return new JsonObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JsonObject
+                {
+                    ["importType"] = Of("string"),
+                    ["description"] = Nullable("string"),
+                    ["files"] = new JsonObject
+                    {
+                        ["type"] = "array",
+                        ["items"] = new JsonObject
+                        {
+                            ["type"] = "object",
+                            ["properties"] = new JsonObject
+                            {
+                                ["argument"] = Of("string"),
+                                ["label"] = Nullable("string"),
+                                ["required"] = Of("boolean"),
+                                ["header"] = Of("string"),
+                                ["columns"] = new JsonObject { ["type"] = "array", ["items"] = column },
+                            },
+                            ["required"] = new JsonArray("argument", "label", "required", "header", "columns"),
+                        },
+                    },
+                },
+                ["required"] = new JsonArray("importType", "description", "files"),
+            };
         }
 
         private static JsonNode Column(ImportColumn column)
@@ -100,11 +154,13 @@ public static class ImportTools
     private sealed class PreflightTool : McpServerTool
     {
         private readonly ImportFormats _formats;
+        private readonly ToolOutput? _output;
         private readonly IReadOnlyList<string> _extraFiles;
 
-        public PreflightTool(ImportFormats formats)
+        public PreflightTool(ImportFormats formats, ToolOutput? output)
         {
             _formats = formats;
+            _output = output;
 
             // Every file an import takes beyond its main one, described by the imports that take it.
             var extraFiles = new Dictionary<string, List<string>>();
@@ -154,6 +210,7 @@ public static class ImportTools
                     ["properties"] = properties,
                     ["required"] = new JsonArray("importType", "file"),
                 }),
+                OutputSchema = output is null ? null : JsonSerializer.SerializeToElement(output.Schema),
                 // Writes a run record and nothing else, so it needs no confirmation; applying it is what asks first.
                 Annotations = McpToolAnnotationDefaults.For("POST", "Check an import file", readOnly: false, destructive: false, idempotent: false),
             };
@@ -196,7 +253,7 @@ public static class ImportTools
 
             var response = await services.GetRequiredService<ApiPipeline>().Send(
                 caller, "POST", format!.Path, query.ToQueryString(), null, (body, content.Headers.ContentType!.ToString()), cancellationToken);
-            return ApiToolResult.From(response);
+            return ApiToolResult.From(response, _output);
         }
     }
 }

@@ -59,15 +59,8 @@ public sealed class ChangeEmployeeTimeAwayCommandHandler(
             if (!await _currentPrincipal.CanManageTimeAway(_organizationDbContext, request.EmployeeId, cancellationToken))
                 return Result.Failure(TimeAwayAuthorization.NotAllowedError);
 
-            var employee = await _organizationDbContext.Employees
-                .Where(e => e.Id == request.EmployeeId)
-                .Select(e => new { e.IsActive })
-                .FirstOrDefaultAsync(cancellationToken);
-            if (employee is null)
+            if (!await _organizationDbContext.Employees.AnyAsync(e => e.Id == request.EmployeeId, cancellationToken))
                 return Result.Failure($"Employee {request.EmployeeId} not found.");
-
-            if (!employee.IsActive)
-                return Result.Failure("Time away cannot be changed for an inactive employee. It can still be removed.");
 
             var (capacity, isNew) = await EmployeeCapacityRecords.LoadOrCreate(_organizationDbContext, request.EmployeeId, CapacityPart.TimeAway, cancellationToken);
 

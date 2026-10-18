@@ -57,15 +57,8 @@ public sealed class RecordEmployeeTimeAwayCommandHandler(
             if (!await _currentPrincipal.CanManageTimeAway(_organizationDbContext, request.EmployeeId, cancellationToken))
                 return Result.Failure<Guid>(TimeAwayAuthorization.NotAllowedError);
 
-            var employee = await _organizationDbContext.Employees
-                .Where(e => e.Id == request.EmployeeId)
-                .Select(e => new { e.IsActive })
-                .FirstOrDefaultAsync(cancellationToken);
-            if (employee is null)
+            if (!await _organizationDbContext.Employees.AnyAsync(e => e.Id == request.EmployeeId, cancellationToken))
                 return Result.Failure<Guid>($"Employee {request.EmployeeId} not found.");
-
-            if (!employee.IsActive)
-                return Result.Failure<Guid>("Time away cannot be recorded for an inactive employee.");
 
             var (capacity, isNew) = await EmployeeCapacityRecords.LoadOrCreate(_organizationDbContext, request.EmployeeId, CapacityPart.TimeAway, cancellationToken);
 

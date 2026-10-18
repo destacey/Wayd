@@ -29,6 +29,7 @@ The root [AGENTS.md](../../../AGENTS.md) covers the client's conventions (API ca
 ### API client
 
 - **Never set `transformResponse: (data) => data`** on the Axios instances in `src/services/clients.ts`. The NSwag client (14.7+) assigns `response.data` directly, so disabling Axios's JSON parsing makes every response a string.
+- **A form's 422 goes through `toFormErrors`**, marking the fields it names, never only a toast of `detail`. A field named differently from its request property — a date range picker, a list row, values held in state — needs a `fieldFor` mapping. See [Form Validation Errors](../../../docs/contributing/frontend.mdx#form-validation-errors).
 - **A polymorphic request body puts `$type` first** — `{ $type: 'entra', ...values }`, never `{ ...values, $type }`. System.Text.Json reads the discriminator only from the first property and otherwise fails with "must specify a type discriminator" (a 500).
 
 ### Tooling

@@ -33,6 +33,8 @@ interface Props {
     /** Absent for no end. */
     end?: CalendarDate
   }
+  /** True for an inactive person: the API moves their time only up to an end date. */
+  requireEnd?: boolean
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -84,6 +86,7 @@ const MoveAllocationForm = ({
   employeeId,
   allocations,
   target,
+  requireEnd = false,
   onFormComplete,
   onFormCancel,
 }: Props) => {
@@ -192,8 +195,16 @@ const MoveAllocationForm = ({
           name="end"
           label="End"
           dependencies={['start']}
-          extra="Leave empty for no end."
+          extra={
+            requireEnd
+              ? 'Required for someone who is no longer active.'
+              : 'Leave empty for no end.'
+          }
           rules={[
+            {
+              required: requireEnd,
+              message: 'Enter an end date for someone who is no longer active.',
+            },
             ({ getFieldValue }) => ({
               validator: (_, value: Dayjs | null | undefined) => {
                 const start: Dayjs | undefined = getFieldValue('start')

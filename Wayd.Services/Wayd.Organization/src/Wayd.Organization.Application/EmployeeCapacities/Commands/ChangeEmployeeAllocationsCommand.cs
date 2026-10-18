@@ -56,7 +56,7 @@ public sealed class ChangeEmployeeAllocationsCommandHandler(
     {
         try
         {
-            List<AllocationTarget> targets = [.. request.Changes.Select(c => new AllocationTarget(c.TeamId, c.RoleId, c.Percent > 0))];
+            List<AllocationTarget> targets = [.. request.Changes.Select(c => new AllocationTarget(c.TeamId, c.RoleId, c.Percent > 0, c.End is null))];
 
             var validation = await AllocationTargets.Validate(_organizationDbContext, request.EmployeeId, targets, cancellationToken);
             if (validation.IsFailure)

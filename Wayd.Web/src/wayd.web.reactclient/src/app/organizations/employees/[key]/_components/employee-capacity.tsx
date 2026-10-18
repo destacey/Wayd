@@ -32,6 +32,8 @@ const TIMELINE_MAX_HEIGHT = 560
 
 interface Props {
   employeeId: string
+  /** False for someone who has left, whose new time must have an end date. */
+  isActive: boolean
 }
 
 /** Which form is open: allocating afresh, changing one allocation, or moving time. */
@@ -40,7 +42,7 @@ type OpenForm =
   | { kind: 'change'; allocation: AllocationToChange }
   | { kind: 'move' }
 
-const EmployeeCapacity = ({ employeeId }: Props) => {
+const EmployeeCapacity = ({ employeeId, isActive }: Props) => {
   const [openForm, setOpenForm] = useState<OpenForm | null>(null)
 
   const { hasPermissionClaim } = useAuth()
@@ -251,6 +253,7 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
           allocation={
             openForm.kind === 'change' ? openForm.allocation : undefined
           }
+          requireEnd={!isActive}
           onFormComplete={closeForm}
           onFormCancel={closeForm}
         />
@@ -260,6 +263,7 @@ const EmployeeCapacity = ({ employeeId }: Props) => {
         <MoveAllocationForm
           employeeId={employeeId}
           allocations={allocations}
+          requireEnd={!isActive}
           onFormComplete={closeForm}
           onFormCancel={closeForm}
         />

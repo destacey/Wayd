@@ -86,7 +86,10 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <EmployeeTeamsGrid employeeId={employeeData!.id} />
       case EmployeeTabs.Capacity:
         return capacityEnabled ? (
-          <EmployeeCapacity employeeId={employeeData!.id} />
+          <EmployeeCapacity
+            employeeId={employeeData!.id}
+            isActive={employeeData!.isActive}
+          />
         ) : null
       case EmployeeTabs.WorkItems:
         return <EmployeeWorkItems employeeId={employeeData!.id} />

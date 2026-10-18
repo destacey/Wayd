@@ -163,8 +163,9 @@ Key rules:
 - A person does not have to be a member of a team to be allocated to it, such as someone borrowed for one sprint
 - A person can have several allocations on one team in different roles, such as 30% as a lead and 70% as an engineer
 - The role on an allocation need not match a role the person holds as a member
-- Time cannot be given to an inactive employee, an inactive team or an inactive role, but can always be taken away from one
-- When an employee is deactivated, their allocations end that day, and any that start later are removed
+- Time cannot be given to an inactive team or an inactive role, but can always be taken away from one
+- Time can be given to an inactive employee, so the history of someone who has left can be filled in or corrected, but only with an **End** date. On their employee page, End is required for them. When choosing someone to allocate on a team, sprint or planning interval page, only active people are offered
+- When an employee is deactivated, their allocations end that day, and any that start later are removed. Wayd does not know the day someone actually left, so if they left on a different day, change their allocations to end on it. The [capacity report](#capacity-report-report) takes the last day an inactive person's allocations cover as the day they left
 - When a team or team of teams is deactivated, everyone's allocations to it end on its inactive date, and any that start later are removed. Their time on other teams is unchanged, and from the next day it can be allocated elsewhere. Reactivating the team does not bring the allocations back
 
 Who can change a team's allocations is covered under [Allocations: team membership](../settings/permissions.mdx#allocations-team-membership).
@@ -194,7 +195,7 @@ Key rules:
 - Time away is not an allocation. It takes nothing from the person's 100%, and it lowers their time on **every** team they are allocated to in proportion: someone 60% on one team and 40% on another who is away for a day takes 0.6 of a person-day from the first and 0.4 from the second
 - Being away from one team only is a change to that team's [allocation](#allocations), not time away
 - Stretches may overlap, such as training in the morning and leave in the afternoon, but a day cannot add up to more than a whole day away
-- Time away cannot be recorded or changed for an inactive employee. It can still be removed
+- Time away can be recorded, changed and removed for an inactive employee, so the history of someone who has left can be filled in
 - A person on several teams is recorded away once. Every team they are on, and every sprint of those teams, takes it into account; nobody sets their allocation to 0
 - Everyone who can see the person sees **that** they are away and for how much of the day. The **reason** is shown only to the person, the people they report up to and time away administrators, and is never written to the [activity log](../activity-log.mdx)
 
@@ -611,12 +612,12 @@ Features:
 | Active team required | Members can only be added to active teams |
 | Role required | A role must be selected when adding or editing a team member |
 | Allocation limit | A person's allocations cannot add up to more than 100% on any day, across all teams and roles |
-| Allocation needs active records | Time cannot be given to an inactive employee, team or role, but can always be taken away from one |
+| Allocation needs an active team and role | Time cannot be given to an inactive team or role, but can always be taken away from one |
+| Inactive employees need an end | Time given to an inactive employee must have an end date |
 | Employee deactivation ends allocations | Deactivating an employee ends their allocations that day and removes any that start later |
 | Team deactivation ends allocations | Deactivating a team or team of teams ends allocations to it on its inactive date and removes any that start later; reactivating does not restore them |
 | Time away is not allocation | Time away never counts toward the 100% allocation limit, and lowers the person's time on every team they are allocated to in proportion |
 | Time away limit | A person's time away cannot add up to more than a whole day on any day |
-| Time away needs an active employee | Time away cannot be recorded or changed for an inactive employee, but can always be removed |
 | Time away reason is private | The reason is shown only to the person, the people they report up to and time away administrators, and is not recorded in the activity log |
 | Plans change allocations | Editing a week or day of a capacity plan changes the person's allocation for those days only; nothing is stored per day |
 | A person's holidays follow their calendar | A person takes the holidays of the calendar assigned to them, otherwise the system default, on every team; a team's own calendar only applies when it is read as a whole |

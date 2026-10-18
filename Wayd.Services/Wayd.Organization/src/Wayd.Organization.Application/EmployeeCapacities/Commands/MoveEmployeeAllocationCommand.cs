@@ -67,8 +67,8 @@ public sealed class MoveEmployeeAllocationCommandHandler(
         {
             List<AllocationTarget> targets =
             [
-                new AllocationTarget(request.FromTeamId, request.FromRoleId, Allocates: false),
-                new AllocationTarget(request.ToTeamId, request.ToRoleId, Allocates: true),
+                new AllocationTarget(request.FromTeamId, request.FromRoleId, Allocates: false, OpenEnded: request.End is null),
+                new AllocationTarget(request.ToTeamId, request.ToRoleId, Allocates: true, OpenEnded: request.End is null),
             ];
 
             var validation = await AllocationTargets.Validate(_organizationDbContext, request.EmployeeId, targets, cancellationToken);

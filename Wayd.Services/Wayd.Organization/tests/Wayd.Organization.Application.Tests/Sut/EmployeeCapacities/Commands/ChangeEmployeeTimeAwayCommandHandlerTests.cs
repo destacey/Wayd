@@ -131,25 +131,25 @@ public class ChangeEmployeeTimeAwayCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ForAnInactiveEmployee_FailsWithoutChanging()
+    public async Task Handle_ForAnInactiveEmployee_ChangesTheTimeAway()
     {
-        // Arrange
-        var leaver = new EmployeeFaker().AsInactive().Generate();
+        // Arrange — a leaver's history can still be corrected
+        var leaver = new EmployeeFaker().AsInactive().WithManagerId(_manager.Id).Generate();
         _dbContext.AddEmployee(leaver);
         var capacity = EmployeeCapacity.Create(leaver.Id);
         var timeAway = capacity.RecordTimeAway(Feb1, Feb5, 100, TimeAwayReason.PaidTimeOff, EventActor.System, _dateTimeProvider.Now).Value;
         _dbContext.AddEmployeeCapacity(capacity);
-        var handler = CreateHandler(leaver.Id);
+        var handler = CreateHandler(_manager.Id);
         var command = new ChangeEmployeeTimeAwayCommand(leaver.Id, timeAway.Id, Feb1, Feb1, 50, TimeAwayReason.Other);
 
         // Act
         var result = await handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().StartWith("Time away cannot be changed for an inactive employee.");
-        timeAway.End.Should().Be(Feb5);
-        _dbContext.SaveChangesCallCount.Should().Be(0);
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        timeAway.End.Should().Be(Feb1);
+        timeAway.PercentAway.Should().Be(50);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     public void Dispose()

@@ -11,10 +11,17 @@ namespace Wayd.Organization.Application.EmployeeCapacities.EventHandlers;
 /// departure date.
 /// </summary>
 /// <remarks>
+/// <para>
 /// <c>EmployeeDeactivatedEvent</c> is delivered durably (see <c>DurableEventRoutes</c>): at least once and in
-/// no guaranteed order. Ending allocations that have already ended changes nothing, so a redelivery is safe
-/// while the employee stays inactive. One that arrives after the employee was activated again is skipped:
-/// allocations made since belong to that later stretch, and if it has ended too, its own deactivation ends them.
+/// no guaranteed order. One that arrives after the employee was activated again is skipped: allocations made
+/// since belong to that later stretch, and if it has ended too, its own deactivation ends them.
+/// </para>
+/// <para>
+/// An inactive employee's allocations can still be changed, with an end date, because the day they were
+/// deactivated is not always the day they left. Once they have been changed since the deactivation, a
+/// redelivered or late event must not cut them back, so only allocations with no end are ended: the
+/// commands never give an inactive employee one, so any left are what the deactivation still has to end.
+/// </para>
 /// </remarks>
 public sealed class EmployeeDeactivatedAllocationHandler(
     IOrganizationDbContext organizationDbContext,
@@ -40,6 +47,13 @@ public sealed class EmployeeDeactivatedAllocationHandler(
         if (activatedSince)
             return;
 
+        // Strictly later: this handler's own change is stamped with the deactivation's timestamp.
+        var changedSince = await _activityLogDbContext.ActivityLogs
+            .AnyAsync(a => a.AggregateId == @event.Id
+                && a.EventType == nameof(EmployeeAllocationsChangedEvent)
+                && a.Timestamp > deactivatedAt,
+                cancellationToken);
+
         var capacity = await _organizationDbContext.EmployeeCapacities
             .Include(c => c.Allocations)
             .FirstOrDefaultAsync(c => c.Id == @event.Id, cancellationToken);
@@ -50,7 +64,9 @@ public sealed class EmployeeDeactivatedAllocationHandler(
         var timeZone = DateTimeZoneProviders.Tzdb.GetZoneOrNull(settings.DefaultTimeZone) ?? DateTimeZone.Utc;
         var lastDay = @event.Timestamp.InZone(timeZone).Date;
 
-        var result = capacity.EndAllocations(lastDay, @event.Actor, @event.Timestamp);
+        var result = changedSince
+            ? capacity.EndOpenAllocations(lastDay, @event.Actor, @event.Timestamp)
+            : capacity.EndAllocations(lastDay, @event.Actor, @event.Timestamp);
         if (result.IsFailure)
             throw new InvalidOperationException($"Could not end the allocations of deactivated employee {@event.Id}: {result.Error}");
 

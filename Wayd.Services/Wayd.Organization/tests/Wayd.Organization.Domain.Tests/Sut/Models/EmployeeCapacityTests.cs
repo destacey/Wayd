@@ -399,6 +399,62 @@ public class EmployeeCapacityTests
     }
 
     [Fact]
+    public void EndOpenAllocations_EndsOrRemovesOpenOnesAndLeavesOnesWithAnEndAlone()
+    {
+        // Arrange — the team B allocation with an end runs past the last day, and must survive
+        var capacity = WithAllocations(
+            new AllocationChange(_teamA, _engineer, Jan1, null, 60),
+            new AllocationChange(_teamB, null, Jan1, Feb7, 40),
+            new AllocationChange(_teamA, _lead, Feb7.PlusDays(1), null, 40));
+
+        // Act
+        var result = capacity.EndOpenAllocations(Feb1, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.Allocations.Select(a => a.ToDetails()).Should().BeEquivalentTo(
+        [
+            new EmployeeAllocationDetails(_teamA, _engineer, Jan1, Feb1, 60),
+            new EmployeeAllocationDetails(_teamB, null, Jan1, Feb7, 40),
+        ]);
+        capacity.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<EmployeeAllocationsChangedEvent>();
+    }
+
+    [Fact]
+    public void EndOpenAllocations_KeepsAnEarlierStretchOfTheSameTeamAndRole()
+    {
+        // Arrange — an open allocation that starts after the last day follows one with an end in its slot
+        var capacity = WithAllocations(
+            new AllocationChange(_teamA, null, Jan1, Feb7, 60),
+            new AllocationChange(_teamA, null, Feb7.PlusDays(1), null, 30));
+
+        // Act
+        var result = capacity.EndOpenAllocations(Feb1, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.Allocations.Select(a => a.ToDetails()).Should().BeEquivalentTo(
+        [
+            new EmployeeAllocationDetails(_teamA, null, Jan1, Feb7, 60),
+        ]);
+    }
+
+    [Fact]
+    public void EndOpenAllocations_WhenEveryAllocationHasAnEnd_RaisesNoEvent()
+    {
+        // Arrange
+        var capacity = WithAllocations(new AllocationChange(_teamA, null, Jan1, Feb7, 60));
+
+        // Act
+        var result = capacity.EndOpenAllocations(Feb1, EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capacity.Allocations.Should().ContainSingle(a => a.End == Feb7);
+        capacity.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void EndAllocationsTo_EndsTheTeamsAllocationsInEveryRoleAndLeavesOtherTeamsAlone()
     {
         // Arrange — team A in two roles, one open and one starting later, beside an open one on team B

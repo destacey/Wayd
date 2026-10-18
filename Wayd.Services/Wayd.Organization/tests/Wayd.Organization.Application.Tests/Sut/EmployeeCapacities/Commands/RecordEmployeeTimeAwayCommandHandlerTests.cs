@@ -162,21 +162,22 @@ public class RecordEmployeeTimeAwayCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ForAnInactiveEmployee_FailsWithoutRecording()
+    public async Task Handle_ForAnInactiveEmployee_RecordsTheTimeAway()
     {
-        // Arrange
-        var leaver = new EmployeeFaker().AsInactive().Generate();
+        // Arrange — a leaver's history can still be filled in
+        var leaver = new EmployeeFaker().AsInactive().WithManagerId(_manager.Id).Generate();
         _dbContext.AddEmployee(leaver);
-        var handler = CreateHandler(leaver.Id);
+        var handler = CreateHandler(_manager.Id);
 
         // Act
         var result = await handler.Handle(Command(leaver.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Time away cannot be recorded for an inactive employee.");
-        _dbContext.EmployeeCapacities.Should().BeEmpty();
-        _dbContext.SaveChangesCallCount.Should().Be(0);
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var capacity = _dbContext.EmployeeCapacities.Should().ContainSingle().Subject;
+        capacity.Id.Should().Be(leaver.Id);
+        capacity.TimeAway.Should().ContainSingle(t => t.Start == Feb1 && t.End == Feb5);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

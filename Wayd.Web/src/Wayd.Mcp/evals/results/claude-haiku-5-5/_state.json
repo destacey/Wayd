@@ -68,6 +68,13 @@
     },
     "v6": {
       "skills": "available"
+    },
+    "v7": {
+      "skills": "available",
+      "ref": "ab2b69d36"
+    },
+    "v8": {
+      "skills": "available"
     }
   },
   "harness_sha": "1bee277092af0109de673b1c0bf1b988b783fa1093cb878de7af467885b3a4cf"

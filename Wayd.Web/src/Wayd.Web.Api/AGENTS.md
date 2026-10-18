@@ -13,7 +13,7 @@ client may reject a result the schema does not accept. A response that is not a 
 - **Every controller with a tool carries `[McpTools(McpToolset.X)]`**, which places its tools in a toolset clients can select (`McpToolFilter`); `McpToolCatalog` throws without it. Never rename a toolset.
 - **Annotations default from the HTTP method**; set `ReadOnly`/`Destructive`/`Idempotent` on the attribute only to depart from it, and `Destructive = false` only for a write that purely adds a record.
 - **Calls run through the API pipeline** (`ApiPipeline`), so a tool needs no authorization of its own — the endpoint's applies. An action whose body is not JSON cannot be a tool; `McpToolCatalog` throws on first use.
-- **Parity with `@wayd/mcp`**: until the package is retired, `McpToolCatalogTests` holds the tool list to `Wayd.Web.Api.IntegrationTests/Mcp/npm-tool-parity.json`, which the package's tests write. Add or change a tool on both sides.
+- **Parity with `@wayd/mcp`**: until the package is retired, `McpToolCatalogTests` holds the tool list to `Wayd.Web.Api.IntegrationTests/Mcp/npm-tool-parity.json`, which the package's tests write: every npm tool must be hosted, unchanged. A composite tool exists only here.
 
 ## OpenAPI Client Generation
 

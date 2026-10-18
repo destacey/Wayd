@@ -28,7 +28,7 @@ The two import tools, `Imports_GetFileFormat` and `Imports_Preflight`, front eve
 
 **A connection chooses its tools.** `McpToolFilter` reads the toolsets (`toolsets` query parameter, else `X-MCP-Toolsets`) and read-only mode (`readonly`, else `X-MCP-Readonly`) from each request, refusing an unknown name with 400. The server is stateless, so the filter is applied to every request, `tools/call` included: a tool outside the selection cannot be called, and read-only mode, which keeps only tools annotated `readOnlyHint`, is enforced rather than advisory. A write tool wrongly annotated read-only would therefore leak into read-only connections, which is one more reason to leave annotations to the HTTP method.
 
-While the npm package is still published, the hosted endpoint must offer exactly its tools. `Wayd.Web.Api.IntegrationTests/Mcp/npm-tool-parity.json` records each npm tool's name, title, annotations and arguments, plus the server instructions. The package's `tests/hosted-parity.test.ts` keeps it current (`UPDATE_PARITY_SNAPSHOT=1` rewrites it), and `McpToolCatalogTests` holds the API to it. A tool added to one must be added to the other.
+While the npm package is still published, the hosted endpoint must offer every one of its tools. `Wayd.Web.Api.IntegrationTests/Mcp/npm-tool-parity.json` records each npm tool's name, title, annotations and arguments, plus the server instructions. The package's `tests/hosted-parity.test.ts` keeps it current (`UPDATE_PARITY_SNAPSHOT=1` rewrites it), and `McpToolCatalogTests` holds the API to it. A tool added to the npm package must be added to the API; the hosted endpoint may offer more, which is where composite tools live.
 
 ## The npm package
 

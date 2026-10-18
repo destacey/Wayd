@@ -30,6 +30,8 @@ Confirm with the user before any of the three.
 
 ## Recommending a health check (checklist)
 
+When `Projects_GetHealthCheckEvidence` is available (the hosted server), call it first, with the project's UUID or key. One read returns steps 1–6: the project, plan summary, `overdueTasks` with keys, `stages` with `pastEndNotComplete` flagged, the `forecast` (or null with `forecastUnavailableReason`), `criticalPathUnavailableReason`, the `latestHealthCheck`, and `activitySinceLatestCheck` (`activityTruncated` means there was more). Read each part as the matching step below describes, then continue at step 7. Otherwise make the step 1–6 calls yourself.
+
 Copy this checklist and work through it in order:
 
 ```text

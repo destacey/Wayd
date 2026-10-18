@@ -94,6 +94,7 @@ The metrics tools return counts only; follow up with `Projects_GetProjects` when
 | Linked work items                        | `Projects_GetWorkItems`                                                  |
 | When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)     |
 | Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath` |
+| Evidence for a health check (hosted)     | `Projects_GetHealthCheckEvidence` (see [health-checks.md](health-checks.md)) |
 
 When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
 

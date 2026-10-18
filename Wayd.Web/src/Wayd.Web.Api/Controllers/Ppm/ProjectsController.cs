@@ -15,6 +15,8 @@ using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.Common.Application.FeatureManagement;
+using Wayd.Web.Api.Dtos.Ppm;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Ppm.ProjectLifecycles;
 using Wayd.Web.Api.Models.Ppm.Projects;
@@ -321,6 +323,44 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{idOrKey}/health-check-evidence")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
+    [EndpointSummary(
+        "Gather the evidence for recommending a project health check in one read: the project, plan summary, overdue tasks with keys, stages flagged when past their end, the delivery forecast, the latest check, and activity since it.")]
+    [EndpointDescription(
+        "Use it first when recommending a health check; classifying the evidence and drafting the note stay with you, and logging the check is Projects_CreateProjectHealthCheck after the user confirms. `overdueTasks` are the open tasks the plan summary counts as overdue. A stage with `pastEndNotComplete` ended before `asOf` and is neither completed nor canceled. `forecast` is the Projects_GetForecast result against the project's end, or null with `forecastUnavailableReason` when delivery forecasting is off — leave it out of the classification then. Critical-path evidence is never available (`criticalPathUnavailableReason`); never read that as \"no critical tasks\". `activitySinceLatestCheck` holds the project's own changes after the latest check, newest first, without tasks or stages; `activityTruncated` means there was more. The forecast options are those of Projects_GetForecast.")]
+    [McpTool("Projects_GetHealthCheckEvidence", "Get project health-check evidence")]
+    [ProducesResponseType(typeof(ProjectHealthCheckEvidenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectHealthCheckEvidenceDto>> GetHealthCheckEvidence(
+        string idOrKey,
+        [FromQuery] int? lookbackDays,
+        [FromQuery] bool? ignoreDependencies,
+        [FromQuery] bool? startedWorkFirst,
+        [FromServices] IFeatureFlags featureFlags,
+        [FromServices] IDateTimeProvider dateTimeProvider,
+        CancellationToken cancellationToken)
+    {
+        if (lookbackDays is < ForecastOptions.MinLookbackDays or > ForecastOptions.MaxLookbackDays)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                $"lookbackDays must be between {ForecastOptions.MinLookbackDays} and {ForecastOptions.MaxLookbackDays}.", HttpContext));
+
+        var options = new ForecastOptions
+        {
+            LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
+            IgnoreDependencies = ignoreDependencies ?? false,
+            StartedWorkFirst = startedWorkFirst ?? true,
+        };
+
+        var evidence = await new ProjectHealthCheckEvidenceComposer(_dispatcher, featureFlags, dateTimeProvider)
+            .Compose(idOrKey, options, cancellationToken);
+
+        return evidence is not null
+            ? Ok(evidence)
+            : NotFound();
     }
 
 

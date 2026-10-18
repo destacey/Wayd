@@ -8,7 +8,12 @@ import { CreateStrategicInitiativeRequest } from '@/src/services/wayd-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
 import { useCreateStrategicInitiativeMutation } from '@/src/store/features/ppm/strategic-initiatives-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  type ApiError,
+  rangeErrorsOn,
+} from '@/src/utils'
 import { DatePicker, Form, Modal, Select } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import dayjs from 'dayjs'
@@ -80,7 +85,9 @@ const CreateStrategicInitiativeForm = ({
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
           if (apiError.status === 422 && apiError.errors) {
-            const formErrors = toFormErrors(apiError.errors)
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('dateRange'),
+            })
             form.setFields(formErrors)
             messageApi.error('Correct the validation error(s) to continue.')
           } else {

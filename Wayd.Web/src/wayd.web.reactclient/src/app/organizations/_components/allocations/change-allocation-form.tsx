@@ -8,6 +8,7 @@ import {
   isApiError,
   parseCalendarDate,
   toCalendarDate,
+  toFormErrors,
   type ApiError,
   type CalendarDate,
 } from '@/src/utils'
@@ -94,6 +95,13 @@ export const changesFor = (
     : [entered]
 }
 
+/**
+ * Shows the server's errors for a change on the field that set it. Every change
+ * in a request comes from the same fields, so the index does not matter.
+ */
+export const fieldForError = (key: string) =>
+  /^changes\[\d+\]\.(\w+)$/.exec(key)?.[1]
+
 const ChangeAllocationForm = ({
   employeeId,
   employeeName,
@@ -116,7 +124,7 @@ const ChangeAllocationForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<FormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const response = await changeAllocations({
             employeeId: employeeId ?? values.employeeId!,
@@ -132,7 +140,16 @@ const ChangeAllocationForm = ({
           return true
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(apiError.detail ?? 'Failed to save the allocation.')
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(
+              toFormErrors(apiError.errors, {
+                fieldFor: fieldForError,
+              }),
+            )
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to save the allocation.')
+          }
           return false
         }
       },

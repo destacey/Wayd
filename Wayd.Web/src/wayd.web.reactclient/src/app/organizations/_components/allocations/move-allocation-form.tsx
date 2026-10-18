@@ -9,6 +9,7 @@ import {
   isApiError,
   parseCalendarDate,
   toCalendarDate,
+  toFormErrors,
   type ApiError,
   type CalendarDate,
 } from '@/src/utils'
@@ -76,6 +77,10 @@ const sourcesOf = (allocations: EmployeeAllocationDto[]): Source[] => {
   )
 }
 
+/** Shows the server's errors for the source team or role on the From field. */
+export const fieldForError = (key: string) =>
+  key === 'fromTeamId' || key === 'fromRoleId' ? 'from' : undefined
+
 const MoveAllocationForm = ({
   employeeId,
   allocations,
@@ -92,7 +97,7 @@ const MoveAllocationForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<FormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const source = sources[values.from]
           const response = await moveAllocation({
@@ -112,7 +117,14 @@ const MoveAllocationForm = ({
           return true
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(apiError.detail ?? 'Failed to move the allocation.')
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(
+              toFormErrors(apiError.errors, { fieldFor: fieldForError }),
+            )
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to move the allocation.')
+          }
           return false
         }
       },

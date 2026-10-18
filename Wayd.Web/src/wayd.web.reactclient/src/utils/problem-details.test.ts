@@ -1,4 +1,4 @@
-import toFormErrors, { isApiError } from './problem-details'
+import toFormErrors, { errorsByField, isApiError } from './problem-details'
 
 describe('isApiError', () => {
   it('returns true for object with status', () => {
@@ -15,7 +15,11 @@ describe('isApiError', () => {
 
   it('returns true for fully populated ApiError', () => {
     expect(
-      isApiError({ status: 422, detail: 'Validation failed', errors: { Key: ['must be unique'] } }),
+      isApiError({
+        status: 422,
+        detail: 'Validation failed',
+        errors: { Key: ['must be unique'] },
+      }),
     ).toBe(true)
   })
 
@@ -125,5 +129,46 @@ describe('toFormErrors', () => {
     const result = toFormErrors(problemDetails as any)
 
     expect(result).toEqual([])
+  })
+
+  it('places an error only on the field the form maps its key to', () => {
+    // Arrange
+    const problemDetails = {
+      '$.Start': ['Start is required'],
+      Name: ['Name is required'],
+    }
+
+    // Act
+    const result = toFormErrors(problemDetails, {
+      fieldFor: (key) => (key === 'start' ? ['dates'] : undefined),
+    })
+
+    // Assert
+    expect(result).toEqual([
+      { name: ['dates'], errors: ['Start is required'] },
+      { name: 'Name', errors: ['Name is required'] },
+      { name: 'name', errors: ['Name is required'] },
+    ])
+  })
+})
+
+describe('errorsByField', () => {
+  it('keeps only the keys the form maps, under its names', () => {
+    // Arrange
+    const problemDetails = {
+      'Ratings[1].Value': ['Value is required'],
+      'Ratings[1].RatingLevelId': ['Pick a level'],
+      Id: ['Id is required'],
+    }
+
+    // Act
+    const result = errorsByField(problemDetails, (key) =>
+      key.startsWith('ratings[1].') ? 'criterion-2' : undefined,
+    )
+
+    // Assert
+    expect(result).toEqual({
+      'criterion-2': ['Value is required', 'Pick a level'],
+    })
   })
 })

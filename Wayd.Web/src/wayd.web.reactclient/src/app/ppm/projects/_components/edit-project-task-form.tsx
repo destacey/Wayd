@@ -13,7 +13,12 @@ import {
   useGetParentTaskOptionsQuery,
   useUpdateProjectTaskMutation,
 } from '@/src/store/features/ppm/project-tasks-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  type ApiError,
+  rangeErrorsOn,
+} from '@/src/utils'
 import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import {
   DatePicker,
@@ -141,7 +146,13 @@ const EditProjectTaskForm = ({
           } catch (error) {
             const apiError: ApiError = isApiError(error) ? error : {}
             if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
+              const formErrors = toFormErrors(apiError.errors, {
+                fieldFor: rangeErrorsOn(
+                  'plannedRange',
+                  'plannedStart',
+                  'plannedEnd',
+                ),
+              })
               form.setFields(formErrors)
               messageApi.error('Correct the validation error(s) to continue.')
             } else {

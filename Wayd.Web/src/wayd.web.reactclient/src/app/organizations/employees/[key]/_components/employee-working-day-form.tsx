@@ -3,7 +3,7 @@
 import { Form, InputNumber, Modal } from 'antd'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { isApiError, type ApiError } from '@/src/utils'
+import { isApiError, toFormErrors, type ApiError } from '@/src/utils'
 import { useChangeEmployeeWorkingDayHoursMutation } from '@/src/store/features/organization/employee-time-away-api'
 import { formatHours } from '@/src/app/organizations/_components/time-away/time-away-duration'
 
@@ -43,7 +43,7 @@ const EmployeeWorkingDayForm = ({
 
   const { form, isOpen, isSaving, handleOk, handleCancel } =
     useModalForm<FormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           const response = await changeWorkingDayHours({
             employeeId,
@@ -56,7 +56,12 @@ const EmployeeWorkingDayForm = ({
           return true
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
-          messageApi.error(apiError.detail ?? 'Failed to save the working day.')
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(toFormErrors(apiError.errors))
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to save the working day.')
+          }
           return false
         }
       },

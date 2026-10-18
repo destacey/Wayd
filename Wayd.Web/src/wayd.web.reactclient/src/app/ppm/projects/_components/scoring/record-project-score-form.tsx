@@ -8,7 +8,7 @@ import {
 } from '@/src/services/wayd-api'
 import { useEvaluateScoringModelMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { useRecordProjectScoreMutation } from '@/src/store/features/ppm/project-scores-api'
-import { isApiError, type ApiError } from '@/src/utils'
+import { errorsByField, isApiError, type ApiError } from '@/src/utils'
 import {
   Alert,
   Card,
@@ -90,6 +90,9 @@ const RecordProjectScoreForm = ({
     return seed
   })
 
+  // The server's errors by criterion id, until that criterion is rated again.
+  const [ratingErrors, setRatingErrors] = useState<Record<string, string>>({})
+
   const [preview, setPreview] = useState<ScoringModelEvaluationDto | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [isPreviewing, setIsPreviewing] = useState(false)
@@ -98,6 +101,9 @@ const RecordProjectScoreForm = ({
     setPreview(null)
     setPreviewError(null)
   }
+
+  const clearRatingError = (criterionId: string) =>
+    setRatingErrors(({ [criterionId]: _, ...rest }) => rest)
 
   const setScaleRating = (
     criterionId: string,
@@ -108,6 +114,7 @@ const RecordProjectScoreForm = ({
       ...prev,
       [criterionId]: { value, ratingLevelId: levelId },
     }))
+    clearRatingError(criterionId)
     resetPreview()
   }
 
@@ -116,6 +123,7 @@ const RecordProjectScoreForm = ({
       ...prev,
       [criterionId]: { value, ratingLevelId: null },
     }))
+    clearRatingError(criterionId)
     resetPreview()
   }
 
@@ -166,9 +174,25 @@ const RecordProjectScoreForm = ({
       onFormComplete()
     } catch (error) {
       const apiError: ApiError = isApiError(error) ? error : {}
-      messageApi.error(
-        apiError.detail ?? 'An error occurred while recording the score.',
-      )
+      // `ratings[i]` is the i-th criterion sent, in the order shown.
+      const errors = apiError.errors
+        ? errorsByField(apiError.errors, (key) => {
+            const match = /^ratings\[(\d+)\]\./.exec(key)
+            return match ? sortedCriteria[Number(match[1])]?.id : undefined
+          })
+        : {}
+      if (apiError.status === 422 && Object.keys(errors).length > 0) {
+        setRatingErrors(
+          Object.fromEntries(
+            Object.entries(errors).map(([id, e]) => [id, e.join(' ')]),
+          ),
+        )
+        messageApi.error('Correct the validation error(s) to continue.')
+      } else {
+        messageApi.error(
+          apiError.detail ?? 'An error occurred while recording the score.',
+        )
+      }
     }
   }
 
@@ -216,6 +240,10 @@ const RecordProjectScoreForm = ({
                     ? `Rated on the "${scale.name}" scale.`
                     : 'Free numeric entry — no scale assigned.')
                 }
+                validateStatus={
+                  ratingErrors[criterion.id] ? 'error' : undefined
+                }
+                help={ratingErrors[criterion.id]}
                 style={{ marginBottom: token.marginSM }}
               >
                 {scale ? (

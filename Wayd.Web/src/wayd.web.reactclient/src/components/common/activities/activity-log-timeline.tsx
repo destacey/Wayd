@@ -5,6 +5,7 @@ import {
   CopyOutlined,
   DiffOutlined,
   DownloadOutlined,
+  RobotOutlined,
   SearchOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -114,6 +115,8 @@ const actorTagColor = (kind: EventActorKind): string => {
       return 'orange'
     case EventActorKind.Sync:
       return 'cyan'
+    case EventActorKind.Automation:
+      return 'purple'
     default:
       return 'default'
   }
@@ -142,6 +145,32 @@ const getActorDisplay = (
   activity: ActivityLogDto,
   token: ReturnType<typeof theme.useToken>['token'],
 ) => {
+  // An automation's employee started it but did not choose the change, so they are never shown as its author.
+  if (activity.actorKind === EventActorKind.Automation) {
+    return {
+      title: 'Automation',
+      subtitle: activity.employee ? (
+        <>
+          Started by{' '}
+          <EntityLink
+            href={`/organizations/employees/${activity.employee.key}`}
+          >
+            {activity.employee.name}
+          </EntityLink>
+        </>
+      ) : (
+        'Automatic reaction to another change'
+      ),
+      avatar: (
+        <Avatar
+          size={36}
+          icon={<RobotOutlined />}
+          style={{ backgroundColor: token.purple }}
+        />
+      ),
+    }
+  }
+
   if (activity.employee) {
     return {
       title: (
@@ -600,7 +629,21 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
 
                       {/* Actor info line */}
                       <Flex align="center" gap="small" style={{ marginTop: 2 }}>
-                        {entry.employee ? (
+                        {(!entry.employee ||
+                          entry.actorKind === EventActorKind.Automation) && (
+                          <Tag
+                            color={actorTagColor(entry.actorKind)}
+                            variant="filled"
+                            style={{
+                              margin: 0,
+                              fontSize: 10,
+                              lineHeight: '16px',
+                            }}
+                          >
+                            {entry.actorKind}
+                          </Tag>
+                        )}
+                        {entry.employee && (
                           <Flex align="center" gap={6}>
                             <PersonPopover
                               name={entry.employee.name}
@@ -622,21 +665,11 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                               style={{ fontSize: token.fontSizeSM }}
                               ellipsis
                             >
-                              {entry.employee.name}
+                              {entry.actorKind === EventActorKind.Automation
+                                ? `started by ${entry.employee.name}`
+                                : entry.employee.name}
                             </Text>
                           </Flex>
-                        ) : (
-                          <Tag
-                            color={actorTagColor(entry.actorKind)}
-                            variant="filled"
-                            style={{
-                              margin: 0,
-                              fontSize: 10,
-                              lineHeight: '16px',
-                            }}
-                          >
-                            {entry.actorKind}
-                          </Tag>
                         )}
 
                         {entry.isRelated && (

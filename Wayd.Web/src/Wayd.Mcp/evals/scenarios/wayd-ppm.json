@@ -1561,7 +1561,7 @@
       {
         "type": "notCalled",
         "tool": "Programs_Complete",
-        "because": "KYC Automation is still Active; SKILL.md \"Prerequisites that cause rejections\" says to check the program's projects first so the transition fails in conversation, not at the API — and no confirmation was given."
+        "because": "KYC Automation is still Active; reference/status-changes.md \"Prerequisites that cause rejections\" says to check the program's projects first so the transition fails in conversation, not at the API — and no confirmation was given."
       },
       {
         "type": "notCalled",
@@ -1584,7 +1584,7 @@
         "because": "The user must be told which project blocks completion."
       }
     ],
-    "expected": "The agent finds the program (Programs_GetPrograms or Programs_GetProgram with key 14), lists its projects with Programs_GetProgramProjects, sees that KYC Automation (KYCAUT) is still Active, and tells the user the program cannot be completed until that project is completed or canceled. It calls no transition: SKILL.md \"Prerequisites that cause rejections\" (program complete needs every project completed or canceled) and the Programs_Complete description establish the rule, and \"Changing status\" requires confirmation before any transition."
+    "expected": "The agent finds the program (Programs_GetPrograms or Programs_GetProgram with key 14), lists its projects with Programs_GetProgramProjects, sees that KYC Automation (KYCAUT) is still Active, and tells the user the program cannot be completed until that project is completed or canceled. It calls no transition: reference/status-changes.md \"Prerequisites that cause rejections\" (program complete needs every project completed or canceled) and the Programs_Complete description establish the rule, and \"Changing status\" requires confirmation before any transition."
   },
   {
     "id": "ppm-reopen-cancelled-project",
@@ -2124,7 +2124,7 @@
             "toStatus": "Active"
           }
         },
-        "because": "backwardStatusTargets offers only Proposed: Active needs a start and end date, which this project lacks (SKILL.md \"Moving a project backwards\")."
+        "because": "backwardStatusTargets offers only Proposed: Active needs a start and end date, which this project lacks (reference/status-changes.md \"Moving a project backwards\")."
       },
       {
         "type": "notCalled",
@@ -2151,7 +2151,7 @@
         "because": "Once the user approves, the only valid revert is to Proposed, by UUID, with a reason a later reader will understand."
       }
     ],
-    "expected": "The agent reads HRBR with Projects_GetProject, sees it is Canceled with no lifecycle and no dates, and that backwardStatusTargets lists only Proposed. It explains that it cannot go straight back to Active (Active needs a start and end date; Approved needs a lifecycle) and offers to revert it to Proposed with a reason such as leadership reviving the project, then calls Projects_RevertStatus with the UUID, toStatus \"Proposed\" and that reason once the user approves. Established by SKILL.md \"Moving a project backwards\" and the Projects_RevertStatus description (\"offer only what it contains\")."
+    "expected": "The agent reads HRBR with Projects_GetProject, sees it is Canceled with no lifecycle and no dates, and that backwardStatusTargets lists only Proposed. It explains that it cannot go straight back to Active (Active needs a start and end date; Approved needs a lifecycle) and offers to revert it to Proposed with a reason such as leadership reviving the project, then calls Projects_RevertStatus with the UUID, toStatus \"Proposed\" and that reason once the user approves. Established by reference/status-changes.md \"Moving a project backwards\" and the Projects_RevertStatus description (\"offer only what it contains\")."
   },
   {
     "id": "ppm-log-health-check",
@@ -3061,7 +3061,7 @@
             }
           }
         },
-        "because": "A changed assessment is logged as a new check, by project UUID, with the write enum \"AtRisk\" (health-checks.md \"Log, correct, or delete\")."
+        "because": "A changed assessment is logged as a new check, by project UUID, with the write enum \"AtRisk\" (reference/health-checks.md \"Log, correct, or delete\")."
       },
       {
         "type": "notCalled",
@@ -3076,10 +3076,10 @@
       {
         "type": "confirmedBefore",
         "tool": "Projects_CreateProjectHealthCheck",
-        "because": "health-checks.md: never log a check without the user confirming the status, expiration and note."
+        "because": "reference/health-checks.md: never log a check without the user confirming the status, expiration and note."
       }
     ],
-    "expected": "The agent finds Nova (key NOVA) and its UUID, sees the current Healthy check, drafts a new At Risk check with an expiration at the end of the month and a note about the payment gateway vendor's three-week slip, and presents it for confirmation. After the user approves it calls Projects_CreateProjectHealthCheck with the UUID and status \"AtRisk\"; it does not update or delete the existing check. Established by health-checks.md \"Log, correct, or delete\" (default to logging a new check; confirm before any of the three) and the Projects_UpdateProjectHealthCheck description."
+    "expected": "The agent finds Nova (key NOVA) and its UUID, sees the current Healthy check, drafts a new At Risk check with an expiration at the end of the month and a note about the payment gateway vendor's three-week slip, and presents it for confirmation. After the user approves it calls Projects_CreateProjectHealthCheck with the UUID and status \"AtRisk\"; it does not update or delete the existing check. Established by reference/health-checks.md \"Log, correct, or delete\" (default to logging a new check; confirm before any of the three) and the Projects_UpdateProjectHealthCheck description."
   },
   {
     "id": "ppm-kpi-on-track",
@@ -3374,7 +3374,7 @@
       {
         "type": "called",
         "tool": "StrategicInitiatives_GetKpiCheckpointPlan",
-        "because": "kpis.md: for \"is this KPI on track?\" use the checkpoint plan, the one call that sets actuals against the plan with health and trend."
+        "because": "reference/initiatives-kpis.md: for \"is this KPI on track?\" use the checkpoint plan, the one call that sets actuals against the plan with health and trend."
       },
       {
         "type": "notCalled",
@@ -3392,6 +3392,6 @@
         "because": "The latest measured checkpoint (Q2: 820 against a target of 800, Decrease KPI) is At Risk, so the answer is not an unqualified \"yes\"."
       }
     ],
-    "expected": "The agent resolves the initiative and the \"Open support tickets\" KPI (read tools accept ids or keys), then calls StrategicInitiatives_GetKpiCheckpointPlan. It reports that this is a Decrease KPI, that Q1 was Healthy, that the latest measurement (820 at Q2 against a target of 800) is At Risk though improving, reports progress as 47.5% as supplied, and describes Q3 as not yet measured rather than failing. Established by kpis.md \"Tools\" and \"Reading a KPI\" and the GetKpiCheckpointPlan description (\"best single call for assessing whether a KPI is on track\")."
+    "expected": "The agent resolves the initiative and the \"Open support tickets\" KPI (read tools accept ids or keys), then calls StrategicInitiatives_GetKpiCheckpointPlan. It reports that this is a Decrease KPI, that Q1 was Healthy, that the latest measurement (820 at Q2 against a target of 800) is At Risk though improving, reports progress as 47.5% as supplied, and describes Q3 as not yet measured rather than failing. Established by reference/initiatives-kpis.md \"Tools\" and \"Reading a KPI\" and the GetKpiCheckpointPlan description (\"best single call for assessing whether a KPI is on track\")."
   }
 ]

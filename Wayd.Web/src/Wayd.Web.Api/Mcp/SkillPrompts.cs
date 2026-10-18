@@ -30,7 +30,7 @@ public static class SkillPrompts
 
     /// <summary>
     /// Builds one prompt per skill folder from <paramref name="files"/>, each keyed by its path relative to
-    /// <c>skills/</c> (<c>wayd-ppm/health-checks.md</c>), with either separator.
+    /// <c>skills/</c> (<c>wayd-ppm/reference/health-checks.md</c>), with either separator.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// A folder has no <c>SKILL.md</c>, or its <c>SKILL.md</c> lacks an H1 heading or a single-line frontmatter

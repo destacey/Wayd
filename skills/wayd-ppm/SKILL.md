@@ -11,13 +11,17 @@ Confirm every change with the user before you make it. Before a call that create
 
 When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
 
-## Reference files
+## Reference
 
-Read the matching file before working in these areas:
+Read the matching file before working in these areas. The rules on this page still apply there.
 
-- **Project health checks** — reviewing, recommending, logging, correcting, or deleting one: [health-checks.md](health-checks.md)
-- **Strategic initiatives and KPIs** — reading KPI progress or recording a measurement: [kpis.md](kpis.md)
-- **Project scores and portfolio ranking** (read-only): [scoring.md](scoring.md)
+| File                                                       | Read it when                                                                                                     |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [reference/status-changes.md](reference/status-changes.md) | Approving, activating, completing, cancelling, closing, or archiving a portfolio, program, or project, or reverting a project |
+| [reference/tasks.md](reference/tasks.md)                   | Creating, updating, or deleting a task, or adding or removing a task dependency                                  |
+| [reference/health-checks.md](reference/health-checks.md)   | Reviewing, recommending, logging, correcting, or deleting a project health check                                 |
+| [reference/initiatives-kpis.md](reference/initiatives-kpis.md) | Exploring strategic initiatives, changing an initiative's status, reading KPI progress, or recording a measurement |
+| [reference/scoring.md](reference/scoring.md)               | Project scores and portfolio ranking (read-only)                                                                 |
 
 ## What MCP can change
 
@@ -94,44 +98,9 @@ The metrics tools return counts only; follow up with `Projects_GetProjects` when
 | Linked work items                        | `Projects_GetWorkItems`                                                  |
 | When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)     |
 | Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath` |
-| Evidence for a health check (hosted)     | `Projects_GetHealthCheckEvidence` (see [health-checks.md](health-checks.md)) |
+| Evidence for a health check (hosted)     | `Projects_GetHealthCheckEvidence` (see [reference/health-checks.md](reference/health-checks.md)) |
 
 When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
-
-## Tasks
-
-A project needs an assigned lifecycle before it can hold tasks.
-
-### Creating a task
-
-1. Resolve `typeId`, `statusId`, and `priorityId` with `Tasks_GetTaskTypes`, `Tasks_GetTaskStatuses`, and `Tasks_GetTaskPriorities` (in parallel).
-2. Choose `parentId` — **required**. Use the stage's id (from `Projects_GetProjectStages`) for a top-level task in that stage, or another task's id to nest it beneath that task.
-3. Resolve assignees to employee ids (see Common patterns).
-4. Set the type-specific fields:
-   - **Task**: `progress` is required (use `0` for new work); dates go in `plannedStart` and `plannedEnd`.
-   - **Milestone**: `plannedDate` is required; omit `progress`, `plannedStart`, and `plannedEnd`.
-5. Call `Tasks_CreateProjectTask`.
-
-### Updating a task
-
-**When `Tasks_PatchProjectTask` is available (the hosted server), use it**: send only the change as a JSON Patch, and every field it does not name keeps its value — e.g. `[{ "op": "add", "path": "/assigneeIds/-", "value": "<employeeId>" }]` to add an assignee, `[{ "op": "replace", "path": "/statusId", "value": <id from Tasks_GetTaskStatuses> }]` to change status. To remove an assignee, `replace` `/assigneeIds` with everyone who stays (read the task first). `Projects_PatchStage` patches a stage the same way.
-
-Otherwise, `Tasks_UpdateProjectTask` overwrites the whole task: an omitted description, effort, date, or assignee list is cleared. An omitted or empty `assigneeIds` removes every assignee.
-
-1. Read the task with `Tasks_GetProjectTask`.
-2. Build the body from what you read, changing only what the user asked for:
-   - `statusId` = `status.id`, `priorityId` = `priority.id`
-   - `parentId` = `parentId` if set, otherwise `projectStageId` — required
-   - `assigneeIds` = every `assignees[].id`
-   - `progress` — required for a Task; omit for a Milestone
-   - `name`, `description`, `plannedStart`, `plannedEnd`, `plannedDate`, `estimatedEffortHours` as read
-3. Call `Tasks_UpdateProjectTask`. The task type cannot be changed.
-
-### Deleting tasks and managing dependencies
-
-- **Delete**: `Tasks_DeleteProjectTask`. Confirm with the user first.
-- **Add a dependency** (finish-to-start): `Tasks_AddTaskDependency` with the predecessor's id as the path `id` and `{ predecessorId, successorId }` in the body.
-- **Remove a dependency**: `Tasks_RemoveTaskDependency` with the predecessor's `id` and the `successorId`.
 
 ## Creating and updating records
 
@@ -143,7 +112,9 @@ Otherwise, `Tasks_UpdateProjectTask` overwrites the whole task: an omitted descr
 | Move a project to another program, or out of one | `Projects_ChangeProgram` (target must be in the same portfolio; `null` detaches)               |
 | Change a project's key                           | `Projects_ChangeKey` — only when the user explicitly asks; it breaks task keys and saved links |
 
-New records start in **Proposed**. Creating a project needs an `expenditureCategoryId` from `ExpenditureCategories_GetOptions`. Updates never change status, a project's key, program, or lifecycle, or a program's portfolio.
+New records start in **Proposed**. Creating a project needs an `expenditureCategoryId` from `ExpenditureCategories_GetOptions`. Updates never change status, a project's key, program, or lifecycle, or a program's portfolio. Status changes only through dedicated transition tools — see [reference/status-changes.md](reference/status-changes.md).
+
+Tasks follow the same rule as records: patch with `Tasks_PatchProjectTask` when it is available; otherwise `Tasks_UpdateProjectTask` overwrites the whole task, and an omitted or empty `assigneeIds` removes every assignee. See [reference/tasks.md](reference/tasks.md).
 
 ### Patching a record (hosted server)
 
@@ -170,39 +141,3 @@ Without a patch tool, every update overwrites the whole record: an omitted field
 5. **Show the user** any role that would lose members, by name, and confirm before calling.
 6. **Call** the update.
 7. **Re-read** the record and verify the Owners and Managers are intact and the change landed.
-
-## Changing status
-
-Status changes only through dedicated transition tools, never through an update. **Confirm every transition with the user first**, naming the record and the transition: others rely on the status, and portfolio, program, and initiative transitions cannot be undone.
-
-| Record               | Tools and allowed from                                                                                                                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Portfolio            | `Portfolios_Activate` (Proposed), `Portfolios_Close` (Active or OnHold), `Portfolios_Archive` (Closed)                                                                                                   |
-| Program              | `Programs_Activate` (Proposed), `Programs_Complete` (Active), `Programs_Cancel` (any status not already closed)                                                                                          |
-| Project              | `Projects_Approve` (Proposed), `Projects_Activate` (Proposed or Approved), `Projects_Complete` (Active), `Projects_Cancel` (any status not already closed), `Projects_RevertStatus` (below)              |
-| Strategic initiative | `StrategicInitiatives_Approve` (Proposed), `StrategicInitiatives_Activate` (Approved), `StrategicInitiatives_Complete` (Active or OnHold), `StrategicInitiatives_Cancel` (any status not already closed) |
-
-Every transition tool takes the record's UUID, not its key. No forward transition records a reason; the status history shows who and when, but not why.
-
-### Prerequisites that cause rejections
-
-Check these first so a transition fails in conversation rather than at the API:
-
-- **Project approve** — a lifecycle is assigned.
-- **Project or program activate and complete** — both a start and an end date are set.
-- **Program complete, or cancel from Active** — every project in it is completed or canceled (`Programs_GetProgramProjects`).
-- **Portfolio archive** — the portfolio is Closed.
-
-### Side effects
-
-- **`Portfolios_Activate` stamps the start date as today and `Portfolios_Close` stamps the end date as today.** Neither can be backdated, so never use them to tidy up a portfolio that really started or ended on another date.
-- **Completing or cancelling a strategic initiative closes it**: its KPIs and linked projects are frozen, though measurements can still be recorded.
-
-### Moving a project backwards
-
-`Projects_RevertStatus` is the only way back to an earlier status — reopening a completed or canceled project, or returning an active one to Approved. Programs and portfolios cannot be reverted.
-
-1. Read `backwardStatusTargets` from `Projects_GetProject` and offer only those. Do not derive targets: a status keeps its entry requirements in either direction (Approved needs a lifecycle, Active needs both dates), so a project cancelled straight from Proposed may only return to Proposed.
-2. If the project's program or portfolio is closed, the revert is rejected — that parent must be reopened first.
-3. Agree a `reason` with the user. It is required and stored in the status history as the record of why a decision was reversed, so write something a later reader will understand — never "revert" or "fix".
-4. Confirm, then call with `toStatus` and `reason`.

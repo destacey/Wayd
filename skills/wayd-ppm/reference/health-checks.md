@@ -32,9 +32,10 @@ Confirm with the user before any of the three.
 
 When `Projects_GetHealthCheckEvidence` is available (the hosted server), call it first, with the project's UUID or key. One read returns steps 1–6: the project, plan summary, `overdueTasks` with keys, `stages` with `pastEndNotComplete` flagged, the `forecast` (or null with `forecastUnavailableReason`), `criticalPathUnavailableReason`, the `latestHealthCheck`, and `activitySinceLatestCheck` (`activityTruncated` means there was more). Read each part as the matching step below describes, then continue at step 7. Otherwise make the step 1–6 calls yourself.
 
-Copy this checklist and work through it in order:
+Copy this checklist into your reply and tick each step (`- [x]`) as you finish it, in order:
 
 ```text
+- [ ] Evidence source: Projects_GetHealthCheckEvidence (hosted) for steps 1–6, otherwise the step 1–6 calls
 - [ ] 1. Project and timeline
 - [ ] 2. Plan metrics and task progress
 - [ ] 3. Critical path
@@ -42,8 +43,13 @@ Copy this checklist and work through it in order:
 - [ ] 5. Delivery forecast
 - [ ] 6. Previous checks and changes since
 - [ ] 7. Classify and draft
-- [ ] 8. Re-check, then present
+- [ ] 8. Re-check
+- [ ] 9. Present the recommendation to the user
+- [ ] 10. GATE — the user has confirmed (or adjusted) the status, expiration and note
+- [ ] 11. Projects_CreateProjectHealthCheck with what the user confirmed
 ```
+
+**Step 10 is a gate.** The reply that presents the recommendation ends with step 10 still unticked: stop there and wait. Tick it only when the user replies confirming, with any adjustment they asked for applied to the draft. Never call `Projects_CreateProjectHealthCheck` while step 10 is unticked.
 
 1. **Project and timeline** — `Projects_GetProject`: status, `start` and `end` (the committed window), current `healthCheck`, and the role lists. The project has no overall progress field; progress comes from steps 2 and 4.
 2. **Plan metrics and task progress** — `Projects_GetProjectPlanSummary` (`overdue`, `dueThisWeek`, `upcoming`, `totalLeafTasks`). Then `Tasks_GetProjectTasks` for each task's `status`, `progress`, and planned dates, to name the overdue tasks.
@@ -64,9 +70,9 @@ Copy this checklist and work through it in order:
 
 Take the worst status any signal supports, and name the signal that set it.
 
-## Presenting the recommendation
+## Presenting the recommendation (steps 9–11)
 
-**Never log, correct, or delete a check without the user's confirmation.** Present:
+**Never log, correct, or delete a check without the user's confirmation.** In step 9, present:
 
 - **Recommended status** — `"Healthy"`, `"AtRisk"`, or `"Unhealthy"`, with the signal that set it
 - **Proposed expiration** — UTC datetime
@@ -74,4 +80,4 @@ Take the worst status any signal supports, and name the signal that set it.
 - **Evidence** — progress since the last check; overdue and critical-path tasks by key; forecast chance and 50%/85% dates against `end`; stage slippage; dependency to chase
 - **Authorization** — submitting requires delivery leadership on the project, its program, or its portfolio
 
-Then wait for the user to confirm or adjust before calling `Projects_CreateProjectHealthCheck`.
+Then wait for the user to confirm or adjust (step 10) before calling `Projects_CreateProjectHealthCheck` (step 11).

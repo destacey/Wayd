@@ -20,4 +20,10 @@ public enum EventActorKind
 
     /// <summary>A live request with no authenticated user.</summary>
     Anonymous = 4,
+
+    /// <summary>
+    /// The platform reacting to something a person did, usually attributed to the account whose action set
+    /// it off.
+    /// </summary>
+    Automation = 5,
 }

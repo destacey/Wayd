@@ -71,6 +71,35 @@ public sealed class EventActorTests
     }
 
     [Fact]
+    public void Automation_KeepsWhoTriggeredItWithoutBecomingTheirEdit()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+
+        // Act
+        var actor = EventActor.Automation("alice", employeeId);
+
+        // Assert
+        actor.Kind.Should().Be(EventActorKind.Automation);
+        actor.UserId.Should().Be("alice");
+        actor.EmployeeId.Should().Be(employeeId);
+        actor.HasOriginatingUser.Should().BeTrue("the log can still say whose action set the automation off");
+        actor.Should().NotBe(EventActor.User("alice", employeeId), "a reaction to Alice's action is not Alice's own edit");
+    }
+
+    [Fact]
+    public void Automation_WithNoOriginator_NamesNoPerson()
+    {
+        // Arrange / Act
+        var actor = EventActor.Automation(null);
+
+        // Assert
+        actor.Kind.Should().Be(EventActorKind.Automation);
+        actor.UserId.Should().BeNull();
+        actor.HasOriginatingUser.Should().BeFalse();
+    }
+
+    [Fact]
     public void Anonymous_NamesNoPerson()
     {
         // Arrange / Act — a live request with no authenticated user.

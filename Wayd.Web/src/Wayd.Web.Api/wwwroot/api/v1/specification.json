@@ -47424,7 +47424,8 @@
           "System",
           "Import",
           "Sync",
-          "Anonymous"
+          "Anonymous",
+          "Automation"
         ],
         "type": "string"
       },

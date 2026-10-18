@@ -93198,6 +93198,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Runtime.Serialization.EnumMember(Value = @"Anonymous")]
         Anonymous = 4,
 
+        [System.Runtime.Serialization.EnumMember(Value = @"Automation")]
+        Automation = 5,
+
     }
 
     /// <summary>

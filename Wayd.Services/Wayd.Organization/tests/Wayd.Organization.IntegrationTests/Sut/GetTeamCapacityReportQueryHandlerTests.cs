@@ -173,6 +173,41 @@ public sealed class GetTeamCapacityReportQueryHandlerTests(SqlServerDbContextFix
     }
 
     [Fact]
+    public async Task Handle_ForSomeoneWhoLeftWithTimeAfterTheRange_CountsTheGapInTheRangeAsUnallocated()
+    {
+        // Arrange — Grace, now inactive, was on Cards to the first Friday and again for a week after the range,
+        // so she was still employed in the second week of the range
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        Guid cardsId, graceId;
+
+        await using (var seedContext = _fixture.CreateContext())
+        {
+            var cards = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
+            var grace = await OrganizationSeeder.SeedEmployee(seedContext, "E-1002", "grace@acme.example", cancellationToken);
+            grace.Deactivate(EmployeeActivatableArgs.Create(EventActor.System, SqlServerDbContextFixture.FixedNow)).IsSuccess.Should().BeTrue();
+
+            await seedContext.EmployeeCapacities.AddAsync(
+                Allocate(grace.Id,
+                    new AllocationChange(cards.Id, null, LongBefore, new LocalDate(2027, 2, 5), 100),
+                    new AllocationChange(cards.Id, null, new LocalDate(2027, 2, 22), new LocalDate(2027, 2, 26), 100)),
+                cancellationToken);
+            await seedContext.SaveChangesAsync(cancellationToken);
+
+            (cardsId, graceId) = (cards.Id, grace.Id);
+        }
+
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var report = await Handler(context, null).Handle(new GetTeamCapacityReportQuery(cardsId, TeamType.Team, From, To, null), cancellationToken);
+
+        // Assert — the five weekdays of the second week
+        report.Should().NotBeNull();
+        report!.People.Single(p => p.Employee.Id == graceId).UnallocatedPersonDays.Should().Be(5m);
+    }
+
+    [Fact]
     public async Task Handle_ForATeamOfTheOtherType_ReturnsNull()
     {
         // Arrange

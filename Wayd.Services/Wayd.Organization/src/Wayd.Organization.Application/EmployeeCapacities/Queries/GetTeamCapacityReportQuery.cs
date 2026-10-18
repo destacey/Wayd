@@ -121,14 +121,22 @@ public sealed class GetTeamCapacityReportQueryHandler(
         var defaultDays = TeamWorkingDays.Default(settings.DefaultWorkingWeek(), firstDay, lastDay);
 
         // Employees carry no leaving date, but deactivating one ends their allocations that day, so the last day
-        // their allocations cover is when an inactive person left.
+        // their allocations cover is when an inactive person left. Read from all of their allocations, not only
+        // those in the range: one ending inside it says nothing about whether they came back later.
+        List<Guid> inactiveIds = [.. employees.Values.Where(e => !e.IsActive).Select(e => e.Id)];
+        var inactiveAllocationEnds = (await _organizationDbContext.EmployeeTeamAllocations
+            .Where(a => inactiveIds.Contains(a.EmployeeId))
+            .Select(a => new { a.EmployeeId, a.End })
+            .ToListAsync(cancellationToken))
+            .ToLookup(a => a.EmployeeId, a => a.End);
+
         var employment = employees.Values.ToDictionary(
             e => e.Id,
             e => new EmploymentPeriod(
                 e.HireDate?.InUtc().Date,
-                e.IsActive || allocations.Any(a => a.EmployeeId == e.Id && a.End is null)
+                e.IsActive || inactiveAllocationEnds[e.Id].Any(end => end is null)
                     ? null
-                    : allocations.Where(a => a.EmployeeId == e.Id).Max(a => a.End)));
+                    : inactiveAllocationEnds[e.Id].Max()));
 
         var availability = await AvailabilityLoader.Load(
             _organizationDbContext,

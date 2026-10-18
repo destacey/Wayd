@@ -1,6 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using NodaTime;
+using Wayd.Common.Application.Dtos;
+using Wayd.Planning.Application.Roadmaps.Dtos;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Web.Api.Mcp;
 
@@ -121,6 +126,128 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
+    public async Task GetTools_DeclaresAnOutputSchema_ForEveryReadOnlyTool()
+    {
+        // Act
+        var undeclared = (await GetTools())
+            .Where(t => t.ProtocolTool.Annotations?.ReadOnlyHint == true && t.ProtocolTool.OutputSchema is null)
+            .Select(t => t.ProtocolTool.Name)
+            .ToList();
+
+        // Assert
+        Assert.Empty(undeclared);
+    }
+
+    [Fact]
+    public async Task GetTools_DeclaresOnlyObjectOutputSchemas()
+    {
+        // Act
+        var notObjects = (await GetTools())
+            .Where(t => t.ProtocolTool.OutputSchema is { } schema
+                && !(schema.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "object"))
+            .Select(t => t.ProtocolTool.Name)
+            .ToList();
+
+        // Assert
+        Assert.Empty(notObjects);
+    }
+
+    [Fact]
+    public async Task GetTools_DescribesEverySubtypeOfAPolymorphicResult()
+    {
+        // Arrange — the items as the API writes them: an activity holding a milestone, each tagged with its
+        // subtype, which the document describes only as their shared base type
+        var tools = (await GetTools()).ToDictionary(t => t.ProtocolTool.Name);
+        var outputSchema = Assert.NotNull(tools["Roadmaps_GetItems"].ProtocolTool.OutputSchema);
+        var roadmapId = Guid.NewGuid();
+        var activityId = Guid.NewGuid();
+        List<RoadmapItemListDto> items =
+        [
+            new RoadmapActivityListDto
+            {
+                Id = activityId,
+                RoadmapId = roadmapId,
+                Name = "Discovery",
+                Type = SimpleNavigationDto.Create(1, "Activity"),
+                Start = new LocalDate(2026, 1, 5),
+                End = new LocalDate(2026, 3, 27),
+                Order = 1,
+                Children =
+                [
+                    new RoadmapMilestoneListDto
+                    {
+                        Id = Guid.NewGuid(),
+                        RoadmapId = roadmapId,
+                        Name = "Design signed off",
+                        Type = SimpleNavigationDto.Create(2, "Milestone"),
+                        Parent = new RoadmapActivityNavigationDto { Id = activityId, Name = "Discovery" },
+                        Date = new LocalDate(2026, 2, 13),
+                    },
+                ],
+            },
+        ];
+        var structured = new JsonObject { [ToolOutput.ResultProperty] = JsonSerializer.SerializeToNode(items, SerializerOptions()) };
+
+        // Act
+        var errors = await ValidationErrors(outputSchema, structured);
+
+        // Assert
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GetTools_DescribesAPolymorphicRecordAsTheEndpointWritesIt()
+    {
+        // Arrange — the endpoint declares the base type, so the record carries its subtype's $type
+        var tools = (await GetTools()).ToDictionary(t => t.ProtocolTool.Name);
+        var outputSchema = Assert.NotNull(tools["Roadmaps_GetItem"].ProtocolTool.OutputSchema);
+        RoadmapItemDetailsDto item = new RoadmapMilestoneDetailsDto
+        {
+            Id = Guid.NewGuid(),
+            RoadmapId = Guid.NewGuid(),
+            Name = "Design signed off",
+            Type = SimpleNavigationDto.Create(2, "Milestone"),
+            Date = new LocalDate(2026, 2, 13),
+        };
+        var structured = JsonSerializer.SerializeToNode(item, SerializerOptions())!;
+
+        // Act
+        var errors = await ValidationErrors(outputSchema, structured);
+
+        // Assert
+        Assert.Equal("milestone", (string?)structured["$type"]);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GetTools_DescribesASubtypeListWithoutTheBaseTypesDiscriminator()
+    {
+        // Arrange — the endpoint declares the subtype itself, so System.Text.Json writes no $type
+        var tools = (await GetTools()).ToDictionary(t => t.ProtocolTool.Name);
+        var outputSchema = Assert.NotNull(tools["Roadmaps_GetActivities"].ProtocolTool.OutputSchema);
+        IEnumerable<RoadmapActivityListDto> activities =
+        [
+            new RoadmapActivityListDto
+            {
+                Id = Guid.NewGuid(),
+                RoadmapId = Guid.NewGuid(),
+                Name = "Discovery",
+                Type = SimpleNavigationDto.Create(1, "Activity"),
+                Start = new LocalDate(2026, 1, 5),
+                End = new LocalDate(2026, 3, 27),
+            },
+        ];
+        var structured = new JsonObject { [ToolOutput.ResultProperty] = JsonSerializer.SerializeToNode(activities, SerializerOptions()) };
+
+        // Act
+        var errors = await ValidationErrors(outputSchema, structured);
+
+        // Assert
+        Assert.Null(structured[ToolOutput.ResultProperty]![0]!["$type"]);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task GetToolsets_PutsToolsInEveryToolset()
     {
         // Act
@@ -158,6 +285,16 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     {
         _ = _factory.CreateClient();
         return await _factory.Services.GetRequiredService<McpToolCatalog>().GetTools();
+    }
+
+    /// <summary>The options the API writes responses with.</summary>
+    private JsonSerializerOptions SerializerOptions() =>
+        _factory.Services.GetRequiredService<IOptions<JsonOptions>>().Value.JsonSerializerOptions;
+
+    private static async Task<IReadOnlyList<string>> ValidationErrors(JsonElement outputSchema, JsonNode structured)
+    {
+        var schema = await NJsonSchema.JsonSchema.FromJsonAsync(outputSchema.GetRawText(), TestContext.Current.CancellationToken);
+        return [.. schema.Validate(structured.ToJsonString()).Select(e => e.ToString())];
     }
 
     private static IEnumerable<JsonObject> SnapshotTools() => _snapshot["tools"]!.AsArray().OfType<JsonObject>();

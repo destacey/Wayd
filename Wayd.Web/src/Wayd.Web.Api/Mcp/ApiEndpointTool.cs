@@ -10,7 +10,7 @@ namespace Wayd.Web.Api.Mcp;
 /// A tool that is one API endpoint: its arguments become the endpoint's route values, query string,
 /// headers and body, and the request runs through the API pipeline as the caller.
 /// </summary>
-public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string pathTemplate, IReadOnlyList<ToolArgument> arguments) : McpServerTool
+public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string pathTemplate, IReadOnlyList<ToolArgument> arguments, ToolOutput? output) : McpServerTool
 {
     /// <summary>The HTTP method the tool sends.</summary>
     public string HttpMethod { get; } = httpMethod;
@@ -79,7 +79,7 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
         }
 
         var response = await pipeline.Send(caller, HttpMethod, path.ToString(), query.ToQueryString(), headers, body, cancellationToken);
-        return ApiToolResult.From(response);
+        return ApiToolResult.From(response, output);
     }
 
     /// <summary>A JSON value as the text a route or query string carries.</summary>

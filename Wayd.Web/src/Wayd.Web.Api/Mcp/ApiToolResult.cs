@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.WebUtilities;
 using ModelContextProtocol.Protocol;
 
@@ -12,18 +13,74 @@ public static class ApiToolResult
     private const int MaxOtherBodyLength = 200;
 
     /// <summary>
-    /// A success answers with the response body as it is, which is already compact JSON; an empty body
-    /// answers with empty text. A failure answers as an error naming the status and the reason the API gave.
+    /// A success answers with the response body as it is, which is already compact JSON, and, for a tool
+    /// with an <paramref name="output"/>, the same body as structured content; an empty body answers with
+    /// empty text. A failure answers as an error naming the status and the reason the API gave.
     /// </summary>
-    public static CallToolResult From(ApiResponse response) => response.IsSuccess
-        ? Text(Encoding.UTF8.GetString(response.Body))
-        : Error(DescribeFailure(response));
+    /// <remarks>
+    /// A tool with an output schema that gets no body its schema describes answers as an error rather than
+    /// as text: a client may refuse a successful result that has no structured content. The usual cause is
+    /// an endpoint answering a missing record with 204 (MVC's answer to <c>Ok(null)</c>).
+    /// </remarks>
+    public static CallToolResult From(ApiResponse response, ToolOutput? output = null)
+    {
+        if (!response.IsSuccess)
+            return Error(DescribeFailure(response));
+
+        var text = Encoding.UTF8.GetString(response.Body);
+        if (output is null)
+            return Text(text);
+
+        JsonNode? body = null;
+        var parsed = false;
+        if (response.Body.Length > 0)
+        {
+            try
+            {
+                body = JsonNode.Parse(response.Body);
+                parsed = true;
+            }
+            catch (JsonException)
+            {
+                // Not the JSON the schema describes; answered as an error below.
+            }
+        }
+
+        if (parsed && output.IsWrapped)
+            return Structured(text, new JsonObject { [ToolOutput.ResultProperty] = body });
+        if (body is JsonObject value)
+            return Structured(text, value);
+
+        return Error(DescribeUnexpected(response, text));
+    }
 
     /// <summary>A successful result holding <paramref name="text"/>.</summary>
     public static CallToolResult Text(string text) => new() { Content = [new TextContentBlock { Text = text }] };
 
+    /// <summary>A successful result holding <paramref name="value"/> as structured content and as text.</summary>
+    public static CallToolResult Structured(JsonObject value) => Structured(value.ToJsonString(), value);
+
+    /// <summary>
+    /// A successful result holding <paramref name="value"/> as structured content, with
+    /// <paramref name="text"/> for clients that read only text content.
+    /// </summary>
+    private static CallToolResult Structured(string text, JsonObject value) => new()
+    {
+        Content = [new TextContentBlock { Text = text }],
+        StructuredContent = JsonSerializer.SerializeToElement(value),
+    };
+
     /// <summary>An error result holding <paramref name="message"/>.</summary>
     public static CallToolResult Error(string message) => new() { Content = [new TextContentBlock { Text = message }], IsError = true };
+
+    private static string DescribeUnexpected(ApiResponse response, string text)
+    {
+        var reason = ReasonPhrases.GetReasonPhrase(response.StatusCode);
+        var message = $"API answered Status {response.StatusCode} ({(reason.Length > 0 ? reason : "Status text not available")}) without the result this tool returns";
+        return text.Length == 0
+            ? message + "; the record may not exist."
+            : message + ". Response: " + (text.Length > MaxOtherBodyLength ? text[..MaxOtherBodyLength] + "..." : text);
+    }
 
     private static string DescribeFailure(ApiResponse response)
     {

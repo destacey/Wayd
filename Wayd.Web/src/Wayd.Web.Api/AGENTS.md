@@ -7,6 +7,9 @@ The root [AGENTS.md](../../../AGENTS.md) applies here too. This file covers the 
 `Mcp/` serves the API as agent tools; [mcp-server.mdx](../../../docs/contributing/mcp-server.mdx#the-hosted-endpoint) has the design.
 
 - **A tool is an action marked `[McpTool(name, title)]`.** Its description is the `[EndpointSummary]` and `[EndpointDescription]`, its input schema the operation's parameters plus `requestBody`, so editing either changes what agents read. Never rename a tool.
+- **Its output schema is the operation's success response**, so the response model must be described truthfully: a
+client may reject a result the schema does not accept. A response that is not a JSON object is wrapped under
+`result` (`ToolOutput`).
 - **Every controller with a tool carries `[McpTools(McpToolset.X)]`**, which places its tools in a toolset clients can select (`McpToolFilter`); `McpToolCatalog` throws without it. Never rename a toolset.
 - **Annotations default from the HTTP method**; set `ReadOnly`/`Destructive`/`Idempotent` on the attribute only to depart from it, and `Destructive = false` only for a write that purely adds a record.
 - **Calls run through the API pipeline** (`ApiPipeline`), so a tool needs no authorization of its own — the endpoint's applies. An action whose body is not JSON cannot be a tool; `McpToolCatalog` throws on first use.

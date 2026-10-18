@@ -74,6 +74,7 @@ public sealed partial class McpToolCatalog(
 
             var template = ConstraintOrDefault().Replace(path, "{$1}");
             var (inputSchema, arguments) = schema.Build(operation);
+            var output = schema.BuildOutput(operation);
 
             var protocolTool = new Tool
             {
@@ -81,18 +82,38 @@ public sealed partial class McpToolCatalog(
                 Title = attribute.Title,
                 Description = DescriptionOf(operation),
                 InputSchema = JsonSerializer.SerializeToElement(inputSchema),
+                OutputSchema = output is null ? null : JsonSerializer.SerializeToElement(output.Schema),
                 Annotations = McpToolAnnotationDefaults.For(method, attribute),
             };
-            tools.Add((new ApiEndpointTool(protocolTool, method, template, arguments), toolset));
+            tools.Add((new ApiEndpointTool(protocolTool, method, template, arguments, output), toolset));
         }
 
-        tools.AddRange(ImportTools.Create(ImportFormats.From(document)).Select(t => (t, McpToolset.Imports)));
+        var formats = ImportFormats.From(document);
+        tools.AddRange(ImportTools.Create(formats, PreflightOutput(formats, operations, schema)).Select(t => (t, McpToolset.Imports)));
 
         var duplicate = tools.GroupBy(t => t.Tool.ProtocolTool.Name).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
             throw new InvalidOperationException($"More than one tool is named '{duplicate.Key}'.");
 
         return [.. tools.OrderBy(t => t.Tool.ProtocolTool.Name, StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// What a preflight answers with: the response every import endpoint shares, since one tool fronts
+    /// them all.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The import endpoints answer with different responses.</exception>
+    private static ToolOutput? PreflightOutput(ImportFormats formats, Dictionary<(string Method, string Path), JsonObject> operations, OpenApiToolSchema schema)
+    {
+        var outputs = formats.All
+            .Select(f => (Key: f.Key, Output: schema.BuildOutput(operations[("POST", NormalizePath(f.Value.Path))])))
+            .ToList();
+
+        var distinct = outputs.Select(o => o.Output?.Schema.ToJsonString()).Distinct().Count();
+        if (distinct > 1)
+            throw new InvalidOperationException($"The import endpoints answer with different responses, so Imports_Preflight cannot describe one; compare '{outputs[0].Key}' with the others.");
+
+        return outputs.FirstOrDefault().Output;
     }
 
     /// <summary>The operation's summary followed by its description, which together read as one paragraph.</summary>

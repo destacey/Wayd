@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
 import { SprintDetailsDto, SprintListDto } from '@/src/services/wayd-api'
 import { useCorrectSprintActualDatesMutation } from '@/src/store/features/work-management/sprints-api'
-import { errorsByField, isApiError, pickerTimeZoneNote } from '@/src/utils'
+import { errorsByField, pickerTimeZoneNote, toApiError } from '@/src/utils'
 import { disabledTimeAfter } from './past-moment'
 import { DatePicker, Flex, Form, Modal, Space, Typography } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
@@ -132,9 +132,9 @@ const CorrectSprintActualDatesForm = ({
         messageApi.success('Successfully corrected the actual dates.')
         return true
       } catch (error) {
-        const apiError = isApiError(error) ? error : undefined
+        const apiError = toApiError(error)
         // `sprints[i]` is the i-th sprint sent, which is the i-th changed one.
-        const errors = apiError?.errors
+        const errors = apiError.errors
           ? errorsByField(apiError.errors, (key) => {
               const match = /^sprints\[(\d+)\]\.(started|completed)$/.exec(
                 key,
@@ -143,7 +143,7 @@ const CorrectSprintActualDatesForm = ({
               return sent ? `${sent.id}.${match![2]}` : undefined
             })
           : {}
-        if (apiError?.status === 422 && Object.keys(errors).length > 0) {
+        if (apiError.status === 422 && Object.keys(errors).length > 0) {
           setServerErrors(
             Object.fromEntries(
               Object.entries(errors).map(([name, e]) => [name, e.join(' ')]),
@@ -151,7 +151,7 @@ const CorrectSprintActualDatesForm = ({
           )
           messageApi.error('Correct the validation error(s) to continue.')
         } else {
-          messageApi.error(apiError?.detail ?? errorMessage)
+          messageApi.error(apiError.detail ?? errorMessage)
         }
         return false
       }

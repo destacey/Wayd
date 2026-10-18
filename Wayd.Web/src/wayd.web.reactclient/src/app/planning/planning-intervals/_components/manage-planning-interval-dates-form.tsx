@@ -16,8 +16,7 @@ import {
   parseCalendarDate,
   toCalendarDate,
   toFormErrors,
-  isApiError,
-  type ApiError,
+  toApiError,
 } from '@/src/utils'
 import { type Dayjs } from 'dayjs'
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
@@ -114,7 +113,7 @@ const ManagePlanningIntervalDatesForm = ({
           messageApi.success('Planning interval dates updated successfully.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             const formErrors = toFormErrors(apiError.errors, {
               fieldFor: fieldForError,

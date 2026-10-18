@@ -5,7 +5,7 @@ import { HolidayCalendarSelect } from '@/src/components/common/scheduling'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { NavigationDto } from '@/src/services/wayd-api'
-import { isApiError, toFormErrors, type ApiError } from '@/src/utils'
+import { toFormErrors, toApiError } from '@/src/utils'
 import { useChangeEmployeeHolidayCalendarMutation } from '@/src/store/features/organization/employee-time-away-api'
 
 const { Item: FormItem } = Form
@@ -46,7 +46,7 @@ const EmployeeHolidayCalendarForm = ({
           messageApi.success('Holiday calendar saved.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(toFormErrors(apiError.errors))
             messageApi.error('Correct the validation error(s) to continue.')

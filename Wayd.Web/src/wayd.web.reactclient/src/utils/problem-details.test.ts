@@ -1,4 +1,9 @@
-import toFormErrors, { errorsByField, isApiError } from './problem-details'
+import { ApiException } from '@/src/services/wayd-api'
+import toFormErrors, {
+  errorsByField,
+  isApiError,
+  toApiError,
+} from './problem-details'
 
 describe('isApiError', () => {
   it('returns true for object with status', () => {
@@ -170,5 +175,62 @@ describe('errorsByField', () => {
     expect(result).toEqual({
       'criterion-2': ['Value is required', 'Pick a level'],
     })
+  })
+})
+
+describe('toApiError', () => {
+  it('reads the problem details an undocumented response leaves as a string', () => {
+    // Arrange
+    const exception = new ApiException(
+      'An unexpected server error occurred.',
+      422,
+      JSON.stringify({ errors: { End: ['End is required'] } }),
+      {},
+      null,
+    )
+
+    // Act
+    const result = toApiError(exception)
+
+    // Assert
+    expect(result).toEqual({ status: 422, errors: { End: ['End is required'] } })
+  })
+
+  it('reads a body Axios has already parsed', () => {
+    // Arrange
+    const exception = new ApiException(
+      'An unexpected server error occurred.',
+      422,
+      { errors: { End: ['End is required'] } } as unknown as string,
+      {},
+      null,
+    )
+
+    // Act
+    const result = toApiError(exception)
+
+    // Assert
+    expect(result).toEqual({ status: 422, errors: { End: ['End is required'] } })
+  })
+
+  it('reads a plain-text body as the detail', () => {
+    // Arrange
+    const exception = new ApiException('Bad', 400, 'Not allowed.', {}, null)
+
+    // Act / Assert
+    expect(toApiError(exception)).toEqual({ status: 400, detail: 'Not allowed.' })
+  })
+
+  it('passes documented problem details through', () => {
+    // Arrange
+    const problem = { status: 422, errors: { Name: ['Name is required'] } }
+
+    // Act / Assert
+    expect(toApiError(problem)).toBe(problem)
+  })
+
+  it('reads anything else as no error response', () => {
+    // Arrange / Act / Assert
+    expect(toApiError(new Error('Network Error'))).toEqual({})
   })
 })

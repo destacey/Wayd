@@ -5,12 +5,11 @@ import type { Dayjs } from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
-  isApiError,
   parseCalendarDate,
   toCalendarDate,
   toFormErrors,
-  type ApiError,
   type CalendarDate,
+  toApiError,
 } from '@/src/utils'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
@@ -139,7 +138,7 @@ const ChangeAllocationForm = ({
           messageApi.success('Allocation saved.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(
               toFormErrors(apiError.errors, {

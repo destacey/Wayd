@@ -13,12 +13,7 @@ import {
   useGetParentTaskOptionsQuery,
   useUpdateProjectTaskMutation,
 } from '@/src/store/features/ppm/project-tasks-api'
-import {
-  toFormErrors,
-  isApiError,
-  type ApiError,
-  rangeErrorsOn,
-} from '@/src/utils'
+import { toFormErrors, rangeErrorsOn, toApiError } from '@/src/utils'
 import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import {
   DatePicker,
@@ -144,7 +139,7 @@ const EditProjectTaskForm = ({
             messageApi.success('Task updated successfully.')
             return true
           } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
+            const apiError = toApiError(error)
             if (apiError.status === 422 && apiError.errors) {
               const formErrors = toFormErrors(apiError.errors, {
                 fieldFor: rangeErrorsOn(

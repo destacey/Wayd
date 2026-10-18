@@ -6,12 +6,11 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import {
-  isApiError,
   parseCalendarDate,
   toCalendarDate,
   toFormErrors,
-  type ApiError,
   type CalendarDate,
+  toApiError,
 } from '@/src/utils'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
 import { useGetTeamMemberRolesQuery } from '@/src/store/features/organization/team-member-roles-api'
@@ -116,7 +115,7 @@ const MoveAllocationForm = ({
           messageApi.success('Allocation moved.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(
               toFormErrors(apiError.errors, { fieldFor: fieldForError }),

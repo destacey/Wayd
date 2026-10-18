@@ -15,8 +15,8 @@ import { useGetStrategicThemeOptionsQuery } from '@/src/store/features/strategic
 import {
   toFormErrors,
   isApiError,
-  type ApiError,
   rangeErrorsOn,
+  toApiError,
 } from '@/src/utils'
 import { projectHelpText } from './project-help-text'
 import { DatePicker, Form, Modal, Select } from 'antd'
@@ -102,7 +102,7 @@ const EditProjectForm = ({
             messageApi.success('Project updated successfully.')
             return true
           } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
+            const apiError = toApiError(error)
             if (apiError.status === 422 && apiError.errors) {
               const formErrors = toFormErrors(apiError.errors, {
                 fieldFor: rangeErrorsOn('dateRange'),
@@ -162,7 +162,7 @@ const EditProjectForm = ({
       )
       messageApi.error(
         (isApiError(expenditureOptionsError) ? expenditureOptionsError.detail : undefined) ??
-          (isApiError(error) ? error.detail : undefined) ??
+          toApiError(error).detail ??
           (isApiError(employeeOptionsError) ? employeeOptionsError.detail : undefined) ??
           (isApiError(strategicThemeOptionsError) ? strategicThemeOptionsError.detail : undefined) ??
           'An error occurred while loading form data. Please try again.',

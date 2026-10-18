@@ -7,11 +7,10 @@ import { useModalForm } from '@/src/hooks'
 import { TimeAwayReason } from '@/src/services/wayd-api'
 import {
   CalendarDate,
-  isApiError,
   parseCalendarDate,
   toCalendarDate,
   toFormErrors,
-  type ApiError,
+  toApiError,
 } from '@/src/utils'
 import {
   EmployeeTimeAwayEntryDto,
@@ -101,7 +100,7 @@ const TimeAwayForm = ({
           messageApi.success('Time away saved.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(
               toFormErrors(apiError.errors, {

@@ -11,12 +11,7 @@ import {
   useUpdateProgramMutation,
 } from '@/src/store/features/ppm/programs-api'
 import { useGetStrategicThemeOptionsQuery } from '@/src/store/features/strategic-management/strategic-themes-api'
-import {
-  toFormErrors,
-  isApiError,
-  type ApiError,
-  rangeErrorsOn,
-} from '@/src/utils'
+import { toFormErrors, rangeErrorsOn, toApiError } from '@/src/utils'
 import { DatePicker, Form, Modal, Select } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { useEffect } from 'react'
@@ -87,7 +82,7 @@ const EditProgramForm = ({
           messageApi.success('Program updated successfully.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             const formErrors = toFormErrors(apiError.errors, {
               fieldFor: rangeErrorsOn('dateRange'),

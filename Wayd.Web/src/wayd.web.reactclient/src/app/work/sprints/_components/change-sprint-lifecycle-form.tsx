@@ -11,9 +11,9 @@ import {
 import {
   errorsByField,
   formatCalendarDate,
-  isApiError,
   pickerTimeZoneNote,
   sprintActiveDays,
+  toApiError,
 } from '@/src/utils'
 import { disabledTimeAfter } from './past-moment'
 import { Alert, DatePicker, Form, Modal, Space } from 'antd'
@@ -141,19 +141,19 @@ const ChangeSprintLifecycleForm = ({
         messageApi.success(`Successfully ${pastTense[action]} sprint.`)
         return true
       } catch (error) {
-        const apiError = isApiError(error) ? error : undefined
-        const errors = apiError?.errors
+        const apiError = toApiError(error)
+        const errors = apiError.errors
           ? errorsByField(apiError.errors, (key) =>
               key === 'startedAt' || key === 'completedAt'
                 ? 'moment'
                 : undefined,
             ).moment
           : undefined
-        if (apiError?.status === 422 && errors) {
+        if (apiError.status === 422 && errors) {
           setMomentErrors(errors)
           messageApi.error('Correct the validation error(s) to continue.')
         } else {
-          messageApi.error(apiError?.detail ?? errorMessage)
+          messageApi.error(apiError.detail ?? errorMessage)
         }
         return false
       }

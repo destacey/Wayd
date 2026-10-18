@@ -77,7 +77,7 @@ domain rule, which belongs to no single field — shows its `detail` in the toas
 
 ```typescript
 } catch (error) {
-  const apiError: ApiError = isApiError(error) ? error : {}
+  const apiError = toApiError(error)
   if (apiError.status === 422 && apiError.errors) {
     form.setFields(toFormErrors(apiError.errors))
     messageApi.error('Correct the validation error(s) to continue.')
@@ -89,6 +89,11 @@ domain rule, which belongs to no single field — shows its `detail` in the toas
 ```
 
 `useModalForm` passes the form instance to `onSubmit` as its second argument for this.
+
+**Read the error with `toApiError`, not `isApiError`.** The generated client returns the problem details
+only for a status the endpoint documents. Most endpoints do not document 422, so their validation
+failures arrive as an `ApiException` with the body in `response`, and `isApiError(error) ? error : {}`
+finds no `errors` — the form falls back to a toast and marks nothing. `toApiError` reads both.
 
 `toFormErrors` matches a key to a field of the same name, whatever its casing. When a field is named
 differently from the request property it sets, pass `fieldFor` to say where the error goes:

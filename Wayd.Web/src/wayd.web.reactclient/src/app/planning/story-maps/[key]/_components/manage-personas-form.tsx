@@ -13,11 +13,10 @@ import {
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
-  isApiError,
   nextUnusedPersonaColor,
   personaColorPalette,
   toFormErrors,
-  type ApiError,
+  toApiError,
 } from '@/src/utils'
 import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons'
 import {
@@ -313,7 +312,7 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
         },
       }).unwrap()
     } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
+      const apiError = toApiError(error)
       messageApi.error(apiError.detail ?? 'Failed to update persona.')
     }
   }
@@ -326,7 +325,7 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
         personaId: persona.id,
       }).unwrap()
     } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
+      const apiError = toApiError(error)
       messageApi.error(apiError.detail ?? 'Failed to delete persona.')
     }
   }
@@ -347,7 +346,7 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
         newOrder: newIndex,
       }).unwrap()
     } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
+      const apiError = toApiError(error)
       messageApi.error(apiError.detail ?? 'Failed to reorder persona.')
     }
   }
@@ -386,7 +385,7 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
       }).unwrap()
       cancelAdd()
     } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
+      const apiError = toApiError(error)
       if (apiError.status === 422 && apiError.errors) {
         form.setFields(toFormErrors(apiError.errors))
         messageApi.error('Correct the validation error(s) to continue.')

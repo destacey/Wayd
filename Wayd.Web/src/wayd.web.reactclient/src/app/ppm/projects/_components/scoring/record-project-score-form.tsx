@@ -8,7 +8,7 @@ import {
 } from '@/src/services/wayd-api'
 import { useEvaluateScoringModelMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { useRecordProjectScoreMutation } from '@/src/store/features/ppm/project-scores-api'
-import { errorsByField, isApiError, type ApiError } from '@/src/utils'
+import { errorsByField, toApiError } from '@/src/utils'
 import {
   Alert,
   Card,
@@ -146,7 +146,7 @@ const RecordProjectScoreForm = ({
       setPreview(response.data ?? null)
       setPreviewError(null)
     } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
+      const apiError = toApiError(error)
       setPreview(null)
       setPreviewError(
         apiError.detail ??
@@ -173,7 +173,7 @@ const RecordProjectScoreForm = ({
       messageApi.success('Score recorded successfully.')
       onFormComplete()
     } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
+      const apiError = toApiError(error)
       // `ratings[i]` is the i-th criterion sent, in the order shown.
       const errors = apiError.errors
         ? errorsByField(apiError.errors, (key) => {

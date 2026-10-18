@@ -57,6 +57,7 @@ export {
   errorsByField,
   isApiError,
   rangeErrorsOn,
+  toApiError,
   type ApiError,
   type ToFormErrorsOptions,
 } from './problem-details'

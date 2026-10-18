@@ -23,8 +23,8 @@ import { useGetStrategicThemeOptionsQuery } from '@/src/store/features/strategic
 import {
   toFormErrors,
   isApiError,
-  type ApiError,
   rangeErrorsOn,
+  toApiError,
 } from '@/src/utils'
 import { projectHelpText } from './project-help-text'
 import {
@@ -130,7 +130,7 @@ const CreateProjectForm = ({
             )
             return true
           } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
+            const apiError = toApiError(error)
             if (apiError.status === 422 && apiError.errors) {
               const formErrors = toFormErrors(apiError.errors, {
                 fieldFor: rangeErrorsOn('dateRange'),

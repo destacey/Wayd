@@ -9,8 +9,8 @@ import {
 import {
   toFormErrors,
   isApiError,
-  type ApiError,
   rangeErrorsOn,
+  toApiError,
 } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Radio } from 'antd'
 import { useEffect } from 'react'
@@ -87,7 +87,7 @@ const EditRoadmapForm = ({
             messageApi.success('Roadmap updated successfully.')
             return true
           } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
+            const apiError = toApiError(error)
             console.error('update error', error)
             if (apiError.status === 422 && apiError.errors) {
               const formErrors = toFormErrors(apiError.errors, {
@@ -129,7 +129,7 @@ const EditRoadmapForm = ({
   useEffect(() => {
     if (error) {
       messageApi.error(
-        (isApiError(error) ? error.detail : undefined) ??
+        toApiError(error).detail ??
           'An error occurred while loading the roadmap. Please try again.',
       )
     }

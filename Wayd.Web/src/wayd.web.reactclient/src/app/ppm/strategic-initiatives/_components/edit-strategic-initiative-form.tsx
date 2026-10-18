@@ -13,8 +13,8 @@ import {
 import {
   toFormErrors,
   isApiError,
-  type ApiError,
   rangeErrorsOn,
+  toApiError,
 } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
@@ -88,7 +88,7 @@ const EditStrategicInitiativeForm = ({
           messageApi.success('Strategic initiative updated successfully.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             const formErrors = toFormErrors(apiError.errors, {
               fieldFor: rangeErrorsOn('dateRange'),
@@ -135,7 +135,7 @@ const EditStrategicInitiativeForm = ({
     if (error || employeeOptionsError) {
       console.error(error || employeeOptionsError)
       messageApi.error(
-        (isApiError(error) ? error.detail : undefined) ||
+        toApiError(error).detail ||
           (isApiError(employeeOptionsError) ? employeeOptionsError.detail : undefined) ||
           'An error occurred while loading form data.',
       )

@@ -5,7 +5,7 @@ import { useChangePasswordMutation } from '@/src/store/features/user-management/
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import useAuth from '@/src/components/contexts/auth'
-import { isApiError, toFormErrors, type ApiError } from '@/src/utils'
+import { toFormErrors, toApiError } from '@/src/utils'
 
 const { Item } = Form
 
@@ -49,7 +49,7 @@ const ChangePasswordForm = ({
           setTimeout(() => logout(), 1500)
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(toFormErrors(apiError.errors))
             messageApi.error('Correct the validation error(s) to continue.')

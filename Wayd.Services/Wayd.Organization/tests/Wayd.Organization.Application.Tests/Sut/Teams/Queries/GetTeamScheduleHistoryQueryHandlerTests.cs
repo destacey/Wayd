@@ -32,7 +32,7 @@ public class GetTeamScheduleHistoryQueryHandlerTests : IDisposable
         // Arrange
         var team = _teamFaker.Generate();
         team.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1, WorkingWeek.MondayToFriday, null, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.Effort, "America/Chicago", 2, WorkingWeek.MondayToFriday, null, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(MoveDate, Methodology.Kanban, SizingMethod.Effort, "America/Chicago", 2, WorkingWeek.MondayToFriday, null, null, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
         _dbContext.AddTeam(team);
 
         // Act
@@ -42,7 +42,7 @@ public class GetTeamScheduleHistoryQueryHandlerTests : IDisposable
         var periods = result.Where(p => p.Start >= FirstStart).ToList();
         periods.Should().HaveCount(2);
         periods[0].Should().Be(new TeamSchedulePeriodDto(FirstStart, MoveDate.PlusDays(-1), "America/New_York", 1, SizingMethod.StoryPoints));
-        periods[1].Should().Be(new TeamSchedulePeriodDto(MoveDate, null, "America/Chicago", 2, SizingMethod.Effort));
+        periods[1].Should().Be(new TeamSchedulePeriodDto(MoveDate, null, "America/Chicago", 2, SizingMethod.Effort) { Methodology = Methodology.Kanban });
     }
 
     [Fact]

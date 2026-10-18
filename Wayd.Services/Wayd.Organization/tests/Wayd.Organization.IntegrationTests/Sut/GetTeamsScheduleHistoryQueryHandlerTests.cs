@@ -83,5 +83,6 @@ public sealed class GetTeamsScheduleHistoryQueryHandlerTests(SqlServerDbContextF
         periods.Should().HaveCount(2);
         periods[0].Cadence.Should().BeNull();
         periods[1].Cadence.Should().Be(cadence);
+        periods.Select(p => p.Methodology).Should().Equal(Methodology.Kanban, Methodology.Kanban);
     }
 }

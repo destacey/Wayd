@@ -47,7 +47,8 @@ public class GetTeamsScheduleHistoryQueryHandlerTests : IDisposable
         result.Keys.Should().BeEquivalentTo([moved.Id, other.Id]);
         var movedPeriods = result[moved.Id].Where(p => p.Start >= FirstStart).ToList();
         movedPeriods.Select(p => p.TimeZone).Should().Equal("America/New_York", "America/Chicago");
-        result[other.Id].Should().Contain(p => p.TimeZone == "Europe/London");
+        movedPeriods.Select(p => p.Methodology).Should().Equal(Methodology.Scrum, Methodology.Scrum);
+        result[other.Id].Should().Contain(p => p.TimeZone == "Europe/London" && p.Methodology == Methodology.Kanban);
     }
 
     [Fact]

@@ -4,7 +4,10 @@ namespace Wayd.Organization.Application.EmployeeCapacities;
 
 /// <summary>A child's membership of a team of teams, as the hierarchy walk reads it.</summary>
 /// <param name="End">The last day, or null when the membership has no end.</param>
-public sealed record HierarchyMembership(Guid ChildId, Guid ParentId, LocalDate Start, LocalDate? End);
+/// <param name="ChildName">
+/// The child's name, which orders it among its siblings; null when the caller does not show the tree in order.
+/// </param>
+public sealed record HierarchyMembership(Guid ChildId, Guid ParentId, LocalDate Start, LocalDate? End, string? ChildName = null);
 
 /// <summary>A run of days, both inclusive.</summary>
 public sealed record HierarchyPeriod(LocalDate Start, LocalDate End)
@@ -34,6 +37,8 @@ public static class TeamHierarchyPeriods
     /// The teams beneath <paramref name="rootId"/> from <paramref name="from"/> to <paramref name="to"/>, both
     /// inclusive, as a tree. A team with no day beneath the root in the range is left out, with everything
     /// under it. A team that moved between two parents in the range appears under each, for its days there.
+    /// Siblings are ordered by <see cref="HierarchyMembership.ChildName"/>, ignoring case, then by id, so the
+    /// tree is the same however the memberships arrive.
     /// </summary>
     public static IReadOnlyList<HierarchyNode> Descendants(Guid rootId, LocalDate from, LocalDate to, IEnumerable<HierarchyMembership> memberships)
     {
@@ -45,7 +50,13 @@ public static class TeamHierarchyPeriods
         {
             List<HierarchyNode> children = [];
 
-            foreach (var child in byParent[parentId].GroupBy(m => m.ChildId))
+            // Rows read without an ORDER BY come back in GUID order, which for v7 ids is effectively random.
+            var siblings = byParent[parentId]
+                .GroupBy(m => m.ChildId)
+                .OrderBy(g => g.First().ChildName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(g => g.Key);
+
+            foreach (var child in siblings)
             {
                 // Memberships are dated, so a loop can form across time though never on one day. A team
                 // already on the path is not walked again.

@@ -122,7 +122,15 @@ silently clears or removes everything else.
 | `Releases_Update`, `Versions_Update` | Every descriptive field | Cleared |
 | `Versions_CorrectDates`, `Releases_CorrectDates`, `ReleasePackages_CorrectDates` | Every date on the record | An omitted target date (and a version's cut moment) is cleared |
 
-**Always read the record first** and send back the full intended result. For `Releases_SetContents`
+**On the hosted server, patch instead** when you are adding or removing a few entries: everything the
+patch does not name stays.
+
+- `Releases_PatchContents` — add a package with `[{ "op": "add", "path": "/packageIds/-", "value": "<packageId>" }]`
+  (likewise `/versionIds/-`). To remove one, `replace` that list with the ids that stay.
+- `ReleasePackages_PatchManifest` — add a line with `[{ "op": "add", "path": "/components/-", "value": { "productId": "…", "versionId": "…", "version": "4.10.0", "kind": "Changed" } }]`.
+  To drop a line, read the package and `replace` `/components` with every line that stays.
+
+**Otherwise, always read the record first** and send back the full intended result. For `Releases_SetContents`
 that means calling `Releases_GetRelease`, taking the existing `versions` and `packages`, applying your
 change, and sending both complete lists.
 
@@ -226,7 +234,7 @@ never replaced: import history oldest first, or fix it afterwards with `Versions
    on each manifest line, not just the version string, or the release will not know the version is
    already inside a package.
 4. `Releases_Plan` — the announcement. Usually under a product **line**, or no product at all.
-5. `Releases_SetContents` — the packages and any directly-carried versions, both lists complete.
+5. `Releases_PatchContents` (hosted) or `Releases_SetContents` with both lists complete — the packages and any directly-carried versions.
 6. `Releases_MarkReleased` — through the announcing checklist above.
 7. `Deployments_Start` then an outcome — for each unit that reached an environment.
 

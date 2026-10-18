@@ -49,6 +49,11 @@ interface Props {
   initialDates?: AllocationDates
   /** The end date to offer once a person is chosen; undefined for no end. */
   endDateFor?: (employeeId: string) => CalendarDate | undefined
+  /**
+   * True for an inactive person: the API gives them time only up to an end
+   * date, so an end is required unless the change takes their time away.
+   */
+  requireEnd?: boolean
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -108,6 +113,7 @@ const ChangeAllocationForm = ({
   allocation,
   initialDates,
   endDateFor,
+  requireEnd = false,
   onFormComplete,
   onFormCancel,
 }: Props) => {
@@ -252,13 +258,27 @@ const ChangeAllocationForm = ({
         <FormItem
           name="end"
           label="End"
-          dependencies={['start']}
-          extra="Leave empty for no end."
+          dependencies={['start', 'percent']}
+          // Only the marker: the validator decides, since a 0% change needs no end.
+          required={requireEnd}
+          extra={
+            requireEnd
+              ? 'Required for someone who is no longer active.'
+              : 'Leave empty for no end.'
+          }
           rules={[
             ({ getFieldValue }) => ({
               validator: (_, value: Dayjs | null | undefined) => {
+                if (!value)
+                  return requireEnd && getFieldValue('percent') > 0
+                    ? Promise.reject(
+                        new Error(
+                          'Enter an end date for someone who is no longer active.',
+                        ),
+                      )
+                    : Promise.resolve()
                 const start: Dayjs | undefined = getFieldValue('start')
-                return !value || !start || !value.isBefore(start, 'day')
+                return !start || !value.isBefore(start, 'day')
                   ? Promise.resolve()
                   : Promise.reject(
                       new Error('The end cannot be before the start.'),

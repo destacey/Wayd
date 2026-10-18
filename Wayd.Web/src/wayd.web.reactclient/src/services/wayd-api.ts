@@ -23626,7 +23626,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Get metrics for a PI iteration aggregated across all mapped sprints.
+     * Get metrics for a PI iteration aggregated across its mapped sprints and Kanban teams.
      * @return OK
      */
     getIterationMetrics(idOrKey: string, iterationIdOrKey: string, cancelToken?: CancelToken): Promise<PlanningIntervalIterationMetricsResponse> {
@@ -49866,6 +49866,38 @@ export interface DailyReleaseCountDto {
     withdrawn: number;
 }
 
+/** A Kanban team's metrics for the PI Iteration, measured by the iteration's dates in the team's time zone. Nothing is scoped to an iteration for a Kanban team, so it has no total, committed or not-started figures. */
+export interface DateMeasuredTeamMetricsSummary {
+    team: NavigationDto;
+    /** When the measured window begins: the start of the iteration's first day in the team's time zone that day,
+or in its zone on the last day when it has no operating model on the first. */
+    from: Date;
+    /** When the measured window ends, exclusive: the start of the day after the iteration's last, in
+`timeZone`. */
+    until: Date;
+    /** The IANA time zone the team's operating model has on the iteration's last day. */
+    timeZone: string;
+    /** The estimate the team is measured in: its sizing method on the iteration's first day, or on its last when
+its operating models begin inside the iteration. */
+    sizingMethod: SizingMethod;
+    /** Requirement-tier items that reached a Done-category status within the window, by done date. Removed work is left out. */
+    completedWorkItems: number;
+    completedEstimate: number;
+    /** Requirement-tier items in an In Progress-category status at `inProgressAsOf`. */
+    inProgressWorkItems: number;
+    inProgressEstimate: number;
+    /** When in progress was read: the window's end for a past iteration, now for the current one, and null for a
+future one. */
+    inProgressAsOf?: Date | undefined;
+    /** Completed and in-progress items with no value in `sizingMethod`. */
+    unestimatedWorkItems: number;
+    /** Cycle-time rollup of the completed items. */
+    cycleTime: CycleTimeSummary;
+    /** Whether in progress for a past iteration may be short, because a workspace holding the team's work has not
+had its history read through to the end. */
+    isHistoryIncomplete: boolean;
+}
+
 export interface DeactivateTeamOfTeamsRequest {
     id: string;
     inactiveDate: string;
@@ -51875,7 +51907,7 @@ export interface PlanningIntervalIterationListDto {
     category: SimpleNavigationDto;
 }
 
-/** Response containing PI Iteration metrics aggregated across all mapped sprints. */
+/** Response containing PI Iteration metrics aggregated across the sprints mapped to it and the planning interval's Kanban teams, which are measured by the iteration's dates. */
 export interface PlanningIntervalIterationMetricsResponse {
     iterationId: string;
     iterationKey: number;
@@ -51883,25 +51915,41 @@ export interface PlanningIntervalIterationMetricsResponse {
     start: string;
     end: string;
     category: SimpleNavigationDto;
+    /** Teams measured in the iteration: those with a sprint mapped to it, and its Kanban teams. */
     teamCount: number;
     sprintCount: number;
-    /** The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null
-when the sprints use different sizing methods, or there are none: estimates in different units are never
-added, so the estimate totals are null too and only the counts roll up. */
+    /** The sizing method every sprint and Kanban team in the iteration is measured in, which
+`completedEstimate` and `inProgressEstimate` are in. Null when they use different sizing methods,
+or there are none: estimates in different units are never added, so those totals are null too and only the
+counts roll up. */
     sizingMethod?: SizingMethod | undefined;
+    /** The sizing method every sprint in the iteration is measured in, which `totalEstimate` and
+`notStartedEstimate` are in, since only sprints add to them. Null when the sprints use different
+sizing methods, or there are none. Kanban teams play no part, so this is the unit of the iteration's
+backlog. */
+    sprintSizingMethod?: SizingMethod | undefined;
+    /** Items scoped to the iteration's sprints. Kanban teams have no scope, so they add nothing here; take a
+completion rate from the sprint entries, not from this and `completedWorkItems`. */
     totalWorkItems: number;
     totalEstimate?: number | undefined;
+    /** Items completed in the iteration's sprints, plus those the Kanban teams completed within its dates. */
     completedWorkItems: number;
     completedEstimate?: number | undefined;
+    /** Items in progress in the iteration's sprints, plus those in progress for the Kanban teams. */
     inProgressWorkItems: number;
     inProgressEstimate?: number | undefined;
+    /** Items not started in the iteration's sprints. Kanban teams have no scope, so they add nothing here. */
     notStartedWorkItems: number;
     notStartedEstimate?: number | undefined;
-    /** Items with no value in their own sprint's sizing method, across every sprint. */
+    /** Items with no value in their own sprint's or Kanban team's sizing method, across all of them. */
     unestimatedWorkItems: number;
-    /** Cycle-time rollup across all sprints in this iteration. */
+    /** Cycle-time rollup across all sprints and Kanban teams in this iteration. */
     cycleTime: CycleTimeSummary;
+    /** One entry per sprint mapped to the iteration. */
     sprintMetrics: SprintMetricsSummary[];
+    /** One entry per Kanban team in the planning interval with no sprint mapped to the iteration, measured by the
+iteration's dates rather than by a sprint. */
+    dateMeasuredTeamMetrics: DateMeasuredTeamMetricsSummary[];
 }
 
 /** A planning interval iteration with the team sprints mapped to it. */

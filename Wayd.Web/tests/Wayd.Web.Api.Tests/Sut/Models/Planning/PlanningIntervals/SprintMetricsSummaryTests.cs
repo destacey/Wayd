@@ -22,6 +22,15 @@ public sealed class SprintMetricsSummaryTests
             CycleTime = CycleTimeSummary.Empty,
         };
 
+    private static DateMeasuredTeamMetricsSummary KanbanTeam(SizingMethod sizingMethod) =>
+        new()
+        {
+            Team = new NavigationDto { Id = Guid.NewGuid(), Key = 2, Name = "Kanban Team" },
+            TimeZone = "UTC",
+            SizingMethod = sizingMethod,
+            CycleTime = CycleTimeSummary.Empty,
+        };
+
     [Fact]
     public void CommonSizingMethod_WhenEverySprintShares_ReturnsIt()
     {
@@ -46,6 +55,33 @@ public sealed class SprintMetricsSummaryTests
 
         // Assert
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public void CommonSizingMethod_WhenAKanbanTeamDiffersFromTheSprints_ReturnsNull()
+    {
+        // Arrange
+        SprintMetricsSummary[] sprints = [Sprint(SizingMethod.StoryPoints)];
+        DateMeasuredTeamMetricsSummary[] teams = [KanbanTeam(SizingMethod.Count)];
+
+        // Act
+        var result = SprintMetricsSummary.CommonSizingMethod(sprints, teams);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void CommonSizingMethod_WithOnlyKanbanTeams_ReturnsTheirs()
+    {
+        // Arrange
+        DateMeasuredTeamMetricsSummary[] teams = [KanbanTeam(SizingMethod.Effort), KanbanTeam(SizingMethod.Effort)];
+
+        // Act
+        var result = SprintMetricsSummary.CommonSizingMethod([], teams);
+
+        // Assert
+        result.Should().Be(SizingMethod.Effort);
     }
 
     [Fact]

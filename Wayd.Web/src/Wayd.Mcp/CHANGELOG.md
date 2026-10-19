@@ -1,5 +1,19 @@
 # @wayd/mcp
 
+## 0.19.0
+
+### Minor Changes
+
+- 584d437: Arguments that pick from a fixed set now take names, as the API does, instead of integer codes: `status` on the portfolio, program, project, strategic initiative and task list tools (`Active`, `Completed`, …), `role` on the project tools (`Sponsor`, `Owner`, `Manager`, `Member`, `Assignee`), `state` on `ProjectLifecycles_GetProjectLifecycles`, `statusCategory` on the product, version, release and release package lists (`Proposed`, `Active`, `Done`, `Removed`), the environment `category` on the deployment environment tools and `environmentCategory` on `Deployments_GetDeployments` (`Development`, `Testing`, `Staging`, `Production`, `Other`), and `strength` on `Products_AddDependency` and `Products_ChangeDependencyTerms` (`Hard`, `Soft`). A call that still sends an integer is refused by validation. `StrategicInitiatives_GetKpis` now describes `targetDirection` as `Increase` or `Decrease`, as it is returned.
+- fcb97b5: Adds `Teams_GetCadenceMetrics`: a Kanban team's velocity over its reporting cadence, with what it completed in each recent period and the average and spread across ended, whole periods. It calls the API's new `{id}/cadence-metrics` route, so this version needs an API that has it.
+
+### Patch Changes
+
+- 4fcf89f: The activity tools now list `Automation` among the `actorKind` values: a change Wayd made in reaction to someone's action, with `employee` naming the person whose action set it off rather than an author of the change.
+- cd839ff: The server instructions now ask agents to confirm every change, creates and tags included, rather than only destructive calls, and to do only what the user approved. They also say that every list on a write replaces its whole set, not only role lists; that role, assignee and `employeeId` parameters take employee ids rather than user ids; and that a moment is sent with its offset, never converted to a local date. `StoryMaps_AddGoal` no longer claims a new goal starts with a step: it starts empty.
+- ab2b69d: `Projects_CreateProjectHealthCheck` and `PlanningIntervals_CreateObjectiveHealthCheck` now carry the recipe for recommending a health check in their descriptions: the tools to gather evidence with first (including `PlanningIntervals_GetPlanningInterval` for the PI's dates, and that a 404 from `Projects_GetForecast` means forecasting is off), how to choose Healthy, At Risk or Unhealthy (a project forecast outcome with no dates is left out rather than counted against it), what the note should cite, and that the user confirms before the check is logged. The server instructions now name these two workflows and point to those descriptions, and to the matching health-check evidence tool where a server lists one, so an agent without the Wayd skills installed still finds them.
+- f3093cb: `PlanningIntervals_GetIterationMetrics` now describes the iteration's Kanban teams: each appears in `dateMeasuredTeamMetrics`, measured by the iteration's dates, with what it completed within them and what it had in progress at their end, and no scope figures. Their completed and in-progress work is in the iteration's totals but not in `totalWorkItems`. A new `sprintSizingMethod` gives the unit of the sprint-only `totalEstimate` and `notStartedEstimate`. The `wayd-pi` skill says how to read them.
+
 ## 0.18.1
 
 ### Patch Changes

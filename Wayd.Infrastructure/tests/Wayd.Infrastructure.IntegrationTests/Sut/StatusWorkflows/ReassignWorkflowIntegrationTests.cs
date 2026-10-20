@@ -4,10 +4,10 @@ using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows.Commands;
-using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
-using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Infrastructure.Persistence.Initialization;
@@ -25,6 +25,15 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.StatusWorkflows;
 /// and the migrator queries records by <c>StatusWorkflowId</c> — both are no-ops against an in-memory
 /// fake, which happily returns fully-populated objects whatever the query asked for. Only a real
 /// round-trip can tell a correct handler from one that forgot.
+/// <para>
+/// Every test reassigns the organization-wide product assignment, because that is the only scope the
+/// migrator accepts. The collection shares one database, so a test cannot assume which workflow the
+/// assignment points at when it starts: each takes whatever it finds as the workflow being moved from,
+/// and builds its records and its replacement from that. A run therefore leaves the assignment on the
+/// last replacement created, not the seeded system workflow, and every product on the workflow it
+/// started from — other classes' products included — carries one more transition. A test elsewhere in
+/// the collection must find the system workflow by <c>IsSystem</c>, not through the assignment.
+/// </para>
 /// </remarks>
 [Collection(nameof(SqlServerTestCollection))]
 public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture fixture)
@@ -50,29 +59,43 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         return user.Object;
     }
 
-    private async Task<StatusWorkflow> ProductWorkflow(WaydDbContext context)
+    private static ICurrentPrincipal CurrentPrincipal(Guid? employeeId = null)
+    {
+        var principal = new Mock<ICurrentPrincipal>();
+        principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
+
+        return principal.Object;
+    }
+
+    /// <summary>
+    /// The organization-wide product assignment and the workflow it currently points at, seeding the
+    /// defaults on an empty database.
+    /// </summary>
+    private async Task<(WorkflowAssignment Assignment, StatusWorkflow Current)> OrganizationAssignment(WaydDbContext context)
     {
         ProductWorkflowOwners.Register();
 
-        var workflow = await context.StatusWorkflows
-            .Include(w => w.Statuses)
+        var assignment = await context.WorkflowAssignments
             .FirstOrDefaultAsync(
-                w => w.OwnerType == ProductWorkflowOwners.Product.Key && w.IsSystem,
+                a => a.OwnerType == ProductWorkflowOwners.Product.Key && a.ScopeId == null,
                 TestContext.Current.CancellationToken);
 
-        if (workflow is null)
+        if (assignment is null)
         {
             await new ProductManagementWorkflowSeeder()
                 .Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
 
-            workflow = await context.StatusWorkflows
-                .Include(w => w.Statuses)
+            assignment = await context.WorkflowAssignments
                 .FirstAsync(
-                    w => w.OwnerType == ProductWorkflowOwners.Product.Key && w.IsSystem,
+                    a => a.OwnerType == ProductWorkflowOwners.Product.Key && a.ScopeId == null,
                     TestContext.Current.CancellationToken);
         }
 
-        return workflow;
+        var current = await context.StatusWorkflows
+            .Include(w => w.Statuses)
+            .FirstAsync(w => w.Id == assignment.WorkflowId, TestContext.Current.CancellationToken);
+
+        return (assignment, current);
     }
 
     private async Task<Guid> SeedProductType(WaydDbContext context)
@@ -91,10 +114,33 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         return await context.ProductTypes.Select(t => t.Id).FirstAsync(TestContext.Current.CancellationToken);
     }
 
-    /// <summary>A published copy of the seeded workflow, so a remap between the two is legitimate.</summary>
-    private static StatusWorkflow Replacement(StatusWorkflow source, string name)
+    private static async Task<Employee> SeedEmployee(WaydDbContext context)
     {
-        var replacement = StatusWorkflow.Create(name, null, source.OwnerType, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        var employee = Employee.Create(
+            new PersonName("Avery", null, "Chen"),
+            $"{Guid.CreateVersion7():N}"[..12],
+            Timestamp,
+            new EmailAddress($"{Guid.CreateVersion7():N}"[..12] + "@acme.example"),
+            jobTitle: null,
+            department: null,
+            officeLocation: null,
+            managerId: null,
+            isActive: true,
+            employeeType: null,
+            EventActor.System,
+            Timestamp);
+
+        context.Employees.Add(employee);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return employee;
+    }
+
+    /// <summary>A published copy of the workflow in use, so a remap between the two is legitimate.</summary>
+    private static StatusWorkflow Replacement(StatusWorkflow source)
+    {
+        var replacement = StatusWorkflow.Create(
+            $"Replacement {Guid.CreateVersion7()}", null, source.OwnerType, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
 
         foreach (var status in source.Statuses.OrderBy(s => s.Order))
         {
@@ -107,11 +153,30 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         return replacement;
     }
 
-    private ReassignWorkflowCommandHandler CreateSut(WaydDbContext context) =>
+    private static Product SeedProduct(WaydDbContext context, StatusWorkflow workflow, Guid productTypeId, string name)
+    {
+        var product = Product.Create(
+            $"{name} {Guid.CreateVersion7()}",
+            null,
+            productTypeId,
+            null,
+            null,
+            StatusRef.From(workflow.Statuses.OrderBy(s => s.Order).First()),
+            EventActor.System,
+            Timestamp);
+
+        product.ClearDomainEvents();
+        context.Products.Add(product);
+
+        return product;
+    }
+
+    private static ReassignWorkflowCommandHandler CreateSut(WaydDbContext context, Guid? employeeId = null) =>
         new(
             context,
             [new ProductStatusRecordMigrator(context)],
             CurrentUser(),
+            CurrentPrincipal(employeeId),
             DateTimeProvider(),
             NullLogger<ReassignWorkflowCommandHandler>.Instance);
 
@@ -120,41 +185,15 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
     {
         // Arrange
         await using var context = _fixture.CreateContext();
-        var current = await ProductWorkflow(context);
+        var (assignment, current) = await OrganizationAssignment(context);
         var productType = await SeedProductType(context);
 
-        var replacement = Replacement(current, $"Replacement {Guid.CreateVersion7()}");
+        var replacement = Replacement(current);
         context.StatusWorkflows.Add(replacement);
 
-        // Its own scope, not the seeded organization-wide assignment: the whole collection shares one
-        // database, so competing for that row makes these tests depend on each other's ordering.
-        var assignment = WorkflowAssignment.Create(
-            ProductWorkflowOwners.Product.Key,
-            Guid.CreateVersion7(),
-            current,
-            EventActor.System,
-            Timestamp).Value;
-
-        assignment.ClearDomainEvents();
-        context.WorkflowAssignments.Add(assignment);
-
         var products = Enumerable.Range(0, 3)
-            .Select(i => Product.Create(
-                $"Reassigned {i} {Guid.CreateVersion7()}",
-                null,
-                productType,
-                null,
-                null,
-                StatusRef.From(current.Statuses.OrderBy(s => s.Order).First()),
-                EventActor.System,
-                Timestamp))
+            .Select(i => SeedProduct(context, current, productType, $"Reassigned {i}"))
             .ToList();
-
-        foreach (var product in products)
-        {
-            product.ClearDomainEvents();
-            context.Products.Add(product);
-        }
 
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -170,7 +209,7 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         // Assert
         result.IsSuccess.Should().BeTrue();
         // At least three: the migrator moves every product on the source workflow, and this shared
-        // database holds products from other tests sitting on the same seeded workflow.
+        // database holds products from other tests sitting on the same workflow.
         result.Value.Should().BeGreaterThanOrEqualTo(3, "the three seeded products moved");
 
         await using var reader = _fixture.CreateContext();
@@ -194,36 +233,13 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         // otherwise a status appears to have changed with nothing explaining it.
         // Arrange
         await using var context = _fixture.CreateContext();
-        var current = await ProductWorkflow(context);
+        var (assignment, current) = await OrganizationAssignment(context);
         var productType = await SeedProductType(context);
 
-        var replacement = Replacement(current, $"Replacement {Guid.CreateVersion7()}");
+        var replacement = Replacement(current);
         context.StatusWorkflows.Add(replacement);
 
-        // Its own scope, not the seeded organization-wide assignment: the whole collection shares one
-        // database, so competing for that row makes these tests depend on each other's ordering.
-        var assignment = WorkflowAssignment.Create(
-            ProductWorkflowOwners.Product.Key,
-            Guid.CreateVersion7(),
-            current,
-            EventActor.System,
-            Timestamp).Value;
-
-        assignment.ClearDomainEvents();
-        context.WorkflowAssignments.Add(assignment);
-
-        var product = Product.Create(
-            $"Traced {Guid.CreateVersion7()}",
-            null,
-            productType,
-            null,
-            null,
-            StatusRef.From(current.Statuses.OrderBy(s => s.Order).First()),
-            EventActor.System,
-            Timestamp);
-
-        product.ClearDomainEvents();
-        context.Products.Add(product);
+        var product = SeedProduct(context, current, productType, "Traced");
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var before = await context.StatusTransitions
@@ -248,42 +264,146 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
     }
 
     [Fact]
-    public async Task Reassign_ShouldBeANoOp_WhenRunAgain()
+    public async Task Reassign_ShouldAttributeTheMigrationTransitionsToTheActingEmployee()
     {
-        // A migration that is interrupted must be safe to re-run. The second pass finds every record
-        // already on the target, moves nothing, and writes no further history.
         // Arrange
         await using var context = _fixture.CreateContext();
-        var current = await ProductWorkflow(context);
+        var (assignment, current) = await OrganizationAssignment(context);
         var productType = await SeedProductType(context);
+        var employee = await SeedEmployee(context);
 
-        var replacement = Replacement(current, $"Replacement {Guid.CreateVersion7()}");
+        var replacement = Replacement(current);
         context.StatusWorkflows.Add(replacement);
 
-        // Its own scope, not the seeded organization-wide assignment: the whole collection shares one
-        // database, so competing for that row makes these tests depend on each other's ordering.
-        var assignment = WorkflowAssignment.Create(
+        var product = SeedProduct(context, current, productType, "Attributed");
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sut = CreateSut(context, employee.Id);
+
+        // Act
+        var result = await sut.Handle(
+            new ReassignWorkflowCommand(assignment.Id, replacement.Id, []),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        await using var reader = _fixture.CreateContext();
+
+        var migration = await reader.StatusTransitions
+            .Where(t => t.RecordId == product.Id && t.WorkflowId == replacement.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        migration.ActorEmployeeId.Should().Be(employee.Id);
+    }
+
+    [Fact]
+    public async Task Reassign_ShouldMigrate_WhenTheAccountHasNoLinkedEmployee()
+    {
+        // An administrator need not be an employee, and reassigning must not depend on being one.
+        // Arrange
+        await using var context = _fixture.CreateContext();
+        var (assignment, current) = await OrganizationAssignment(context);
+        var productType = await SeedProductType(context);
+
+        var replacement = Replacement(current);
+        context.StatusWorkflows.Add(replacement);
+
+        var product = SeedProduct(context, current, productType, "Unlinked");
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sut = CreateSut(context, employeeId: null);
+
+        // Act
+        var result = await sut.Handle(
+            new ReassignWorkflowCommand(assignment.Id, replacement.Id, []),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        await using var reader = _fixture.CreateContext();
+
+        var migration = await reader.StatusTransitions
+            .Where(t => t.RecordId == product.Id && t.WorkflowId == replacement.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        migration.ActorEmployeeId.Should().BeNull();
+        migration.ActorUserId.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task Reassign_ShouldRefuseAScopedAssignment()
+    {
+        // Product records carry no scope, so a scoped migration could only select by workflow — moving
+        // every product on it, not just that scope's. Refusing leaves everything where it was.
+        // Arrange
+        await using var context = _fixture.CreateContext();
+        var (_, current) = await OrganizationAssignment(context);
+        var productType = await SeedProductType(context);
+
+        var replacement = Replacement(current);
+        context.StatusWorkflows.Add(replacement);
+
+        var scoped = WorkflowAssignment.Create(
             ProductWorkflowOwners.Product.Key,
             Guid.CreateVersion7(),
             current,
             EventActor.System,
             Timestamp).Value;
 
-        assignment.ClearDomainEvents();
-        context.WorkflowAssignments.Add(assignment);
+        scoped.ClearDomainEvents();
+        context.WorkflowAssignments.Add(scoped);
 
-        var product = Product.Create(
-            $"Repeated {Guid.CreateVersion7()}",
-            null,
-            productType,
-            null,
-            null,
-            StatusRef.From(current.Statuses.OrderBy(s => s.Order).First()),
-            EventActor.System,
-            Timestamp);
+        var product = SeedProduct(context, current, productType, "Unscoped");
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        product.ClearDomainEvents();
-        context.Products.Add(product);
+        var sut = CreateSut(context);
+
+        try
+        {
+            // Act
+            var result = await sut.Handle(
+                new ReassignWorkflowCommand(scoped.Id, replacement.Id, []),
+                TestContext.Current.CancellationToken);
+
+            // Assert
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Contain("organization-wide");
+
+            await using var reader = _fixture.CreateContext();
+
+            var reloaded = await reader.Products.SingleAsync(p => p.Id == product.Id, TestContext.Current.CancellationToken);
+            reloaded.StatusWorkflowId.Should().Be(current.Id);
+
+            var unchanged = await reader.WorkflowAssignments.SingleAsync(a => a.Id == scoped.Id, TestContext.Current.CancellationToken);
+            unchanged.WorkflowId.Should().Be(current.Id);
+        }
+        finally
+        {
+            // Left behind, the scoped row would keep pointing at the workflow the organization-wide
+            // assignment later moves off, and stop that workflow from ever being archived.
+            await using var cleanup = _fixture.CreateContext();
+            await cleanup.WorkflowAssignments
+                .Where(a => a.Id == scoped.Id)
+                .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task Reassign_ShouldBeANoOp_WhenRunAgain()
+    {
+        // A migration that is interrupted must be safe to re-run. The second pass finds every record
+        // already on the target, moves nothing, and writes no further history.
+        // Arrange
+        await using var context = _fixture.CreateContext();
+        var (assignment, current) = await OrganizationAssignment(context);
+        var productType = await SeedProductType(context);
+
+        var replacement = Replacement(current);
+        context.StatusWorkflows.Add(replacement);
+
+        var product = SeedProduct(context, current, productType, "Repeated");
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var sut = CreateSut(context);

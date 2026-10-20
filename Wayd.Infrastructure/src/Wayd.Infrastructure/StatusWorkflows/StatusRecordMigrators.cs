@@ -36,6 +36,17 @@ public abstract class StatusRecordMigratorBase<TRecord>(IProductManagementDbCont
     /// </remarks>
     private const int BatchSize = 500;
 
+    /// <summary>
+    /// The refusal for a scoped migration or count.
+    /// </summary>
+    /// <remarks>
+    /// Product Management records carry no scope — every assignment is organization-wide — so
+    /// <see cref="Records"/> can only be narrowed by workflow. Honouring a scope means first giving the
+    /// record type a way to say which scope it belongs to.
+    /// </remarks>
+    private const string ScopedRecordsUnsupported =
+        "Records of this type have no scope, so they can only be counted or migrated organization-wide.";
+
     private readonly IProductManagementDbContext _dbContext = dbContext;
 
     /// <inheritdoc/>
@@ -53,6 +64,11 @@ public abstract class StatusRecordMigratorBase<TRecord>(IProductManagementDbCont
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(remap);
+
+        if (scopeId is not null)
+        {
+            return Result.Failure<int>(ScopedRecordsUnsupported);
+        }
 
         var migrated = 0;
         var offset = 0;
@@ -93,18 +109,23 @@ public abstract class StatusRecordMigratorBase<TRecord>(IProductManagementDbCont
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyDictionary<Guid, int>> CountByStatus(
+    public async Task<Result<IReadOnlyDictionary<Guid, int>>> CountByStatus(
         Guid workflowId,
         Guid? scopeId,
         CancellationToken cancellationToken)
     {
+        if (scopeId is not null)
+        {
+            return Result.Failure<IReadOnlyDictionary<Guid, int>>(ScopedRecordsUnsupported);
+        }
+
         var counts = await Records
             .Where(r => r.StatusWorkflowId == workflowId)
             .GroupBy(r => r.StatusId)
             .Select(g => new { StatusId = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
-        return counts.ToDictionary(c => c.StatusId, c => c.Count);
+        return Result.Success<IReadOnlyDictionary<Guid, int>>(counts.ToDictionary(c => c.StatusId, c => c.Count));
     }
 
     /// <summary>The context, for subclasses to expose their own set.</summary>

@@ -169,7 +169,8 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Adds a status. Draft only, until the remap engine exists.
+    /// Adds a status. Draft only: records on a published workflow rely on its shape, so structural
+    /// change goes through a clone, which is published and then reassigned with a remap.
     /// </summary>
     public Result<WorkflowStatus> AddStatus(string name, string? description, StatusCategory category, int alias, EventActor actor, Instant timestamp)
     {

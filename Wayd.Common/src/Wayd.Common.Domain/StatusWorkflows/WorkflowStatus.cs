@@ -79,9 +79,14 @@ public sealed class WorkflowStatus : BaseAuditableEntity
     public int Order { get; private set; }
 
     /// <summary>
-    /// Whether this status is one the platform seeded, and therefore cannot be deleted or have its
-    /// alias moved away. Set when the workflow is seeded from a system default.
+    /// Whether this status is one the platform seeded. Set when the workflow is seeded from a system
+    /// default.
     /// </summary>
+    /// <remarks>
+    /// A marker, not a lock: nothing checks it. What stops a seeded status being deleted or losing its
+    /// alias is <see cref="StatusWorkflow.IsSystem"/>, which makes the whole workflow read-only. A
+    /// clone's statuses are not system statuses and can be changed freely while the clone is a draft.
+    /// </remarks>
     public bool IsSystem { get; private init; }
 
     /// <summary>

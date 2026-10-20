@@ -19,7 +19,7 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 ### Record types
 
-Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Release, Release Package and Deployment.
+Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package and Deployment.
 
 The record type also decides the vocabulary available to the workflow's statuses — a Release has a meaning for "Released" that a Product does not.
 
@@ -53,7 +53,8 @@ Each record type declares aliases it cannot function without, and a workflow mis
 | Record type | Required aliases |
 | --- | --- |
 | Product | Active, Retired |
-| Release | Released, Withdrawn |
+| Version | Ready, Released, Withdrawn |
+| Release | Ready, Released, Withdrawn |
 | Release Package | Released, Withdrawn |
 | Deployment | In Progress, Succeeded, Failed, Rolled Back |
 
@@ -71,15 +72,15 @@ stateDiagram-v2
     Published --> Draft: Clone (as a new workflow)
 ```
 
-**Draft** is the only state in which statuses can be added, renamed, reclassified, removed or reordered. Nothing uses a draft yet, so restructuring it is free.
+**Draft** is the only state in which statuses can be added, removed or reclassified. Nothing uses a draft yet, so restructuring it is free.
 
-**Published** means records can be assigned to it — and it is **immutable**. Statuses cannot be added or removed, and none can change category or alias.
+**Published** means records can be assigned to it — and its **structure is frozen**. Statuses cannot be added or removed, and none can change category or alias. Renaming the workflow, renaming or re-describing a status, and reordering statuses are still allowed: they change what people read, not what any record holds.
 
 :::note Why published workflows are frozen
 Every record carries a copy of its status's category and alias. Changing a published status would leave every record holding it disagreeing with the status it points at — a product would report as Active while the status said Done. Moving records is a [reassignment](#changing-which-workflow-is-used), not an edit.
 :::
 
-**Archived** retires a workflow. A workflow that a record type is still assigned to cannot be archived — reassign that record type first.
+**Archived** retires a workflow. It can no longer be changed in any way. A workflow that a record type is still assigned to cannot be archived — reassign that record type first.
 
 ### Platform workflows
 
@@ -87,7 +88,7 @@ The workflows Wayd seeds are marked **System**. They cannot be edited, published
 
 ## Changing a published workflow
 
-You cannot. You clone it, change the copy, publish that, and reassign.
+Renames and reordering apply directly. Anything structural — adding or removing a status, or changing its category or alias — cannot be made in place. You clone the workflow, change the copy, publish that, and reassign.
 
 1. Choose **Clone** from the workflow's row, or from its detail page. The copy carries every status and arrives as a Draft.
 2. Edit the draft — add, rename, reclassify, remove, reorder.
@@ -157,7 +158,7 @@ Reassign every record type using it to another workflow, then **Archive** it. Ar
 
 ## Activity
 
-A workflow's detail page carries an **Activity** section holding its recorded history — created or cloned, renamed, statuses added, removed, renamed, reordered and reclassified, published, archived, and assigned to a record type — with who made each change and when. The default workflows Wayd seeds record nothing for their own creation. See [Activity Log](../activity-log.mdx).
+A workflow's detail page carries an **Activity** section holding its recorded history — created or cloned, renamed, statuses added, removed, renamed, reordered and reclassified, published, archived, and assigned to a record type — with who made each change and when. The default workflows Wayd seeds record their creation too, attributed to the system. See [Activity Log](../activity-log.mdx).
 
 ## Permissions
 

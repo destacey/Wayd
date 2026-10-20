@@ -22,15 +22,20 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class CreateProductCommandHandlerTests
 {
     private static readonly Instant Now = Instant.FromUtc(2026, 4, 1, 9, 0, 0);
+    private static readonly Guid ActingEmployeeId = Guid.CreateVersion7();
 
     private readonly FakeProductManagementDbContext _dbContext = new();
     private readonly Mock<IStatusResolver> _statusResolver = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly Mock<ICurrentPrincipal> _currentPrincipal = new();
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
 
     public CreateProductCommandHandlerTests()
     {
         _currentUser.Setup(u => u.GetUserId()).Returns(Guid.CreateVersion7().ToString());
+        _currentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ActingEmployeeId);
         _dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
 
         _statusResolver
@@ -45,6 +50,7 @@ public sealed class CreateProductCommandHandlerTests
         new(_dbContext,
             _statusResolver.Object,
             _currentUser.Object,
+            _currentPrincipal.Object,
             Mock.Of<ILogger<CreateProductCommandHandler>>(),
             _dateTimeProvider.Object);
 
@@ -77,6 +83,42 @@ public sealed class CreateProductCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
         _dbContext.Products.Should().ContainSingle().Which.Name.Should().Be("Checkout");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAttributeTheOpeningTransitionToTheActingEmployee()
+    {
+        // Arrange
+        var productType = SeedType();
+        var sut = CreateSut();
+
+        // Act
+        await sut.Handle(
+            new CreateProductCommand("Checkout", null, productType.Id, null, null), TestContext.Current.CancellationToken);
+
+        // Assert
+        var product = _dbContext.Products.Should().ContainSingle().Subject;
+        product.StatusTransitions.Should().ContainSingle().Which.ActorEmployeeId.Should().Be(ActingEmployeeId);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateTheProduct_WhenTheAccountHasNoLinkedEmployee()
+    {
+        // Arrange
+        _currentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+        var productType = SeedType();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(
+            new CreateProductCommand("Checkout", null, productType.Id, null, null), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var product = _dbContext.Products.Should().ContainSingle().Subject;
+        product.StatusTransitions.Should().ContainSingle().Which.ActorEmployeeId.Should().BeNull();
     }
 
     [Fact]

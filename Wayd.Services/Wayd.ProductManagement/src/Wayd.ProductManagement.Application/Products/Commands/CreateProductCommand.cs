@@ -34,6 +34,7 @@ public sealed class CreateProductCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<CreateProductCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateProductCommand, ObjectIdAndKey>
@@ -43,6 +44,7 @@ public sealed class CreateProductCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CreateProductCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -84,6 +86,11 @@ public sealed class CreateProductCommandHandler(
                 return Result.Failure<ObjectIdAndKey>(initialStatus.Error);
             }
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. Creation writes the product's first status transition,
+            // which freezes this value, so a stale one would misattribute it permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var product = Product.Create(
                 request.Name,
                 request.Description,
@@ -91,7 +98,7 @@ public sealed class CreateProductCommandHandler(
                 request.ParentId,
                 request.ExternalId,
                 initialStatus.Value,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             await _productManagementDbContext.Products.AddAsync(product, cancellationToken);

@@ -32,7 +32,24 @@ public sealed class PlanVersionCommandHandlerTests : ProductCommandTestBase
     }
 
     private PlanVersionCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<PlanVersionCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<PlanVersionCommandHandler>(), DateTimeProvider.Object);
+
+    [Fact]
+    public async Task Handle_ShouldAttributeTheOpeningTransitionToTheActingEmployee()
+    {
+        // Arrange
+        var productType = SeedType(isReleasable: true);
+        var product = SeedProduct(productTypeId: productType.Id);
+        var sut = CreateSut();
+
+        // Act
+        await sut.Handle(
+            new PlanVersionCommand(product.Id, "4.8.2", null, null, null), TestContext.Current.CancellationToken);
+
+        // Assert
+        var version = DbContext.Versions.Should().ContainSingle().Subject;
+        version.StatusTransitions.Should().ContainSingle().Which.ActorEmployeeId.Should().Be(ActingEmployeeId);
+    }
 
     [Fact]
     public async Task Handle_ShouldPlanTheRelease()

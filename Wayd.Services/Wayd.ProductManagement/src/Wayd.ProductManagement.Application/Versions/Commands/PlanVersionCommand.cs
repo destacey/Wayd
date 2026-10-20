@@ -44,6 +44,7 @@ public sealed class PlanVersionCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<PlanVersionCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<PlanVersionCommand, ObjectIdAndKey>
@@ -53,6 +54,7 @@ public sealed class PlanVersionCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<PlanVersionCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -99,6 +101,11 @@ public sealed class PlanVersionCommandHandler(
                 return Result.Failure<ObjectIdAndKey>(initialStatus.Error);
             }
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. Planning writes the version's first status transition,
+            // which freezes this value, so a stale one would misattribute it permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = Version.Create(
                 request.ProductId,
                 request.Version,
@@ -108,7 +115,7 @@ public sealed class PlanVersionCommandHandler(
                 isReleasable,
                 initialStatus.Value,
                 product.Name,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

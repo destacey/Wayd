@@ -43,6 +43,7 @@ public sealed class StartDeploymentCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<StartDeploymentCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<StartDeploymentCommand, ObjectIdAndKey>
@@ -52,6 +53,7 @@ public sealed class StartDeploymentCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<StartDeploymentCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -101,6 +103,11 @@ public sealed class StartDeploymentCommandHandler(
                 return Result.Failure<ObjectIdAndKey>(inProgress.Error);
             }
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. Starting writes the deployment's first status transition,
+            // which freezes this value, so a stale one would misattribute it permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = Deployment.Create(
                 request.VersionId,
                 request.PackageId,
@@ -112,7 +119,7 @@ public sealed class StartDeploymentCommandHandler(
                 request.StartedAt ?? _dateTimeProvider.Now,
                 inProgress.Value,
                 environment.Name,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

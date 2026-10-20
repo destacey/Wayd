@@ -45,6 +45,7 @@ public sealed class AssembleReleasePackageCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<AssembleReleasePackageCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<AssembleReleasePackageCommand, ObjectIdAndKey>
@@ -54,6 +55,7 @@ public sealed class AssembleReleasePackageCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<AssembleReleasePackageCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -102,13 +104,18 @@ public sealed class AssembleReleasePackageCommandHandler(
                 return Result.Failure<ObjectIdAndKey>(initialStatus.Error);
             }
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. Assembly writes the package's first status transition,
+            // which freezes this value, so a stale one would misattribute it permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = ReleasePackage.Create(
                 request.Version,
                 request.Name,
                 request.TargetDate,
                 [.. request.Components.Select(c => (c.ProductId, c.VersionId, c.Version, c.Kind))],
                 initialStatus.Value,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

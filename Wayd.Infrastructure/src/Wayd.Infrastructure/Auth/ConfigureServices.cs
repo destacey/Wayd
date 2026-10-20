@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Wayd.Common.Application.Identity.Bootstrap;
 using Wayd.Infrastructure.Auth.Bootstrap;
 using Wayd.Infrastructure.Auth.Local;
+using Wayd.Infrastructure.Auth.OAuth;
 using Wayd.Infrastructure.Auth.Oidc;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.Auth.PersonalAccessToken;
@@ -27,6 +28,7 @@ internal static class ConfigureServices
             .AddLocalJwtAuth(config, environment)
             .AddOidcProviderRegistry()
             .AddPersonalAccessTokenAuth()
+            .AddOAuthClients()
             .AddAuthorizationPolicies();
     }
 

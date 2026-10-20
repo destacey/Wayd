@@ -4,8 +4,9 @@ using Wayd.Common.Domain.FeatureManagement;
 namespace Wayd.Web.Api.Mcp;
 
 /// <summary>
-/// Answers 404 for <see cref="McpServerSetup.Path"/> and its <see cref="McpAuthentication.ResourceMetadataPath"/>
-/// while the <see cref="FeatureFlags.McpServer"/> flag is off.
+/// Answers 404 for <see cref="McpServerSetup.Path"/>, its <see cref="McpAuthentication.ResourceMetadataPath"/>, and the
+/// authorization server's metadata and endpoints (<see cref="AuthorizationServerMetadata"/>) while the
+/// <see cref="FeatureFlags.McpServer"/> flag is off.
 /// </summary>
 /// <remarks>
 /// Registered as an <see cref="IStartupFilter"/> so it runs ahead of authentication: behind it, a caller without
@@ -18,7 +19,9 @@ public sealed class McpFeatureGate : IStartupFilter
     {
         app.UseWhen(
             context => context.Request.Path.StartsWithSegments(McpServerSetup.Path)
-                || context.Request.Path.StartsWithSegments(McpAuthentication.ResourceMetadataPath),
+                || context.Request.Path.StartsWithSegments(McpAuthentication.ResourceMetadataPath)
+                || context.Request.Path.StartsWithSegments(AuthorizationServerMetadata.Path)
+                || context.Request.Path.StartsWithSegments(AuthorizationServerMetadata.EndpointsPath),
             branch => branch.Use(async (context, nextMiddleware) =>
             {
                 if (!await context.RequestServices.GetRequiredService<IFeatureManager>().IsEnabledAsync(FeatureFlags.Names.McpServer))

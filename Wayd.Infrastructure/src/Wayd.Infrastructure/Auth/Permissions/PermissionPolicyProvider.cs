@@ -30,7 +30,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
             // If PAT header is present, ONLY use PersonalAccessToken authentication
             // This ensures we don't try JWT authentication when the user is explicitly using a PAT
             policy = new AuthorizationPolicyBuilder()
-                .AddAuthenticationSchemes("PersonalAccessToken")
+                .AddAuthenticationSchemes(AuthConstants.PersonalAccessTokenScheme)
                 .RequireAuthenticatedUser()
                 .Build();
         }

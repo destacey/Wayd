@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.FeatureManagement;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Wayd.Common.Domain.FeatureManagement;
@@ -21,7 +20,9 @@ public static class McpServerSetup
         services.AddHttpContextAccessor();
         services.AddSingleton<ApiPipeline>();
         services.AddTransient<IStartupFilter>(sp => sp.GetRequiredService<ApiPipeline>());
+        services.AddTransient<IStartupFilter, McpFeatureGate>();
         services.AddSingleton<McpToolCatalog>();
+        services.AddWaydMcpAuthentication();
 
         services.AddMcpServer(options =>
             {
@@ -52,9 +53,9 @@ public static class McpServerSetup
     }
 
     /// <summary>
-    /// Maps the MCP server at <see cref="Path"/>, for authenticated callers while the
-    /// <see cref="FeatureFlags.McpServer"/> flag is on, and answers 404 while it is off. A request whose
-    /// <see cref="McpToolFilter"/> cannot be read is refused with 400.
+    /// Maps the MCP server at <see cref="Path"/> for authenticated callers; <see cref="McpFeatureGate"/> hides it
+    /// while the <see cref="FeatureFlags.McpServer"/> flag is off. A request whose <see cref="McpToolFilter"/>
+    /// cannot be read is refused with 400.
     /// </summary>
     public static WebApplication MapWaydMcp(this WebApplication app)
     {
@@ -62,12 +63,6 @@ public static class McpServerSetup
             context => context.Request.Path.StartsWithSegments(Path),
             branch => branch.Use(async (context, next) =>
             {
-                if (!await context.RequestServices.GetRequiredService<IFeatureManager>().IsEnabledAsync(FeatureFlags.Names.McpServer))
-                {
-                    context.Response.StatusCode = StatusCodes.Status404NotFound;
-                    return;
-                }
-
                 var filter = McpToolFilter.From(context.Request);
                 if (filter.IsFailure)
                 {
@@ -80,7 +75,7 @@ public static class McpServerSetup
                 await next(context);
             }));
 
-        app.MapMcp(Path).RequireAuthorization();
+        app.MapMcp(Path).RequireAuthorization(McpAuthentication.Policy);
 
         return app;
     }

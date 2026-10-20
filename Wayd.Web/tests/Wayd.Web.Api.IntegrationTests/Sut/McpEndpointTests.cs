@@ -61,17 +61,143 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task Mcp_RefusesACallerWithoutCredentials()
+    public async Task Mcp_AnswersNotFound_ToACallerWithoutCredentials_WhileTheFeatureFlagIsOff()
     {
-        // Arrange
-        await SetFlag(true);
+        // Arrange — a challenge would reveal the endpoint and point at metadata that is not served
+        await SetFlag(false);
         var client = _factory.CreateClient();
 
         // Act
         var response = await client.PostAsync(McpServerSetup.Path, JsonContent.Create(new { }), TestContext.Current.CancellationToken);
 
         // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Empty(response.Headers.WwwAuthenticate);
+    }
+
+    [Theory]
+    [InlineData("/mcp")]
+    [InlineData("/mcp/")]
+    [InlineData("/MCP")]
+    public async Task Mcp_RefusesACallerWithoutCredentials_PointingAtTheResourceMetadata(string path)
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.PostAsync(path, JsonContent.Create(new { }), TestContext.Current.CancellationToken);
+
+        // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var challenge = Assert.Single(response.Headers.WwwAuthenticate);
+        Assert.Equal("Bearer", challenge.Scheme);
+        Assert.Equal(ResourceMetadataParameter(), challenge.Parameter);
+    }
+
+    [Fact]
+    public async Task Mcp_RefusesAnUnknownPersonalAccessToken_PointingAtTheResourceMetadata()
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("x-api-key", "not-a-real-token");
+
+        // Act
+        var response = await client.PostAsync(McpServerSetup.Path, JsonContent.Create(new { }), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var challenge = Assert.Single(response.Headers.WwwAuthenticate);
+        Assert.Equal("Bearer", challenge.Scheme);
+        Assert.Equal(ResourceMetadataParameter(), challenge.Parameter);
+    }
+
+    [Fact]
+    public async Task Mcp_RefusesAnInvalidBearerToken_AsAnInvalidToken()
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "not-a-real-token");
+
+        // Act
+        var response = await client.PostAsync(McpServerSetup.Path, JsonContent.Create(new { }), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var challenge = Assert.Single(response.Headers.WwwAuthenticate);
+        Assert.Equal("Bearer", challenge.Scheme);
+        Assert.Equal($"{ResourceMetadataParameter()}, error=\"invalid_token\"", challenge.Parameter);
+    }
+
+    [Fact]
+    public async Task Connect_WithAWaydToken_ReceivesTheInstructions()
+    {
+        // Arrange
+        await SetFlag(true);
+        var user = await _factory.CreateAuthenticatedClient();
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions { Endpoint = new Uri(_factory.Server.BaseAddress, McpServerSetup.Path) },
+            user.Client,
+            ownsHttpClient: false);
+
+        // Act
+        await using var mcp = await McpClient.CreateAsync(transport, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(McpServerInstructions.Text, mcp.ServerInstructions);
+    }
+
+    [Fact]
+    public async Task ResourceMetadata_NamesTheEndpointAndWaydAsItsAuthorizationServer()
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = _factory.CreateClient();
+        var origin = _factory.Server.BaseAddress.GetLeftPart(UriPartial.Authority);
+
+        // Act
+        var response = await client.GetAsync("/.well-known/oauth-protected-resource/mcp", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        var metadata = await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        Assert.Equal($"{origin}/mcp", metadata.GetProperty("resource").GetString());
+        Assert.Equal([origin], metadata.GetProperty("authorization_servers").EnumerateArray().Select(s => s.GetString()));
+        Assert.Equal(["header"], metadata.GetProperty("bearer_methods_supported").EnumerateArray().Select(s => s.GetString()));
+        Assert.Equal("Wayd", metadata.GetProperty("resource_name").GetString());
+    }
+
+    [Fact]
+    public async Task ResourceMetadata_AnswersNotFound_WhileTheFeatureFlagIsOff()
+    {
+        // Arrange
+        await SetFlag(false);
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/.well-known/oauth-protected-resource/mcp", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/.well-known/oauth-protected-resource")]
+    [InlineData("/.well-known/oauth-protected-resource/api/ppm/projects")]
+    public async Task ResourceMetadata_AnswersNotFound_ForAnythingButTheEndpoint(string path)
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -499,6 +625,10 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.True(result.IsError);
         Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
     }
+
+    /// <summary>The <c>resource_metadata</c> parameter every challenge from the endpoint carries, written out rather than read from the API's constants.</summary>
+    private string ResourceMetadataParameter() =>
+        $"resource_metadata=\"{_factory.Server.BaseAddress.GetLeftPart(UriPartial.Authority)}/.well-known/oauth-protected-resource/mcp\"";
 
     private static string TextOf(CallToolResult result) => Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text;
 

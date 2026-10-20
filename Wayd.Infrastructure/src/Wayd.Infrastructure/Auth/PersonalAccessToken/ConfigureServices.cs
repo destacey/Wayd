@@ -10,7 +10,7 @@ internal static class ConfigureServices
         services
             .AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, PersonalAccessTokenAuthenticationHandler>(
-                "PersonalAccessToken",
+                AuthConstants.PersonalAccessTokenScheme,
                 options => { });
 
         return services;

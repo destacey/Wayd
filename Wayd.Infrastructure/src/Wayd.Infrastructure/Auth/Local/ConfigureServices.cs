@@ -11,7 +11,7 @@ namespace Wayd.Infrastructure.Auth.Local;
 
 internal static class ConfigureServices
 {
-    internal const string LocalJwtScheme = "LocalJwt";
+    internal const string LocalJwtScheme = AuthConstants.LocalJwtScheme;
 
     private const string DevOnlySecretPrefix = "DEV-ONLY-SECRET";
 

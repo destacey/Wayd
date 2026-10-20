@@ -42,11 +42,16 @@ public sealed class GetProductStatusOptionsQueryHandlerTests : ProductCommandTes
 
     private WorkflowStatus Status(string name) => _workflow.Statuses.Single(s => s.Name == name);
 
-    private void Restrict()
+    private void Restrict(params TransitionConditionKind[] retireConditions)
     {
         _workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
         _workflow.SetTransitions(
-            [new(Status("Concept").Id, Status("Active").Id), new(Status("Active").Id, Status("Sunset").Id), new(Status("Sunset").Id, Status("Retired").Id)],
+            [
+                new(Status("Concept").Id, Status("Active").Id),
+                new(Status("Active").Id, Status("Sunset").Id),
+                new(Status("Active").Id, Status("Retired").Id),
+                new(Status("Sunset").Id, Status("Retired").Id, retireConditions),
+            ],
             EventActor.System, At);
     }
 
@@ -77,6 +82,37 @@ public sealed class GetProductStatusOptionsQueryHandlerTests : ProductCommandTes
         var option = result.Should().ContainSingle().Subject;
         option.Id.Should().Be(Status("Active").Id);
         option.Alias.Should().Be((int)ProductStatusAlias.Active);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSayWhatEachAllowedMoveNeeds()
+    {
+        // Arrange
+        Restrict(TransitionConditionKind.RequiresReason);
+        var fromSunset = SeedProduct(status: StatusRef.From(Status("Sunset")));
+        var fromActive = SeedProduct(status: StatusRef.From(Status("Active")));
+
+        // Act
+        var sunsetMoves = await CreateSut().Handle(new GetProductStatusOptionsQuery(fromSunset.Id), TestContext.Current.CancellationToken);
+        var activeMoves = await CreateSut().Handle(new GetProductStatusOptionsQuery(fromActive.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        // Retired needs a reason from Sunset, but not from Active: the condition belongs to the move.
+        sunsetMoves.Should().ContainSingle().Which.Conditions.Should().Equal(TransitionConditionKind.RequiresReason);
+        activeMoves!.Single(s => s.Id == Status("Retired").Id).Conditions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldListNoConditions_WhenNoProductIsNamed()
+    {
+        // Arrange
+        Restrict(TransitionConditionKind.RequiresReason);
+
+        // Act
+        var result = await CreateSut().Handle(new GetProductStatusOptionsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Should().OnlyContain(s => s.Conditions.Count == 0);
     }
 
     [Fact]

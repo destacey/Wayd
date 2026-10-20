@@ -50,6 +50,11 @@ public sealed record WorkflowTransitionDto
 
     /// <summary>The status a record moves into.</summary>
     public required Guid ToStatusId { get; init; }
+
+    /// <summary>
+    /// What a record needs before making this move, in kind order. Empty when it needs nothing.
+    /// </summary>
+    public required IReadOnlyCollection<TransitionConditionKind> Conditions { get; init; }
 }
 
 /// <summary>A workflow with its statuses and what may currently be done to it.</summary>
@@ -75,6 +80,12 @@ public sealed record StatusWorkflowDetailsDto
     /// Enforced only when <see cref="TransitionMode"/> is restricted.
     /// </summary>
     public required IReadOnlyCollection<WorkflowTransitionDto> Transitions { get; init; }
+
+    /// <summary>
+    /// The conditions a transition may carry: those a record checks itself, and those something is in
+    /// place to evaluate. Attaching any other is refused.
+    /// </summary>
+    public required IReadOnlyCollection<TransitionConditionKind> AvailableConditions { get; init; }
 
     /// <summary>
     /// Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for

@@ -236,7 +236,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
 
     [HttpPut("{id}/transitions")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
-    [EndpointSummary("Replace the moves a draft status workflow allows.")]
+    [EndpointSummary("Replace the moves a draft status workflow allows, and the conditions on each.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

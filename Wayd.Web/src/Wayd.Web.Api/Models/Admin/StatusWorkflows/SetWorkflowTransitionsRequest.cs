@@ -1,9 +1,10 @@
 using Wayd.Common.Application.StatusWorkflows.Commands;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Web.Api.Models.Admin.StatusWorkflows;
 
 /// <summary>
-/// A request to replace the moves a draft workflow allows.
+/// A request to replace the moves a draft workflow allows, and the conditions on each.
 /// </summary>
 public sealed record SetWorkflowTransitionsRequest
 {
@@ -16,7 +17,7 @@ public sealed record SetWorkflowTransitionsRequest
     public SetWorkflowTransitionsCommand ToSetWorkflowTransitionsCommand(Guid workflowId)
     {
         return new SetWorkflowTransitionsCommand(
-            workflowId, [.. Transitions.Select(t => new WorkflowTransitionPair(t.FromStatusId, t.ToStatusId))]);
+            workflowId, [.. Transitions.Select(t => new WorkflowTransitionPair(t.FromStatusId, t.ToStatusId, t.Conditions))]);
     }
 }
 
@@ -30,6 +31,12 @@ public sealed record WorkflowTransitionRequest
 
     /// <summary>The status a record moves into.</summary>
     public Guid ToStatusId { get; set; }
+
+    /// <summary>
+    /// What a record needs before making the move, at most one of each kind. A move listed with none,
+    /// or without this field, loses any it had. Only the workflow's available conditions can be added.
+    /// </summary>
+    public List<TransitionConditionKind>? Conditions { get; set; }
 }
 
 /// <summary>Requires both ends of every transition.</summary>
@@ -42,6 +49,7 @@ public sealed class SetWorkflowTransitionsRequestValidator : CustomValidator<Set
         {
             t.RuleFor(p => p.FromStatusId).NotEmpty();
             t.RuleFor(p => p.ToStatusId).NotEmpty();
+            t.RuleForEach(p => p.Conditions).IsInEnum();
         });
     }
 }

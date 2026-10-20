@@ -8118,7 +8118,7 @@ export class ProductsClient {
     the workflow.
      * @return OK
      */
-    getStatusOptions(productId?: string | null | undefined, cancelToken?: CancelToken): Promise<StatusNavigationDto[]> {
+    getStatusOptions(productId?: string | null | undefined, cancelToken?: CancelToken): Promise<StatusOptionDto[]> {
         let url_ = this.baseUrl + "/api/product-management/products/status-options?";
         if (productId !== undefined && productId !== null)
             url_ += "productId=" + encodeURIComponent("" + productId) + "&";
@@ -8144,7 +8144,7 @@ export class ProductsClient {
         });
     }
 
-    protected processGetStatusOptions(response: AxiosResponse): Promise<StatusNavigationDto[]> {
+    protected processGetStatusOptions(response: AxiosResponse): Promise<StatusOptionDto[]> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8159,7 +8159,7 @@ export class ProductsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<StatusNavigationDto[]>(result200);
+            return Promise.resolve<StatusOptionDto[]>(result200);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -8172,7 +8172,7 @@ export class ProductsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<StatusNavigationDto[]>(null as any);
+        return Promise.resolve<StatusOptionDto[]>(null as any);
     }
 
     /**
@@ -48778,7 +48778,7 @@ export class StatusWorkflowsClient {
     }
 
     /**
-     * Replace the moves a draft status workflow allows.
+     * Replace the moves a draft status workflow allows, and the conditions on each.
      * @return No Content
      */
     setTransitions(id: string, request: SetWorkflowTransitionsRequest, cancelToken?: CancelToken): Promise<void> {
@@ -49945,6 +49945,9 @@ export interface ChangeProductStatusRequest {
     id: string;
     /** The target status. Must belong to the workflow assigned to products. */
     statusId: string;
+    /** Why the product is moving, recorded on its status history. Required when the move's conditions
+include `RequiresReason` (see the status options); optional otherwise. At most 1024 characters. */
+    reason?: string | undefined;
 }
 
 export interface ChangeProjectKeyRequest {
@@ -54885,7 +54888,7 @@ export interface SetWorkflowTransitionModeRequest {
     mode: TransitionMode;
 }
 
-/** A request to replace the moves a draft workflow allows. */
+/** A request to replace the moves a draft workflow allows, and the conditions on each. */
 export interface SetWorkflowTransitionsRequest {
     /** Every move the workflow should allow. Moves not listed are removed; an empty list removes them all. */
     transitions: WorkflowTransitionRequest[];
@@ -55440,6 +55443,14 @@ rewrite what past records read as. */
     alias: number;
 }
 
+/** A status a record can be moved to, with what the move needs. */
+export interface StatusOptionDto extends StatusNavigationDto {
+    /** What moving the record to this status needs, in kind order — `RequiresReason` means the move
+must carry a reason. Empty when it needs nothing, and always empty when the options were asked for
+without a record, since conditions belong to the move from the record's current status. */
+    conditions: TransitionConditionKind[];
+}
+
 /** One operator decision: send this source status's records to that target status. */
 export interface StatusRemapDecisionRequest {
     /** The status of the current workflow whose records are being moved. */
@@ -55514,6 +55525,9 @@ export interface StatusWorkflowDetailsDto {
     /** The moves this workflow allows, ordered by their from and then their to status's position.
 Enforced only when TransitionMode StatusWorkflowDetailsDto.TransitionMode is restricted. */
     transitions: WorkflowTransitionDto[];
+    /** The conditions a transition may carry: those a record checks itself, and those something is in
+place to evaluate. Attaching any other is refused. */
+    availableConditions: TransitionConditionKind[];
     /** Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
 an owner type that cannot is refused at publish. */
     supportsRestrictedTransitions: boolean;
@@ -56723,6 +56737,11 @@ export interface TokenResponse {
     refreshToken: string;
     tokenExpiresAt: Date;
     mustChangePassword: boolean;
+}
+
+export enum TransitionConditionKind {
+    RequiresReason = "RequiresReason",
+    RequiresPassedApproval = "RequiresPassedApproval",
 }
 
 export enum TransitionMode {
@@ -57952,6 +57971,8 @@ export interface WorkflowTransitionDto {
     fromStatusId: string;
     /** The status a record moves into. */
     toStatusId: string;
+    /** What a record needs before making this move, in kind order. Empty when it needs nothing. */
+    conditions: TransitionConditionKind[];
 }
 
 /** One move a workflow allows, between two of its statuses. */
@@ -57960,6 +57981,9 @@ export interface WorkflowTransitionRequest {
     fromStatusId: string;
     /** The status a record moves into. */
     toStatusId: string;
+    /** What a record needs before making the move, at most one of each kind. A move listed with none,
+or without this field, loses any it had. Only the workflow's available conditions can be added. */
+    conditions?: TransitionConditionKind[] | undefined;
 }
 
 export interface WorkItemBacklogItemDto {

@@ -60,7 +60,10 @@ const workflow = (
     status(ACTIVE, 'Active', StatusCategory.Active, 2),
   ],
   transitionMode: TransitionMode.Restricted,
-  transitions: [{ id: 't1', fromStatusId: CONCEPT, toStatusId: ACTIVE }],
+  transitions: [
+    { id: 't1', fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
+  ],
+  availableConditions: [],
   supportsRestrictedTransitions: true,
   transitionIssues: [],
   missingRequiredAliases: [],

@@ -185,7 +185,7 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
         var sunset = workflow.AddStatus("Sunset", null, StatusCategory.Active, (int)ProductStatusAlias.Sunset, EventActor.System, at).Value;
         var retired = workflow.AddStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, at).Value;
         workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, at);
-        workflow.SetTransitions([(concept.Id, active.Id), (active.Id, sunset.Id), (sunset.Id, retired.Id)], EventActor.System, at);
+        workflow.SetTransitions([new(concept.Id, active.Id), new(active.Id, sunset.Id), new(sunset.Id, retired.Id)], EventActor.System, at);
         workflow.Publish(EventActor.System, at).IsSuccess.Should().BeTrue();
 
         _statusResolver

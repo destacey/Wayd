@@ -46,7 +46,7 @@ public sealed class GetProductStatusOptionsQueryHandlerTests : ProductCommandTes
     {
         _workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
         _workflow.SetTransitions(
-            [(Status("Concept").Id, Status("Active").Id), (Status("Active").Id, Status("Sunset").Id), (Status("Sunset").Id, Status("Retired").Id)],
+            [new(Status("Concept").Id, Status("Active").Id), new(Status("Active").Id, Status("Sunset").Id), new(Status("Sunset").Id, Status("Retired").Id)],
             EventActor.System, At);
     }
 

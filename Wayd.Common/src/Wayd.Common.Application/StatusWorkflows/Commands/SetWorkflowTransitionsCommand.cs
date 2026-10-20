@@ -1,11 +1,19 @@
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Application.StatusWorkflows.Commands;
 
-/// <summary>A move to allow, from one status of the workflow to another.</summary>
-public sealed record WorkflowTransitionPair(Guid FromStatusId, Guid ToStatusId);
+/// <summary>A move to allow, from one status of the workflow to another, with what it needs.</summary>
+/// <param name="Conditions">The conditions the move carries; <c>null</c> or empty for none.</param>
+public sealed record WorkflowTransitionPair(
+    Guid FromStatusId,
+    Guid ToStatusId,
+    IReadOnlyCollection<TransitionConditionKind>? Conditions = null);
 
-/// <summary>Replaces the moves a draft workflow allows with exactly <see cref="Transitions"/>.</summary>
+/// <summary>
+/// Replaces the moves a draft workflow allows, and their conditions, with exactly <see cref="Transitions"/>.
+/// </summary>
 public sealed record SetWorkflowTransitionsCommand(Guid WorkflowId, IReadOnlyCollection<WorkflowTransitionPair> Transitions) : ICommand;
 
 /// <summary>Requires a workflow and both ends of every transition.</summary>
@@ -19,6 +27,7 @@ public sealed class SetWorkflowTransitionsCommandValidator : AbstractValidator<S
         {
             t.RuleFor(p => p.FromStatusId).NotEmpty();
             t.RuleFor(p => p.ToStatusId).NotEmpty();
+            t.RuleForEach(p => p.Conditions).IsInEnum();
         });
     }
 }
@@ -43,10 +52,12 @@ public sealed class SetWorkflowTransitionsCommandHandler(
         try
         {
             // Both collections must be loaded: the statuses to check each transition's ends against, and
-            // the transitions so the ones kept retain their identity rather than being re-added.
+            // the transitions so the ones kept retain their identity rather than being re-added. Their
+            // conditions likewise, or every kept condition would read as new and be inserted twice.
             var workflow = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
                 .Include(w => w.Transitions)
+                    .ThenInclude(t => t.Conditions)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
 
@@ -57,7 +68,7 @@ public sealed class SetWorkflowTransitionsCommandHandler(
             }
 
             var result = workflow.SetTransitions(
-                [.. request.Transitions.Select(t => (t.FromStatusId, t.ToStatusId))],
+                [.. request.Transitions.Select(t => new WorkflowTransitionDefinition(t.FromStatusId, t.ToStatusId, t.Conditions))],
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 

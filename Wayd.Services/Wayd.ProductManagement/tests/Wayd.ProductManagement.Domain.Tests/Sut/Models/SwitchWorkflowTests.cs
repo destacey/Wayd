@@ -199,7 +199,7 @@ public sealed class SwitchWorkflowTests
         var active = gated.Statuses.Single(s => s.Name == "Active").Id;
         var retired = gated.Statuses.Single(s => s.Name == "Retired").Id;
         gated.SetTransitionMode(TransitionMode.Restricted, EventActor.System, at);
-        gated.SetTransitions([(concept, active), (active, retired)], EventActor.System, at);
+        gated.SetTransitions([new(concept, active), new(active, retired)], EventActor.System, at);
 
         var product = Product.Create(
             ProductName, null, Guid.CreateVersion7(), null, null,

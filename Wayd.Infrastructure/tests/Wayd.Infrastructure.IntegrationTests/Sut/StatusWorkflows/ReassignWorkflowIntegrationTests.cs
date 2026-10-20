@@ -169,10 +169,10 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
             .ToList();
 
         // Each status moves to the next; a Proposed or Active last status loops back so none is a dead end.
-        var moves = statuses.Zip(statuses.Skip(1), (from, to) => (from.Id, to.Id)).ToList();
+        var moves = statuses.Zip(statuses.Skip(1), (from, to) => new WorkflowTransitionDefinition(from.Id, to.Id)).ToList();
         if (statuses[^1].Category is StatusCategory.Proposed or StatusCategory.Active)
         {
-            moves.Add((statuses[^1].Id, statuses[0].Id));
+            moves.Add(new WorkflowTransitionDefinition(statuses[^1].Id, statuses[0].Id));
         }
 
         replacement.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Timestamp);

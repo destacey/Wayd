@@ -41,7 +41,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         var workflow = SeedWorkflow();
         var (proposed, notable, terminal) = (StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"), StatusId(workflow, "Terminal"));
         workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Now);
-        workflow.SetTransitions([(notable, terminal), (proposed, terminal), (proposed, notable)], EventActor.System, Now);
+        workflow.SetTransitions([new(notable, terminal), new(proposed, terminal), new(proposed, notable)], EventActor.System, Now);
 
         // Act
         var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
@@ -58,7 +58,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         // Arrange
         var workflow = SeedWorkflow();
         workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Now);
-        workflow.SetTransitions([(StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"))], EventActor.System, Now);
+        workflow.SetTransitions([new(StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"))], EventActor.System, Now);
 
         // Act
         var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);

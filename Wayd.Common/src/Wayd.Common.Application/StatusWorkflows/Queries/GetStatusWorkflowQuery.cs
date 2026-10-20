@@ -30,6 +30,7 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
             .AsNoTracking()
             .Include(w => w.Statuses)
             .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
             .AsSplitQuery()
             .FirstOrDefaultAsync(request.IdOrKeyFilter, cancellationToken);
 

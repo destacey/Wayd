@@ -32,7 +32,31 @@ public sealed record WorkflowStatusValues(
 /// One move a workflow allows, as carried by <see cref="WorkflowTransitionsChangedEvent"/> and
 /// <see cref="WorkflowCreatedEvent"/>.
 /// </summary>
+/// <param name="Conditions">
+/// What a record needs before making the move, in kind order. Added with transition conditions; a
+/// payload written before them reads as empty, which is what every move had then.
+/// </param>
 public sealed record WorkflowTransitionValues(
     Guid TransitionId,
     Guid FromStatusId,
-    Guid ToStatusId);
+    Guid ToStatusId,
+    WorkflowTransitionConditionValues[]? Conditions = null)
+{
+    /// <inheritdoc cref="WorkflowTransitionValues" path="/param[@name='Conditions']"/>
+    public WorkflowTransitionConditionValues[] Conditions { get; init; } = Conditions ?? [];
+}
+
+/// <summary>
+/// One condition on a move a workflow allows.
+/// </summary>
+public sealed record WorkflowTransitionConditionValues(Guid ConditionId, TransitionConditionKind Kind);
+
+/// <summary>
+/// A kept move whose conditions an edit changed, with the conditions before and after.
+/// </summary>
+public sealed record WorkflowTransitionConditionsChange(
+    Guid TransitionId,
+    Guid FromStatusId,
+    Guid ToStatusId,
+    WorkflowTransitionConditionValues[] PreviousConditions,
+    WorkflowTransitionConditionValues[] Conditions);

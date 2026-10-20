@@ -14,7 +14,7 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 public sealed record WorkflowBaselinedEvent : BaselineEvent<WorkflowBaselinedEvent, WorkflowCreatedEvent>
 {
     public WorkflowBaselinedEvent(Guid id, int key, string name, string? description, string ownerType, bool isSystem, Guid? sourceWorkflowId, WorkflowStatusValues[] statuses, TransitionMode transitionMode, WorkflowTransitionValues[]? transitions, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
-        : base("Workflow", id, recordCreatedOn, recordCreatedById, timestamp, "1.1")
+        : base("Workflow", id, recordCreatedOn, recordCreatedById, timestamp, "1.2")
     {
         Id = id;
         Key = key;

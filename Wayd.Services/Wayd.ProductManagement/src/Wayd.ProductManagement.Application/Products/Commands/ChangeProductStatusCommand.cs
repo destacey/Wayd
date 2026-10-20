@@ -1,9 +1,15 @@
-﻿using Wayd.Common.Domain.StatusWorkflows;
+﻿using Wayd.Common.Application.StatusWorkflows.Conditions;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.ProductManagement.Domain;
 
 namespace Wayd.ProductManagement.Application.Products.Commands;
 
-public sealed record ChangeProductStatusCommand(Guid Id, Guid StatusId) : ICommand, IRequireLinkedEmployee;
+/// <summary>Moves a product to another status in the workflow governing it.</summary>
+/// <param name="Reason">
+/// Why the move was made, recorded on the status transition. Required when the workflow's move has a
+/// reason condition; optional otherwise.
+/// </param>
+public sealed record ChangeProductStatusCommand(Guid Id, Guid StatusId, string? Reason = null) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ChangeProductStatusCommandValidator : AbstractValidator<ChangeProductStatusCommand>
 {
@@ -14,12 +20,16 @@ public sealed class ChangeProductStatusCommandValidator : AbstractValidator<Chan
 
         RuleFor(x => x.StatusId)
             .NotEmpty();
+
+        RuleFor(x => x.Reason)
+            .MaximumLength(1024);
     }
 }
 
 public sealed class ChangeProductStatusCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
+    ITransitionConditionChecker conditionChecker,
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     ILogger<ChangeProductStatusCommandHandler> logger,
@@ -30,6 +40,7 @@ public sealed class ChangeProductStatusCommandHandler(
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
+    private readonly ITransitionConditionChecker _conditionChecker = conditionChecker;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ChangeProductStatusCommandHandler> _logger = logger;
@@ -61,15 +72,20 @@ public sealed class ChangeProductStatusCommandHandler(
                 return Result.Failure(workflow.Error);
             }
 
-            // TargetRef carries the moves the workflow allows into the status, which the aggregate enforces.
-            var status = workflow.Value.TargetRef(request.StatusId);
+            // TargetRef carries the moves the workflow allows into the status, and what each needs, which
+            // the aggregate enforces.
+            var target = workflow.Value.TargetRef(request.StatusId);
 
-            if (status is null)
+            if (target is null)
             {
                 _logger.LogInformation(
                     "Status {StatusId} does not belong to workflow {WorkflowId}.", request.StatusId, workflow.Value.Id);
                 return Result.Failure($"That status does not belong to '{workflow.Value.Name}'.");
             }
+
+            // The conditions the product cannot check itself are decided here; it checks the rest.
+            var status = await _conditionChecker.Evaluate(
+                ProductWorkflowOwners.Product.Key, product.Id, product.StatusId, target, cancellationToken);
 
             // Read per scope rather than from the claim snapshot, which a personal access token
             // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
@@ -79,7 +95,8 @@ public sealed class ChangeProductStatusCommandHandler(
             var changeResult = product.ChangeStatus(
                 status,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
+                _dateTimeProvider.Now,
+                request.Reason);
 
             if (changeResult.IsFailure)
             {

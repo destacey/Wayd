@@ -57,7 +57,7 @@ public sealed class StatusRemap
     /// </summary>
     /// <remarks>
     /// Built by the target workflow (<see cref="StatusWorkflow.TargetRef"/>) like any other target, so it
-    /// carries that workflow's transition restrictions. Applying it is exempt from them — see
+    /// carries that workflow's transition restrictions and conditions. Applying it is exempt from both — see
     /// <see cref="StatusTrackedEntity.SwitchWorkflow"/> — which is the record's decision, not the remap's.
     /// </remarks>
     public StatusRef? For(Guid fromStatusId) =>

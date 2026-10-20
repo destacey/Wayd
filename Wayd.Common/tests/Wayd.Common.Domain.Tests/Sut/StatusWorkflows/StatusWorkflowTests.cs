@@ -1545,6 +1545,87 @@ public sealed class StatusWorkflowTests
         target.AllowedFrom.Should().BeEquivalentTo([StatusId(workflow, "Notable")]);
     }
 
+    // Restricted Proposed → Notable → Terminal plus Proposed → Terminal, where only Notable → Terminal
+    // needs a reason.
+    private static StatusWorkflow WidgetWorkflowWithAReasonIntoTerminal()
+    {
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [
+                Move(workflow, "Proposed", "Notable"),
+                Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason),
+                Move(workflow, "Proposed", "Terminal"),
+            ],
+            EventActor.System, At);
+
+        return workflow;
+    }
+
+    [Fact]
+    public void TargetRef_ShouldCarryWhatEachMoveIntoTheStatusNeeds_ByTheStatusItMovesFrom()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+
+        // Act
+        var target = workflow.TargetRef(StatusId(workflow, "Terminal"))!;
+
+        // Assert
+        target.ConditionsFor(StatusId(workflow, "Notable")).Should().BeEquivalentTo([TransitionConditionKind.RequiresReason]);
+        target.ConditionsFor(StatusId(workflow, "Proposed")).Should().BeEmpty();
+        target.ConditionsFrom.Keys.Should().BeEquivalentTo([StatusId(workflow, "Notable")]);
+        target.MetConditions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TargetRef_ShouldCarryNoConditions_WhenTheWorkflowAllowsAnyMove()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+        workflow.SetTransitionMode(TransitionMode.AnyToAny, EventActor.System, At);
+
+        // Act
+        var target = workflow.TargetRef(StatusId(workflow, "Terminal"))!;
+
+        // Assert
+        // The conditions are kept for a switch back, but an any-to-any workflow enforces none of them.
+        target.ConditionsFrom.Should().BeEmpty();
+        workflow.ConditionsFor(StatusId(workflow, "Notable"), StatusId(workflow, "Terminal")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ConditionsFor_ShouldBeWhatTheMoveNeeds()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+
+        // Act
+        var conditions = workflow.ConditionsFor(StatusId(workflow, "Notable"), StatusId(workflow, "Terminal"));
+
+        // Assert
+        conditions.Should().Equal(TransitionConditionKind.RequiresReason);
+        workflow.ConditionsFor(StatusId(workflow, "Proposed"), StatusId(workflow, "Terminal")).Should().BeEmpty();
+        workflow.ConditionsFor(StatusId(workflow, "Terminal"), StatusId(workflow, "Proposed")).Should().BeEmpty("there is no such move");
+    }
+
+    [Fact]
+    public void WithMetConditions_ShouldAddToWhatWasMet_KeepingEverythingElse()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+        var target = workflow.TargetRef(StatusId(workflow, "Terminal"))!;
+
+        // Act
+        var evaluated = target.WithMetConditions([TransitionConditionKind.RequiresPassedApproval]);
+
+        // Assert
+        evaluated.MetConditions.Should().BeEquivalentTo([TransitionConditionKind.RequiresPassedApproval]);
+        evaluated.StatusId.Should().Be(target.StatusId);
+        evaluated.AllowedFrom.Should().BeSameAs(target.AllowedFrom);
+        evaluated.ConditionsFrom.Should().BeSameAs(target.ConditionsFrom);
+        target.MetConditions.Should().BeEmpty("the original reference is unchanged");
+    }
+
     [Fact]
     public void TargetRef_ShouldAllowAnyMove_WhenTheWorkflowAllowsAny()
     {

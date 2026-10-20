@@ -116,12 +116,14 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
     /// </summary>
     /// <returns>
     /// A failure, with nothing changed, when the target's workflow does not allow a move from the current
-    /// status (<see cref="StatusRef.AllowedFrom"/>). Moving to the status already held succeeds without
-    /// recording anything. A record's initial status is never checked.
+    /// status (<see cref="StatusRef.AllowedFrom"/>), or allows it only on conditions the move does not
+    /// meet (<see cref="StatusRef.ConditionsFor"/>), naming what is missing. Moving to the status already
+    /// held succeeds without recording anything. A record's initial status is never checked.
     /// </returns>
     /// <remarks>
-    /// The check lives here, not in each aggregate method, so no path that changes status can forget it.
-    /// Callers apply the status before touching any other state, so a refusal leaves nothing to undo.
+    /// The checks live here, not in each aggregate method, so no path that changes status can forget
+    /// them. Callers apply the status before touching any other state, so a refusal leaves nothing to
+    /// undo.
     /// </remarks>
     protected Result ApplyStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null) =>
         ApplyStatus(status, actor, timestamp, reason, enforceTransitions: true);
@@ -138,9 +140,23 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
             return Result.Success();
         }
 
-        if (enforceTransitions && !isInitial && status.AllowedFrom is { } allowedFrom && !allowedFrom.Contains(StatusId))
+        if (enforceTransitions && !isInitial)
         {
-            return Result.Failure($"The workflow does not allow a move from '{StatusName}' to '{status.Name}'.");
+            if (status.AllowedFrom is { } allowedFrom && !allowedFrom.Contains(StatusId))
+            {
+                return Result.Failure($"The workflow does not allow a move from '{StatusName}' to '{status.Name}'.");
+            }
+
+            var missing = status.ConditionsFor(StatusId)
+                .Where(kind => !IsMet(kind, status, reason))
+                .Order()
+                .Select(kind => kind.DescribeMissing())
+                .ToList();
+
+            if (missing.Count > 0)
+            {
+                return Result.Failure($"Moving from '{StatusName}' to '{status.Name}' needs {string.Join(" and ", missing)}.");
+            }
         }
 
         // The outgoing side is built from this record's own workflow, not the incoming status's. They
@@ -171,6 +187,18 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Whether a move meets one condition: checked here when the record can, otherwise taken from what the
+    /// application layer evaluated. A kind with no evaluation is unmet, so a condition nothing checks
+    /// refuses the move rather than letting it through.
+    /// </summary>
+    private static bool IsMet(TransitionConditionKind kind, StatusRef status, string? reason) =>
+        kind switch
+        {
+            TransitionConditionKind.RequiresReason => !string.IsNullOrWhiteSpace(reason),
+            _ => !kind.IsSelfChecked() && status.MetConditions.Contains(kind),
+        };
 
     /// <summary>
     /// Moves this record onto the workflow a remap targets, translating its current status.
@@ -208,8 +236,8 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
         var from = new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
 
-        // Exempt from the target workflow's transitions: a migration must move every record, whatever
-        // its status, and the remap has already decided where each one lands.
+        // Exempt from the target workflow's transitions and their conditions: a migration must move every
+        // record, whatever its status, and the remap has already decided where each one lands.
         var applied = ApplyStatus(target, actor, timestamp, reason, enforceTransitions: false);
         if (applied.IsFailure)
         {

@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Application.StatusWorkflows.Conditions;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -35,6 +36,7 @@ public sealed class SetWorkflowTransitionsCommandValidator : AbstractValidator<S
 /// <summary>Loads the workflow with its statuses and transitions and replaces the set through the aggregate.</summary>
 public sealed class SetWorkflowTransitionsCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ITransitionConditionChecker conditionChecker,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<SetWorkflowTransitionsCommandHandler> logger)
@@ -43,6 +45,7 @@ public sealed class SetWorkflowTransitionsCommandHandler(
     private const string AppRequestName = nameof(SetWorkflowTransitionsCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ITransitionConditionChecker _conditionChecker = conditionChecker;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SetWorkflowTransitionsCommandHandler> _logger = logger;
@@ -67,6 +70,19 @@ public sealed class SetWorkflowTransitionsCommandHandler(
                 return Result.Failure("Status workflow not found.");
             }
 
+            // Only an editable draft is asked, so a workflow that cannot change is refused for that
+            // reason rather than for a condition it could never have taken anyway.
+            var unavailable = workflow.IsSystem || workflow.State != StatusWorkflowState.Draft
+                ? null
+                : UnavailableAddition(workflow, request.Transitions);
+            if (unavailable is { } kind)
+            {
+                _logger.LogInformation(
+                    "Unable to change the transitions of Status Workflow {WorkflowId}: nothing evaluates {Condition}.",
+                    request.WorkflowId, kind);
+                return Result.Failure($"A transition cannot require {kind.DescribeMissing()} yet: nothing can check it.");
+            }
+
             var result = workflow.SetTransitions(
                 [.. request.Transitions.Select(t => new WorkflowTransitionDefinition(t.FromStatusId, t.ToStatusId, t.Conditions))],
                 EventActor.User(_currentUser.GetUserId()),
@@ -89,5 +105,29 @@ public sealed class SetWorkflowTransitionsCommandHandler(
             _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
             return Result.Failure($"Error handling {AppRequestName} command.");
         }
+    }
+
+    /// <summary>
+    /// The first condition the request adds that nothing can check, or <c>null</c>. Only additions are
+    /// refused, so a condition a move already holds never blocks editing the rest of the set.
+    /// </summary>
+    private TransitionConditionKind? UnavailableAddition(StatusWorkflow workflow, IEnumerable<WorkflowTransitionPair> requested)
+    {
+        foreach (var pair in requested)
+        {
+            var held = workflow.Transitions
+                .SingleOrDefault(t => t.FromStatusId == pair.FromStatusId && t.ToStatusId == pair.ToStatusId)?
+                .ConditionKinds() ?? [];
+
+            foreach (var kind in pair.Conditions ?? [])
+            {
+                if (!held.Contains(kind) && Enum.IsDefined(kind) && !_conditionChecker.IsAvailable(kind))
+                {
+                    return kind;
+                }
+            }
+        }
+
+        return null;
     }
 }

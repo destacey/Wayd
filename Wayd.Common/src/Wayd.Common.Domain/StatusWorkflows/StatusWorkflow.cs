@@ -155,19 +155,37 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// What a move from <paramref name="fromStatusId"/> to <paramref name="toStatusId"/> needs, in kind
+    /// order. Empty when the move has no conditions or the workflow does not enforce its transitions.
+    /// </summary>
+    public IReadOnlyList<TransitionConditionKind> ConditionsFor(Guid fromStatusId, Guid toStatusId) =>
+        EnforcesTransitions
+            ? _transitions.SingleOrDefault(t => t.FromStatusId == fromStatusId && t.ToStatusId == toStatusId)?.ConditionKinds() ?? []
+            : [];
+
+    /// <summary>
     /// Builds the reference a record is moved to, carrying the statuses this workflow allows the move
-    /// from so the record can enforce it without loading the workflow.
+    /// from, and what each of those moves needs, so the record can enforce both without loading the
+    /// workflow.
     /// </summary>
     /// <returns><c>null</c> when the status does not belong to this workflow.</returns>
     public StatusRef? TargetRef(Guid statusId)
     {
         var status = _statuses.SingleOrDefault(s => s.Id == statusId);
+        if (status is null)
+        {
+            return null;
+        }
+
+        var conditionsFrom = EnforcesTransitions
+            ? _transitions
+                .Where(t => t.ToStatusId == statusId && t.Conditions.Count > 0)
+                .ToDictionary(t => t.FromStatusId, t => (IReadOnlySet<TransitionConditionKind>)t.ConditionKinds().ToHashSet())
+            : null;
 
         // Built through the constructor rather than `with`: the history checks read an init setter's
         // field write as this method changing the workflow's state.
-        return status is null
-            ? null
-            : new StatusRef(status.WorkflowId, status.Id, status.Name, status.Category, status.Alias, AllowedFrom(statusId));
+        return new StatusRef(status.WorkflowId, status.Id, status.Name, status.Category, status.Alias, AllowedFrom(statusId), conditionsFrom);
     }
 
     /// <summary>

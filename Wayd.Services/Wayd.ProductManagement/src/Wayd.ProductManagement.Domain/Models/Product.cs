@@ -592,7 +592,11 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// One method rather than named <c>Sunset</c>/<c>Retire</c> methods: statuses are configurable, so a
     /// fixed set could not reach one an organization invented. The event carries the target's alias.
     /// </remarks>
-    public Result ChangeStatus(StatusRef status, EventActor actor, Instant timestamp)
+    /// <param name="reason">
+    /// Why the move was made, recorded on the status transition. Required only when the workflow's
+    /// move has a reason condition.
+    /// </param>
+    public Result ChangeStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null)
     {
         Guard.Against.Null(status, nameof(status));
 
@@ -605,7 +609,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         var fromCategory = StatusCategory;
         var fromAlias = StatusAlias;
 
-        var applied = ApplyStatus(status, actor, timestamp);
+        var applied = ApplyStatus(status, actor, timestamp, reason);
         if (applied.IsFailure)
         {
             return applied;

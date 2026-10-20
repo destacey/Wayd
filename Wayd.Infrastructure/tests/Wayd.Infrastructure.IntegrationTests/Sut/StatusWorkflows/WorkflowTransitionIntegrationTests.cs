@@ -4,6 +4,7 @@ using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
+using Wayd.Common.Application.StatusWorkflows.Conditions;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
@@ -105,7 +106,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
     }
 
     private SetWorkflowTransitionsCommandHandler SetTransitionsHandler(WaydDbContext context) =>
-        new(context, CurrentUser(), DateTimeProvider(), NullLogger<SetWorkflowTransitionsCommandHandler>.Instance);
+        new(context, new TransitionConditionChecker([]), CurrentUser(), DateTimeProvider(), NullLogger<SetWorkflowTransitionsCommandHandler>.Instance);
 
     [Fact]
     public async Task SaveChanges_ShouldPersistATransitionsConditions()
@@ -293,8 +294,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
 
         await using var context = _fixture.CreateContext();
 
-        var sut = new SetWorkflowTransitionsCommandHandler(
-            context, CurrentUser(), DateTimeProvider(), NullLogger<SetWorkflowTransitionsCommandHandler>.Instance);
+        var sut = SetTransitionsHandler(context);
 
         // Act
         var result = await sut.Handle(
@@ -392,6 +392,47 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
     }
 
     [Fact]
+    public async Task Resolver_ShouldCarryTheStoredConditionsOnTheStatusItResolves()
+    {
+        // Arrange
+        // A scoped assignment, as below, so the organization-wide one is left alone.
+        var scopeId = Guid.CreateVersion7();
+        StatusWorkflow workflow;
+        WorkflowAssignment assignment;
+        await using (var setup = _fixture.CreateContext())
+        {
+            workflow = await SeedRestrictedWorkflow(setup, TransitionConditionKind.RequiresReason);
+            workflow.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
+
+            assignment = WorkflowAssignment.Create(ProductWorkflowOwners.Product.Key, scopeId, workflow, EventActor.System, Now).Value;
+            setup.WorkflowAssignments.Add(assignment);
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        try
+        {
+            await using var context = _fixture.CreateContext();
+            var sut = new StatusResolver(context);
+
+            // Act
+            var result = await sut.ForAlias(
+                ProductWorkflowOwners.Product.Key, scopeId, (int)ProductStatusAlias.Retired, TestContext.Current.CancellationToken);
+
+            // Assert
+            // Without the conditions loaded the move would carry none, and a reason would never be asked for.
+            result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+            result.Value.ConditionsFor(StatusId(workflow, "Sunset")).Should().BeEquivalentTo([TransitionConditionKind.RequiresReason]);
+        }
+        finally
+        {
+            await using var cleanup = _fixture.CreateContext();
+            await cleanup.WorkflowAssignments
+                .Where(a => a.Id == assignment.Id)
+                .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task Resolver_ShouldCarryTheStoredTransitionsOnTheStatusItResolves()
     {
         // Arrange
@@ -423,6 +464,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
             result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
             result.Value.StatusId.Should().Be(StatusId(workflow, "Retired"));
             result.Value.AllowedFrom.Should().BeEquivalentTo([StatusId(workflow, "Sunset")]);
+            result.Value.ConditionsFrom.Should().BeEmpty();
         }
         finally
         {

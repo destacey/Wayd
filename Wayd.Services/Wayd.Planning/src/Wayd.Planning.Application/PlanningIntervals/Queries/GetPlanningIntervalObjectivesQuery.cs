@@ -64,7 +64,9 @@ public sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext
         var piNavigation = NavigationDto.Create(planningInterval.Id, planningInterval.Key, planningInterval.Name);
         var now = _dateTimeProvider.Now;
 
+        // Stable, so an MCP caller's offset slices the same list on every call.
         return planningInterval.Objectives
+            .OrderBy(o => o.Key)
             .Select(o => PlanningIntervalObjectiveListDto.Create(o, piNavigation, now))
             .ToList();
     }

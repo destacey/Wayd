@@ -39,6 +39,7 @@ public sealed class GetProgramsQueryHandler(IProjectPortfolioManagementDbContext
         }
 
         var programs = await query.ProjectToType<ProgramListDto>().ToListAsync(cancellationToken);
-        return [.. programs.OrderBy(p => p.Name)];
+        // Key last, so an MCP caller's offset slices the same list on every call.
+        return [.. programs.OrderBy(p => p.Name).ThenBy(p => p.Key)];
     }
 }

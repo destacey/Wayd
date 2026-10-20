@@ -59,6 +59,8 @@ public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext p
                 ReleasePackageDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .OrderByDescending(p => p.ReleasedAt == null)
             .ThenByDescending(p => p.ReleasedAt)
+            // Key last, so an MCP caller's offset slices the same list on every call.
+            .ThenByDescending(p => p.Key)
             .ToListAsync(cancellationToken);
     }
 }

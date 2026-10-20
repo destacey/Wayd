@@ -119,6 +119,8 @@ public sealed class GetProjectTeamQueryHandler(IProjectPortfolioManagementDbCont
                 ActiveWorkItemCount = activeTaskCounts.TryGetValue(kvp.Key, out var count) ? count : 0,
             })
             .OrderBy(m => m.Employee.Name)
+            // Id last, so an MCP caller's offset slices the same list on every call.
+            .ThenBy(m => m.Employee.Id)
             .ToList();
 
         return teamMembers;

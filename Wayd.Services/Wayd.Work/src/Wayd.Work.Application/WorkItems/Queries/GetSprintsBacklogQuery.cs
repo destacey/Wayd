@@ -45,12 +45,15 @@ public sealed class GetSprintsBacklogQueryHandler(
                 teamGroup
                     .OrderBy(w => w.StackRank)
                     .ThenBy(w => w.Created)
+                    .ThenBy(w => w.Id)
                     .Select((workItem, index) =>
                     {
                         workItem.Rank = index + 1;
                         return workItem;
                     }))
+            // Ids last, here and in the ranking above, so an MCP caller's offset slices the same list on every call.
             .OrderBy(w => w.Team?.Name)
+            .ThenBy(w => w.Team?.Id)
             .ThenBy(w => w.Rank)
             .ToList();
 

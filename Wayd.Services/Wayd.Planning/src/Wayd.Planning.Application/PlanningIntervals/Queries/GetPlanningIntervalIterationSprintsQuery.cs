@@ -40,7 +40,9 @@ public sealed class GetPlanningIntervalIterationSprintsQueryHandler(IPlanningDbC
             query = query.Where(it => it.Id == request.IterationId.Value);
         }
 
+        // Stable, so an MCP caller's offset slices the same list on every call.
         var iterations = await query
+            .OrderBy(it => it.Key)
             .ProjectToType<PlanningIntervalIterationSprintsDto>()
             .ToListAsync(cancellationToken);
 

@@ -116,6 +116,7 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
             .OrderBy(p => p.Portfolio.Id)
             .ThenBy(p => p.Rank)
             .ThenBy(p => p.Name)
+            .ThenBy(p => p.Key)
             .ToList();
 
         Guid? currentPortfolioId = null;
@@ -131,6 +132,7 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
             project.Position = position++;
         }
 
-        return [.. ordered.OrderBy(p => p.Name)];
+        // Key last, here and in the ranking above, so an MCP caller's offset slices the same list on every call.
+        return [.. ordered.OrderBy(p => p.Name).ThenBy(p => p.Key)];
     }
 }

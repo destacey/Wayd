@@ -78,7 +78,11 @@ internal partial class UserService(
 
     public async Task<List<UserDetailsDto>> GetListAsync(CancellationToken cancellationToken)
     {
+        // Stable, so an MCP caller's offset slices the same list on every call.
         return await _db.Users
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ThenBy(u => u.Id)
             .ProjectToType<UserDetailsDto>()
             .ToListAsync(cancellationToken);
     }

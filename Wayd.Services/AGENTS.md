@@ -1,6 +1,10 @@
 # AGENTS.md — Domain services
 
-The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
+The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for list queries and for domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
+
+## List Queries
+
+- **A list query ends its order on a unique key** (`Key` or `Id` last), never on whatever order the database returns. The hosted MCP server pages a list tool's answer with an `offset` over several calls, so an unstable order repeats and skips records between them. [Result size](../docs/contributing/mcp-server.mdx#the-hosted-endpoint)
 
 ## Domain Events
 

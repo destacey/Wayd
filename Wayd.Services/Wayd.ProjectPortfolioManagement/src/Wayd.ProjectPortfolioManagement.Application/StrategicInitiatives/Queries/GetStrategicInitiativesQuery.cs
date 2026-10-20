@@ -43,6 +43,7 @@ public sealed class GetStrategicInitiativesQueryHandler(IProjectPortfolioManagem
             query = query.Where(pp => pp.PortfolioId == portfolioId);
         }
 
-        return await query.ProjectToType<StrategicInitiativeListDto>().ToListAsync(cancellationToken);
+        // Stable, so an MCP caller's offset slices the same list on every call.
+        return await query.OrderBy(si => si.Key).ProjectToType<StrategicInitiativeListDto>().ToListAsync(cancellationToken);
     }
 }

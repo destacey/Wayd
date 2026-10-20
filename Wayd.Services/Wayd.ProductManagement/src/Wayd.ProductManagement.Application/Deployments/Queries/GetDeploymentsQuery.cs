@@ -57,6 +57,8 @@ public sealed class GetDeploymentsQueryHandler(IProductManagementDbContext produ
         return await deployments
             .ProjectToType<DeploymentDto>(DeploymentDto.CreateTypeAdapterConfig())
             .OrderByDescending(d => d.StartedAt)
+            // Key last, so an MCP caller's offset slices the same list on every call.
+            .ThenByDescending(d => d.Key)
             .ToListAsync(cancellationToken);
     }
 }

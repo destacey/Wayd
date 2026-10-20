@@ -19,7 +19,9 @@ public sealed class GetProjectLifecyclesQueryHandler(IProjectPortfolioManagement
             query = query.Where(x => x.State == request.StateFilter.Value);
         }
 
+        // Stable, so an MCP caller's offset slices the same list on every call.
         return await query
+            .OrderBy(x => x.Key)
             .ProjectToType<ProjectLifecycleListDto>()
             .ToListAsync(cancellationToken);
     }

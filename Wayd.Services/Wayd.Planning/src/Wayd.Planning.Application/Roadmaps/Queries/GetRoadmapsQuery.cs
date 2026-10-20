@@ -29,7 +29,9 @@ public sealed class GetRoadmapsQueryHandler(IPlanningDbContext planningDbContext
             query = query.Where(r => request.StateFilter.Contains(r.State));
         }
 
+        // Stable, so an MCP caller's offset slices the same list on every call.
         return await query
+            .OrderBy(r => r.Key)
             .ProjectToType<RoadmapListDto>()
             .ToListAsync(cancellationToken);
     }

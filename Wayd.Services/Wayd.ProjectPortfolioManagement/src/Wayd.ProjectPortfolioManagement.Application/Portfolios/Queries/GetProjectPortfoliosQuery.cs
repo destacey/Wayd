@@ -24,6 +24,7 @@ public sealed class GetProjectPortfoliosQueryHandler(IProjectPortfolioManagement
         }
 
         var portfolios = await query.ProjectToType<ProjectPortfolioListDto>().ToListAsync(cancellationToken);
-        return [.. portfolios.OrderBy(p => p.Name)];
+        // Key last, so an MCP caller's offset slices the same list on every call.
+        return [.. portfolios.OrderBy(p => p.Name).ThenBy(p => p.Key)];
     }
 }

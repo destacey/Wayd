@@ -243,6 +243,56 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.True(JsonNode.DeepEquals(direct, StructuredContentOf(result)[ToolOutput.ResultProperty]));
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(1.0)]
+    [InlineData("1")]
+    public async Task CallTool_SkipsTheOffsetItself_AndSaysWhichItemsItShows(object offset)
+    {
+        // Arrange
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Projects);
+        var (user, token) = await CreateUserWithToken(permission);
+        await using var mcp = await Connect(token);
+        var direct = JsonNode.Parse(await user.Client.GetStringAsync("/api/ppm/projects/statuses", TestContext.Current.CancellationToken))!.AsArray();
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Projects_GetStatuses",
+            new Dictionary<string, object?> { [ResultBounds.OffsetArgument] = offset },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotEqual(true, result.IsError);
+        Assert.True(JsonNode.DeepEquals(new JsonArray([.. direct.Skip(1).Select(s => s?.DeepClone())]), StructuredContentOf(result)[ToolOutput.ResultProperty]));
+        Assert.Equal($"Showing items 2–{direct.Count} of {direct.Count}.", result.Content.OfType<TextContentBlock>().Last().Text);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1.5)]
+    [InlineData("first")]
+    public async Task CallTool_RefusesAnOffsetThatIsNotAWholeNumber(object offset)
+    {
+        // Arrange
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Projects);
+        var (_, token) = await CreateUserWithToken(permission);
+        await using var mcp = await Connect(token);
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Projects_GetStatuses",
+            new Dictionary<string, object?> { [ResultBounds.OffsetArgument] = offset },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError);
+        Assert.Equal(
+            "Invalid arguments for tool 'Projects_GetStatuses': offset must be a whole number of 0 or more.",
+            result.Content.OfType<TextContentBlock>().Single().Text);
+    }
+
     [Fact]
     public async Task CallTool_AnswersWithAnObjectAsTheStructuredContentItself()
     {

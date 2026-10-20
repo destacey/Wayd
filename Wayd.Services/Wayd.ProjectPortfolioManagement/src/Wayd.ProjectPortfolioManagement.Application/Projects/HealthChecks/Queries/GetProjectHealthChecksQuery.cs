@@ -16,6 +16,8 @@ public sealed class GetProjectHealthChecksQueryHandler(IProjectPortfolioManageme
             .AsNoTracking()
             .Where(h => h.ProjectId == request.ProjectId)
             .OrderByDescending(h => h.ReportedOn)
+            // Id last, so an MCP caller's offset slices the same list on every call.
+            .ThenBy(h => h.Id)
             .ProjectToType<ProjectHealthCheckDetailsDto>()
             .ToListAsync(cancellationToken);
 

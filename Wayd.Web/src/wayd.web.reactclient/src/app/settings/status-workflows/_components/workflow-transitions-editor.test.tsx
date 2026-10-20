@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {
   StatusCategory,
   StatusWorkflowDetailsDto,
+  TransitionConditionKind,
   TransitionMode,
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
@@ -63,7 +64,7 @@ const workflow = (
   transitions: [
     { id: 't1', fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
   ],
-  availableConditions: [],
+  availableConditions: [TransitionConditionKind.RequiresReason],
   supportsRestrictedTransitions: true,
   transitionIssues: [],
   missingRequiredAliases: [],
@@ -121,8 +122,8 @@ describe('WorkflowTransitionsEditor', () => {
       workflowId: '44444444-0000-4000-a000-000000000004',
       request: {
         transitions: [
-          { fromStatusId: CONCEPT, toStatusId: ACTIVE },
-          { fromStatusId: ACTIVE, toStatusId: RETIRED },
+          { fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
+          { fromStatusId: ACTIVE, toStatusId: RETIRED, conditions: [] },
         ],
       },
     })
@@ -144,9 +145,9 @@ describe('WorkflowTransitionsEditor', () => {
       workflowId: '44444444-0000-4000-a000-000000000004',
       request: {
         transitions: [
-          { fromStatusId: CONCEPT, toStatusId: ACTIVE },
-          { fromStatusId: ACTIVE, toStatusId: RETIRED },
-          { fromStatusId: CONCEPT, toStatusId: RETIRED },
+          { fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
+          { fromStatusId: ACTIVE, toStatusId: RETIRED, conditions: [] },
+          { fromStatusId: CONCEPT, toStatusId: RETIRED, conditions: [] },
         ],
       },
     })
@@ -183,6 +184,204 @@ describe('WorkflowTransitionsEditor', () => {
       workflowId: '44444444-0000-4000-a000-000000000004',
       request: { transitions: [] },
     })
+  })
+
+  it('offers conditions only on allowed moves', () => {
+    // Arrange & Act
+    render(<WorkflowTransitionsEditor statusWorkflow={workflow()} canUpdate />)
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'Conditions on Concept to Active' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', {
+        name: 'Conditions on Concept to Retired',
+      }),
+    ).toBeNull()
+  })
+
+  it('saves the whole set with a condition added to a move', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    render(<WorkflowTransitionsEditor statusWorkflow={workflow()} canUpdate />)
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Conditions on Concept to Active' }),
+    )
+    await user.click(await screen.findByLabelText('Requires a reason'))
+
+    // Assert
+    expect(setTransitions).toHaveBeenCalledWith({
+      workflowId: '44444444-0000-4000-a000-000000000004',
+      request: {
+        transitions: [
+          {
+            fromStatusId: CONCEPT,
+            toStatusId: ACTIVE,
+            conditions: [TransitionConditionKind.RequiresReason],
+          },
+        ],
+      },
+    })
+  })
+
+  it('keeps a condition when the next tick lands before the refetch', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    render(<WorkflowTransitionsEditor statusWorkflow={workflow()} canUpdate />)
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Conditions on Concept to Active' }),
+    )
+    await user.click(await screen.findByLabelText('Requires a reason'))
+    await user.click(screen.getByLabelText('Active to Retired'))
+
+    // Assert
+    expect(setTransitions).toHaveBeenLastCalledWith({
+      workflowId: '44444444-0000-4000-a000-000000000004',
+      request: {
+        transitions: [
+          {
+            fromStatusId: CONCEPT,
+            toStatusId: ACTIVE,
+            conditions: [TransitionConditionKind.RequiresReason],
+          },
+          { fromStatusId: ACTIVE, toStatusId: RETIRED, conditions: [] },
+        ],
+      },
+    })
+  })
+
+  it('saves the whole set with a condition removed from a move', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const withReason = workflow({
+      transitions: [
+        {
+          id: 't1',
+          fromStatusId: CONCEPT,
+          toStatusId: ACTIVE,
+          conditions: [TransitionConditionKind.RequiresReason],
+        },
+      ],
+    })
+    render(<WorkflowTransitionsEditor statusWorkflow={withReason} canUpdate />)
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Conditions on Concept to Active' }),
+    )
+    const reason = await screen.findByLabelText('Requires a reason')
+    expect(reason).toBeChecked()
+    await user.click(reason)
+
+    // Assert
+    expect(setTransitions).toHaveBeenCalledWith({
+      workflowId: '44444444-0000-4000-a000-000000000004',
+      request: {
+        transitions: [
+          { fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
+        ],
+      },
+    })
+  })
+
+  it('takes up conditions changed elsewhere when the workflow is refetched', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <WorkflowTransitionsEditor statusWorkflow={workflow()} canUpdate />,
+    )
+
+    // Act
+    // Same moves, new conditions: a set compared on moves alone would keep the stale copy.
+    rerender(
+      <WorkflowTransitionsEditor
+        statusWorkflow={workflow({
+          transitions: [
+            {
+              id: 't1',
+              fromStatusId: CONCEPT,
+              toStatusId: ACTIVE,
+              conditions: [TransitionConditionKind.RequiresReason],
+            },
+          ],
+        })}
+        canUpdate
+      />,
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Conditions on Concept to Active' }),
+    )
+
+    // Assert
+    expect(await screen.findByLabelText('Requires a reason')).toBeChecked()
+  })
+
+  it('lists a held condition that can no longer be added, so it can be removed', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const withApproval = workflow({
+      transitions: [
+        {
+          id: 't1',
+          fromStatusId: CONCEPT,
+          toStatusId: ACTIVE,
+          conditions: [TransitionConditionKind.RequiresPassedApproval],
+        },
+      ],
+    })
+    render(
+      <WorkflowTransitionsEditor statusWorkflow={withApproval} canUpdate />,
+    )
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Conditions on Concept to Active' }),
+    )
+
+    // Assert
+    const approval = await screen.findByLabelText('Requires a passed approval')
+    expect(approval).toBeChecked()
+    expect(approval).toBeEnabled()
+  })
+
+  it('shows only the moves with conditions once the grid is locked', () => {
+    // Arrange & Act
+    render(
+      <WorkflowTransitionsEditor
+        statusWorkflow={workflow({
+          state: 'Published',
+          canEdit: false,
+          transitions: [
+            {
+              id: 't1',
+              fromStatusId: CONCEPT,
+              toStatusId: ACTIVE,
+              conditions: [TransitionConditionKind.RequiresReason],
+            },
+            {
+              id: 't2',
+              fromStatusId: ACTIVE,
+              toStatusId: RETIRED,
+              conditions: [],
+            },
+          ],
+        })}
+        canUpdate
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'Conditions on Concept to Active' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Conditions on Active to Retired' }),
+    ).toBeNull()
   })
 
   it('switches the mode', async () => {

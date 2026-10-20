@@ -36,24 +36,29 @@ public static class ProductWorkflowOwners
     /// onto this key by migration, since the history belongs to the record that made it — leaving them
     /// behind would have attributed a version's cut-and-ship history to an announcement that never
     /// happened.
+    /// <para>
+    /// <c>Ready</c> is required because cutting a version, reverting a cut version's release and
+    /// importing versions all resolve it, so a published workflow without it would fail each of those
+    /// at runtime. Requiring it here moves that failure to publish time.
+    /// </para>
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor Version = new(
         "delivery.version",
         "Version",
         Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
-        [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn]);
+        [(int)ProductStatusAlias.Ready, (int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn]);
 
     /// <summary>What was announced to customers, gathering the versions and packages that carried it.</summary>
     /// <remarks>
     /// Shares the version lifecycle vocabulary but not its meaning: a release is announced and
-    /// retracted where a version is cut and pulled. <c>Ready</c> is required for the same reason it is
-    /// on a version — the workflow's non-terminal resting state — even though nothing cuts a release.
+    /// retracted where a version is cut and pulled. Nothing cuts a release, but reverting one returns
+    /// it to <c>Ready</c>, so <c>Ready</c> is required for the same reason it is on a version.
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor Release = new(
         "delivery.release",
         "Release",
         Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
-        [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn]);
+        [(int)ProductStatusAlias.Ready, (int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn]);
 
     /// <summary>A coordinated shipment of several component releases.</summary>
     public static readonly WorkflowOwnerDescriptor ReleasePackage = new(

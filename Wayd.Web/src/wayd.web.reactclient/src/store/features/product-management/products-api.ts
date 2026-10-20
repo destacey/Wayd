@@ -106,19 +106,29 @@ export const productsApi = apiSlice.injectEndpoints({
      * The statuses a product can be moved to.
      *
      * Statuses are configurable, so a picker cannot hold a fixed list — and the
-     * API refuses a status belonging to another workflow.
+     * API refuses a status belonging to another workflow. Given a product's id,
+     * only the moves its workflow allows from its current status; tagged with
+     * that id, so changing the product's status refreshes them.
      */
-    getProductStatusOptions: builder.query<StatusNavigationDto[], void>({
-      queryFn: async () => {
+    getProductStatusOptions: builder.query<
+      StatusNavigationDto[],
+      string | void
+    >({
+      queryFn: async (productId) => {
         try {
-          const data = await getProductsClient().getStatusOptions()
+          const data = await getProductsClient().getStatusOptions(
+            productId || undefined,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
         }
       },
-      providesTags: () => [{ type: QueryTags.Product, id: 'STATUS_OPTIONS' }],
+      providesTags: (result, error, productId) => [
+        { type: QueryTags.Product, id: 'STATUS_OPTIONS' },
+        ...(productId ? [{ type: QueryTags.Product, id: productId }] : []),
+      ],
     }),
     /**
      * A product's status history, newest first.

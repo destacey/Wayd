@@ -11,7 +11,7 @@ const product = {
   tags: [],
 } as unknown as ProductDto
 
-const statusOptions = [
+let statusOptions = [
   { id: 'status-concept', name: 'Concept', category: 1, alias: 0 },
   { id: 'status-active', name: 'Active', category: 2, alias: 1 },
   { id: 'status-retired', name: 'Retired', category: 3, alias: 3 },
@@ -41,12 +41,14 @@ jest.mock('@/src/hooks', () => {
   }
 })
 
+const getProductStatusOptions = jest.fn()
+
 jest.mock('@/src/store/features/product-management/products-api', () => ({
   useChangeProductStatusMutation: () => [jest.fn()],
-  useGetProductStatusOptionsQuery: () => ({
-    data: statusOptions,
-    isLoading: false,
-  }),
+  useGetProductStatusOptionsQuery: (productId: string) => {
+    getProductStatusOptions(productId)
+    return { data: statusOptions, isLoading: false }
+  },
 }))
 
 const renderForm = () =>
@@ -82,6 +84,32 @@ describe('ChangeProductStatusForm', () => {
 
     // Assert
     expect(screen.queryByTitle('Active')).not.toBeInTheDocument()
+  })
+
+  it('asks for the moves allowed from this product', () => {
+    // Arrange / Act
+    renderForm()
+
+    // Assert
+    expect(getProductStatusOptions).toHaveBeenCalledWith('product-1')
+  })
+
+  it('says so when the workflow allows no move from the current status', () => {
+    // Arrange
+    const options = statusOptions
+    statusOptions = []
+
+    try {
+      // Act
+      renderForm()
+
+      // Assert
+      expect(
+        screen.getByText('The workflow allows no move from Active.'),
+      ).toBeInTheDocument()
+    } finally {
+      statusOptions = options
+    }
   })
 
   it('names the current status so the change reads as a move', async () => {

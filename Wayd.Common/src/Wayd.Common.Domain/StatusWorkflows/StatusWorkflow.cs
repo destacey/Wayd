@@ -151,7 +151,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             targets = targets.Where(s => allowed.Contains(s.Id));
         }
 
-        return [.. targets.OrderBy(s => s.Order)];
+        return targets.OrderBy(s => s.Order).ToList();
     }
 
     /// <summary>
@@ -163,7 +163,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     {
         var status = _statuses.SingleOrDefault(s => s.Id == statusId);
 
-        return status is null ? null : StatusRef.From(status) with { AllowedFrom = AllowedFrom(statusId) };
+        // Built through the constructor rather than `with`: the history checks read an init setter's
+        // field write as this method changing the workflow's state.
+        return status is null
+            ? null
+            : new StatusRef(status.WorkflowId, status.Id, status.Name, status.Category, status.Alias, AllowedFrom(statusId));
     }
 
     /// <summary>

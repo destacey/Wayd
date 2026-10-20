@@ -26,13 +26,20 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// </remarks>
 public sealed record StatusRef
 {
-    public StatusRef(Guid workflowId, Guid statusId, string name, StatusCategory category, int alias = StatusWorkflow.NoAlias)
+    public StatusRef(
+        Guid workflowId,
+        Guid statusId,
+        string name,
+        StatusCategory category,
+        int alias = StatusWorkflow.NoAlias,
+        IReadOnlySet<Guid>? allowedFrom = null)
     {
         WorkflowId = Guard.Against.Default(workflowId, nameof(workflowId));
         StatusId = Guard.Against.Default(statusId, nameof(statusId));
         Name = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
         Category = category;
         Alias = alias;
+        AllowedFrom = allowedFrom;
     }
 
     /// <summary>

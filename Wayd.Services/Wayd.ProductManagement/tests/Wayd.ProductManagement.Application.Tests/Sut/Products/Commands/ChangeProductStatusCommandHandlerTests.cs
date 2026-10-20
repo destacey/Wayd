@@ -171,4 +171,66 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Product not found.");
     }
+
+    /// <summary>
+    /// A published restricted product lifecycle, Concept → Active → Sunset → Retired, served by the resolver
+    /// in place of the any-to-any one.
+    /// </summary>
+    private StatusWorkflow UseRestrictedWorkflow()
+    {
+        var at = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+        var workflow = StatusWorkflow.Create("Gated Lifecycle", null, ProductWorkflowOwners.Product.Key, EventActor.System, at).Value;
+        var concept = workflow.AddStatus("Concept", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, at).Value;
+        var active = workflow.AddStatus("Active", null, StatusCategory.Active, (int)ProductStatusAlias.Active, EventActor.System, at).Value;
+        var sunset = workflow.AddStatus("Sunset", null, StatusCategory.Active, (int)ProductStatusAlias.Sunset, EventActor.System, at).Value;
+        var retired = workflow.AddStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, at).Value;
+        workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, at);
+        workflow.SetTransitions([(concept.Id, active.Id), (active.Id, sunset.Id), (sunset.Id, retired.Id)], EventActor.System, at);
+        workflow.Publish(EventActor.System, at).IsSuccess.Should().BeTrue();
+
+        _statusResolver
+            .Setup(r => r.ForScope(ProductWorkflowOwners.Product.Key, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(workflow));
+
+        return workflow;
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMakeAMoveTheRestrictedWorkflowAllows()
+    {
+        // Arrange
+        var workflow = UseRestrictedWorkflow();
+        var product = SeedProduct(status: StatusRef.From(workflow.Statuses.Single(s => s.Name == "Concept")));
+        var active = workflow.Statuses.Single(s => s.Name == "Active");
+
+        // Act
+        var result = await CreateSut().Handle(
+            new ChangeProductStatusCommand(product.Id, active.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        product.StatusId.Should().Be(active.Id);
+        DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAMoveTheRestrictedWorkflowDoesNotAllow()
+    {
+        // Arrange
+        var workflow = UseRestrictedWorkflow();
+        var concept = workflow.Statuses.Single(s => s.Name == "Concept");
+        var product = SeedProduct(status: StatusRef.From(concept));
+
+        // Act
+        var result = await CreateSut().Handle(
+            new ChangeProductStatusCommand(product.Id, workflow.Statuses.Single(s => s.Name == "Retired").Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The workflow does not allow a move from 'Concept' to 'Retired'.");
+        product.StatusId.Should().Be(concept.Id);
+        product.DomainEvents.Should().BeEmpty();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
 }

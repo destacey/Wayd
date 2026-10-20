@@ -193,8 +193,13 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A package cannot be released with an empty manifest.");
         }
 
+        var applied = ApplyStatus(releasedStatus, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
         ReleasedAt = releasedAt;
-        ApplyStatus(releasedStatus, actor, timestamp);
 
         AddDomainEvent(new PackageReleasedEventV2(Id, Key, Version, releasedAt, _components.Count, StatusId, actor, timestamp));
 
@@ -261,7 +266,11 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("This package has already been withdrawn.");
         }
 
-        ApplyStatus(withdrawnStatus, actor, timestamp, reason);
+        var applied = ApplyStatus(withdrawnStatus, actor, timestamp, reason);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
 
         AddDomainEvent(new PackageWithdrawnEvent(Id, Key, Version, reason?.Trim(), StatusId, actor, timestamp));
 

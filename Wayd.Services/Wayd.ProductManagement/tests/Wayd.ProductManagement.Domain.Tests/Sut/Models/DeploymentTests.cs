@@ -192,6 +192,30 @@ public sealed class DeploymentTests
     #region Fail
 
     [Fact]
+    public void Fail_ShouldChangeNothing_WhenTheWorkflowRefusesTheMove()
+    {
+        // Arrange
+        var inProgress = StatusRefFactory.InProgress();
+        var deployment = Deployment.Create(
+            Guid.CreateVersion7(), null, Guid.CreateVersion7(), EnvironmentCategory.Production,
+            "4.8.2.008", _dateTimeProvider.Now, inProgress, EnvironmentName, EventActor.System, _dateTimeProvider.Now).Value;
+        var failed = StatusRefFactory.Failed() with { AllowedFrom = new HashSet<Guid>() };
+
+        // Act
+        var result = deployment.Fail(
+            _dateTimeProvider.Now.Plus(Duration.FromMinutes(10)), "Smoke tests failed.", failed, EnvironmentName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // The completion and reason are set to record the transition, so a refusal must put them back.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("does not allow a move");
+        deployment.CompletedAt.Should().BeNull();
+        deployment.Reason.Should().BeNull();
+        deployment.StatusId.Should().Be(inProgress.StatusId);
+        deployment.StatusTransitions.Should().ContainSingle();
+    }
+
+    [Fact]
     public void Fail_ShouldCompleteWithAReasonAndRaiseItsOwnEvent()
     {
         // Arrange

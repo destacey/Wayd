@@ -141,7 +141,11 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
             return guard;
         }
 
-        Apply(completedAt, succeededStatus, reason: null, actor, timestamp);
+        var applied = Apply(completedAt, succeededStatus, reason: null, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
 
         var statusId = succeededStatus.StatusId;
         if (Key == 0)
@@ -176,7 +180,11 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
             return guard;
         }
 
-        Apply(completedAt, failedStatus, reason, actor, timestamp);
+        var applied = Apply(completedAt, failedStatus, reason, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
 
         var statusId = failedStatus.StatusId;
         var failureReason = Reason;
@@ -230,7 +238,11 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("The rollback cannot be before the deployment completed.");
         }
 
-        Apply(rolledBackAt, rolledBackStatus, reason, actor, timestamp);
+        var applied = Apply(rolledBackAt, rolledBackStatus, reason, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
 
         var statusId = rolledBackStatus.StatusId;
         var rollbackReason = Reason;
@@ -282,11 +294,22 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
     /// must not erase the reason recorded when the deployment failed — the caller is declining to add
     /// one, not asking to clear it.
     /// </param>
-    private void Apply(Instant completedAt, StatusRef status, string? reason, EventActor actor, Instant timestamp)
+    private Result Apply(Instant completedAt, StatusRef status, string? reason, EventActor actor, Instant timestamp)
     {
+        var (previousCompletedAt, previousReason) = (CompletedAt, Reason);
+
         CompletedAt = completedAt;
         Reason = reason ?? Reason;
-        ApplyStatus(status, actor, timestamp, Reason);
+
+        // The transition records the normalised reason, so the fields are set first and put back if the
+        // workflow refuses the move.
+        var applied = ApplyStatus(status, actor, timestamp, Reason);
+        if (applied.IsFailure)
+        {
+            (CompletedAt, Reason) = (previousCompletedAt, previousReason);
+        }
+
+        return applied;
     }
 
     /// <summary>

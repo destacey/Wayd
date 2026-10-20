@@ -7,6 +7,7 @@ using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -153,6 +154,35 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         return replacement;
     }
 
+    /// <summary>
+    /// A published copy of the workflow in use, restricted to moving each status to the next in order — so
+    /// no status on the workflow being moved from is among those any move is allowed from.
+    /// </summary>
+    private static StatusWorkflow RestrictedReplacement(StatusWorkflow source)
+    {
+        var replacement = StatusWorkflow.Create(
+            $"Restricted Replacement {Guid.CreateVersion7()}", null, source.OwnerType, EventActor.System, Timestamp).Value;
+
+        var statuses = source.Statuses
+            .OrderBy(s => s.Order)
+            .Select(s => replacement.AddStatus(s.Name, s.Description, s.Category, s.Alias, EventActor.System, Timestamp).Value)
+            .ToList();
+
+        // Each status moves to the next; a Proposed or Active last status loops back so none is a dead end.
+        var moves = statuses.Zip(statuses.Skip(1), (from, to) => (from.Id, to.Id)).ToList();
+        if (statuses[^1].Category is StatusCategory.Proposed or StatusCategory.Active)
+        {
+            moves.Add((statuses[^1].Id, statuses[0].Id));
+        }
+
+        replacement.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Timestamp);
+        replacement.SetTransitions(moves, EventActor.System, Timestamp);
+        replacement.Publish(EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        replacement.ClearDomainEvents();
+
+        return replacement;
+    }
+
     private static Product SeedProduct(WaydDbContext context, StatusWorkflow workflow, Guid productTypeId, string name)
     {
         var product = Product.Create(
@@ -224,6 +254,61 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
             .FirstAsync(a => a.Id == assignment.Id, TestContext.Current.CancellationToken);
 
         reassigned.WorkflowId.Should().Be(replacement.Id);
+    }
+
+    [Fact]
+    public async Task Reassign_ShouldMoveEveryRecord_WhateverMovesTheTargetWorkflowAllows()
+    {
+        // A migration must never be blocked by the target workflow's transitions: no status on the old
+        // workflow is one the new one allows a move from, yet every record must come across.
+        // Arrange
+        await using var context = _fixture.CreateContext();
+        var (assignment, current) = await OrganizationAssignment(context);
+        var productType = await SeedProductType(context);
+
+        var restricted = RestrictedReplacement(current);
+        context.StatusWorkflows.Add(restricted);
+
+        var products = Enumerable.Range(0, 2)
+            .Select(i => SeedProduct(context, current, productType, $"Gated {i}"))
+            .ToList();
+
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sut = CreateSut(context);
+
+        try
+        {
+            // Act
+            var result = await sut.Handle(
+                new ReassignWorkflowCommand(assignment.Id, restricted.Id, []),
+                TestContext.Current.CancellationToken);
+
+            // Assert
+            result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+
+            await using var reader = _fixture.CreateContext();
+
+            var reloaded = await reader.Products
+                .Where(p => products.Select(x => x.Id).Contains(p.Id))
+                .ToListAsync(TestContext.Current.CancellationToken);
+
+            reloaded.Should().HaveCount(2).And.OnlyContain(p => p.StatusWorkflowId == restricted.Id);
+        }
+        finally
+        {
+            // Hand the organization-wide assignment on to an any-to-any workflow, so no later test in the
+            // collection finds products governed by restricted transitions.
+            await using var cleanup = _fixture.CreateContext();
+            var (_, now) = await OrganizationAssignment(cleanup);
+            var open = Replacement(now);
+            cleanup.StatusWorkflows.Add(open);
+            await cleanup.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            await CreateSut(cleanup).Handle(
+                new ReassignWorkflowCommand(assignment.Id, open.Id, []),
+                TestContext.Current.CancellationToken);
+        }
     }
 
     [Fact]

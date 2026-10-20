@@ -192,6 +192,26 @@ public sealed class VersionTests
         result.Error.Should().Be("A released or withdrawn version cannot be cut.");
     }
 
+    [Fact]
+    public void Cut_ShouldChangeNothing_WhenTheWorkflowRefusesTheMove()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var statusBefore = sut.StatusId;
+        var ready = StatusRefFactory.Ready() with { AllowedFrom = new HashSet<Guid>() };
+
+        // Act
+        var result = sut.Cut(Instant.FromUtc(2026, 9, 1, 14, 30), ready, ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // The status is applied before anything else, so a refusal leaves no half-cut version behind.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("does not allow a move");
+        sut.CutAt.Should().BeNull();
+        sut.StatusId.Should().Be(statusBefore);
+        sut.DomainEvents.Should().NotContain(e => e is VersionCutEventV2);
+    }
+
     #endregion Cut
 
     #region MarkReleased

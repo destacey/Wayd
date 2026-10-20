@@ -4,6 +4,7 @@ using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
+using Wayd.Common.Application.StatusWorkflows.Conditions;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
@@ -20,7 +21,8 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.StatusWorkflows;
 /// the resolver that needs them, removed with their status, and recorded in the activity log.
 /// </summary>
 /// <remarks>
-/// Each handler here loads transitions with <c>.Include(w =&gt; w.Transitions)</c>, a no-op against the
+/// Each handler here loads transitions with <c>.Include(w =&gt; w.Transitions)</c>, and their conditions
+/// with <c>.ThenInclude(t =&gt; t.Conditions)</c>, both no-ops against the
 /// in-memory fakes, so only a real round-trip shows the collection actually arrives. Every workflow is
 /// created here and none is assigned organization-wide, so the shared database's product assignment is
 /// left alone.
@@ -49,9 +51,10 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
     }
 
     /// <summary>
-    /// A saved draft product workflow restricted to Concept → Active → Sunset → Retired.
+    /// A saved draft product workflow restricted to Concept → Active → Sunset → Retired, with
+    /// <paramref name="retireConditions"/> on the move into Retired.
     /// </summary>
-    private static async Task<StatusWorkflow> SeedRestrictedWorkflow(WaydDbContext context)
+    private static async Task<StatusWorkflow> SeedRestrictedWorkflow(WaydDbContext context, params TransitionConditionKind[] retireConditions)
     {
         ProductWorkflowOwners.Register();
 
@@ -61,7 +64,8 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
         var sunset = workflow.AddStatus("Sunset", null, StatusCategory.Active, (int)ProductStatusAlias.Sunset, EventActor.System, Now).Value;
         var retired = workflow.AddStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, Now).Value;
         workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Now);
-        workflow.SetTransitions([(concept.Id, active.Id), (active.Id, sunset.Id), (sunset.Id, retired.Id)], EventActor.System, Now);
+        workflow.SetTransitions(
+            [new(concept.Id, active.Id), new(active.Id, sunset.Id), new(sunset.Id, retired.Id, retireConditions)], EventActor.System, Now);
 
         context.StatusWorkflows.Add(workflow);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -84,7 +88,161 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
             .AsNoTracking()
             .Include(w => w.Statuses)
             .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
+            .AsSplitQuery()
             .SingleAsync(w => w.Id == workflowId, TestContext.Current.CancellationToken);
+    }
+
+    private static TransitionConditionKind[] RetireConditions(StatusWorkflow workflow) =>
+        [.. workflow.Transitions.Single(t => t.ToStatusId == StatusId(workflow, "Retired")).ConditionKinds()];
+
+    private async Task<int> StoredConditionCount(Guid workflowId)
+    {
+        await using var reader = _fixture.CreateContext();
+
+        return await reader.Set<TransitionCondition>()
+            .CountAsync(c => reader.Set<WorkflowTransition>().Any(t => t.Id == c.TransitionId && t.WorkflowId == workflowId),
+                TestContext.Current.CancellationToken);
+    }
+
+    private SetWorkflowTransitionsCommandHandler SetTransitionsHandler(WaydDbContext context) =>
+        new(context, new TransitionConditionChecker([]), CurrentUser(), DateTimeProvider(), NullLogger<SetWorkflowTransitionsCommandHandler>.Instance);
+
+    [Fact]
+    public async Task SaveChanges_ShouldPersistATransitionsConditions()
+    {
+        // Arrange
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var workflow = await SeedRestrictedWorkflow(context, TransitionConditionKind.RequiresReason);
+
+        // Assert
+        var reloaded = await Reload(workflow.Id);
+        RetireConditions(reloaded).Should().Equal(TransitionConditionKind.RequiresReason);
+        reloaded.Transitions.Where(t => t.ToStatusId != StatusId(reloaded, "Retired")).Should().OnlyContain(t => t.Conditions.Count == 0);
+    }
+
+    [Fact]
+    public async Task SetTransitions_ShouldAddAndRemoveConditionsOnKeptRows()
+    {
+        // Arrange
+        StatusWorkflow workflow;
+        await using (var setup = _fixture.CreateContext())
+        {
+            workflow = await SeedRestrictedWorkflow(setup);
+        }
+
+        var (concept, active, sunset, retired) =
+            (StatusId(workflow, "Concept"), StatusId(workflow, "Active"), StatusId(workflow, "Sunset"), StatusId(workflow, "Retired"));
+
+        // Act
+        await using (var adding = _fixture.CreateContext())
+        {
+            var added = await SetTransitionsHandler(adding).Handle(
+                new SetWorkflowTransitionsCommand(workflow.Id,
+                    [new(concept, active), new(active, sunset), new(sunset, retired, [TransitionConditionKind.RequiresReason])]),
+                TestContext.Current.CancellationToken);
+            added.IsSuccess.Should().BeTrue(added.IsFailure ? added.Error : null);
+        }
+
+        var withCondition = await Reload(workflow.Id);
+
+        await using (var removing = _fixture.CreateContext())
+        {
+            var removed = await SetTransitionsHandler(removing).Handle(
+                new SetWorkflowTransitionsCommand(workflow.Id, [new(concept, active), new(active, sunset), new(sunset, retired)]),
+                TestContext.Current.CancellationToken);
+            removed.IsSuccess.Should().BeTrue(removed.IsFailure ? removed.Error : null);
+        }
+
+        // Assert
+        RetireConditions(withCondition).Should().Equal(TransitionConditionKind.RequiresReason);
+        RetireConditions(await Reload(workflow.Id)).Should().BeEmpty();
+        (await StoredConditionCount(workflow.Id)).Should().Be(0, "a removed condition's row is deleted, not orphaned");
+    }
+
+    [Fact]
+    public async Task SetTransitions_ShouldKeepAStoredCondition_WhenAnotherMoveChanges()
+    {
+        // Arrange
+        StatusWorkflow workflow;
+        await using (var setup = _fixture.CreateContext())
+        {
+            workflow = await SeedRestrictedWorkflow(setup, TransitionConditionKind.RequiresReason);
+        }
+
+        var keptCondition = workflow.Transitions.Single(t => t.ToStatusId == StatusId(workflow, "Retired")).Conditions.Single();
+        var (concept, active, sunset, retired) =
+            (StatusId(workflow, "Concept"), StatusId(workflow, "Active"), StatusId(workflow, "Sunset"), StatusId(workflow, "Retired"));
+
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await SetTransitionsHandler(context).Handle(
+            new SetWorkflowTransitionsCommand(workflow.Id,
+            [
+                new(concept, active), new(active, sunset), new(active, retired),
+                new(sunset, retired, [TransitionConditionKind.RequiresReason]),
+            ]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        // With the conditions not loaded, the kept one reads as new and its second row breaks the
+        // one-of-each-kind index.
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+
+        var reloaded = await Reload(workflow.Id);
+        reloaded.Transitions.Single(t => t.FromStatusId == sunset && t.ToStatusId == retired)
+            .Conditions.Should().ContainSingle().Which.Id.Should().Be(keptCondition.Id);
+        (await StoredConditionCount(workflow.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RemoveStatus_ShouldDeleteTheConditionsOfTheTransitionsItRemoves()
+    {
+        // Arrange
+        Guid workflowId;
+        Guid retiredId;
+        await using (var setup = _fixture.CreateContext())
+        {
+            var seeded = await SeedRestrictedWorkflow(setup, TransitionConditionKind.RequiresReason);
+            (workflowId, retiredId) = (seeded.Id, StatusId(seeded, "Retired"));
+        }
+
+        await using var context = _fixture.CreateContext();
+        var sut = new RemoveWorkflowStatusCommandHandler(
+            context, CurrentUser(), DateTimeProvider(), NullLogger<RemoveWorkflowStatusCommandHandler>.Instance);
+
+        // Act
+        var result = await sut.Handle(new RemoveWorkflowStatusCommand(workflowId, retiredId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        (await StoredConditionCount(workflowId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Clone_ShouldCopyTheConditionsOntoTheClone()
+    {
+        // Arrange
+        Guid sourceId;
+        await using (var setup = _fixture.CreateContext())
+        {
+            sourceId = (await SeedRestrictedWorkflow(setup, TransitionConditionKind.RequiresReason)).Id;
+        }
+
+        await using var context = _fixture.CreateContext();
+        var sut = new CloneStatusWorkflowCommandHandler(
+            context, CurrentUser(), DateTimeProvider(), NullLogger<CloneStatusWorkflowCommandHandler>.Instance);
+
+        // Act
+        var result = await sut.Handle(
+            new CloneStatusWorkflowCommand(sourceId, $"Gated Lifecycle Copy {Guid.CreateVersion7()}", null), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        RetireConditions(await Reload(result.Value)).Should().Equal(TransitionConditionKind.RequiresReason);
     }
 
     [Fact]
@@ -136,8 +294,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
 
         await using var context = _fixture.CreateContext();
 
-        var sut = new SetWorkflowTransitionsCommandHandler(
-            context, CurrentUser(), DateTimeProvider(), NullLogger<SetWorkflowTransitionsCommandHandler>.Instance);
+        var sut = SetTransitionsHandler(context);
 
         // Act
         var result = await sut.Handle(
@@ -235,6 +392,47 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
     }
 
     [Fact]
+    public async Task Resolver_ShouldCarryTheStoredConditionsOnTheStatusItResolves()
+    {
+        // Arrange
+        // A scoped assignment, as below, so the organization-wide one is left alone.
+        var scopeId = Guid.CreateVersion7();
+        StatusWorkflow workflow;
+        WorkflowAssignment assignment;
+        await using (var setup = _fixture.CreateContext())
+        {
+            workflow = await SeedRestrictedWorkflow(setup, TransitionConditionKind.RequiresReason);
+            workflow.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
+
+            assignment = WorkflowAssignment.Create(ProductWorkflowOwners.Product.Key, scopeId, workflow, EventActor.System, Now).Value;
+            setup.WorkflowAssignments.Add(assignment);
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        try
+        {
+            await using var context = _fixture.CreateContext();
+            var sut = new StatusResolver(context);
+
+            // Act
+            var result = await sut.ForAlias(
+                ProductWorkflowOwners.Product.Key, scopeId, (int)ProductStatusAlias.Retired, TestContext.Current.CancellationToken);
+
+            // Assert
+            // Without the conditions loaded the move would carry none, and a reason would never be asked for.
+            result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+            result.Value.ConditionsFor(StatusId(workflow, "Sunset")).Should().BeEquivalentTo([TransitionConditionKind.RequiresReason]);
+        }
+        finally
+        {
+            await using var cleanup = _fixture.CreateContext();
+            await cleanup.WorkflowAssignments
+                .Where(a => a.Id == assignment.Id)
+                .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task Resolver_ShouldCarryTheStoredTransitionsOnTheStatusItResolves()
     {
         // Arrange
@@ -266,6 +464,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
             result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
             result.Value.StatusId.Should().Be(StatusId(workflow, "Retired"));
             result.Value.AllowedFrom.Should().BeEquivalentTo([StatusId(workflow, "Sunset")]);
+            result.Value.ConditionsFrom.Should().BeEmpty();
         }
         finally
         {

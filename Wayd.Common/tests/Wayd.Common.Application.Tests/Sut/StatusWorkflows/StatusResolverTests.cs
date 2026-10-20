@@ -21,7 +21,7 @@ public sealed class StatusResolverTests : StatusWorkflowHandlerTestBase
         if (restricted)
         {
             workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Now);
-            workflow.SetTransitions([(proposed, notable), (notable, terminal)], EventActor.System, Now);
+            workflow.SetTransitions([new(proposed, notable), new(notable, terminal)], EventActor.System, Now);
         }
 
         workflow.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();

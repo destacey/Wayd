@@ -6097,7 +6097,7 @@
           "Products"
         ],
         "summary": "Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.",
-        "description": "**Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.\n\nPass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.",
+        "description": "**Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.\n\nPass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Each move then lists its `conditions`: `RequiresReason` means Products_ChangeStatus must be given a `reason`. Without `productId`, every status in the workflow is returned, with no conditions.",
         "operationId": "Products_GetStatusOptions",
         "parameters": [
           {
@@ -6120,7 +6120,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/StatusNavigationDto"
+                    "$ref": "#/components/schemas/StatusOptionDto"
                   }
                 }
               }
@@ -6658,7 +6658,7 @@
           "Products"
         ],
         "summary": "Move a product to a different status.",
-        "description": "**Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.\n\nThe workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.",
+        "description": "**Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.\n\nThe workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves and what each needs. A move whose conditions include `RequiresReason` is refused without a `reason`, naming what is missing; ask the user for the reason rather than inventing one. The reason is recorded on the status history. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.",
         "operationId": "Products_ChangeStatus",
         "parameters": [
           {
@@ -42033,7 +42033,7 @@
         "tags": [
           "StatusWorkflows"
         ],
-        "summary": "Replace the moves a draft status workflow allows.",
+        "summary": "Replace the moves a draft status workflow allows, and the conditions on each.",
         "operationId": "StatusWorkflows_SetTransitions",
         "parameters": [
           {
@@ -44083,6 +44083,12 @@
             "type": "string",
             "description": "The target status. Must belong to the workflow assigned to products.",
             "format": "uuid"
+          },
+          "reason": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "Why the product is moving, recorded on its status history. Required when the move's conditions\ninclude `RequiresReason` (see the status options); optional otherwise. At most 1024 characters.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -60069,7 +60075,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A request to replace the moves a draft workflow allows."
+        "description": "A request to replace the moves a draft workflow allows, and the conditions on each."
       },
       "SimpleNavigationDto": {
         "required": [
@@ -61641,6 +61647,30 @@
         "additionalProperties": false,
         "description": "The status a record currently holds, as a reader needs it."
       },
+      "StatusOptionDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          {
+            "required": [
+              "conditions"
+            ],
+            "type": "object",
+            "properties": {
+              "conditions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TransitionConditionKind"
+                },
+                "description": "What moving the record to this status needs, in kind order — `RequiresReason` means the move\nmust carry a reason. Empty when it needs nothing, and always empty when the options were asked for\nwithout a record, since conditions belong to the move from the record's current status."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "A status a record can be moved to, with what the move needs."
+      },
       "StatusRemapDecisionRequest": {
         "required": [
           "fromStatusId",
@@ -61844,6 +61874,7 @@
           "statuses",
           "transitionMode",
           "transitions",
+          "availableConditions",
           "supportsRestrictedTransitions",
           "transitionIssues",
           "missingRequiredAliases",
@@ -61900,6 +61931,13 @@
               "$ref": "#/components/schemas/WorkflowTransitionDto"
             },
             "description": "The moves this workflow allows, ordered by their from and then their to status's position.\nEnforced only when TransitionMode StatusWorkflowDetailsDto.TransitionMode is restricted."
+          },
+          "availableConditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransitionConditionKind"
+            },
+            "description": "The conditions a transition may carry: those a record checks itself, and those something is in\nplace to evaluate. Attaching any other is refused."
           },
           "supportsRestrictedTransitions": {
             "type": "boolean",
@@ -65675,6 +65713,13 @@
           }
         },
         "additionalProperties": false
+      },
+      "TransitionConditionKind": {
+        "enum": [
+          "RequiresReason",
+          "RequiresPassedApproval"
+        ],
+        "type": "string"
       },
       "TransitionMode": {
         "enum": [
@@ -69786,7 +69831,8 @@
         "required": [
           "id",
           "fromStatusId",
-          "toStatusId"
+          "toStatusId",
+          "conditions"
         ],
         "type": "object",
         "properties": {
@@ -69804,6 +69850,13 @@
             "type": "string",
             "description": "The status a record moves into.",
             "format": "uuid"
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransitionConditionKind"
+            },
+            "description": "What a record needs before making this move, in kind order. Empty when it needs nothing."
           }
         },
         "additionalProperties": false,
@@ -69825,6 +69878,14 @@
             "type": "string",
             "description": "The status a record moves into.",
             "format": "uuid"
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransitionConditionKind"
+            },
+            "description": "What a record needs before making the move, at most one of each kind. A move listed with none,\nor without this field, loses any it had. Only the workflow's available conditions can be added.",
+            "nullable": true
           }
         },
         "additionalProperties": false,

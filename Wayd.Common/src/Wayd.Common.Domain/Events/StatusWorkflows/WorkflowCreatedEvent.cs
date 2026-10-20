@@ -29,7 +29,7 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
         WorkflowTransitionValues[]? transitions,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.1")
+        : base(actor, "1.2")
     {
         Id = id;
         Key = key;
@@ -67,7 +67,10 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
     /// </summary>
     public TransitionMode TransitionMode { get; }
 
-    /// <summary>The moves it was created allowing. Added in 1.1; empty in earlier payloads.</summary>
+    /// <summary>
+    /// The moves it was created allowing. Added in 1.1; empty in earlier payloads. Each carries its
+    /// conditions from 1.2; earlier payloads read as none.
+    /// </summary>
     public WorkflowTransitionValues[] Transitions { get; }
 
     [JsonIgnore]

@@ -12,7 +12,7 @@ import {
   ObjectIdAndKey,
   ProductDto,
   ReparentProductRequest,
-  StatusNavigationDto,
+  StatusOptionDto,
   StatusTransitionDto,
   LinkProductExternallyRequest,
   RetypeProductRequest,
@@ -110,10 +110,7 @@ export const productsApi = apiSlice.injectEndpoints({
      * only the moves its workflow allows from its current status; tagged with
      * that id, so changing the product's status refreshes them.
      */
-    getProductStatusOptions: builder.query<
-      StatusNavigationDto[],
-      string | void
-    >({
+    getProductStatusOptions: builder.query<StatusOptionDto[], string | void>({
       queryFn: async (productId) => {
         try {
           const data = await getProductsClient().getStatusOptions(

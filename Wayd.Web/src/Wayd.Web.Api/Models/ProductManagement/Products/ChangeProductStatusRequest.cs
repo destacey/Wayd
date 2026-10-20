@@ -21,7 +21,13 @@ public sealed record ChangeProductStatusRequest
     /// </summary>
     public Guid StatusId { get; set; }
 
-    public ChangeProductStatusCommand ToChangeProductStatusCommand() => new(Id, StatusId);
+    /// <summary>
+    /// Why the product is moving, recorded on its status history. Required when the move's conditions
+    /// include <c>RequiresReason</c> (see the status options); optional otherwise. At most 1024 characters.
+    /// </summary>
+    public string? Reason { get; set; }
+
+    public ChangeProductStatusCommand ToChangeProductStatusCommand() => new(Id, StatusId, Reason);
 }
 
 public sealed class ChangeProductStatusRequestValidator : CustomValidator<ChangeProductStatusRequest>
@@ -33,5 +39,8 @@ public sealed class ChangeProductStatusRequestValidator : CustomValidator<Change
 
         RuleFor(p => p.StatusId)
             .NotEmpty();
+
+        RuleFor(p => p.Reason)
+            .MaximumLength(1024);
     }
 }

@@ -15229,13 +15229,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.
         /// <br/>
-        /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.
+        /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Each move then lists its `conditions`: `RequiresReason` means Products_ChangeStatus must be given a `reason`. Without `productId`, every status in the workflow is returned, with no conditions.
         /// </remarks>
         /// <param name="productId">A product whose allowed moves to return, excluding its current status. Omit for every status in
         /// <br/>the workflow.</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusOptionDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -15329,7 +15329,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.
         /// <br/>
-        /// <br/>The workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
+        /// <br/>The workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves and what each needs. A move whose conditions include `RequiresReason` is refused without a `reason`, naming what is missing; ask the user for the reason rather than inventing one. The reason is recorded on the status history. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -16014,13 +16014,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.
         /// <br/>
-        /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.
+        /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Each move then lists its `conditions`: `RequiresReason` means Products_ChangeStatus must be given a `reason`. Without `productId`, every status in the workflow is returned, with no conditions.
         /// </remarks>
         /// <param name="productId">A product whose allowed moves to return, excluding its current status. Omit for every status in
         /// <br/>the workflow.</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusOptionDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -16067,7 +16067,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<StatusNavigationDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<StatusOptionDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -16879,7 +16879,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.
         /// <br/>
-        /// <br/>The workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
+        /// <br/>The workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves and what each needs. A move whose conditions include `RequiresReason` is refused without a `reason`, naming what is missing; ask the user for the reason rather than inventing one. The reason is recorded on the status history. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -86348,7 +86348,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Replace the moves a draft status workflow allows.
+        /// Replace the moves a draft status workflow allows, and the conditions on each.
         /// </summary>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -87837,7 +87837,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Replace the moves a draft status workflow allows.
+        /// Replace the moves a draft status workflow allows, and the conditions on each.
         /// </summary>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -90659,6 +90659,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("statusId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid StatusId { get; set; } = default!;
+
+        /// <summary>
+        /// Why the product is moving, recorded on its status history. Required when the move's conditions
+        /// <br/>include `RequiresReason` (see the status options); optional otherwise. At most 1024 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Reason { get; set; } = default!;
 
     }
 
@@ -105521,7 +105529,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A request to replace the moves a draft workflow allows.
+    /// A request to replace the moves a draft workflow allows, and the conditions on each.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetWorkflowTransitionsRequest
@@ -107104,6 +107112,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A status a record can be moved to, with what the move needs.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class StatusOptionDto : StatusNavigationDto
+    {
+
+        /// <summary>
+        /// What moving the record to this status needs, in kind order — `RequiresReason` means the move
+        /// <br/>must carry a reason. Empty when it needs nothing, and always empty when the options were asked for
+        /// <br/>without a record, since conditions belong to the move from the record's current status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("conditions")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TransitionConditionKind> Conditions { get; set; } = new System.Collections.ObjectModel.Collection<TransitionConditionKind>();
+
+    }
+
+    /// <summary>
     /// One operator decision: send this source status's records to that target status.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -107329,6 +107356,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("transitions")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowTransitionDto> Transitions { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowTransitionDto>();
+
+        /// <summary>
+        /// The conditions a transition may carry: those a record checks itself, and those something is in
+        /// <br/>place to evaluate. Attaching any other is refused.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("availableConditions")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TransitionConditionKind> AvailableConditions { get; set; } = new System.Collections.ObjectModel.Collection<TransitionConditionKind>();
 
         /// <summary>
         /// Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
@@ -110935,6 +110971,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("mustChangePassword")]
         public bool MustChangePassword { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TransitionConditionKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"RequiresReason")]
+        RequiresReason = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"RequiresPassedApproval")]
+        RequiresPassedApproval = 1,
 
     }
 
@@ -114648,6 +114696,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ToStatusId { get; set; } = default!;
 
+        /// <summary>
+        /// What a record needs before making this move, in kind order. Empty when it needs nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("conditions")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TransitionConditionKind> Conditions { get; set; } = new System.Collections.ObjectModel.Collection<TransitionConditionKind>();
+
     }
 
     /// <summary>
@@ -114670,6 +114726,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("toStatusId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ToStatusId { get; set; } = default!;
+
+        /// <summary>
+        /// What a record needs before making the move, at most one of each kind. A move listed with none,
+        /// <br/>or without this field, loses any it had. Only the workflow's available conditions can be added.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("conditions")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        public System.Collections.Generic.ICollection<TransitionConditionKind>? Conditions { get; set; } = default!;
 
     }
 

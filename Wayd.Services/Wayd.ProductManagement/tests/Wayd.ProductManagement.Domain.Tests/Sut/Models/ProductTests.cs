@@ -629,6 +629,146 @@ public sealed class ProductTests
         sut.DomainEvents.Should().BeEmpty();
     }
 
+    // A product in Sunset under a restricted workflow whose Sunset → Retired move carries
+    // retireConditions, and the Retired reference its TargetRef would hand out.
+    private static (Product Product, StatusRef Retired) ProductInSunsetWithRetireConditions(
+        Instant now, params TransitionConditionKind[] retireConditions)
+    {
+        var workflowId = Guid.CreateVersion7();
+        var sunset = StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Sunset, workflowId);
+        var retired = new StatusRef(
+            workflowId, Guid.CreateVersion7(), "Retired", StatusCategory.Done, (int)ProductStatusAlias.Retired,
+            allowedFrom: new HashSet<Guid> { sunset.StatusId },
+            conditionsFrom: new Dictionary<Guid, IReadOnlySet<TransitionConditionKind>> { [sunset.StatusId] = retireConditions.ToHashSet() });
+
+        var product = Product.Create("Checkout", null, Guid.CreateVersion7(), null, null, sunset, EventActor.System, now);
+        product.ClearDomainEvents();
+
+        return (product, retired);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ChangeStatus_ShouldRefuseAMoveThatNeedsAReason_WithoutOne(string? reason)
+    {
+        // Arrange
+        var (sut, retired) = ProductInSunsetWithRetireConditions(_dateTimeProvider.Now, TransitionConditionKind.RequiresReason);
+        var sunset = sut.StatusId;
+
+        // Act
+        var result = sut.ChangeStatus(retired, EventActor.System, _dateTimeProvider.Now, reason);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Moving from 'Sunset' to 'Retired' needs a reason.");
+        sut.StatusId.Should().Be(sunset);
+        sut.StatusCategory.Should().Be(StatusCategory.Active);
+        sut.StatusTransitions.Should().ContainSingle("only the initial status was recorded");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldMove_WhenAMoveThatNeedsAReasonHasOne_RecordingIt()
+    {
+        // Arrange
+        var (sut, retired) = ProductInSunsetWithRetireConditions(_dateTimeProvider.Now, TransitionConditionKind.RequiresReason);
+
+        // Act
+        var result = sut.ChangeStatus(retired, EventActor.System, _dateTimeProvider.Now, " Replaced by the new checkout. ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.StatusId.Should().Be(retired.StatusId);
+        sut.StatusTransitions.Last().Reason.Should().Be("Replaced by the new checkout.");
+        sut.DomainEvents.Should().ContainSingle(e => e is ProductLifecycleChangedEventV2);
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldRefuseAMoveNeedingAConditionNothingEvaluated()
+    {
+        // Arrange
+        var (sut, retired) = ProductInSunsetWithRetireConditions(_dateTimeProvider.Now, TransitionConditionKind.RequiresPassedApproval);
+
+        // Act
+        var result = sut.ChangeStatus(retired, EventActor.System, _dateTimeProvider.Now, "Approved in the review.");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Moving from 'Sunset' to 'Retired' needs a passed approval.");
+        sut.StatusTransitions.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldMove_WhenAConditionItCannotCheckWasEvaluatedAsMet()
+    {
+        // Arrange
+        var (sut, retired) = ProductInSunsetWithRetireConditions(_dateTimeProvider.Now, TransitionConditionKind.RequiresPassedApproval);
+
+        // Act
+        var result = sut.ChangeStatus(
+            retired.WithMetConditions([TransitionConditionKind.RequiresPassedApproval]), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.StatusId.Should().Be(retired.StatusId);
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldCheckAReasonItself_WhateverTheReferenceReportsMet()
+    {
+        // Arrange
+        var (sut, retired) = ProductInSunsetWithRetireConditions(_dateTimeProvider.Now, TransitionConditionKind.RequiresReason);
+
+        // Act
+        var result = sut.ChangeStatus(
+            retired.WithMetConditions([TransitionConditionKind.RequiresReason]), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Moving from 'Sunset' to 'Retired' needs a reason.");
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldNameEveryUnmetCondition()
+    {
+        // Arrange
+        var (sut, retired) = ProductInSunsetWithRetireConditions(
+            _dateTimeProvider.Now, TransitionConditionKind.RequiresPassedApproval, TransitionConditionKind.RequiresReason);
+
+        // Act
+        var result = sut.ChangeStatus(retired, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Moving from 'Sunset' to 'Retired' needs a reason and a passed approval.");
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldIgnoreConditionsOnAMoveFromAnotherStatus()
+    {
+        // Arrange
+        var workflowId = Guid.CreateVersion7();
+        var active = StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Active, workflowId);
+        var sunset = StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Sunset, workflowId);
+        var retired = new StatusRef(
+            workflowId, Guid.CreateVersion7(), "Retired", StatusCategory.Done, (int)ProductStatusAlias.Retired,
+            allowedFrom: new HashSet<Guid> { active.StatusId, sunset.StatusId },
+            conditionsFrom: new Dictionary<Guid, IReadOnlySet<TransitionConditionKind>>
+            {
+                [active.StatusId] = new HashSet<TransitionConditionKind> { TransitionConditionKind.RequiresReason },
+            });
+        var sut = Product.Create("Checkout", null, Guid.CreateVersion7(), null, null, sunset, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.ChangeStatus(retired, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.StatusId.Should().Be(retired.StatusId);
+    }
+
     [Fact]
     public void Create_ShouldEnterItsInitialStatus_WhateverMovesTheWorkflowAllowsIntoIt()
     {

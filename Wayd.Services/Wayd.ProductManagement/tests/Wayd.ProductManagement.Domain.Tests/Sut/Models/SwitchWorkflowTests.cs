@@ -199,7 +199,7 @@ public sealed class SwitchWorkflowTests
         var active = gated.Statuses.Single(s => s.Name == "Active").Id;
         var retired = gated.Statuses.Single(s => s.Name == "Retired").Id;
         gated.SetTransitionMode(TransitionMode.Restricted, EventActor.System, at);
-        gated.SetTransitions([(concept, active), (active, retired)], EventActor.System, at);
+        gated.SetTransitions([new(concept, active), new(active, retired)], EventActor.System, at);
 
         var product = Product.Create(
             ProductName, null, Guid.CreateVersion7(), null, null,
@@ -214,6 +214,38 @@ public sealed class SwitchWorkflowTests
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         product.StatusId.Should().Be(active);
         product.StatusWorkflowId.Should().Be(gated.Id);
+    }
+
+    [Fact]
+    public void SwitchWorkflow_ShouldMoveTheRecord_WhateverConditionsTheTargetWorkflowsMovesCarry()
+    {
+        // A migration passes no reason, and must not be refused for that: every move into each target
+        // status here needs one, and the switch still goes through.
+        // Arrange
+        var at = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+        var old = ProductWorkflow("Old");
+        var gated = ProductWorkflow("Gated");
+        var concept = gated.Statuses.Single(s => s.Name == "Concept").Id;
+        var active = gated.Statuses.Single(s => s.Name == "Active").Id;
+        var retired = gated.Statuses.Single(s => s.Name == "Retired").Id;
+        TransitionConditionKind[] reason = [TransitionConditionKind.RequiresReason];
+        gated.SetTransitionMode(TransitionMode.Restricted, EventActor.System, at);
+        gated.SetTransitions(
+            [new(concept, active, reason), new(active, retired, reason), new(retired, concept, reason)], EventActor.System, at);
+
+        var product = Product.Create(
+            ProductName, null, Guid.CreateVersion7(), null, null,
+            StatusRef.From(old.Statuses.Single(s => s.Name == "Active")), EventActor.System, _dateTimeProvider.Now);
+        var remap = StatusRemap.AutoMap(old, gated).Value;
+        remap.For(product.StatusId)!.ConditionsFrom.Should().NotBeEmpty("the remap's target carries the gated workflow's conditions");
+
+        // Act
+        var result = product.SwitchWorkflow(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        product.StatusId.Should().Be(active);
+        product.StatusTransitions.Last().Reason.Should().BeNull();
     }
 
     #endregion Moving a record

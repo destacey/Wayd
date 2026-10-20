@@ -16,21 +16,22 @@ namespace Wayd.ProductManagement.Application.Products.Queries;
 /// </remarks>
 /// <param name="ProductId">
 /// A product whose allowed moves to return: the statuses its workflow lets it move to from its current
-/// status, excluding that status. Without it, every status in the workflow.
+/// status, excluding that status, each with what the move needs. Without it, every status in the
+/// workflow, with no conditions.
 /// </param>
 public sealed record GetProductStatusOptionsQuery(Guid? ProductId = null)
-    : IQuery<IReadOnlyCollection<StatusNavigationDto>?>;
+    : IQuery<IReadOnlyCollection<StatusOptionDto>?>;
 
 public sealed class GetProductStatusOptionsQueryHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver)
-    : IQueryHandler<GetProductStatusOptionsQuery, IReadOnlyCollection<StatusNavigationDto>?>
+    : IQueryHandler<GetProductStatusOptionsQuery, IReadOnlyCollection<StatusOptionDto>?>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
 
     /// <returns><c>null</c> when a product was named and does not exist.</returns>
-    public async Task<IReadOnlyCollection<StatusNavigationDto>?> Handle(
+    public async Task<IReadOnlyCollection<StatusOptionDto>?> Handle(
         GetProductStatusOptionsQuery query, CancellationToken cancellationToken)
     {
         Guid? currentStatusId = null;
@@ -64,12 +65,13 @@ public sealed class GetProductStatusOptionsQueryHandler(
 
         return
         [
-            .. statuses.Select(s => new StatusNavigationDto
+            .. statuses.Select(s => new StatusOptionDto
             {
                 Id = s.Id,
                 Name = s.Name,
                 Category = s.Category,
                 Alias = s.Alias,
+                Conditions = currentStatusId is { } from ? workflow.Value.ConditionsFor(from, s.Id) : [],
             }),
         ];
     }

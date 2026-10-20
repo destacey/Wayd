@@ -1422,6 +1422,41 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("StatusWorkflows", "StatusWorkflows");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.TransitionCondition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("TransitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransitionId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("TransitionConditions", "StatusWorkflows");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowAliasName", b =>
                 {
                     b.Property<string>("OwnerType")
@@ -7946,6 +7981,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.TransitionCondition", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.WorkflowTransition", null)
+                        .WithMany("Conditions")
+                        .HasForeignKey("TransitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowAssignment", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflow", null)
@@ -9731,6 +9775,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Statuses");
 
                     b.Navigation("Transitions");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowTransition", b =>
+                {
+                    b.Navigation("Conditions");
                 });
 
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRole", b =>

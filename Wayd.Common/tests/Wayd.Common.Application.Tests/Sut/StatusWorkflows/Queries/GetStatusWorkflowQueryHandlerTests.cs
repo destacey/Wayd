@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows.Conditions;
+using Wayd.Common.Application.Tests.Sut.StatusWorkflows.Conditions;
 using Wayd.Common.Application.StatusWorkflows.Queries;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -12,7 +14,8 @@ namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Queries;
 /// </summary>
 public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTestBase
 {
-    private GetStatusWorkflowQueryHandler CreateSut() => new(DbContext);
+    private GetStatusWorkflowQueryHandler CreateSut(params ITransitionConditionEvaluator[] evaluators) =>
+        new(DbContext, new TransitionConditionChecker(evaluators));
 
     private static Guid StatusId(StatusWorkflow workflow, string name) => workflow.Statuses.Single(s => s.Name == name).Id;
 
@@ -41,7 +44,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         var workflow = SeedWorkflow();
         var (proposed, notable, terminal) = (StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"), StatusId(workflow, "Terminal"));
         workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Now);
-        workflow.SetTransitions([(notable, terminal), (proposed, terminal), (proposed, notable)], EventActor.System, Now);
+        workflow.SetTransitions([new(notable, terminal), new(proposed, terminal), new(proposed, notable)], EventActor.System, Now);
 
         // Act
         var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
@@ -53,12 +56,46 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
     }
 
     [Fact]
+    public async Task Handle_ShouldCarryEachTransitionsConditions()
+    {
+        // Arrange
+        var workflow = SeedWorkflow();
+        var (proposed, notable, terminal) = (StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"), StatusId(workflow, "Terminal"));
+        workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Now);
+        workflow.SetTransitions(
+            [new(proposed, notable), new(notable, terminal, [TransitionConditionKind.RequiresReason])], EventActor.System, Now);
+
+        // Act
+        var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Transitions.Single(t => t.FromStatusId == notable).Conditions.Should().Equal(TransitionConditionKind.RequiresReason);
+        result.Transitions.Single(t => t.FromStatusId == proposed).Conditions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldOfferOnlyTheConditionsSomethingCanCheck()
+    {
+        // Arrange
+        var workflow = SeedWorkflow();
+        var approvals = new FakeConditionEvaluator(TransitionConditionKind.RequiresPassedApproval, isMet: true);
+
+        // Act
+        var without = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+        var with = await CreateSut(approvals).Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        without!.AvailableConditions.Should().Equal(TransitionConditionKind.RequiresReason);
+        with!.AvailableConditions.Should().Equal(TransitionConditionKind.RequiresReason, TransitionConditionKind.RequiresPassedApproval);
+    }
+
+    [Fact]
     public async Task Handle_ShouldNotOfferPublish_WhenTheTransitionsWouldStrandAStatus()
     {
         // Arrange
         var workflow = SeedWorkflow();
         workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, Now);
-        workflow.SetTransitions([(StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"))], EventActor.System, Now);
+        workflow.SetTransitions([new(StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"))], EventActor.System, Now);
 
         // Act
         var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);

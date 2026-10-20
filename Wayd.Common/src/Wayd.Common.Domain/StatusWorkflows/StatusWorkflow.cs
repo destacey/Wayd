@@ -155,19 +155,37 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// What a move from <paramref name="fromStatusId"/> to <paramref name="toStatusId"/> needs, in kind
+    /// order. Empty when the move has no conditions or the workflow does not enforce its transitions.
+    /// </summary>
+    public IReadOnlyList<TransitionConditionKind> ConditionsFor(Guid fromStatusId, Guid toStatusId) =>
+        EnforcesTransitions
+            ? _transitions.SingleOrDefault(t => t.FromStatusId == fromStatusId && t.ToStatusId == toStatusId)?.ConditionKinds() ?? []
+            : [];
+
+    /// <summary>
     /// Builds the reference a record is moved to, carrying the statuses this workflow allows the move
-    /// from so the record can enforce it without loading the workflow.
+    /// from, and what each of those moves needs, so the record can enforce both without loading the
+    /// workflow.
     /// </summary>
     /// <returns><c>null</c> when the status does not belong to this workflow.</returns>
     public StatusRef? TargetRef(Guid statusId)
     {
         var status = _statuses.SingleOrDefault(s => s.Id == statusId);
+        if (status is null)
+        {
+            return null;
+        }
+
+        var conditionsFrom = EnforcesTransitions
+            ? _transitions
+                .Where(t => t.ToStatusId == statusId && t.Conditions.Count > 0)
+                .ToDictionary(t => t.FromStatusId, t => (IReadOnlySet<TransitionConditionKind>)t.ConditionKinds().ToHashSet())
+            : null;
 
         // Built through the constructor rather than `with`: the history checks read an init setter's
         // field write as this method changing the workflow's state.
-        return status is null
-            ? null
-            : new StatusRef(status.WorkflowId, status.Id, status.Name, status.Category, status.Alias, AllowedFrom(statusId));
+        return new StatusRef(status.WorkflowId, status.Id, status.Name, status.Category, status.Alias, AllowedFrom(statusId), conditionsFrom);
     }
 
     /// <summary>
@@ -313,7 +331,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (orphaned.Count > 0)
         {
             _transitions.RemoveAll(orphaned.Contains);
-            RaiseTransitionsChanged([], orphaned, actor, timestamp);
+            RaiseTransitionsChanged([], orphaned, [], actor, timestamp);
         }
 
         return Result.Success();
@@ -499,13 +517,14 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Replaces the moves this workflow allows with exactly <paramref name="transitions"/>. Draft only.
+    /// Replaces the moves this workflow allows, and the conditions on each, with exactly
+    /// <paramref name="transitions"/>. Draft only.
     /// </summary>
     /// <remarks>
     /// A whole-set replacement rather than add and remove, because an editor holds the whole grid. A move
-    /// kept from before keeps its identity, so anything later attached to it survives the edit.
+    /// kept from before keeps its identity, and so do the conditions it keeps.
     /// </remarks>
-    public Result SetTransitions(IReadOnlyCollection<(Guid FromStatusId, Guid ToStatusId)> transitions, EventActor actor, Instant timestamp)
+    public Result SetTransitions(IReadOnlyCollection<WorkflowTransitionDefinition> transitions, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(transitions, nameof(transitions));
 
@@ -515,8 +534,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
-        foreach (var (fromStatusId, toStatusId) in transitions)
+        foreach (var transition in transitions)
         {
+            Guard.Against.Null(transition, nameof(transitions));
+            var (fromStatusId, toStatusId) = (transition.FromStatusId, transition.ToStatusId);
+
             if (_statuses.All(s => s.Id != fromStatusId) || _statuses.All(s => s.Id != toStatusId))
             {
                 return Result.Failure("Every transition must be between statuses in this workflow.");
@@ -526,21 +548,47 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             {
                 return Result.Failure($"'{StatusName(fromStatusId)}' cannot have a transition to itself.");
             }
+
+            var conditions = transition.Conditions ?? [];
+            if (conditions.Any(kind => !Enum.IsDefined(kind)))
+            {
+                return Result.Failure("Unknown transition condition.");
+            }
+
+            if (conditions.Distinct().Count() != conditions.Count)
+            {
+                return Result.Failure(
+                    $"The move from '{StatusName(fromStatusId)}' to '{StatusName(toStatusId)}' lists the same condition more than once.");
+            }
         }
 
-        var requested = transitions.ToHashSet();
-        if (requested.Count != transitions.Count)
+        if (transitions.Select(t => (t.FromStatusId, t.ToStatusId)).Distinct().Count() != transitions.Count)
         {
             return Result.Failure("The same transition is listed more than once.");
         }
 
-        var removed = _transitions.Where(t => !requested.Contains((t.FromStatusId, t.ToStatusId))).ToList();
+        var requested = transitions.ToDictionary(
+            t => (t.FromStatusId, t.ToStatusId),
+            t => (IReadOnlySet<TransitionConditionKind>)(t.Conditions ?? []).ToHashSet());
+
+        var removed = _transitions.Where(t => !requested.ContainsKey((t.FromStatusId, t.ToStatusId))).ToList();
         var added = requested
-            .Where(pair => !_transitions.Any(t => t.FromStatusId == pair.FromStatusId && t.ToStatusId == pair.ToStatusId))
-            .Select(pair => new WorkflowTransition(Id, pair.FromStatusId, pair.ToStatusId))
+            .Where(r => !_transitions.Any(t => t.FromStatusId == r.Key.FromStatusId && t.ToStatusId == r.Key.ToStatusId))
+            .Select(r => new WorkflowTransition(Id, r.Key.FromStatusId, r.Key.ToStatusId, r.Value.Order()))
             .ToList();
 
-        if (removed.Count == 0 && added.Count == 0)
+        var conditionsChanged = new List<WorkflowTransitionConditionsChange>();
+        foreach (var kept in _transitions.Where(t => !removed.Contains(t)))
+        {
+            var previous = ConditionValues(kept);
+            if (kept.SetConditions(requested[(kept.FromStatusId, kept.ToStatusId)]))
+            {
+                conditionsChanged.Add(new WorkflowTransitionConditionsChange(
+                    kept.Id, kept.FromStatusId, kept.ToStatusId, previous, ConditionValues(kept)));
+            }
+        }
+
+        if (removed.Count == 0 && added.Count == 0 && conditionsChanged.Count == 0)
         {
             return Result.Success();
         }
@@ -548,7 +596,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         _transitions.RemoveAll(removed.Contains);
         _transitions.AddRange(added);
 
-        RaiseTransitionsChanged(added, removed, actor, timestamp);
+        RaiseTransitionsChanged(added, removed, conditionsChanged, actor, timestamp);
 
         return Result.Success();
     }
@@ -651,7 +699,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         foreach (var transition in _transitions)
         {
             clone._transitions.Add(new WorkflowTransition(
-                clone.Id, cloneStatusIds[transition.FromStatusId], cloneStatusIds[transition.ToStatusId]));
+                clone.Id, cloneStatusIds[transition.FromStatusId], cloneStatusIds[transition.ToStatusId], transition.ConditionKinds()));
         }
 
         clone.RaiseCreated(Id, actor, timestamp);
@@ -730,18 +778,29 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     private void RaiseTransitionsChanged(
-        IReadOnlyCollection<WorkflowTransition> added, IReadOnlyCollection<WorkflowTransition> removed, EventActor actor, Instant timestamp)
+        IReadOnlyCollection<WorkflowTransition> added,
+        IReadOnlyCollection<WorkflowTransition> removed,
+        IReadOnlyCollection<WorkflowTransitionConditionsChange> conditionsChanged,
+        EventActor actor,
+        Instant timestamp)
     {
         var (addedValues, removedValues, transitions) = (TransitionValues(added), TransitionValues(removed), TransitionValues(_transitions));
+        WorkflowTransitionConditionsChange[] changedValues = [.. conditionsChanged.OrderBy(c => c.FromStatusId).ThenBy(c => c.ToStatusId)];
 
-        AddKeyedDomainEvent(() => new WorkflowTransitionsChangedEvent(Id, Key, addedValues, removedValues, transitions, actor, timestamp));
+        AddKeyedDomainEvent(() => new WorkflowTransitionsChangedEvent(
+            Id, Key, addedValues, removedValues, transitions, changedValues, actor, timestamp));
     }
 
     private static WorkflowTransitionValues[] TransitionValues(IEnumerable<WorkflowTransition> transitions) =>
         [.. transitions
             .OrderBy(t => t.FromStatusId)
             .ThenBy(t => t.ToStatusId)
-            .Select(t => new WorkflowTransitionValues(t.Id, t.FromStatusId, t.ToStatusId))];
+            .Select(t => new WorkflowTransitionValues(t.Id, t.FromStatusId, t.ToStatusId, ConditionValues(t)))];
+
+    private static WorkflowTransitionConditionValues[] ConditionValues(WorkflowTransition transition) =>
+        [.. transition.Conditions
+            .OrderBy(c => c.Kind)
+            .Select(c => new WorkflowTransitionConditionValues(c.Id, c.Kind))];
 
     /// <summary>
     /// Publishes a seeded workflow, bypassing the system read-only guard but not the publish checks.

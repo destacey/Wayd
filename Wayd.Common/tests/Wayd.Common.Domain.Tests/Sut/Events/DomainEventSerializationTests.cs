@@ -588,7 +588,8 @@ public sealed class DomainEventSerializationTests
                 new WorkflowStatusValues(doneId, "Done", "Finished.", StatusCategory.Done, 12, 2),
             ],
             TransitionMode.Restricted,
-            [new WorkflowTransitionValues(Guid.NewGuid(), proposedId, doneId)],
+            [new WorkflowTransitionValues(
+                Guid.NewGuid(), proposedId, doneId, [new WorkflowTransitionConditionValues(Guid.NewGuid(), TransitionConditionKind.RequiresReason)])],
             EventActor.System,
             Instant.FromUtc(2026, 3, 1, 12, 0, 0));
 
@@ -600,7 +601,40 @@ public sealed class DomainEventSerializationTests
         roundTripped.SourceWorkflowId.Should().Be(original.SourceWorkflowId);
         roundTripped.Description.Should().BeNull();
         roundTripped.TransitionMode.Should().Be(TransitionMode.Restricted);
-        roundTripped.Transitions.Should().Equal(original.Transitions);
+        roundTripped.Transitions.Should().BeEquivalentTo(original.Transitions);
+        roundTripped.Transitions.Single().Conditions.Should().ContainSingle()
+            .Which.Kind.Should().Be(TransitionConditionKind.RequiresReason);
+    }
+
+    [Fact]
+    public void WorkflowCreatedEvent_PayloadWrittenBeforeConditions_ReadsAsNoConditions()
+    {
+        // Arrange — the 1.1 shape: transitions without conditions
+        var payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 3,
+              "Name": "Widget Workflow",
+              "Description": null,
+              "OwnerType": "test.widget",
+              "IsSystem": false,
+              "SourceWorkflowId": null,
+              "Statuses": [],
+              "TransitionMode": 1,
+              "Transitions": [{ "TransitionId": "019f2a10-0000-7000-8000-000000000004", "FromStatusId": "019f2a10-0000-7000-8000-000000000005", "ToStatusId": "019f2a10-0000-7000-8000-000000000006" }],
+              "Timestamp": "2026-03-01T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 1, "UserId": null, "EmployeeId": null },
+              "EventVersion": "1.1"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<WorkflowCreatedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Transitions.Should().ContainSingle().Which.Conditions.Should().NotBeNull().And.BeEmpty();
     }
 
     [Fact]
@@ -638,19 +672,49 @@ public sealed class DomainEventSerializationTests
     public void WorkflowTransitionsChangedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange
-        var kept = new WorkflowTransitionValues(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var reason = new WorkflowTransitionConditionValues(Guid.NewGuid(), TransitionConditionKind.RequiresReason);
+        var kept = new WorkflowTransitionValues(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), [reason]);
         var added = new WorkflowTransitionValues(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
         var removed = new WorkflowTransitionValues(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var changed = new WorkflowTransitionConditionsChange(kept.TransitionId, kept.FromStatusId, kept.ToStatusId, [], [reason]);
         var original = new WorkflowTransitionsChangedEvent(
-            Guid.NewGuid(), 3, [added], [removed], [kept, added], EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+            Guid.NewGuid(), 3, [added], [removed], [kept, added], [changed], EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0));
 
         // Act
         var roundTripped = RoundTrip(original);
 
         // Assert
-        roundTripped.Added.Should().Equal(added);
-        roundTripped.Removed.Should().Equal(removed);
-        roundTripped.Transitions.Should().Equal(kept, added);
+        roundTripped.Should().BeEquivalentTo(original);
+        roundTripped.ConditionsChanged.Should().ContainSingle().Which.Conditions.Should().ContainSingle()
+            .Which.Kind.Should().Be(TransitionConditionKind.RequiresReason);
+    }
+
+    [Fact]
+    public void WorkflowTransitionsChangedEvent_PayloadWrittenBeforeConditions_ReadsAsNoConditions()
+    {
+        // Arrange — the 1.0 shape: no conditions on any transition, no condition changes
+        var payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 3,
+              "Added": [{ "TransitionId": "019f2a10-0000-7000-8000-000000000004", "FromStatusId": "019f2a10-0000-7000-8000-000000000005", "ToStatusId": "019f2a10-0000-7000-8000-000000000006" }],
+              "Removed": [],
+              "Transitions": [{ "TransitionId": "019f2a10-0000-7000-8000-000000000004", "FromStatusId": "019f2a10-0000-7000-8000-000000000005", "ToStatusId": "019f2a10-0000-7000-8000-000000000006" }],
+              "Timestamp": "2026-03-01T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 1, "UserId": null, "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<WorkflowTransitionsChangedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.ConditionsChanged.Should().NotBeNull().And.BeEmpty();
+        restored.Added.Should().ContainSingle().Which.Conditions.Should().NotBeNull().And.BeEmpty();
+        restored.Transitions.Should().ContainSingle().Which.Conditions.Should().NotBeNull().And.BeEmpty();
     }
 
     [Fact]

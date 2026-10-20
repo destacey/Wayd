@@ -38,7 +38,8 @@ public interface IStatusResolver : IScopedService
     /// </param>
     /// <param name="alias">The meaning to resolve, cast from the module's own alias enum.</param>
     /// <returns>
-    /// The status, carrying the moves the workflow allows into it (<see cref="StatusRef.AllowedFrom"/>).
+    /// The status, carrying the moves the workflow allows into it (<see cref="StatusRef.AllowedFrom"/>) and
+    /// what each needs (<see cref="StatusRef.ConditionsFrom"/>).
     /// A failure when the scope has no assignment, the workflow is missing, or no status carries that
     /// alias — all of which are misconfiguration a caller should surface rather than throw on.
     /// </returns>

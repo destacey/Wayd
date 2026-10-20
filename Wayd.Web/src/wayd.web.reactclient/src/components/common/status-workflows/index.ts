@@ -5,3 +5,7 @@ export type { WorkflowStatusTagProps } from './workflow-status-tag'
 export { default as StatusHistoryTag } from './status-history-tag'
 export type { StatusHistoryTagProps } from './status-history-tag'
 export { statusCategoryDescription } from './status-category'
+export {
+  transitionConditionLabels,
+  requiresReason,
+} from './transition-conditions'

@@ -2,6 +2,7 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Application.StatusWorkflows.Conditions;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -15,10 +16,11 @@ public sealed record GetStatusWorkflowQuery : IQuery<StatusWorkflowDetailsDto?>
     public Expression<Func<StatusWorkflow, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbContext)
+public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbContext, ITransitionConditionChecker conditionChecker)
     : IQueryHandler<GetStatusWorkflowQuery, StatusWorkflowDetailsDto?>
 {
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ITransitionConditionChecker _conditionChecker = conditionChecker;
 
     public async Task<StatusWorkflowDetailsDto?> Handle(
         GetStatusWorkflowQuery request, CancellationToken cancellationToken)
@@ -30,6 +32,7 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
             .AsNoTracking()
             .Include(w => w.Statuses)
             .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
             .AsSplitQuery()
             .FirstOrDefaultAsync(request.IdOrKeyFilter, cancellationToken);
 
@@ -98,8 +101,10 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
                         Id = t.Id,
                         FromStatusId = t.FromStatusId,
                         ToStatusId = t.ToStatusId,
+                        Conditions = t.ConditionKinds(),
                     }),
             ],
+            AvailableConditions = [.. Enum.GetValues<TransitionConditionKind>().Where(_conditionChecker.IsAvailable)],
         };
     }
 }

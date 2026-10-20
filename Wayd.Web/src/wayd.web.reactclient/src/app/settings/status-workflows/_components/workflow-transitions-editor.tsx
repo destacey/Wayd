@@ -1,8 +1,10 @@
 'use client'
 
+import { transitionConditionLabels } from '@/src/components/common/status-workflows'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   StatusWorkflowDetailsDto,
+  TransitionConditionKind,
   TransitionMode,
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
@@ -11,7 +13,18 @@ import {
   useSetWorkflowTransitionsMutation,
 } from '@/src/store/features/common/status-workflows-api'
 import { isApiError } from '@/src/utils'
-import { Alert, Checkbox, Flex, Segmented, Table, Typography } from 'antd'
+import { AuditOutlined } from '@ant-design/icons'
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Flex,
+  Popover,
+  Segmented,
+  Table,
+  Tooltip,
+  Typography,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useState } from 'react'
 
@@ -26,6 +39,7 @@ export interface WorkflowTransitionsEditorProps {
 interface Move {
   fromStatusId: string
   toStatusId: string
+  conditions: TransitionConditionKind[]
 }
 
 const moveKey = (fromStatusId: string, toStatusId: string) =>
@@ -33,18 +47,22 @@ const moveKey = (fromStatusId: string, toStatusId: string) =>
 
 const setKey = (moves: Move[]) =>
   moves
-    .map((m) => moveKey(m.fromStatusId, m.toStatusId))
+    .map(
+      (m) =>
+        `${moveKey(m.fromStatusId, m.toStatusId)}:${[...m.conditions].sort().join(',')}`,
+    )
     .sort()
     .join('|')
 
 /**
  * Whether a workflow allows any move or only its transitions, and a from × to
- * grid of those transitions. Editable only while the workflow is a draft; each
- * change saves the whole set, which is what the API replaces.
+ * grid of those transitions with the conditions each carries. Editable only
+ * while the workflow is a draft; each change saves the whole set, which is what
+ * the API replaces.
  *
- * The grid works from its own copy of the set, updated as each box is ticked:
- * the next tick can land before the workflow is refetched, and a set built from
- * the stale prop would silently undo the tick before it.
+ * The grid works from its own copy of the set, conditions included, updated as
+ * each edit is made: the next edit can land before the workflow is refetched,
+ * and a set built from the stale prop would silently undo the edit before it.
  */
 const WorkflowTransitionsEditor = ({
   statusWorkflow,
@@ -67,6 +85,7 @@ const WorkflowTransitionsEditor = ({
   const savedMoves: Move[] = (statusWorkflow.transitions ?? []).map((t) => ({
     fromStatusId: t.fromStatusId,
     toStatusId: t.toStatusId,
+    conditions: [...(t.conditions ?? [])],
   }))
 
   // Re-seeded whenever the saved set changes, so a refetch, a clone or an edit
@@ -78,10 +97,11 @@ const WorkflowTransitionsEditor = ({
     setMoves(savedMoves)
   }
 
-  const allowed = new Set(
-    moves.map((m) => moveKey(m.fromStatusId, m.toStatusId)),
+  const movesByKey = new Map(
+    moves.map((m) => [moveKey(m.fromStatusId, m.toStatusId), m]),
   )
   const issues = statusWorkflow.transitionIssues ?? []
+  const availableConditions = statusWorkflow.availableConditions ?? []
 
   const reportError = (error: unknown, fallback: string) => {
     messageApi.error((isApiError(error) ? error.detail : undefined) ?? fallback)
@@ -101,17 +121,8 @@ const WorkflowTransitionsEditor = ({
     }
   }
 
-  const toggleMove = async (
-    from: WorkflowStatusDto,
-    to: WorkflowStatusDto,
-    isAllowed: boolean,
-  ) => {
+  const save = async (next: Move[]) => {
     const previous = moves
-    const next = isAllowed
-      ? [...moves, { fromStatusId: from.id, toStatusId: to.id }]
-      : moves.filter(
-          (m) => !(m.fromStatusId === from.id && m.toStatusId === to.id),
-        )
     setMoves(next)
 
     const response = await setTransitions({
@@ -125,6 +136,95 @@ const WorkflowTransitionsEditor = ({
         'An unexpected error occurred while saving the transitions.',
       )
     }
+  }
+
+  const toggleMove = (
+    from: WorkflowStatusDto,
+    to: WorkflowStatusDto,
+    isAllowed: boolean,
+  ) =>
+    save(
+      isAllowed
+        ? [
+            ...moves,
+            { fromStatusId: from.id, toStatusId: to.id, conditions: [] },
+          ]
+        : moves.filter(
+            (m) => !(m.fromStatusId === from.id && m.toStatusId === to.id),
+          ),
+    )
+
+  const changeConditions = (
+    move: Move,
+    conditions: TransitionConditionKind[],
+  ) =>
+    save(
+      moves.map((m) =>
+        m.fromStatusId === move.fromStatusId && m.toStatusId === move.toStatusId
+          ? { ...m, conditions }
+          : m,
+      ),
+    )
+
+  const renderConditions = (
+    move: Move,
+    from: WorkflowStatusDto,
+    to: WorkflowStatusDto,
+  ) => {
+    const hasConditions = move.conditions.length > 0
+    if (!isEditable && !hasConditions) return null
+
+    const label = `Conditions on ${from.name} to ${to.name}`
+    const summary = hasConditions
+      ? move.conditions.map((c) => transitionConditionLabels[c]).join(', ')
+      : 'No conditions'
+
+    // A condition the move already holds stays listed even when it can no
+    // longer be added, so it can still be removed.
+    const kinds = [
+      ...availableConditions,
+      ...move.conditions.filter((c) => !availableConditions.includes(c)),
+    ]
+
+    return (
+      <Popover
+        trigger="click"
+        title={`${from.name} → ${to.name}`}
+        content={
+          <Checkbox.Group
+            aria-label={label}
+            value={move.conditions}
+            disabled={!isEditable || isSaving}
+            onChange={(values) => changeConditions(move, values)}
+          >
+            <Flex vertical gap={4}>
+              {kinds.map((kind) => (
+                <Checkbox
+                  key={kind}
+                  value={kind}
+                  disabled={
+                    !availableConditions.includes(kind) &&
+                    !move.conditions.includes(kind)
+                  }
+                >
+                  {transitionConditionLabels[kind]}
+                </Checkbox>
+              ))}
+            </Flex>
+          </Checkbox.Group>
+        }
+      >
+        <Tooltip title={summary}>
+          <Button
+            size="small"
+            aria-label={label}
+            color={hasConditions ? 'primary' : 'default'}
+            variant={hasConditions ? 'filled' : 'text'}
+            icon={<AuditOutlined />}
+          />
+        </Tooltip>
+      </Popover>
+    )
   }
 
   const columns: ColumnsType<WorkflowStatusDto> = [
@@ -143,17 +243,22 @@ const WorkflowTransitionsEditor = ({
       key: to.id,
       title: to.name,
       align: 'center' as const,
-      render: (_: unknown, from: WorkflowStatusDto) =>
-        from.id === to.id ? (
-          <Text type="secondary">—</Text>
-        ) : (
-          <Checkbox
-            aria-label={`${from.name} to ${to.name}`}
-            checked={allowed.has(moveKey(from.id, to.id))}
-            disabled={!isEditable || isSaving}
-            onChange={(e) => toggleMove(from, to, e.target.checked)}
-          />
-        ),
+      render: (_: unknown, from: WorkflowStatusDto) => {
+        if (from.id === to.id) return <Text type="secondary">—</Text>
+
+        const move = movesByKey.get(moveKey(from.id, to.id))
+        return (
+          <Flex align="center" justify="center" gap={4}>
+            <Checkbox
+              aria-label={`${from.name} to ${to.name}`}
+              checked={move !== undefined}
+              disabled={!isEditable || isSaving}
+              onChange={(e) => toggleMove(from, to, e.target.checked)}
+            />
+            {move && renderConditions(move, from, to)}
+          </Flex>
+        )
+      },
     })),
   ]
 
@@ -184,7 +289,8 @@ const WorkflowTransitionsEditor = ({
         <>
           <Text type="secondary">
             A record can only move from a status in the left column to a status
-            checked in its row.
+            checked in its row. A highlighted <AuditOutlined /> marks a move
+            with conditions, such as requiring a reason.
             {!isEditable &&
               ' Clone this workflow into a draft to change its transitions.'}
           </Text>

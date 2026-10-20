@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Application.StatusWorkflows.Conditions;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
@@ -21,6 +22,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestBase
 {
     private readonly Mock<IStatusResolver> _statusResolver = new();
+    private readonly List<ITransitionConditionEvaluator> _evaluators = [];
     private readonly StatusWorkflow _workflow;
     private readonly WorkflowStatus _active;
     private readonly WorkflowStatus _retired;
@@ -42,6 +44,7 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
     private ChangeProductStatusCommandHandler CreateSut() =>
         new(DbContext,
             _statusResolver.Object,
+            new TransitionConditionChecker(_evaluators),
             CurrentUser.Object,
             CurrentPrincipal.Object,
             Logger<ChangeProductStatusCommandHandler>(),
@@ -176,7 +179,7 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
     /// A published restricted product lifecycle, Concept → Active → Sunset → Retired, served by the resolver
     /// in place of the any-to-any one.
     /// </summary>
-    private StatusWorkflow UseRestrictedWorkflow()
+    private StatusWorkflow UseRestrictedWorkflow(params TransitionConditionKind[] retireConditions)
     {
         var at = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
         var workflow = StatusWorkflow.Create("Gated Lifecycle", null, ProductWorkflowOwners.Product.Key, EventActor.System, at).Value;
@@ -185,7 +188,8 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
         var sunset = workflow.AddStatus("Sunset", null, StatusCategory.Active, (int)ProductStatusAlias.Sunset, EventActor.System, at).Value;
         var retired = workflow.AddStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, at).Value;
         workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, at);
-        workflow.SetTransitions([(concept.Id, active.Id), (active.Id, sunset.Id), (sunset.Id, retired.Id)], EventActor.System, at);
+        workflow.SetTransitions(
+            [new(concept.Id, active.Id), new(active.Id, sunset.Id), new(sunset.Id, retired.Id, retireConditions)], EventActor.System, at);
         workflow.Publish(EventActor.System, at).IsSuccess.Should().BeTrue();
 
         _statusResolver
@@ -232,5 +236,79 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
         product.StatusId.Should().Be(concept.Id);
         product.DomainEvents.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAMoveThatNeedsAReason_WithoutOne()
+    {
+        // Arrange
+        var workflow = UseRestrictedWorkflow(TransitionConditionKind.RequiresReason);
+        var sunset = workflow.Statuses.Single(s => s.Name == "Sunset");
+        var product = SeedProduct(status: StatusRef.From(sunset));
+
+        // Act
+        var result = await CreateSut().Handle(
+            new ChangeProductStatusCommand(product.Id, workflow.Statuses.Single(s => s.Name == "Retired").Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Moving from 'Sunset' to 'Retired' needs a reason.");
+        product.StatusId.Should().Be(sunset.Id);
+        product.DomainEvents.Should().BeEmpty();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRecordTheReason_OnAMoveThatNeedsOne()
+    {
+        // Arrange
+        var workflow = UseRestrictedWorkflow(TransitionConditionKind.RequiresReason);
+        var product = SeedProduct(status: StatusRef.From(workflow.Statuses.Single(s => s.Name == "Sunset")));
+        var retired = workflow.Statuses.Single(s => s.Name == "Retired");
+
+        // Act
+        var result = await CreateSut().Handle(
+            new ChangeProductStatusCommand(product.Id, retired.Id, "No longer sold."), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        product.StatusId.Should().Be(retired.Id);
+        product.StatusTransitions.Last().Reason.Should().Be("No longer sold.");
+        DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldHandTheProductWhatAnEvaluatorDecided(bool approved)
+    {
+        // Arrange
+        var workflow = UseRestrictedWorkflow(TransitionConditionKind.RequiresPassedApproval);
+        var sunset = workflow.Statuses.Single(s => s.Name == "Sunset");
+        var product = SeedProduct(status: StatusRef.From(sunset));
+        var retired = workflow.Statuses.Single(s => s.Name == "Retired");
+
+        var evaluator = new Mock<ITransitionConditionEvaluator>();
+        evaluator.SetupGet(e => e.Kind).Returns(TransitionConditionKind.RequiresPassedApproval);
+        evaluator
+            .Setup(e => e.IsMet(
+                It.Is<TransitionConditionMove>(m => m.RecordId == product.Id && m.FromStatusId == sunset.Id && m.OwnerType == ProductWorkflowOwners.Product.Key),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(approved);
+        _evaluators.Add(evaluator.Object);
+
+        // Act
+        var result = await CreateSut().Handle(
+            new ChangeProductStatusCommand(product.Id, retired.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().Be(approved, result.IsFailure ? result.Error : null);
+        product.StatusId.Should().Be(approved ? retired.Id : sunset.Id);
+        DbContext.SaveChangesCallCount.Should().Be(approved ? 1 : 0);
+        if (!approved)
+        {
+            result.Error.Should().Be("Moving from 'Sunset' to 'Retired' needs a passed approval.");
+        }
     }
 }

@@ -892,7 +892,8 @@ public sealed class StatusWorkflowTests
 
     private static Guid StatusId(StatusWorkflow workflow, string name) => workflow.Statuses.Single(s => s.Name == name).Id;
 
-    private static (Guid, Guid) Move(StatusWorkflow workflow, string from, string to) => (StatusId(workflow, from), StatusId(workflow, to));
+    private static WorkflowTransitionDefinition Move(StatusWorkflow workflow, string from, string to, params TransitionConditionKind[] conditions) =>
+        new(StatusId(workflow, from), StatusId(workflow, to), conditions);
 
     private static IEnumerable<(string From, string To)> Moves(StatusWorkflow workflow) =>
         workflow.Transitions.Select(t => (
@@ -1005,8 +1006,9 @@ public sealed class StatusWorkflowTests
 
         var added = workflow.Transitions.Single(t => t.ToStatusId == StatusId(workflow, "Terminal"));
         var raised = workflow.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowTransitionsChangedEvent>().Subject;
-        raised.Added.Should().Equal(new WorkflowTransitionValues(added.Id, added.FromStatusId, added.ToStatusId));
-        raised.Removed.Should().Equal(new WorkflowTransitionValues(dropped.Id, dropped.FromStatusId, dropped.ToStatusId));
+        raised.Added.Should().BeEquivalentTo([new WorkflowTransitionValues(added.Id, added.FromStatusId, added.ToStatusId)]);
+        raised.Removed.Should().BeEquivalentTo([new WorkflowTransitionValues(dropped.Id, dropped.FromStatusId, dropped.ToStatusId)]);
+        raised.ConditionsChanged.Should().BeEmpty();
         raised.Transitions.Select(t => t.TransitionId).Should().BeEquivalentTo([kept.Id, added.Id]);
     }
 
@@ -1032,7 +1034,7 @@ public sealed class StatusWorkflowTests
         var workflow = WidgetWorkflow();
 
         // Act
-        var result = workflow.SetTransitions([(StatusId(workflow, "Proposed"), Guid.NewGuid())], EventActor.System, At);
+        var result = workflow.SetTransitions([new(StatusId(workflow, "Proposed"), Guid.NewGuid())], EventActor.System, At);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1085,6 +1087,203 @@ public sealed class StatusWorkflowTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Only draft workflows can be restructured.");
         Moves(workflow).Should().BeEquivalentTo([("Proposed", "Notable"), ("Notable", "Terminal")]);
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldAddAMoveWithItsConditions_AndRecordThem()
+    {
+        // Arrange
+        var workflow = Saved(RestrictedWidgetWorkflow());
+
+        // Act
+        var result = workflow.SetTransitions(
+            [
+                Move(workflow, "Proposed", "Notable"),
+                Move(workflow, "Notable", "Terminal"),
+                Move(workflow, "Proposed", "Terminal", TransitionConditionKind.RequiresReason),
+            ],
+            EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var added = workflow.Transitions.Single(t => t.FromStatusId == StatusId(workflow, "Proposed") && t.ToStatusId == StatusId(workflow, "Terminal"));
+        added.Conditions.Should().ContainSingle().Which.Kind.Should().Be(TransitionConditionKind.RequiresReason);
+
+        var raised = workflow.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowTransitionsChangedEvent>().Subject;
+        raised.Added.Should().ContainSingle().Which.Conditions.Should().BeEquivalentTo(
+            [new WorkflowTransitionConditionValues(added.Conditions.Single().Id, TransitionConditionKind.RequiresReason)]);
+        raised.Transitions.Single(t => t.TransitionId == added.Id).Conditions.Should().ContainSingle();
+        raised.ConditionsChanged.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldAddAConditionToAKeptMove_RecordingBothEnds()
+    {
+        // Arrange
+        var workflow = Saved(RestrictedWidgetWorkflow());
+        var kept = workflow.Transitions.Single(t => t.FromStatusId == StatusId(workflow, "Notable"));
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.Transitions.Should().Contain(kept, "changing a move's conditions keeps the move");
+        kept.ConditionKinds().Should().Equal(TransitionConditionKind.RequiresReason);
+
+        var raised = workflow.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowTransitionsChangedEvent>().Subject;
+        raised.Added.Should().BeEmpty();
+        raised.Removed.Should().BeEmpty();
+        var changed = raised.ConditionsChanged.Should().ContainSingle().Subject;
+        changed.TransitionId.Should().Be(kept.Id);
+        changed.PreviousConditions.Should().BeEmpty();
+        changed.Conditions.Select(c => c.Kind).Should().Equal(TransitionConditionKind.RequiresReason);
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldRemoveAConditionFromAKeptMove_RecordingBothEnds()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+        Saved(workflow);
+        var kept = workflow.Transitions.Single(t => t.FromStatusId == StatusId(workflow, "Notable"));
+        var condition = kept.Conditions.Single();
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal")], EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        kept.Conditions.Should().BeEmpty();
+
+        var changed = workflow.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowTransitionsChangedEvent>()
+            .Subject.ConditionsChanged.Should().ContainSingle().Subject;
+        changed.PreviousConditions.Should().BeEquivalentTo([new WorkflowTransitionConditionValues(condition.Id, TransitionConditionKind.RequiresReason)]);
+        changed.Conditions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldKeepTheIdentityOfAConditionItKept()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+        var kept = workflow.Transitions.Single(t => t.FromStatusId == StatusId(workflow, "Notable"));
+        var reason = kept.Conditions.Single();
+
+        // Act
+        workflow.SetTransitions(
+            [
+                Move(workflow, "Proposed", "Notable"),
+                Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresPassedApproval, TransitionConditionKind.RequiresReason),
+            ],
+            EventActor.System, At);
+
+        // Assert
+        kept.Conditions.Should().HaveCount(2).And.Contain(reason);
+    }
+
+    [Fact]
+    public void SetTransitions_RaisesNothing_WhenTheConditionsAreUnchanged()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+        Saved(workflow);
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason), Move(workflow, "Proposed", "Notable")],
+            EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldFail_WhenAConditionIsListedTwice()
+    {
+        // Arrange
+        var workflow = Saved(RestrictedWidgetWorkflow());
+
+        // Act
+        var result = workflow.SetTransitions(
+            [
+                Move(workflow, "Proposed", "Notable"),
+                Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason, TransitionConditionKind.RequiresReason),
+            ],
+            EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The move from 'Notable' to 'Terminal' lists the same condition more than once.");
+        workflow.Transitions.Should().OnlyContain(t => t.Conditions.Count == 0);
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldFail_ForAnUnknownCondition()
+    {
+        // Arrange
+        var workflow = Saved(RestrictedWidgetWorkflow());
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", (TransitionConditionKind)99)],
+            EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Unknown transition condition.");
+        workflow.Transitions.Should().OnlyContain(t => t.Conditions.Count == 0);
+    }
+
+    [Theory]
+    [InlineData(StatusWorkflowState.Published)]
+    [InlineData(StatusWorkflowState.Archived)]
+    public void SetTransitions_ShouldNotChangeConditions_OnceTheWorkflowIsNoLongerADraft(StatusWorkflowState state)
+    {
+        // Arrange
+        var workflow = InState(RestrictedWidgetWorkflow(), state);
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only draft workflows can be restructured.");
+        workflow.Transitions.Should().OnlyContain(t => t.Conditions.Count == 0);
+    }
+
+    [Fact]
+    public void RemoveStatus_ShouldRecordTheConditionsOfTheTransitionsItRemoves()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+        Saved(workflow);
+
+        // Act
+        workflow.RemoveStatus(StatusId(workflow, "Terminal"), EventActor.System, At);
+
+        // Assert
+        var raised = workflow.DomainEvents.OfType<WorkflowTransitionsChangedEvent>().Should().ContainSingle().Subject;
+        raised.Removed.Should().ContainSingle().Which.Conditions.Select(c => c.Kind).Should().Equal(TransitionConditionKind.RequiresReason);
     }
 
     [Fact]
@@ -1162,6 +1361,51 @@ public sealed class StatusWorkflowTests
         var created = clone.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowCreatedEvent>().Subject;
         created.TransitionMode.Should().Be(TransitionMode.Restricted);
         created.Transitions.Select(t => t.TransitionId).Should().BeEquivalentTo(clone.Transitions.Select(t => t.Id));
+    }
+
+    [Fact]
+    public void Clone_ShouldCopyEachTransitionsConditions_AsNewConditions()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+        var source = workflow.Transitions.Single(t => t.FromStatusId == StatusId(workflow, "Notable"));
+
+        // Act
+        var clone = workflow.Clone("Our Widget Workflow", null, EventActor.System, At);
+
+        // Assert
+        var copy = clone.Transitions.Single(t => t.FromStatusId == StatusId(clone, "Notable"));
+        var condition = copy.Conditions.Should().ContainSingle().Subject;
+        condition.Kind.Should().Be(TransitionConditionKind.RequiresReason);
+        condition.TransitionId.Should().Be(copy.Id);
+        condition.Id.Should().NotBe(source.Conditions.Single().Id);
+        clone.Transitions.Single(t => t.FromStatusId == StatusId(clone, "Proposed")).Conditions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Clone_RaisesCreated_CarryingEachTransitionsConditions()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+        var source = Saved(workflow);
+
+        // Act
+        var clone = source.Clone("Widget Workflow v2", null, EventActor.System, At);
+
+        // Assert
+        clone.SetPrivate(w => w.Key, 8);
+        clone.ExecutePostPersistenceActions();
+
+        var copy = clone.Transitions.Single(t => t.FromStatusId == StatusId(clone, "Notable"));
+        var created = clone.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowCreatedEvent>().Subject;
+        created.Transitions.Single(t => t.TransitionId == copy.Id).Conditions.Should().BeEquivalentTo(
+            [new WorkflowTransitionConditionValues(copy.Conditions.Single().Id, TransitionConditionKind.RequiresReason)]);
     }
 
     [Fact]
@@ -1299,6 +1543,87 @@ public sealed class StatusWorkflowTests
         target!.StatusId.Should().Be(terminal.Id);
         target.Alias.Should().Be(TerminalAlias);
         target.AllowedFrom.Should().BeEquivalentTo([StatusId(workflow, "Notable")]);
+    }
+
+    // Restricted Proposed → Notable → Terminal plus Proposed → Terminal, where only Notable → Terminal
+    // needs a reason.
+    private static StatusWorkflow WidgetWorkflowWithAReasonIntoTerminal()
+    {
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [
+                Move(workflow, "Proposed", "Notable"),
+                Move(workflow, "Notable", "Terminal", TransitionConditionKind.RequiresReason),
+                Move(workflow, "Proposed", "Terminal"),
+            ],
+            EventActor.System, At);
+
+        return workflow;
+    }
+
+    [Fact]
+    public void TargetRef_ShouldCarryWhatEachMoveIntoTheStatusNeeds_ByTheStatusItMovesFrom()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+
+        // Act
+        var target = workflow.TargetRef(StatusId(workflow, "Terminal"))!;
+
+        // Assert
+        target.ConditionsFor(StatusId(workflow, "Notable")).Should().BeEquivalentTo([TransitionConditionKind.RequiresReason]);
+        target.ConditionsFor(StatusId(workflow, "Proposed")).Should().BeEmpty();
+        target.ConditionsFrom.Keys.Should().BeEquivalentTo([StatusId(workflow, "Notable")]);
+        target.MetConditions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TargetRef_ShouldCarryNoConditions_WhenTheWorkflowAllowsAnyMove()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+        workflow.SetTransitionMode(TransitionMode.AnyToAny, EventActor.System, At);
+
+        // Act
+        var target = workflow.TargetRef(StatusId(workflow, "Terminal"))!;
+
+        // Assert
+        // The conditions are kept for a switch back, but an any-to-any workflow enforces none of them.
+        target.ConditionsFrom.Should().BeEmpty();
+        workflow.ConditionsFor(StatusId(workflow, "Notable"), StatusId(workflow, "Terminal")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ConditionsFor_ShouldBeWhatTheMoveNeeds()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+
+        // Act
+        var conditions = workflow.ConditionsFor(StatusId(workflow, "Notable"), StatusId(workflow, "Terminal"));
+
+        // Assert
+        conditions.Should().Equal(TransitionConditionKind.RequiresReason);
+        workflow.ConditionsFor(StatusId(workflow, "Proposed"), StatusId(workflow, "Terminal")).Should().BeEmpty();
+        workflow.ConditionsFor(StatusId(workflow, "Terminal"), StatusId(workflow, "Proposed")).Should().BeEmpty("there is no such move");
+    }
+
+    [Fact]
+    public void WithMetConditions_ShouldAddToWhatWasMet_KeepingEverythingElse()
+    {
+        // Arrange
+        var workflow = WidgetWorkflowWithAReasonIntoTerminal();
+        var target = workflow.TargetRef(StatusId(workflow, "Terminal"))!;
+
+        // Act
+        var evaluated = target.WithMetConditions([TransitionConditionKind.RequiresPassedApproval]);
+
+        // Assert
+        evaluated.MetConditions.Should().BeEquivalentTo([TransitionConditionKind.RequiresPassedApproval]);
+        evaluated.StatusId.Should().Be(target.StatusId);
+        evaluated.AllowedFrom.Should().BeSameAs(target.AllowedFrom);
+        evaluated.ConditionsFrom.Should().BeSameAs(target.ConditionsFrom);
+        target.MetConditions.Should().BeEmpty("the original reference is unchanged");
     }
 
     [Fact]

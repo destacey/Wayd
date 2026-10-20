@@ -47,6 +47,7 @@ const workflow = (
   missingRequiredAliases: [],
   transitionMode: TransitionMode.AnyToAny,
   transitions: [],
+  availableConditions: [],
   supportsRestrictedTransitions: false,
   transitionIssues: [],
   canEdit: true,

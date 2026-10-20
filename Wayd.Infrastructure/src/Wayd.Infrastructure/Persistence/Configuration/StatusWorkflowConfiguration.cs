@@ -95,6 +95,35 @@ public class WorkflowTransitionConfiguration : IEntityTypeConfiguration<Workflow
             .WithMany()
             .HasForeignKey(t => t.ToStatusId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasMany(t => t.Conditions)
+            .WithOne()
+            .HasForeignKey(c => c.TransitionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(t => t.Conditions).HasField("_conditions").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class TransitionConditionConfiguration : IEntityTypeConfiguration<TransitionCondition>
+{
+    public void Configure(EntityTypeBuilder<TransitionCondition> builder)
+    {
+        builder.ToTable("TransitionConditions", SchemaNames.StatusWorkflows);
+
+        builder.HasKey(c => c.Id);
+
+        // At most one condition of each kind per transition.
+        builder.HasIndex(c => new { c.TransitionId, c.Kind }).IsUnique();
+
+        builder.Property(c => c.Id).ValueGeneratedNever();
+
+        builder.Property(c => c.TransitionId).IsRequired();
+
+        builder.Property(c => c.Kind).IsRequired()
+            .HasConversion<EnumConverter<TransitionConditionKind>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
     }
 }
 

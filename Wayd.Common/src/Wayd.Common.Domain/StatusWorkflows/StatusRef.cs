@@ -23,6 +23,10 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// <see cref="Name"/> travels with the reference because a status can be renamed while its workflow is
 /// active. Records and transitions freeze it, so a rename cannot rewrite what past rows read as.
 /// </para>
+/// <para>
+/// A record type, but never compared: its equality would compare the transition sets and conditions it
+/// carries by reference. Compare <see cref="StatusId"/> instead.
+/// </para>
 /// </remarks>
 public sealed record StatusRef
 {
@@ -32,7 +36,9 @@ public sealed record StatusRef
         string name,
         StatusCategory category,
         int alias = StatusWorkflow.NoAlias,
-        IReadOnlySet<Guid>? allowedFrom = null)
+        IReadOnlySet<Guid>? allowedFrom = null,
+        IReadOnlyDictionary<Guid, IReadOnlySet<TransitionConditionKind>>? conditionsFrom = null,
+        IReadOnlySet<TransitionConditionKind>? metConditions = null)
     {
         WorkflowId = Guard.Against.Default(workflowId, nameof(workflowId));
         StatusId = Guard.Against.Default(statusId, nameof(statusId));
@@ -40,6 +46,8 @@ public sealed record StatusRef
         Category = category;
         Alias = alias;
         AllowedFrom = allowedFrom;
+        ConditionsFrom = conditionsFrom ?? new Dictionary<Guid, IReadOnlySet<TransitionConditionKind>>();
+        MetConditions = metConditions ?? new HashSet<TransitionConditionKind>();
     }
 
     /// <summary>
@@ -74,6 +82,40 @@ public sealed record StatusRef
     /// of the move, not the record.
     /// </remarks>
     public IReadOnlySet<Guid>? AllowedFrom { get; init; }
+
+    /// <summary>
+    /// What a move into this status needs, by the status it moves from. A status with no entry, or one
+    /// not in <see cref="AllowedFrom"/>, needs nothing beyond being allowed.
+    /// </summary>
+    /// <remarks>
+    /// Set by the workflow alongside <see cref="AllowedFrom"/>, and never stored, for the same reasons.
+    /// The record checks the conditions it can (<see cref="TransitionConditionKinds.IsSelfChecked"/>)
+    /// against what the move carries, and the rest against <see cref="MetConditions"/>.
+    /// </remarks>
+    public IReadOnlyDictionary<Guid, IReadOnlySet<TransitionConditionKind>> ConditionsFrom { get; }
+
+    /// <summary>
+    /// The conditions the application layer has evaluated as met for this move — those a record cannot
+    /// check for itself, such as a passed approval. Empty until <see cref="WithMetConditions"/>.
+    /// </summary>
+    public IReadOnlySet<TransitionConditionKind> MetConditions { get; }
+
+    /// <summary>What a move into this status from <paramref name="fromStatusId"/> needs.</summary>
+    public IReadOnlySet<TransitionConditionKind> ConditionsFor(Guid fromStatusId) =>
+        ConditionsFrom.TryGetValue(fromStatusId, out var conditions) ? conditions : new HashSet<TransitionConditionKind>();
+
+    /// <summary>
+    /// A copy of this reference recording that <paramref name="met"/> were evaluated as met, for the
+    /// conditions a record cannot check itself.
+    /// </summary>
+    /// <remarks>Built through the constructor rather than <c>with</c>, which an aggregate's history checks read as a state change.</remarks>
+    public StatusRef WithMetConditions(IEnumerable<TransitionConditionKind> met)
+    {
+        Guard.Against.Null(met, nameof(met));
+
+        return new StatusRef(
+            WorkflowId, StatusId, Name, Category, Alias, AllowedFrom, ConditionsFrom, MetConditions.Union(met).ToHashSet());
+    }
 
     /// <summary>
     /// Builds a reference from a workflow status, with no transition restriction.

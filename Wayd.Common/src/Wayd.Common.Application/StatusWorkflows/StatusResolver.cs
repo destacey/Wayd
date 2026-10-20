@@ -62,11 +62,13 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
                 $"No workflow is assigned for {descriptor.Value.DisplayName}. An administrator must assign one.");
         }
 
-        // Transitions are loaded with the statuses: every reference built from this workflow carries the
-        // moves it allows, and a missing include would silently allow every move.
+        // Transitions and their conditions are loaded with the statuses: every reference built from this
+        // workflow carries the moves it allows and what each needs, and a missing include would silently
+        // allow every move, or drop every condition.
         var workflow = await _dbContext.StatusWorkflows
             .Include(w => w.Statuses)
             .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
             .AsSplitQuery()
             .FirstOrDefaultAsync(w => w.Id == workflowId, cancellationToken);
 

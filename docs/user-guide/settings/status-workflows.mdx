@@ -71,7 +71,7 @@ The **Transitions** section of a workflow's detail page holds the switch and a g
 - **Only a draft can change.** The mode and the transitions are part of the workflow's structure, frozen once it is published like its statuses. Clone a published workflow to change them.
 - **Removing a status removes its transitions**, in both directions.
 - **Cloning copies the transitions** onto the copy's statuses.
-- **Switching back to Any move keeps the ticks**, so switching again restores them.
+- **Switching back to Any move keeps the ticks**, so switching again restores them, with their conditions.
 
 A record governed by a restricted workflow can only make an allowed move. Anything else is refused with both statuses named — "The workflow does not allow a move from 'Concept' to 'Retired'." The status picker on a product offers only the moves allowed from its current status.
 
@@ -79,6 +79,20 @@ Two things are never checked against the transitions:
 
 - **A new record's first status.** Entering the workflow is not a move.
 - **A reassignment.** Moving records onto another workflow must take every record across, whatever the new workflow's transitions allow.
+
+#### Conditions on a move
+
+A move can also carry **conditions**: things a record needs before it may make that move. Each allowed move in the grid has a conditions button beside its box; a highlighted button marks a move that has conditions, and hovering it lists them. Click it to tick or clear the conditions for that move. Like the transitions, conditions change only on a draft, are copied by **Clone**, go with their move when it is removed, and are enforced only while the workflow allows **Only allowed moves**.
+
+| Condition | What the move needs |
+| --- | --- |
+| **Requires a reason** | A reason, recorded on the record's status history. A move without one is refused — "Moving from 'Sunset' to 'Retired' needs a reason." |
+
+A condition belongs to one move, not to the status it leads to: Sunset → Retired can require a reason while Active → Retired does not. When a product's next move requires a reason, its status picker asks for one; for any other move it does not.
+
+Conditions follow the same exemptions as transitions: a new record's first status and a reassignment are never checked against them.
+
+Only the conditions Wayd can check are offered. Requiring a passed approval is planned and will appear once approvals exist.
 
 #### Publishing a restricted workflow
 
@@ -192,7 +206,8 @@ For a restricted workflow it also names each status no move reaches and each Pro
 1. Clone the product workflow in use, or open a draft one
 2. Open the **Transitions** section and choose **Only allowed moves**
 3. Tick each move a product may make
-4. **Publish**, then **Reassign** the Product record type to the workflow
+4. Optionally, use a move's conditions button to require a reason for it — for instance on the move into Retired
+5. **Publish**, then **Reassign** the Product record type to the workflow
 
 ### Retiring a workflow
 
@@ -200,7 +215,7 @@ Reassign every record type using it to another workflow, then **Archive** it. Ar
 
 ## Activity
 
-A workflow's detail page carries an **Activity** section holding its recorded history — created or cloned, renamed, statuses added, removed, renamed, reordered and reclassified, the transition mode switched and transitions added or removed, published, archived, and assigned to a record type — with who made each change and when. The default workflows Wayd seeds record their creation too, attributed to the system. See [Activity Log](../activity-log.mdx).
+A workflow's detail page carries an **Activity** section holding its recorded history — created or cloned, renamed, statuses added, removed, renamed, reordered and reclassified, the transition mode switched, transitions added or removed and their conditions changed, published, archived, and assigned to a record type — with who made each change and when. The default workflows Wayd seeds record their creation too, attributed to the system. See [Activity Log](../activity-log.mdx).
 
 ## Permissions
 

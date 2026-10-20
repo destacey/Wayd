@@ -60,6 +60,39 @@ Each record type declares aliases it cannot function without, and a workflow mis
 
 An alias can be held by only one status in a workflow — two statuses both meaning Released would make "is it released?" unanswerable.
 
+### Transitions
+
+A **transition** is a move a workflow allows: from one status to another. By default a workflow allows **any move** — a record can go from any status to any other, which is how every workflow behaves until you change it.
+
+Switch a workflow to **Only allowed moves** and it allows just the transitions you tick. A product workflow can then say that a product reaches Active only from Concept, or never goes straight from Concept to Retired.
+
+The **Transitions** section of a workflow's detail page holds the switch and a grid with a row for each status a record moves **from** and a column for each status it moves **to**. Tick a box to allow that move; clear it to forbid it. Each change saves straight away.
+
+- **Only a draft can change.** The mode and the transitions are part of the workflow's structure, frozen once it is published like its statuses. Clone a published workflow to change them.
+- **Removing a status removes its transitions**, in both directions.
+- **Cloning copies the transitions** onto the copy's statuses.
+- **Switching back to Any move keeps the ticks**, so switching again restores them.
+
+A record governed by a restricted workflow can only make an allowed move. Anything else is refused with both statuses named — "The workflow does not allow a move from 'Concept' to 'Retired'." The status picker on a product offers only the moves allowed from its current status.
+
+Two things are never checked against the transitions:
+
+- **A new record's first status.** Entering the workflow is not a move.
+- **A reassignment.** Moving records onto another workflow must take every record across, whatever the new workflow's transitions allow.
+
+#### Publishing a restricted workflow
+
+Wayd refuses to publish a restricted workflow that would strand a record, and names the status at fault:
+
+- **Every status must be reachable** from the initial status — the first Proposed status, or the first status when none is Proposed — through allowed moves.
+- **Every Proposed or Active status needs a way out.** Done and Removed statuses may be final.
+
+The Transitions section and the publish dialog list each problem.
+
+#### Which record types can be restricted
+
+Only **Product** workflows can be restricted today. Versions, releases, release packages and deployments move through named actions — cut, release, fail, roll back — whose rules, and the delivery figures built on them, a custom set of moves could contradict. Their workflows always allow any move; Wayd refuses to publish one set to **Only allowed moves**.
+
 ## The lifecycle of a workflow
 
 A workflow is **Draft**, **Published** or **Archived**.
@@ -72,9 +105,9 @@ stateDiagram-v2
     Published --> Draft: Clone (as a new workflow)
 ```
 
-**Draft** is the only state in which statuses can be added, removed or reclassified. Nothing uses a draft yet, so restructuring it is free.
+**Draft** is the only state in which statuses can be added, removed or reclassified, and the only one in which the [transitions](#transitions) can change. Nothing uses a draft yet, so restructuring it is free.
 
-**Published** means records can be assigned to it — and its **structure is frozen**. Statuses cannot be added or removed, and none can change category or alias. Renaming the workflow, renaming or re-describing a status, and reordering statuses are still allowed: they change what people read, not what any record holds.
+**Published** means records can be assigned to it — and its **structure is frozen**. Statuses cannot be added or removed, none can change category or alias, and the transitions are fixed. Renaming the workflow, renaming or re-describing a status, and reordering statuses are still allowed: they change what people read, not what any record holds.
 
 :::note Why published workflows are frozen
 Every record carries a copy of its status's category and alias. Changing a published status would leave every record holding it disagreeing with the status it points at — a product would report as Active while the status said Done. Moving records is a [reassignment](#changing-which-workflow-is-used), not an edit.
@@ -88,11 +121,11 @@ The workflows Wayd seeds are marked **System**. They cannot be edited, published
 
 ## Changing a published workflow
 
-Renames and reordering apply directly. Anything structural — adding or removing a status, or changing its category or alias — cannot be made in place. You clone the workflow, change the copy, publish that, and reassign.
+Renames and reordering apply directly. Anything structural — adding or removing a status, changing its category or alias, or changing the transitions — cannot be made in place. You clone the workflow, change the copy, publish that, and reassign.
 
-1. Choose **Clone** from the workflow's row, or from its detail page. The copy carries every status and arrives as a Draft.
+1. Choose **Clone** from the workflow's row, or from its detail page. The copy carries every status and transition and arrives as a Draft.
 2. Edit the draft — add, rename, reclassify, remove, reorder.
-3. **Publish** it. Wayd refuses if a required alias is missing, and names the ones it needs.
+3. **Publish** it. Wayd refuses if a required alias is missing, or if restricted transitions would strand a status, and names what needs fixing.
 4. **Reassign** the record type to it, which is where existing records move across.
 
 This is the same shape Jira and Azure DevOps use, and for the same reason: the workflow in use has records depending on it, so changes are staged on a copy rather than applied underneath them.
@@ -152,13 +185,22 @@ Aliases already held by another status are not offered.
 
 The publish dialog names the required aliases the workflow is missing. Edit the status that should carry one and set its **Alias** — there is no need to delete and recreate it.
 
+For a restricted workflow it also names each status no move reaches and each Proposed or Active status with no move out. Tick the missing moves in the **Transitions** section, or switch the workflow back to **Any move**.
+
+### Restricting the moves a product can make
+
+1. Clone the product workflow in use, or open a draft one
+2. Open the **Transitions** section and choose **Only allowed moves**
+3. Tick each move a product may make
+4. **Publish**, then **Reassign** the Product record type to the workflow
+
 ### Retiring a workflow
 
 Reassign every record type using it to another workflow, then **Archive** it. Archiving is refused while anything still points at it.
 
 ## Activity
 
-A workflow's detail page carries an **Activity** section holding its recorded history — created or cloned, renamed, statuses added, removed, renamed, reordered and reclassified, published, archived, and assigned to a record type — with who made each change and when. The default workflows Wayd seeds record their creation too, attributed to the system. See [Activity Log](../activity-log.mdx).
+A workflow's detail page carries an **Activity** section holding its recorded history — created or cloned, renamed, statuses added, removed, renamed, reordered and reclassified, the transition mode switched and transitions added or removed, published, archived, and assigned to a record type — with who made each change and when. The default workflows Wayd seeds record their creation too, attributed to the system. See [Activity Log](../activity-log.mdx).
 
 ## Permissions
 

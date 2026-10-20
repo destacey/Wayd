@@ -115,6 +115,11 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
                 : NotFound();
     }
 
+    /// <param name="productId">
+    /// A product whose allowed moves to return, excluding its current status. Omit for every status in
+    /// the workflow.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the request.</param>
     [HttpGet("status-options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
     [EndpointSummary(

@@ -3,8 +3,10 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Application.StatusWorkflows.Commands;
 
+/// <summary>Switches a draft workflow between allowing any move and allowing only its transitions.</summary>
 public sealed record SetWorkflowTransitionModeCommand(Guid WorkflowId, TransitionMode Mode) : ICommand;
 
+/// <summary>Requires a workflow and a known mode.</summary>
 public sealed class SetWorkflowTransitionModeCommandValidator : AbstractValidator<SetWorkflowTransitionModeCommand>
 {
     public SetWorkflowTransitionModeCommandValidator()
@@ -14,6 +16,7 @@ public sealed class SetWorkflowTransitionModeCommandValidator : AbstractValidato
     }
 }
 
+/// <summary>Loads the workflow and applies the mode through the aggregate, which enforces Draft-only.</summary>
 public sealed class SetWorkflowTransitionModeCommandHandler(
     IStatusWorkflowDbContext dbContext,
     ICurrentUser currentUser,

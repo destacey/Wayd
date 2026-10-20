@@ -13,12 +13,14 @@ public sealed record SetWorkflowTransitionModeRequest
     /// </summary>
     public TransitionMode Mode { get; set; }
 
+    /// <summary>Builds the command for the workflow named in the route.</summary>
     public SetWorkflowTransitionModeCommand ToSetWorkflowTransitionModeCommand(Guid workflowId)
     {
         return new SetWorkflowTransitionModeCommand(workflowId, Mode);
     }
 }
 
+/// <summary>Requires a known mode.</summary>
 public sealed class SetWorkflowTransitionModeRequestValidator : CustomValidator<SetWorkflowTransitionModeRequest>
 {
     public SetWorkflowTransitionModeRequestValidator()

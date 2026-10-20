@@ -44,6 +44,7 @@ public sealed class CloneStatusWorkflowCommandHandler(
             var workflow = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
                 .Include(w => w.Transitions)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
 
             if (workflow is null)

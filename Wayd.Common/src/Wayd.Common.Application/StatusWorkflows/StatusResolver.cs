@@ -67,6 +67,7 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
         var workflow = await _dbContext.StatusWorkflows
             .Include(w => w.Statuses)
             .Include(w => w.Transitions)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(w => w.Id == workflowId, cancellationToken);
 
         return workflow is null

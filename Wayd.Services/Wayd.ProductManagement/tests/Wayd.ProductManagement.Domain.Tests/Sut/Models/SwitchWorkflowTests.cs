@@ -44,6 +44,17 @@ public sealed class SwitchWorkflowTests
         return workflow;
     }
 
+    private static StatusWorkflow ProductWorkflow(string name)
+    {
+        var at = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+        var workflow = StatusWorkflow.Create(name, null, ProductWorkflowOwners.Product.Key, EventActor.System, at).Value;
+        workflow.AddStatus("Concept", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, at);
+        workflow.AddStatus("Active", null, StatusCategory.Active, (int)ProductStatusAlias.Active, EventActor.System, at);
+        workflow.AddStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, at);
+
+        return workflow;
+    }
+
     private Version VersionOn(StatusWorkflow workflow)
     {
         var planned = StatusRef.From(workflow.Statuses.Single(s => s.Name == "Planned"));
@@ -172,6 +183,37 @@ public sealed class SwitchWorkflowTests
         // deciding anything.
         result.IsSuccess.Should().BeTrue();
         sut.StatusName.Should().Be("Cut");
+    }
+
+    [Fact]
+    public void SwitchWorkflow_ShouldMoveTheRecord_WhateverMovesTheTargetWorkflowAllows()
+    {
+        // A migration must never be blocked by the target's transitions. The remap's targets carry
+        // them, and no status on the old workflow is one any move is allowed from, so only the
+        // exemption lets the record across.
+        // Arrange
+        var at = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+        var old = ProductWorkflow("Old");
+        var gated = ProductWorkflow("Gated");
+        var concept = gated.Statuses.Single(s => s.Name == "Concept").Id;
+        var active = gated.Statuses.Single(s => s.Name == "Active").Id;
+        var retired = gated.Statuses.Single(s => s.Name == "Retired").Id;
+        gated.SetTransitionMode(TransitionMode.Restricted, EventActor.System, at);
+        gated.SetTransitions([(concept, active), (active, retired)], EventActor.System, at);
+
+        var product = Product.Create(
+            ProductName, null, Guid.CreateVersion7(), null, null,
+            StatusRef.From(old.Statuses.Single(s => s.Name == "Active")), EventActor.System, _dateTimeProvider.Now);
+        var remap = StatusRemap.AutoMap(old, gated).Value;
+        remap.For(product.StatusId)!.AllowedFrom.Should().NotBeNull().And.NotContain(product.StatusId);
+
+        // Act
+        var result = product.SwitchWorkflow(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        product.StatusId.Should().Be(active);
+        product.StatusWorkflowId.Should().Be(gated.Id);
     }
 
     #endregion Moving a record

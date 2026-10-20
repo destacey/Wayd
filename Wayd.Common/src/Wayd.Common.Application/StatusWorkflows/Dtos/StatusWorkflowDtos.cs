@@ -42,8 +42,13 @@ public sealed record WorkflowStatusDto
 /// <summary>A move a workflow allows, from one of its statuses to another.</summary>
 public sealed record WorkflowTransitionDto
 {
+    /// <summary>The transition's own id, stable while the workflow keeps the move.</summary>
     public required Guid Id { get; init; }
+
+    /// <summary>The status a record moves out of.</summary>
     public required Guid FromStatusId { get; init; }
+
+    /// <summary>The status a record moves into.</summary>
     public required Guid ToStatusId { get; init; }
 }
 

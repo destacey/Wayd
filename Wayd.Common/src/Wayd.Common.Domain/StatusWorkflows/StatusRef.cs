@@ -72,9 +72,9 @@ public sealed record StatusRef
     /// Builds a reference from a workflow status, with no transition restriction.
     /// </summary>
     /// <remarks>
-    /// For a move that is exempt from the workflow's transitions — a record's initial status, or a remap
-    /// onto another workflow. A move between statuses goes through <see cref="StatusWorkflow.TargetRef"/>
-    /// so the workflow's restrictions travel with it.
+    /// For a record's initial status, which is exempt from the workflow's transitions. A move between
+    /// statuses goes through <see cref="StatusWorkflow.TargetRef"/> so the workflow's restrictions travel
+    /// with it.
     /// </remarks>
     public static StatusRef From(WorkflowStatus status)
     {

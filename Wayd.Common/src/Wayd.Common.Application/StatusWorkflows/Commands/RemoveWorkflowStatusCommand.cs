@@ -38,6 +38,7 @@ public sealed class RemoveWorkflowStatusCommandHandler(
             var workflow = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
                 .Include(w => w.Transitions)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
 
             if (workflow is null)

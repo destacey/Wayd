@@ -8,6 +8,7 @@ public sealed record WorkflowTransitionPair(Guid FromStatusId, Guid ToStatusId);
 /// <summary>Replaces the moves a draft workflow allows with exactly <see cref="Transitions"/>.</summary>
 public sealed record SetWorkflowTransitionsCommand(Guid WorkflowId, IReadOnlyCollection<WorkflowTransitionPair> Transitions) : ICommand;
 
+/// <summary>Requires a workflow and both ends of every transition.</summary>
 public sealed class SetWorkflowTransitionsCommandValidator : AbstractValidator<SetWorkflowTransitionsCommand>
 {
     public SetWorkflowTransitionsCommandValidator()
@@ -22,6 +23,7 @@ public sealed class SetWorkflowTransitionsCommandValidator : AbstractValidator<S
     }
 }
 
+/// <summary>Loads the workflow with its statuses and transitions and replaces the set through the aggregate.</summary>
 public sealed class SetWorkflowTransitionsCommandHandler(
     IStatusWorkflowDbContext dbContext,
     ICurrentUser currentUser,
@@ -45,6 +47,7 @@ public sealed class SetWorkflowTransitionsCommandHandler(
             var workflow = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
                 .Include(w => w.Transitions)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
 
             if (workflow is null)

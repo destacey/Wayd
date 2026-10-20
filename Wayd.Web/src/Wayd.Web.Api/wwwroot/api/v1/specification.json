@@ -6103,6 +6103,7 @@
           {
             "name": "productId",
             "in": "query",
+            "description": "A product whose allowed moves to return, excluding its current status. Omit for every status in\nthe workflow.",
             "schema": {
               "type": "string",
               "format": "uuid",
@@ -69791,14 +69792,17 @@
         "properties": {
           "id": {
             "type": "string",
+            "description": "The transition's own id, stable while the workflow keeps the move.",
             "format": "uuid"
           },
           "fromStatusId": {
             "type": "string",
+            "description": "The status a record moves out of.",
             "format": "uuid"
           },
           "toStatusId": {
             "type": "string",
+            "description": "The status a record moves into.",
             "format": "uuid"
           }
         },

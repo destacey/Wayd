@@ -8114,7 +8114,8 @@ export class ProductsClient {
 
     /**
      * Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.
-     * @param productId (optional) 
+     * @param productId (optional) A product whose allowed moves to return, excluding its current status. Omit for every status in
+    the workflow.
      * @return OK
      */
     getStatusOptions(productId?: string | null | undefined, cancelToken?: CancelToken): Promise<StatusNavigationDto[]> {
@@ -57945,8 +57946,11 @@ export interface WorkflowStatusDto {
 
 /** A move a workflow allows, from one of its statuses to another. */
 export interface WorkflowTransitionDto {
+    /** The transition's own id, stable while the workflow keeps the move. */
     id: string;
+    /** The status a record moves out of. */
     fromStatusId: string;
+    /** The status a record moves into. */
     toStatusId: string;
 }
 

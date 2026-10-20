@@ -12,6 +12,7 @@ public sealed record SetWorkflowTransitionsRequest
     /// </summary>
     public List<WorkflowTransitionRequest> Transitions { get; set; } = [];
 
+    /// <summary>Builds the command for the workflow named in the route.</summary>
     public SetWorkflowTransitionsCommand ToSetWorkflowTransitionsCommand(Guid workflowId)
     {
         return new SetWorkflowTransitionsCommand(
@@ -31,6 +32,7 @@ public sealed record WorkflowTransitionRequest
     public Guid ToStatusId { get; set; }
 }
 
+/// <summary>Requires both ends of every transition.</summary>
 public sealed class SetWorkflowTransitionsRequestValidator : CustomValidator<SetWorkflowTransitionsRequest>
 {
     public SetWorkflowTransitionsRequestValidator()

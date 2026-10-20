@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   StatusCategory,
@@ -123,6 +123,48 @@ describe('WorkflowTransitionsEditor', () => {
         ],
       },
     })
+  })
+
+  it('builds each save on the ticks before it, before the workflow is refetched', async () => {
+    // Arrange
+    // The prop is never refreshed here, as between a save returning and its
+    // refetch landing: a set built from it would drop the first tick.
+    const user = userEvent.setup()
+    render(<WorkflowTransitionsEditor statusWorkflow={workflow()} canUpdate />)
+
+    // Act
+    await user.click(screen.getByLabelText('Active to Retired'))
+    await user.click(screen.getByLabelText('Concept to Retired'))
+
+    // Assert
+    expect(setTransitions).toHaveBeenLastCalledWith({
+      workflowId: '44444444-0000-4000-a000-000000000004',
+      request: {
+        transitions: [
+          { fromStatusId: CONCEPT, toStatusId: ACTIVE },
+          { fromStatusId: ACTIVE, toStatusId: RETIRED },
+          { fromStatusId: CONCEPT, toStatusId: RETIRED },
+        ],
+      },
+    })
+    expect(screen.getByLabelText('Active to Retired')).toBeChecked()
+  })
+
+  it('puts a tick back when the save is refused', async () => {
+    // Arrange
+    setTransitions.mockResolvedValue({ error: { detail: 'Refused.' } })
+    render(<WorkflowTransitionsEditor statusWorkflow={workflow()} canUpdate />)
+
+    // Act
+    // Inside act: the revert lands after the awaited save, and jest.setup's
+    // MessageChannel stub never flushes an update made outside it.
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Active to Retired'))
+    })
+
+    // Assert
+    expect(setTransitions).toHaveBeenCalled()
+    expect(screen.getByLabelText('Active to Retired')).not.toBeChecked()
   })
 
   it('saves the whole set without the move when a box is cleared', async () => {

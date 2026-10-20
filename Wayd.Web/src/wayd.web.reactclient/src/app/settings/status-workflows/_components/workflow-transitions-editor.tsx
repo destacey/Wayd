@@ -13,6 +13,7 @@ import {
 import { isApiError } from '@/src/utils'
 import { Alert, Checkbox, Flex, Segmented, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import { useState } from 'react'
 
 const { Text } = Typography
 
@@ -22,13 +23,28 @@ export interface WorkflowTransitionsEditorProps {
   canUpdate: boolean
 }
 
+interface Move {
+  fromStatusId: string
+  toStatusId: string
+}
+
 const moveKey = (fromStatusId: string, toStatusId: string) =>
   `${fromStatusId}:${toStatusId}`
+
+const setKey = (moves: Move[]) =>
+  moves
+    .map((m) => moveKey(m.fromStatusId, m.toStatusId))
+    .sort()
+    .join('|')
 
 /**
  * Whether a workflow allows any move or only its transitions, and a from × to
  * grid of those transitions. Editable only while the workflow is a draft; each
  * change saves the whole set, which is what the API replaces.
+ *
+ * The grid works from its own copy of the set, updated as each box is ticked:
+ * the next tick can land before the workflow is refetched, and a set built from
+ * the stale prop would silently undo the tick before it.
  */
 const WorkflowTransitionsEditor = ({
   statusWorkflow,
@@ -48,9 +64,22 @@ const WorkflowTransitionsEditor = ({
   const statuses = [...(statusWorkflow.statuses ?? [])].sort(
     (a, b) => a.order - b.order,
   )
-  const transitions = statusWorkflow.transitions ?? []
+  const savedMoves: Move[] = (statusWorkflow.transitions ?? []).map((t) => ({
+    fromStatusId: t.fromStatusId,
+    toStatusId: t.toStatusId,
+  }))
+
+  // Re-seeded whenever the saved set changes, so a refetch, a clone or an edit
+  // elsewhere replaces the local copy (React's adjust-state-on-prop-change pattern).
+  const [moves, setMoves] = useState<Move[]>(savedMoves)
+  const [seededFrom, setSeededFrom] = useState(setKey(savedMoves))
+  if (seededFrom !== setKey(savedMoves)) {
+    setSeededFrom(setKey(savedMoves))
+    setMoves(savedMoves)
+  }
+
   const allowed = new Set(
-    transitions.map((t) => moveKey(t.fromStatusId, t.toStatusId)),
+    moves.map((m) => moveKey(m.fromStatusId, m.toStatusId)),
   )
   const issues = statusWorkflow.transitionIssues ?? []
 
@@ -77,28 +106,20 @@ const WorkflowTransitionsEditor = ({
     to: WorkflowStatusDto,
     isAllowed: boolean,
   ) => {
+    const previous = moves
     const next = isAllowed
-      ? [
-          ...transitions.map((t) => ({
-            fromStatusId: t.fromStatusId,
-            toStatusId: t.toStatusId,
-          })),
-          { fromStatusId: from.id, toStatusId: to.id },
-        ]
-      : transitions
-          .filter(
-            (t) => !(t.fromStatusId === from.id && t.toStatusId === to.id),
-          )
-          .map((t) => ({
-            fromStatusId: t.fromStatusId,
-            toStatusId: t.toStatusId,
-          }))
+      ? [...moves, { fromStatusId: from.id, toStatusId: to.id }]
+      : moves.filter(
+          (m) => !(m.fromStatusId === from.id && m.toStatusId === to.id),
+        )
+    setMoves(next)
 
     const response = await setTransitions({
       workflowId: statusWorkflow.id,
       request: { transitions: next },
     })
     if (response.error) {
+      setMoves(previous)
       reportError(
         response.error,
         'An unexpected error occurred while saving the transitions.',

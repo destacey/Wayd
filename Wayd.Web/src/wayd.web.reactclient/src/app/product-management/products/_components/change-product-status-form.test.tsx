@@ -11,6 +11,8 @@ const product = {
   tags: [],
 } as unknown as ProductDto
 
+let isError = false
+
 let statusOptions = [
   { id: 'status-concept', name: 'Concept', category: 1, alias: 0 },
   { id: 'status-active', name: 'Active', category: 2, alias: 1 },
@@ -47,7 +49,11 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
   useChangeProductStatusMutation: () => [jest.fn()],
   useGetProductStatusOptionsQuery: (productId: string) => {
     getProductStatusOptions(productId)
-    return { data: statusOptions, isLoading: false }
+    return {
+      data: isError ? undefined : statusOptions,
+      isLoading: false,
+      isError,
+    }
   },
 }))
 
@@ -109,6 +115,26 @@ describe('ChangeProductStatusForm', () => {
       ).toBeInTheDocument()
     } finally {
       statusOptions = options
+    }
+  })
+
+  it('says the moves could not be loaded rather than that there are none', () => {
+    // Arrange
+    isError = true
+
+    try {
+      // Act
+      renderForm()
+
+      // Assert
+      expect(
+        screen.getByText(
+          'The statuses this product can move to could not be loaded.',
+        ),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/allows no move/)).not.toBeInTheDocument()
+    } finally {
+      isError = false
     }
   })
 

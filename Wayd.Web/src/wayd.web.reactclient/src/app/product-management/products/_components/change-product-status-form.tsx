@@ -39,9 +39,11 @@ const ChangeProductStatusForm = ({
   const messageApi = useMessage()
 
   const [changeProductStatus] = useChangeProductStatusMutation()
-  const { data: statusOptions, isLoading } = useGetProductStatusOptionsQuery(
-    product.id,
-  )
+  const {
+    data: statusOptions,
+    isLoading,
+    isError,
+  } = useGetProductStatusOptionsQuery(product.id)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<ChangeProductStatusFormValues>({
@@ -92,7 +94,15 @@ const ChangeProductStatusForm = ({
       keyboard={false} // disable esc key to close modal
       destroyOnHidden
     >
-      {!isLoading && options.length === 0 && (
+      {isError && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title="The statuses this product can move to could not be loaded."
+        />
+      )}
+      {!isLoading && !isError && options.length === 0 && (
         <Alert
           type="info"
           showIcon

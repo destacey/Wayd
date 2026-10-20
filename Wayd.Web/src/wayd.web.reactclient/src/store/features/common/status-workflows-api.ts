@@ -6,6 +6,8 @@ import {
   ReclassifyWorkflowStatusRequest,
   RenameWorkflowStatusRequest,
   ReorderWorkflowStatusesRequest,
+  SetWorkflowTransitionModeRequest,
+  SetWorkflowTransitionsRequest,
   StatusRemapPreviewDto,
   StatusWorkflowDetailsDto,
   StatusWorkflowListDto,
@@ -281,6 +283,50 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    setWorkflowTransitionMode: builder.mutation<
+      void,
+      { workflowId: string; request: SetWorkflowTransitionModeRequest }
+    >({
+      queryFn: async ({ workflowId, request }) => {
+        try {
+          const data = await getStatusWorkflowsClient().setTransitionMode(
+            workflowId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow, id: workflowId },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
+    }),
+
+    setWorkflowTransitions: builder.mutation<
+      void,
+      { workflowId: string; request: SetWorkflowTransitionsRequest }
+    >({
+      queryFn: async ({ workflowId, request }) => {
+        try {
+          const data = await getStatusWorkflowsClient().setTransitions(
+            workflowId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow, id: workflowId },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
+    }),
+
     getWorkflowAssignments: builder.query<
       WorkflowAssignmentDto[],
       string | undefined
@@ -381,6 +427,8 @@ export const {
   useReclassifyWorkflowStatusMutation,
   useRemoveWorkflowStatusMutation,
   useReorderWorkflowStatusesMutation,
+  useSetWorkflowTransitionModeMutation,
+  useSetWorkflowTransitionsMutation,
   useGetWorkflowAssignmentsQuery,
   usePreviewStatusRemapQuery,
   useReassignWorkflowMutation,

@@ -85,6 +85,37 @@ describe('PublishStatusWorkflowForm', () => {
     expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
   })
 
+  it('names each transition problem and disables Publish', () => {
+    // Arrange
+    const draft = workflow({
+      transitionMode: TransitionMode.Restricted,
+      transitionIssues: [
+        "'Sunset' has no transition out of it, so a record that reaches it could not move on.",
+      ],
+      canPublish: false,
+    })
+
+    // Act
+    render(
+      <PublishStatusWorkflowForm
+        statusWorkflow={draft}
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText('Transitions would strand a status'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "'Sunset' has no transition out of it, so a record that reaches it could not move on.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
+  })
+
   it('publishes a draft that covers every required alias', async () => {
     // Arrange
     publishStatusWorkflow.mockResolvedValue({ data: undefined })

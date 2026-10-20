@@ -16,8 +16,9 @@ export interface PublishStatusWorkflowFormProps {
 }
 
 /**
- * The server refuses a publish that is missing a required alias, so they are
- * named here and OK stays disabled rather than surfacing it as an error toast.
+ * The server refuses a publish that is missing a required alias or whose
+ * restricted transitions would strand a status, so each problem is named here
+ * and OK stays disabled rather than surfacing it as an error toast.
  */
 const PublishStatusWorkflowForm = ({
   statusWorkflow,
@@ -30,6 +31,8 @@ const PublishStatusWorkflowForm = ({
 
   const missingAliases = statusWorkflow.missingRequiredAliases ?? []
   const hasMissingAliases = missingAliases.length > 0
+  const transitionIssues = statusWorkflow.transitionIssues ?? []
+  const hasTransitionIssues = transitionIssues.length > 0
 
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {
@@ -63,7 +66,7 @@ const PublishStatusWorkflowForm = ({
       open={isOpen}
       onOk={handleOk}
       okText="Publish"
-      okButtonProps={{ disabled: hasMissingAliases }}
+      okButtonProps={{ disabled: hasMissingAliases || hasTransitionIssues }}
       confirmLoading={isSaving}
       onCancel={handleCancel}
       keyboard={false}
@@ -73,6 +76,20 @@ const PublishStatusWorkflowForm = ({
         <Text>
           {statusWorkflow.key} - {statusWorkflow.name}
         </Text>
+        {hasTransitionIssues && (
+          <Alert
+            type="error"
+            showIcon
+            title="Transitions would strand a status"
+            description={
+              <ul style={{ marginTop: 0, marginBottom: 0 }}>
+                {transitionIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            }
+          />
+        )}
         {hasMissingAliases ? (
           <Alert
             type="error"
@@ -91,7 +108,7 @@ const PublishStatusWorkflowForm = ({
               </>
             }
           />
-        ) : (
+        ) : hasTransitionIssues ? null : (
           <Text type="secondary">
             Publishing locks the workflow&apos;s statuses so records can be
             assigned to it. To change it afterwards, clone it into a new draft.

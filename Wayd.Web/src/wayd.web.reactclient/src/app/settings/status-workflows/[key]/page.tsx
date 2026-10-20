@@ -26,11 +26,13 @@ import CloneStatusWorkflowForm from '../_components/clone-status-workflow-form'
 import EditStatusWorkflowForm from '../_components/edit-status-workflow-form'
 import PublishStatusWorkflowForm from '../_components/publish-status-workflow-form'
 import WorkflowStatusesList from '../_components/workflow-statuses-list'
+import WorkflowTransitionsEditor from '../_components/workflow-transitions-editor'
 import StatusWorkflowDetailsLoading from './loading'
 import { StatusWorkflowFacts } from './_components'
 
 enum StatusWorkflowSections {
   Statuses = 'statuses',
+  Transitions = 'transitions',
   Activities = 'activities',
 }
 
@@ -166,6 +168,7 @@ const StatusWorkflowDetailsPage = (props: {
       label: 'Statuses',
       count: statusWorkflow?.statuses?.length,
     },
+    { id: StatusWorkflowSections.Transitions, label: 'Transitions' },
     { id: StatusWorkflowSections.Activities, label: 'Activity' },
   ]
 
@@ -173,6 +176,13 @@ const StatusWorkflowDetailsPage = (props: {
     switch (section as StatusWorkflowSections) {
       case StatusWorkflowSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
+      case StatusWorkflowSections.Transitions:
+        return (
+          <WorkflowTransitionsEditor
+            statusWorkflow={statusWorkflow!}
+            canUpdate={canUpdate}
+          />
+        )
       case StatusWorkflowSections.Statuses:
         return (
           <WorkflowStatusesList

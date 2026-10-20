@@ -113,6 +113,24 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
+    public async Task GetTools_OffersAnOffset_OnlyOnReadToolsThatAnswerWithAnUnpagedList()
+    {
+        // Act
+        var withOffset = (await GetTools())
+            .OfType<ApiEndpointTool>()
+            .Where(t => t.ProtocolTool.InputSchema.GetProperty("properties").TryGetProperty(ResultBounds.OffsetArgument, out _))
+            .Select(t => t.ProtocolTool.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        // Assert — a list, an already-paged list, a list the endpoint limits, a single record, and a write
+        Assert.Contains("Projects_GetWorkItems", withOffset);
+        Assert.DoesNotContain("Projects_GetActivities", withOffset);
+        Assert.DoesNotContain("DeliveryOverview_GetRecentDeliveryEvents", withOffset);
+        Assert.DoesNotContain("Projects_GetProject", withOffset);
+        Assert.DoesNotContain("Projects_Create", withOffset);
+    }
+
+    [Fact]
     public async Task GetTools_DescribesEveryTool()
     {
         // Act

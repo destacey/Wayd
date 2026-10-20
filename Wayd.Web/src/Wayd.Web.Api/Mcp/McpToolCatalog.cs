@@ -75,6 +75,16 @@ public sealed partial class McpToolCatalog(
             var template = ConstraintOrDefault().Replace(path, "{$1}");
             var (inputSchema, arguments) = schema.Build(operation);
             var output = schema.BuildOutput(operation);
+            var paged = IsPaged(method, output, arguments);
+            if (paged)
+            {
+                inputSchema["properties"]![ResultBounds.OffsetArgument] = new JsonObject
+                {
+                    ["type"] = "integer",
+                    ["minimum"] = 0,
+                    ["description"] = "How many items of the result to skip. A result longer than about 20,000 tokens is cut, and its note gives the offset that continues it.",
+                };
+            }
 
             var protocolTool = new Tool
             {
@@ -85,7 +95,7 @@ public sealed partial class McpToolCatalog(
                 OutputSchema = output is null ? null : JsonSerializer.SerializeToElement(output.Schema),
                 Annotations = McpToolAnnotationDefaults.For(method, attribute),
             };
-            tools.Add((new ApiEndpointTool(protocolTool, method, template, arguments, output), toolset));
+            tools.Add((new ApiEndpointTool(protocolTool, method, template, arguments, output, paged), toolset));
         }
 
         var formats = ImportFormats.From(document);
@@ -115,6 +125,34 @@ public sealed partial class McpToolCatalog(
 
         return outputs.FirstOrDefault().Output;
     }
+
+    /// <summary>
+    /// Whether a tool takes an offset: a read whose result is an array, from an endpoint that neither pages
+    /// nor limits its own answer, nor takes an argument of the same name.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A result object holding one list is left out: most are a single record with a child list (a project
+    /// and its roles), where an offset would only add noise to the tool. Its lists are still cut to the limit.
+    /// </para>
+    /// <para>
+    /// An endpoint that limits its answer (<c>take</c>) is left out because an offset would slice only the
+    /// rows it returned, reporting the end of the list while more exist.
+    /// </para>
+    /// </remarks>
+    private static bool IsPaged(string method, ToolOutput? output, IReadOnlyList<ToolArgument> arguments) =>
+        method == "GET"
+        && output is { IsWrapped: true }
+        && !arguments.Any(a => a.Name is ResultBounds.OffsetArgument or "page" or "pageNumber" or "pageSize" or "take" or "top" or "limit")
+        && IsArray(output.Schema["properties"]?[ToolOutput.ResultProperty]);
+
+    /// <summary>Whether <paramref name="schema"/> describes an array, null allowed.</summary>
+    private static bool IsArray(JsonNode? schema) => schema?["type"] switch
+    {
+        JsonValue type => (string?)type == "array",
+        JsonArray types => types.Any(t => (string?)t == "array"),
+        _ => false,
+    };
 
     /// <summary>The operation's summary followed by its description, which together read as one paragraph.</summary>
     private static string DescriptionOf(JsonObject operation)

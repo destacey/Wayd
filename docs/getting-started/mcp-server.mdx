@@ -117,6 +117,10 @@ The query parameter wins when both are sent. An unknown toolset name is refused 
 
 Read-only mode limits which tools are offered, not what your token may do. For a guarantee, also use a token whose account has view permissions only.
 
+### Large Results
+
+A tool's answer is capped at about 20,000 tokens, so one call over a large project cannot fill the conversation. A list longer than that keeps its first items and says which ones it is showing, such as items 1–74 of 843. Tools whose answer is a list take an `offset` argument, and the note gives the value that continues it, so the assistant can read the rest a part at a time. A tool whose answer is one record holding a list, such as a summary with its work items, takes no `offset`; the assistant narrows it with the tool's filters (a status, a portfolio, a team) instead.
+
 ## Setup
 
 ### Claude Desktop

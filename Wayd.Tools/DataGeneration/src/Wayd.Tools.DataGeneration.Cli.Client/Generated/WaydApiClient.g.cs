@@ -15231,6 +15231,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <br/>
         /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.
         /// </remarks>
+        /// <param name="productId">A product whose allowed moves to return, excluding its current status. Omit for every status in
+        /// <br/>the workflow.</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -16014,6 +16016,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <br/>
         /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.
         /// </remarks>
+        /// <param name="productId">A product whose allowed moves to return, excluding its current status. Omit for every status in
+        /// <br/>the workflow.</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -114623,14 +114627,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class WorkflowTransitionDto
     {
 
+        /// <summary>
+        /// The transition's own id, stable while the workflow keeps the move.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The status a record moves out of.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("fromStatusId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid FromStatusId { get; set; } = default!;
 
+        /// <summary>
+        /// The status a record moves into.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("toStatusId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid ToStatusId { get; set; } = default!;

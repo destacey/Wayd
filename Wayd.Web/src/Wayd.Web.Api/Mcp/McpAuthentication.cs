@@ -6,6 +6,7 @@ using Microsoft.Net.Http.Headers;
 using ModelContextProtocol.AspNetCore.Authentication;
 using ModelContextProtocol.Authentication;
 using Wayd.Infrastructure;
+using Wayd.Infrastructure.Hosting;
 
 namespace Wayd.Web.Api.Mcp;
 
@@ -58,15 +59,10 @@ public static class McpAuthentication
         return services;
     }
 
-    /// <summary>Describes the endpoint, with Wayd's own origin as its authorization server.</summary>
-    /// <remarks>
-    /// URLs come from the request, so behind a proxy that terminates TLS they are only as right as the forwarded
-    /// headers the host has applied.
-    /// </remarks>
+    /// <summary>Describes the endpoint, with the API's <see cref="PublicUrl"/> as its authorization server.</summary>
     private static Task DescribeResource(ResourceMetadataRequestContext context)
     {
-        var request = context.HttpContext.Request;
-        var authorizationServer = $"{request.Scheme}://{request.Host.ToUriComponent()}{request.PathBase}";
+        var authorizationServer = context.HttpContext.RequestServices.GetRequiredService<PublicUrl>().For(context.HttpContext.Request);
         context.ResourceMetadata = new ProtectedResourceMetadata
         {
             Resource = authorizationServer + McpServerSetup.Path,
@@ -79,25 +75,33 @@ public static class McpAuthentication
     }
 
     /// <summary>
-    /// The SDK's MCP handler, adding <c>error="invalid_token"</c> to the challenge when the request carried a
-    /// bearer token that was refused, as RFC 6750 asks, so a client knows to refresh or reauthorize rather than
-    /// start discovery. A refused personal access token gets the plain challenge: it was not a bearer token.
+    /// The SDK's MCP handler, with the challenge rewritten to name the metadata at the API's
+    /// <see cref="PublicUrl"/> rather than at the URL the request arrived at. It adds <c>error="invalid_token"</c>
+    /// when the request carried a bearer token that was refused, as RFC 6750 asks, so a client knows to refresh
+    /// or reauthorize rather than start discovery; a refused personal access token was not a bearer token.
     /// </summary>
-    private sealed class ChallengeHandler(IOptionsMonitor<McpAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+    private sealed class ChallengeHandler(
+        IOptionsMonitor<McpAuthenticationOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        PublicUrl publicUrl)
         : McpAuthenticationHandler(options, logger, encoder)
     {
+        private readonly PublicUrl _publicUrl = publicUrl;
+
         /// <inheritdoc />
         protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
             await base.HandleChallengeAsync(properties);
 
-            var authorization = Request.Headers.Authorization.ToString();
-            if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                return;
+            var challenge = $"Bearer resource_metadata=\"{_publicUrl.For(Request)}{ResourceMetadataPath}\"";
+            if (Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                challenge += ", error=\"invalid_token\"";
 
-            var challenges = Response.Headers.WWWAuthenticate.ToArray();
-            challenges[^1] += ", error=\"invalid_token\"";
-            Response.Headers[HeaderNames.WWWAuthenticate] = challenges;
+            // Replaces rather than appends: the SDK's own value names the request's URL. Any other scheme's
+            // challenge would be lost too, which holds only while the Mcp policy scheme forwards every
+            // challenge here.
+            Response.Headers[HeaderNames.WWWAuthenticate] = challenge;
         }
     }
 }

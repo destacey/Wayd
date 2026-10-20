@@ -558,10 +558,29 @@ validator in `Wayd.Common.Application/SystemSettings/`, a query, command and act
 the store, endpoints on `SystemSettingsController` guarded by `SystemSettings.View`/`.Update`, and a page under
 **Settings → System**. `SprintMetricsSettings` is the smallest example: one value and no cross-module check.
 
+## Public URL
+
+`ApiSettings:PublicUrl` (`ApiSettings__PublicUrl` as an environment variable) is the address clients reach the API at, such as `https://api.wayd.example.com`. The MCP endpoint's OAuth challenge and protected resource metadata are built from it, because an OAuth issuer and the resource a token is bound to must be one fixed URL, whatever address or scheme a request arrived with.
+
+Unset, the API reads it from each request. That is right for local development, Aspire and `docker compose`, where the API serves HTTPS itself, and wrong behind a proxy that terminates TLS: the API sees plain HTTP, so every URL reads `http://` and MCP clients reject them. A non-Development host logs a warning at startup while it is unset.
+
+- **Azure:** `.iac/wayd/container-apps.tf` sets it from the API container app's name pattern and the environment's default domain. Change it there if the API gets a custom domain.
+- **Self-hosted behind a proxy:** set it to the origin users reach the API at. The API needs a host of its own, such as `api.wayd.example.com`, rather than a path under another site's host.
+
+It must be an HTTPS origin — scheme, host and optional port — with no path, query, fragment or credentials (HTTP is accepted only for localhost); anything else stops the host at startup. A trailing slash is ignored, and an internationalized host is published in its ASCII form. A path is refused because OAuth clients look up the well-known documents at the host's root (RFC 8414, RFC 9728), where a proxy mapping a path prefix onto the API would not send them.
+
+| Deployment | Value |
+|---|---|
+| Azure, default domain | `https://wayd-api-prod.<environment default domain>` (set by Terraform) |
+| Azure, custom domain | `https://api.wayd.example.com` |
+| Self-hosted behind a proxy | `https://wayd-api.example.com` |
+| Local, Aspire, `docker compose` | unset |
+
 ## Environment Variables
 
 | Variable                                | Purpose                                       |
 | --------------------------------------- | --------------------------------------------- |
+| `ApiSettings__PublicUrl`                | The API's public URL — see [Public URL](#public-url) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`           | OpenTelemetry collector endpoint              |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights                    |
 | `ASPNETCORE_ENVIRONMENT`                | Runtime environment (Development, Production) |

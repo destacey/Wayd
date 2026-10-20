@@ -86,6 +86,7 @@ public static class McpServerSetup
             }));
 
         app.MapMcp(Path).RequireAuthorization(McpAuthentication.Policy);
+        app.MapWaydAuthorizationServerMetadata();
 
         return app;
     }

@@ -14,17 +14,39 @@ namespace Wayd.ProductManagement.Application.Products.Queries;
 /// the lifecycle out, and re-sorting would lose that.
 /// </para>
 /// </remarks>
-public sealed record GetProductStatusOptionsQuery
-    : IQuery<IReadOnlyCollection<StatusNavigationDto>>;
+/// <param name="ProductId">
+/// A product whose allowed moves to return: the statuses its workflow lets it move to from its current
+/// status, excluding that status. Without it, every status in the workflow.
+/// </param>
+public sealed record GetProductStatusOptionsQuery(Guid? ProductId = null)
+    : IQuery<IReadOnlyCollection<StatusNavigationDto>?>;
 
-public sealed class GetProductStatusOptionsQueryHandler(IStatusResolver statusResolver)
-    : IQueryHandler<GetProductStatusOptionsQuery, IReadOnlyCollection<StatusNavigationDto>>
+public sealed class GetProductStatusOptionsQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusResolver statusResolver)
+    : IQueryHandler<GetProductStatusOptionsQuery, IReadOnlyCollection<StatusNavigationDto>?>
 {
+    private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
 
-    public async Task<IReadOnlyCollection<StatusNavigationDto>> Handle(
+    /// <returns><c>null</c> when a product was named and does not exist.</returns>
+    public async Task<IReadOnlyCollection<StatusNavigationDto>?> Handle(
         GetProductStatusOptionsQuery query, CancellationToken cancellationToken)
     {
+        Guid? currentStatusId = null;
+        if (query.ProductId is { } productId)
+        {
+            currentStatusId = await _productManagementDbContext.Products
+                .Where(p => p.Id == productId)
+                .Select(p => (Guid?)p.StatusId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (currentStatusId is null)
+            {
+                return null;
+            }
+        }
+
         var workflow = await _statusResolver.ForScope(
             ProductWorkflowOwners.Product.Key, scopeId: null, cancellationToken);
 
@@ -36,9 +58,13 @@ public sealed class GetProductStatusOptionsQueryHandler(IStatusResolver statusRe
             return [];
         }
 
+        var statuses = currentStatusId is { } fromStatusId
+            ? workflow.Value.AllowedTargets(fromStatusId)
+            : workflow.Value.Statuses;
+
         return
         [
-            .. workflow.Value.Statuses.Select(s => new StatusNavigationDto
+            .. statuses.Select(s => new StatusNavigationDto
             {
                 Id = s.Id,
                 Name = s.Name,

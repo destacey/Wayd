@@ -23,11 +23,13 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
     public async Task<StatusWorkflowDetailsDto?> Handle(
         GetStatusWorkflowQuery request, CancellationToken cancellationToken)
     {
-        // Statuses are included rather than projected: the can-do flags below are the domain's own
-        // rules, and answering "may this publish?" needs the statuses that carry the aliases.
+        // Statuses and transitions are included rather than projected: the can-do flags below are the
+        // domain's own rules, and answering "may this publish?" needs the statuses that carry the aliases
+        // and the transitions that must reach them.
         var workflow = await _dbContext.StatusWorkflows
             .AsNoTracking()
             .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
             .FirstOrDefaultAsync(request.IdOrKeyFilter, cancellationToken);
 
         if (workflow is null)
@@ -49,6 +51,8 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
         // Mirrors of the aggregate's own guards, so the editor can disable what would be refused rather
         // than let a user find out by trying. The aggregate stays the authority; these only inform.
         var canEdit = !workflow.IsSystem && workflow.State == StatusWorkflowState.Draft;
+        var transitionIssues = workflow.TransitionIssues();
+        var statusOrder = workflow.Statuses.ToDictionary(s => s.Id, s => s.Order);
 
         return new StatusWorkflowDetailsDto
         {
@@ -62,7 +66,7 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
             IsAssigned = isAssigned,
             MissingRequiredAliases = missing,
             CanEdit = canEdit,
-            CanPublish = canEdit && missing.Count == 0,
+            CanPublish = canEdit && missing.Count == 0 && transitionIssues.Count == 0,
             CanArchive = !workflow.IsSystem && workflow.State == StatusWorkflowState.Published && !isAssigned,
             Statuses =
             [
@@ -78,6 +82,22 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
                         : null,
                     Order = s.Order,
                 }),
+            ],
+            TransitionMode = workflow.TransitionMode,
+            SupportsRestrictedTransitions = workflow.SupportsRestrictedTransitions,
+            TransitionIssues = transitionIssues,
+            Transitions =
+            [
+                .. workflow.Transitions
+                    .OrderBy(t => statusOrder[t.FromStatusId])
+                    .ThenBy(t => statusOrder[t.ToStatusId])
+                    .ThenBy(t => t.Id)
+                    .Select(t => new WorkflowTransitionDto
+                    {
+                        Id = t.Id,
+                        FromStatusId = t.FromStatusId,
+                        ToStatusId = t.ToStatusId,
+                    }),
             ],
         };
     }

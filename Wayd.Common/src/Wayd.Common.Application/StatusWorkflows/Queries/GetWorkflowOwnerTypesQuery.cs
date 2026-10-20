@@ -28,6 +28,7 @@ public sealed class GetWorkflowOwnerTypesQueryHandler
                 Key = descriptor.Key,
                 DisplayName = descriptor.DisplayName,
                 RequiredAliases = [.. descriptor.RequiredAliases],
+                SupportsRestrictedTransitions = descriptor.SupportsRestrictedTransitions,
                 Aliases =
                 [
                     .. descriptor.Aliases

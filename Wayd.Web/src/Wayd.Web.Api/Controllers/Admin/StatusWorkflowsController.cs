@@ -216,4 +216,38 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
     }
 
     #endregion Statuses
+
+    #region Transitions
+
+    [HttpPut("{id}/transition-mode")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
+    [EndpointSummary("Allow any move in a draft status workflow, or only its transitions.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetTransitionMode(Guid id, [FromBody] SetWorkflowTransitionModeRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetWorkflowTransitionModeCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/transitions")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
+    [EndpointSummary("Replace the moves a draft status workflow allows.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetTransitions(Guid id, [FromBody] SetWorkflowTransitionsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetWorkflowTransitionsCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    #endregion Transitions
 }

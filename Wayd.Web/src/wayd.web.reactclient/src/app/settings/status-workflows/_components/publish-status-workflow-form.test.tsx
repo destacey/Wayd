@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StatusWorkflowDetailsDto } from '@/src/services/wayd-api'
+import {
+  StatusWorkflowDetailsDto,
+  TransitionMode,
+} from '@/src/services/wayd-api'
 import PublishStatusWorkflowForm from './publish-status-workflow-form'
 
 const publishStatusWorkflow = jest.fn()
@@ -42,6 +45,10 @@ const workflow = (
   isAssigned: false,
   statuses: [],
   missingRequiredAliases: [],
+  transitionMode: TransitionMode.AnyToAny,
+  transitions: [],
+  supportsRestrictedTransitions: false,
+  transitionIssues: [],
   canEdit: true,
   canPublish: true,
   canArchive: false,

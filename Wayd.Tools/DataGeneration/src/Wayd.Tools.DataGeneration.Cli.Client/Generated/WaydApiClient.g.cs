@@ -15227,11 +15227,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.
         /// </summary>
         /// <remarks>
-        /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused. The same list serves every product, so one call covers them all.
+        /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.
+        /// <br/>
+        /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -15325,7 +15327,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.
         /// <br/>
-        /// <br/>Any status in the product workflow is reachable from any other; there is no transition graph. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
+        /// <br/>The workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -16008,11 +16010,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.
         /// </summary>
         /// <remarks>
-        /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused. The same list serves every product, so one call covers them all.
+        /// **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.
+        /// <br/>
+        /// <br/>Pass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusNavigationDto>> GetStatusOptionsAsync(System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -16027,6 +16031,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
                     // Operation Path: "api/product-management/products/status-options"
                     urlBuilder_.Append("api/product-management/products/status-options");
+                    urlBuilder_.Append('?');
+                    if (productId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("productId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(productId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -16059,6 +16069,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -16855,7 +16875,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.
         /// <br/>
-        /// <br/>Any status in the product workflow is reachable from any other; there is no transition graph. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
+        /// <br/>The workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -86314,6 +86334,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ReorderStatusesAsync(System.Guid id, ReorderWorkflowStatusesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Allow any move in a draft status workflow, or only its transitions.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetTransitionModeAsync(System.Guid id, SetWorkflowTransitionModeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Replace the moves a draft status workflow allows.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetTransitionsAsync(System.Guid id, SetWorkflowTransitionsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -87627,6 +87663,206 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("api/status-workflows/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/statuses/reorder");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Allow any move in a draft status workflow, or only its transitions.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetTransitionModeAsync(System.Guid id, SetWorkflowTransitionModeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/status-workflows/{id}/transition-mode"
+                    urlBuilder_.Append("api/status-workflows/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/transition-mode");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Replace the moves a draft status workflow allows.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetTransitionsAsync(System.Guid id, SetWorkflowTransitionsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/status-workflows/{id}/transitions"
+                    urlBuilder_.Append("api/status-workflows/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/transitions");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -105263,6 +105499,39 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A request to let a draft workflow's records move between any statuses, or only along its transitions.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetWorkflowTransitionModeRequest
+    {
+
+        /// <summary>
+        /// `AnyToAny` to allow every move, or `Restricted` to allow only the workflow's transitions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TransitionMode>))]
+        public TransitionMode Mode { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A request to replace the moves a draft workflow allows.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetWorkflowTransitionsRequest
+    {
+
+        /// <summary>
+        /// Every move the workflow should allow. Moves not listed are removed; an empty list removes them all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("transitions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkflowTransitionRequest> Transitions { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowTransitionRequest>();
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SimpleNavigationDto
     {
@@ -107040,6 +107309,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("statuses")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowStatusDto> Statuses { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowStatusDto>();
+
+        /// <summary>
+        /// Whether records may move between any two statuses, or only along IReadOnlyCollection&amp;lt;WorkflowTransitionDto&amp;gt; StatusWorkflowDetailsDto.Transitions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("transitionMode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TransitionMode>))]
+        public TransitionMode TransitionMode { get; set; } = default!;
+
+        /// <summary>
+        /// The moves this workflow allows, ordered by their from and then their to status's position.
+        /// <br/>Enforced only when TransitionMode StatusWorkflowDetailsDto.TransitionMode is restricted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("transitions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkflowTransitionDto> Transitions { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowTransitionDto>();
+
+        /// <summary>
+        /// Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
+        /// <br/>an owner type that cannot is refused at publish.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("supportsRestrictedTransitions")]
+        public bool SupportsRestrictedTransitions { get; set; } = default!;
+
+        /// <summary>
+        /// Why the transitions stop this workflow being published, one sentence per problem, each naming
+        /// <br/>the status at fault. Empty when the workflow allows any move.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("transitionIssues")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> TransitionIssues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
         /// The required aliases this workflow does not yet carry, named rather than numbered.
@@ -110631,6 +110931,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("mustChangePassword")]
         public bool MustChangePassword { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TransitionMode
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"AnyToAny")]
+        AnyToAny = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Restricted")]
+        Restricted = 1,
 
     }
 
@@ -114230,6 +114542,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<int> RequiredAliases { get; set; } = new System.Collections.ObjectModel.Collection<int>();
 
+        /// <summary>
+        /// Whether a workflow for this owner type may restrict which moves its records make.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("supportsRestrictedTransitions")]
+        public bool SupportsRestrictedTransitions { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -114295,6 +114613,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A move a workflow allows, from one of its statuses to another.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowTransitionDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("fromStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid FromStatusId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("toStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid ToStatusId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One move a workflow allows, between two of its statuses.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowTransitionRequest
+    {
+
+        /// <summary>
+        /// The status a record moves out of.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fromStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid FromStatusId { get; set; } = default!;
+
+        /// <summary>
+        /// The status a record moves into.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("toStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid ToStatusId { get; set; } = default!;
 
     }
 

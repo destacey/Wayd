@@ -70,7 +70,7 @@ is what makes a refusal say which rule refused.
 | --- | --- |
 | `Products_Retype` | The product has versions and the new type is not releasable, or the new type is inactive |
 | `Products_Reparent` | The new parent is the product itself or one of its descendants, or the move would put two products with an open dependency above and below one another (end the dependency first) |
-| `Products_ChangeStatus` | The status id does not come from `Products_GetStatusOptions` |
+| `Products_ChangeStatus` | The status id does not come from `Products_GetStatusOptions`, or the workflow does not allow the move from the product's current status |
 | `Products_Delete` | See [reference/deleting-a-product.md](reference/deleting-a-product.md) |
 
 ---
@@ -94,7 +94,10 @@ status instead. Before deleting, read [reference/deleting-a-product.md](referenc
 ## Statuses and history
 
 `Products_ChangeStatus` takes a status id from `Products_GetStatusOptions`. Statuses are
-per-organization, one list serves every product, and any status is reachable from any other.
+per-organization, and the workflow may restrict which status can move to which: a move it does not
+allow is refused, naming both statuses. Pass the product's id as `productId` to
+`Products_GetStatusOptions` to get only the moves allowed from its current status, and offer the user
+those; without it you get every status in the workflow.
 
 For what changed on a product, `Products_GetStatusHistory` covers status moves and
 `Products_GetActivities` covers everything else — details, type, parent, tags, external link. Each

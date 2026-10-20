@@ -16,6 +16,7 @@ using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Infrastructure.ConnectorModules;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
+using Wayd.Infrastructure.Hosting;
 using Wayd.Infrastructure.Logging;
 using Wayd.Infrastructure.OpenTelemetry;
 using Wayd.Infrastructure.Persistence.Context;
@@ -130,6 +131,9 @@ public static class ConfigureServices
         }
         services.AddScoped<IPokerSessionNotifier, PlanningPokerNotifier>();
         services.AddScoped<IStoryMapNotifier, StoryMapNotifier>();
+
+        // Read on first resolution rather than here, so a test host's configuration overrides reach it.
+        services.AddSingleton(sp => PublicUrl.From(sp.GetRequiredService<IConfiguration>()));
 
         return services
             .AddApiVersioning()

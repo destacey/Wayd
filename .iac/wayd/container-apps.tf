@@ -163,6 +163,14 @@ resource "azurerm_container_app" "wayd_backend" {
       }
 
       env {
+        name = "ApiSettings__PublicUrl"
+        # Ingress terminates TLS, so the API sees plain HTTP and cannot work out its own public
+        # address. Computed from the name pattern of this container app, which cannot reference
+        # its own ingress FQDN.
+        value = "https://${var.project}-api-${var.environment}.${azurerm_container_app_environment.wayd_cae.default_domain}"
+      }
+
+      env {
         name        = "DatabaseSettings__ConnectionString"
         secret_name = "sql-conn-string"
       }

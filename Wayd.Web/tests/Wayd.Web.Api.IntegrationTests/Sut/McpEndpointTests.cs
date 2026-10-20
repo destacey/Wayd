@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -168,6 +169,31 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.Equal([origin], metadata.GetProperty("authorization_servers").EnumerateArray().Select(s => s.GetString()));
         Assert.Equal(["header"], metadata.GetProperty("bearer_methods_supported").EnumerateArray().Select(s => s.GetString()));
         Assert.Equal("Wayd", metadata.GetProperty("resource_name").GetString());
+    }
+
+    [Fact]
+    public async Task ChallengeAndResourceMetadata_UseTheConfiguredPublicUrl_NotTheRequestsUrl()
+    {
+        // Arrange — the API behind a TLS-terminating proxy sees plain HTTP on an internal address
+        await SetFlag(true);
+        using var behindProxy = WithPublicUrl("https://api.wayd.example.com/");
+        var client = behindProxy.CreateClient();
+        using var invalidBearer = new HttpRequestMessage(HttpMethod.Post, McpServerSetup.Path) { Content = JsonContent.Create(new { }) };
+        invalidBearer.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "not-a-real-token");
+
+        // Act
+        var refused = await client.PostAsync(McpServerSetup.Path, JsonContent.Create(new { }), TestContext.Current.CancellationToken);
+        var refusedToken = await client.SendAsync(invalidBearer, TestContext.Current.CancellationToken);
+        var metadataResponse = await client.GetAsync("/.well-known/oauth-protected-resource/mcp", TestContext.Current.CancellationToken);
+
+        // Assert
+        const string expected = "resource_metadata=\"https://api.wayd.example.com/.well-known/oauth-protected-resource/mcp\"";
+        Assert.Equal(expected, Assert.Single(refused.Headers.WwwAuthenticate).Parameter);
+        Assert.Equal($"{expected}, error=\"invalid_token\"", Assert.Single(refusedToken.Headers.WwwAuthenticate).Parameter);
+        Assert.Equal(HttpStatusCode.OK, metadataResponse.StatusCode);
+        var metadata = await metadataResponse.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        Assert.Equal("https://api.wayd.example.com/mcp", metadata.GetProperty("resource").GetString());
+        Assert.Equal(["https://api.wayd.example.com"], metadata.GetProperty("authorization_servers").EnumerateArray().Select(s => s.GetString()));
     }
 
     [Fact]
@@ -629,6 +655,12 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     /// <summary>The <c>resource_metadata</c> parameter every challenge from the endpoint carries, written out rather than read from the API's constants.</summary>
     private string ResourceMetadataParameter() =>
         $"resource_metadata=\"{_factory.Server.BaseAddress.GetLeftPart(UriPartial.Authority)}/.well-known/oauth-protected-resource/mcp\"";
+
+    /// <summary>A host over the same database whose <c>ApiSettings:PublicUrl</c> is <paramref name="publicUrl"/>.</summary>
+    private Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> WithPublicUrl(string publicUrl) =>
+        _factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
+                [new KeyValuePair<string, string?>("ApiSettings:PublicUrl", publicUrl)])));
 
     private static string TextOf(CallToolResult result) => Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text;
 

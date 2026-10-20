@@ -1,6 +1,7 @@
 using System.Reflection;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Wayd.Infrastructure.Hosting;
 using Wayd.Common.Domain.FeatureManagement;
 
 namespace Wayd.Web.Api.Mcp;
@@ -59,6 +60,15 @@ public static class McpServerSetup
     /// </summary>
     public static WebApplication MapWaydMcp(this WebApplication app)
     {
+        // Resolved here so a malformed value stops the host at startup rather than on the first MCP request.
+        if (!app.Services.GetRequiredService<PublicUrl>().IsConfigured && !app.Environment.IsDevelopment())
+        {
+            app.Logger.LogWarning(
+                "{Setting} is not set, so the MCP endpoint's OAuth metadata takes the API's URL from each request. "
+                + "Behind a proxy that terminates TLS those URLs read http:// and MCP clients will reject them.",
+                PublicUrl.ConfigurationKey);
+        }
+
         app.UseWhen(
             context => context.Request.Path.StartsWithSegments(Path),
             branch => branch.Use(async (context, next) =>

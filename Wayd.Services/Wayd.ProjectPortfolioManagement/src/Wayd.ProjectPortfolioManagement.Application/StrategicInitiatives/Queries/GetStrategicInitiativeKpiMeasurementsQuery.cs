@@ -46,6 +46,8 @@ public sealed class GetStrategicInitiativeKpiMeasurementsQueryHandler(IProjectPo
             .SelectMany(k => k.Measurements)
             .ProjectToType<StrategicInitiativeKpiMeasurementDto>()
             .OrderByDescending(m => m.MeasurementDate)
+            // Id last, so an MCP caller's offset slices the same list on every call.
+            .ThenBy(m => m.Id)
             .ToListAsync(cancellationToken);
     }
 }

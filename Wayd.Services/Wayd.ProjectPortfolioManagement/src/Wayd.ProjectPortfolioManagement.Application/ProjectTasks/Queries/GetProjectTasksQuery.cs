@@ -43,7 +43,10 @@ public sealed class GetProjectTasksQueryHandler(IProjectPortfolioManagementDbCon
             query = query.Where(t => t.ParentId == request.ParentId.Value);
         }
 
+        // Stable, so an MCP caller's offset slices the same list on every call.
         return await query
+            .OrderBy(t => t.Order)
+            .ThenBy(t => t.Id)
             .ProjectToType<ProjectTaskListDto>()
             .ToListAsync(cancellationToken);
     }

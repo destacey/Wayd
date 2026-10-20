@@ -16,6 +16,9 @@ public sealed class GetProjectWorkItemsQueryHandler(IWorkDbContext workDbContext
         return await _workDbContext.WorkItems
             .Where(i => (i.ProjectId != null && i.ProjectId == request.ProjectId)
                 || (i.ProjectId == null && i.ParentProjectId != null && i.ParentProjectId == request.ProjectId))
+            // Stable, so an MCP caller's offset slices the same list on every call.
+            .OrderBy(i => i.StackRank)
+            .ThenBy(i => i.Id)
             .ProjectToType<WorkItemListDto>()
             .ToListAsync(cancellationToken);
     }

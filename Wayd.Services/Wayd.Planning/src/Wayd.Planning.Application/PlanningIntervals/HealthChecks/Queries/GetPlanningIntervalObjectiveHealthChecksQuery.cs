@@ -27,6 +27,8 @@ public sealed class GetPlanningIntervalObjectiveHealthChecksQueryHandler(IPlanni
             .AsNoTracking()
             .Where(h => h.PlanningIntervalObjectiveId == request.PlanningIntervalObjectiveId)
             .OrderByDescending(h => h.ReportedOn)
+            // Id last, so an MCP caller's offset slices the same list on every call.
+            .ThenBy(h => h.Id)
             .ProjectToType<PlanningIntervalObjectiveHealthCheckDetailsDto>()
             .ToListAsync(cancellationToken);
 

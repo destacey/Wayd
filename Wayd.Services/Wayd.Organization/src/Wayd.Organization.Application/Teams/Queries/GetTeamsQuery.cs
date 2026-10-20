@@ -37,7 +37,9 @@ public sealed class GetTeamsQueryHandler(
         var today = _dateTimeProvider.Today;
         var cfg = TeamListDto.CreateTypeAdapterConfig(today);
 
+        // Stable, so an MCP caller's offset slices the same list on every call.
         return await query
+            .OrderBy(t => t.Key)
             .ProjectToType<TeamListDto>(cfg)
             .ToListAsync(cancellationToken);
     }

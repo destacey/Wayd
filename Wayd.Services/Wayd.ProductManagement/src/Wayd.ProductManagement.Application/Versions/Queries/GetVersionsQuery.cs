@@ -49,6 +49,8 @@ public sealed class GetVersionsQueryHandler(IProductManagementDbContext productM
         return await (query.ProductId is not null
                 ? ordered.ThenByDescending(r => r.Sequence)
                 : ordered)
+            // Key last, so an MCP caller's offset slices the same list on every call.
+            .ThenByDescending(r => r.Key)
             .ToListAsync(cancellationToken);
     }
 

@@ -39,6 +39,9 @@ public sealed class GetStrategicInitiativeProjectsQueryHandler(IProjectPortfolio
             now, await _currentPrincipal.GetEmployeeId(cancellationToken), isPpmAdministrator);
         return await query
             .SelectMany(i => i.StrategicInitiativeProjects.Select(ip => ip.Project))
+            // Key last, so an MCP caller's offset slices the same list on every call.
+            .OrderBy(p => p.Name)
+            .ThenBy(p => p.Key)
             .ProjectToType<ProjectListDto>(config)
             .ToListAsync(cancellationToken);
     }

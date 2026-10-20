@@ -63,8 +63,10 @@ public sealed class GetRisksByPlanningIntervalQueryHandler(IPlanningDbContext pl
             query = query.Where(r => r.Status != RiskStatus.Closed);
         }
 
+        // Stable, so an MCP caller's offset slices the same list on every call.
         var risks = await query
             .AsNoTracking()
+            .OrderBy(r => r.Key)
             .ToListAsync(cancellationToken);
 
         return risks.Adapt<IReadOnlyList<RiskListDto>>();

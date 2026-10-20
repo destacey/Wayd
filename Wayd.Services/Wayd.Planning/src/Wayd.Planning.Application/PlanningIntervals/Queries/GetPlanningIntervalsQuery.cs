@@ -17,7 +17,9 @@ public sealed class GetPlanningIntervalsQueryHandler : IQueryHandler<GetPlanning
 
     public async Task<IReadOnlyList<PlanningIntervalListDto>> Handle(GetPlanningIntervalsQuery request, CancellationToken cancellationToken)
     {
+        // Stable, so an MCP caller's offset slices the same list on every call.
         return await _planningDbContext.PlanningIntervals
+            .OrderBy(p => p.Key)
             .Select(p => PlanningIntervalListDto.Create(p, _dateTimeProvider))
             .ToListAsync(cancellationToken);
     }

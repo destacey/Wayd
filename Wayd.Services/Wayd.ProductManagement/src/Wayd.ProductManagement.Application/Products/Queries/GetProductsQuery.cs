@@ -58,6 +58,8 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
             .ProjectToType<ProductDto>(
                 ProductDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .OrderBy(p => p.Name)
+            // Key last, so an MCP caller's offset slices the same list on every call.
+            .ThenBy(p => p.Key)
             .ToListAsync(cancellationToken);
     }
 }

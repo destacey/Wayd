@@ -27,3 +27,12 @@ public sealed record WorkflowStatusValues(
     StatusCategory Category,
     int Alias,
     int Order);
+
+/// <summary>
+/// One move a workflow allows, as carried by <see cref="WorkflowTransitionsChangedEvent"/> and
+/// <see cref="WorkflowCreatedEvent"/>.
+/// </summary>
+public sealed record WorkflowTransitionValues(
+    Guid TransitionId,
+    Guid FromStatusId,
+    Guid ToStatusId);

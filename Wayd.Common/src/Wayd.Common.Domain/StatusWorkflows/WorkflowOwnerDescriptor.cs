@@ -40,16 +40,22 @@ public sealed class WorkflowOwnerDescriptor
     /// The subset of <paramref name="aliases"/> this owner type's aggregates resolve by alias, and
     /// therefore cannot function without. A workflow missing any of them is refused at activation.
     /// </param>
+    /// <param name="supportsRestrictedTransitions">
+    /// Whether this owner type's records may be governed by a restricted transition set. Declare it only
+    /// when every way the aggregate changes status can honour an arbitrary set of allowed moves.
+    /// </param>
     public WorkflowOwnerDescriptor(
         string key,
         string displayName,
         IReadOnlyDictionary<int, string> aliases,
-        IReadOnlyCollection<int> requiredAliases)
+        IReadOnlyCollection<int> requiredAliases,
+        bool supportsRestrictedTransitions = false)
     {
         Key = Guard.Against.NullOrWhiteSpace(key, nameof(key)).Trim();
         DisplayName = Guard.Against.NullOrWhiteSpace(displayName, nameof(displayName)).Trim();
         Guard.Against.Null(aliases, nameof(aliases));
         RequiredAliases = Guard.Against.Null(requiredAliases, nameof(requiredAliases));
+        SupportsRestrictedTransitions = supportsRestrictedTransitions;
 
         if (aliases.ContainsKey(StatusWorkflow.NoAlias))
         {
@@ -112,6 +118,16 @@ public sealed class WorkflowOwnerDescriptor
     /// would otherwise fail later, inside a domain method, on a record an administrator already created.
     /// </remarks>
     public IReadOnlyCollection<int> RequiredAliases { get; }
+
+    /// <summary>
+    /// Whether a workflow for this owner type may restrict which moves its records make.
+    /// </summary>
+    /// <remarks>
+    /// Off by default because an aggregate that moves through named methods with their own domain rules
+    /// (cut, release, roll back) could be contradicted by a custom transition set. A restricted workflow
+    /// for an owner type without it is refused at publish, and its transitions are never enforced.
+    /// </remarks>
+    public bool SupportsRestrictedTransitions { get; }
 
     /// <summary>
     /// Names an alias, falling back to the raw value when it is not one this owner type declares.

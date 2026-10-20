@@ -19,7 +19,11 @@ public sealed class StatusWorkflowTests
         "test.widget",
         "Widget",
         new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
-        [NotableAlias, TerminalAlias]);
+        [NotableAlias, TerminalAlias],
+        supportsRestrictedTransitions: true);
+
+    // An owner type whose records cannot be held to a restricted transition set, as delivery records are.
+    private static readonly WorkflowOwnerDescriptor Locked = new("test.locked", "Locked", new Dictionary<int, string>(), []);
 
     public StatusWorkflowTests() => WorkflowOwners.Register(Widget);
 
@@ -873,4 +877,455 @@ public sealed class StatusWorkflowTests
     }
 
     #endregion Domain Events
+
+    #region Transitions
+
+    // A widget workflow laid out as a line: Proposed → Notable → Terminal.
+    private static StatusWorkflow RestrictedWidgetWorkflow()
+    {
+        var workflow = WidgetWorkflow();
+        workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
+        workflow.SetTransitions([Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal")], EventActor.System, At);
+
+        return workflow;
+    }
+
+    private static Guid StatusId(StatusWorkflow workflow, string name) => workflow.Statuses.Single(s => s.Name == name).Id;
+
+    private static (Guid, Guid) Move(StatusWorkflow workflow, string from, string to) => (StatusId(workflow, from), StatusId(workflow, to));
+
+    private static IEnumerable<(string From, string To)> Moves(StatusWorkflow workflow) =>
+        workflow.Transitions.Select(t => (
+            workflow.Statuses.Single(s => s.Id == t.FromStatusId).Name,
+            workflow.Statuses.Single(s => s.Id == t.ToStatusId).Name));
+
+    private static StatusWorkflow InState(StatusWorkflow workflow, StatusWorkflowState state)
+    {
+        if (state != StatusWorkflowState.Draft)
+            workflow.Publish(EventActor.System, At).IsSuccess.Should().BeTrue();
+
+        if (state == StatusWorkflowState.Archived)
+            workflow.Archive(isAssigned: false, EventActor.System, At).IsSuccess.Should().BeTrue();
+
+        return workflow;
+    }
+
+    [Fact]
+    public void Create_ShouldAllowAnyMove()
+    {
+        // Arrange & Act
+        var workflow = WidgetWorkflow();
+
+        // Assert
+        workflow.TransitionMode.Should().Be(TransitionMode.AnyToAny);
+        workflow.Transitions.Should().BeEmpty();
+        workflow.AllowedFrom(StatusId(workflow, "Terminal")).Should().BeNull();
+    }
+
+    [Fact]
+    public void SetTransitionMode_ShouldRestrictTheWorkflow_AndRaiseTheChange()
+    {
+        // Arrange
+        var workflow = Saved(WidgetWorkflow());
+
+        // Act
+        var result = workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.TransitionMode.Should().Be(TransitionMode.Restricted);
+
+        var raised = workflow.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowTransitionModeChangedEvent>().Subject;
+        raised.Key.Should().Be(7);
+        raised.FromMode.Should().Be(TransitionMode.AnyToAny);
+        raised.ToMode.Should().Be(TransitionMode.Restricted);
+    }
+
+    [Fact]
+    public void SetTransitionMode_RaisesNothing_WhenTheModeIsUnchanged()
+    {
+        // Arrange
+        var workflow = Saved(WidgetWorkflow());
+
+        // Act
+        var result = workflow.SetTransitionMode(TransitionMode.AnyToAny, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(StatusWorkflowState.Published)]
+    [InlineData(StatusWorkflowState.Archived)]
+    public void SetTransitionMode_ShouldFail_OnceTheWorkflowIsNoLongerADraft(StatusWorkflowState state)
+    {
+        // Arrange
+        var workflow = InState(WidgetWorkflow(), state);
+
+        // Act
+        var result = workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only draft workflows can be restructured.");
+        workflow.TransitionMode.Should().Be(TransitionMode.AnyToAny);
+    }
+
+    [Fact]
+    public void SetTransitionMode_ShouldFail_OnASystemWorkflow()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.CreateSystem("Default Widget Workflow", null, Widget.Key, EventActor.System, At).Value;
+
+        // Act
+        var result = workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("System workflows cannot be modified. Clone this workflow to change it.");
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldReplaceTheSet_KeepingTheIdentityOfMovesItKept()
+    {
+        // Arrange
+        var workflow = Saved(RestrictedWidgetWorkflow());
+        var kept = workflow.Transitions.Single(t => t.FromStatusId == StatusId(workflow, "Proposed"));
+        var dropped = workflow.Transitions.Single(t => t.FromStatusId == StatusId(workflow, "Notable"));
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Proposed", "Terminal")], EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        Moves(workflow).Should().BeEquivalentTo([("Proposed", "Notable"), ("Proposed", "Terminal")]);
+        workflow.Transitions.Should().Contain(kept, "a kept move keeps its id, so anything attached to it survives");
+
+        var added = workflow.Transitions.Single(t => t.ToStatusId == StatusId(workflow, "Terminal"));
+        var raised = workflow.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowTransitionsChangedEvent>().Subject;
+        raised.Added.Should().Equal(new WorkflowTransitionValues(added.Id, added.FromStatusId, added.ToStatusId));
+        raised.Removed.Should().Equal(new WorkflowTransitionValues(dropped.Id, dropped.FromStatusId, dropped.ToStatusId));
+        raised.Transitions.Select(t => t.TransitionId).Should().BeEquivalentTo([kept.Id, added.Id]);
+    }
+
+    [Fact]
+    public void SetTransitions_RaisesNothing_WhenTheSetIsUnchanged()
+    {
+        // Arrange
+        var workflow = Saved(RestrictedWidgetWorkflow());
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Notable", "Terminal"), Move(workflow, "Proposed", "Notable")], EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldFail_WhenAStatusIsNotInTheWorkflow()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var result = workflow.SetTransitions([(StatusId(workflow, "Proposed"), Guid.NewGuid())], EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Every transition must be between statuses in this workflow.");
+        workflow.Transitions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldFail_ForAMoveToTheSameStatus()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var result = workflow.SetTransitions([Move(workflow, "Notable", "Notable")], EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Notable' cannot have a transition to itself.");
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldFail_WhenAMoveIsListedTwice()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Proposed", "Notable")], EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The same transition is listed more than once.");
+        workflow.Transitions.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(StatusWorkflowState.Published)]
+    [InlineData(StatusWorkflowState.Archived)]
+    public void SetTransitions_ShouldFail_OnceTheWorkflowIsNoLongerADraft(StatusWorkflowState state)
+    {
+        // Arrange
+        var workflow = InState(RestrictedWidgetWorkflow(), state);
+
+        // Act
+        var result = workflow.SetTransitions([Move(workflow, "Proposed", "Terminal")], EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only draft workflows can be restructured.");
+        Moves(workflow).Should().BeEquivalentTo([("Proposed", "Notable"), ("Notable", "Terminal")]);
+    }
+
+    [Fact]
+    public void RemoveStatus_ShouldRemoveItsTransitions_AndRecordThem()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Terminal"), Move(workflow, "Proposed", "Terminal")],
+            EventActor.System, At);
+        Saved(workflow);
+        var notable = StatusId(workflow, "Notable");
+
+        // Act
+        var result = workflow.RemoveStatus(notable, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        Moves(workflow).Should().BeEquivalentTo([("Proposed", "Terminal")]);
+
+        var raised = workflow.DomainEvents.OfType<WorkflowTransitionsChangedEvent>().Should().ContainSingle().Subject;
+        raised.Added.Should().BeEmpty();
+        raised.Removed.Should().HaveCount(2).And.OnlyContain(t => t.FromStatusId == notable || t.ToStatusId == notable);
+        raised.Transitions.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void RemoveStatus_RaisesNoTransitionChange_WhenTheStatusHadNone()
+    {
+        // Arrange
+        var workflow = Saved(RestrictedWidgetWorkflow());
+        workflow.AddStatus("Parked", null, StatusCategory.Removed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.ClearDomainEvents();
+
+        // Act
+        workflow.RemoveStatus(StatusId(workflow, "Parked"), EventActor.System, At);
+
+        // Assert
+        workflow.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowStatusRemovedEvent>();
+        workflow.Transitions.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Clone_ShouldCopyTheModeAndTransitionsOntoTheCloneStatuses()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+
+        // Act
+        var clone = workflow.Clone("Our Widget Workflow", null, EventActor.System, At);
+
+        // Assert
+        clone.TransitionMode.Should().Be(TransitionMode.Restricted);
+        Moves(clone).Should().BeEquivalentTo(Moves(workflow));
+        clone.Transitions.Should().OnlyContain(t => t.WorkflowId == clone.Id);
+
+        var cloneStatusIds = clone.Statuses.Select(s => s.Id).ToList();
+        clone.Transitions.Should().OnlyContain(t => cloneStatusIds.Contains(t.FromStatusId) && cloneStatusIds.Contains(t.ToStatusId));
+        clone.Transitions.Select(t => t.Id).Should().NotIntersectWith(workflow.Transitions.Select(t => t.Id));
+    }
+
+    [Fact]
+    public void Clone_RaisesCreated_CarryingTheModeAndTransitions()
+    {
+        // Arrange
+        var source = Saved(RestrictedWidgetWorkflow());
+
+        // Act
+        var clone = source.Clone("Widget Workflow v2", null, EventActor.System, At);
+
+        // Assert
+        clone.SetPrivate(w => w.Key, 8);
+        clone.ExecutePostPersistenceActions();
+
+        var created = clone.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowCreatedEvent>().Subject;
+        created.TransitionMode.Should().Be(TransitionMode.Restricted);
+        created.Transitions.Select(t => t.TransitionId).Should().BeEquivalentTo(clone.Transitions.Select(t => t.Id));
+    }
+
+    [Fact]
+    public void Publish_ShouldSucceed_ForARestrictedWorkflowEveryStatusCanReachAndLeave()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        workflow.State.Should().Be(StatusWorkflowState.Published);
+    }
+
+    [Fact]
+    public void Publish_ShouldFail_WhenAStatusCannotBeReached()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions([Move(workflow, "Proposed", "Notable"), Move(workflow, "Notable", "Proposed")], EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Terminal' cannot be reached from 'Proposed', the initial status.");
+        workflow.State.Should().Be(StatusWorkflowState.Draft);
+    }
+
+    [Fact]
+    public void Publish_ShouldFail_WhenAnActiveStatusHasNoWayOut()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        workflow.SetTransitions([Move(workflow, "Proposed", "Notable"), Move(workflow, "Proposed", "Terminal")], EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Notable' has no transition out of it, so a record that reaches it could not move on.");
+    }
+
+    [Fact]
+    public void Publish_ShouldSucceed_ForAnAnyToAnyWorkflowWithNoTransitions()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.TransitionIssues().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Publish_ShouldFail_ForARestrictedWorkflowWhoseOwnerTypeCannotRestrictTransitions()
+    {
+        // Arrange
+        WorkflowOwners.Register(Locked);
+        var workflow = StatusWorkflow.Create("Locked Workflow", null, Locked.Key, EventActor.System, At).Value;
+        workflow.AddStatus("Open", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.AddStatus("Closed", null, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
+        workflow.SetTransitions([Move(workflow, "Open", "Closed")], EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Locked workflows cannot restrict transitions. Allow any move to publish this workflow.");
+        workflow.EnforcesTransitions.Should().BeFalse();
+        workflow.AllowedFrom(StatusId(workflow, "Closed")).Should().BeNull("an owner type that cannot restrict is never enforced");
+    }
+
+    [Fact]
+    public void AllowedFrom_ShouldBeTheStatusesWithAMoveIntoTheTarget_WhenRestricted()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+
+        // Act
+        var allowedFrom = workflow.AllowedFrom(StatusId(workflow, "Terminal"));
+
+        // Assert
+        allowedFrom.Should().BeEquivalentTo([StatusId(workflow, "Notable")]);
+        workflow.AllowedFrom(StatusId(workflow, "Proposed")).Should().BeEmpty("nothing moves into the initial status");
+    }
+
+    [Fact]
+    public void AllowedTargets_ShouldBeTheMovesOutOfTheStatus_WhenRestricted()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+
+        // Act
+        var targets = workflow.AllowedTargets(StatusId(workflow, "Proposed"));
+
+        // Assert
+        targets.Select(s => s.Name).Should().Equal("Notable");
+    }
+
+    [Fact]
+    public void AllowedTargets_ShouldBeEveryOtherStatusInOrder_WhenAnyMoveIsAllowed()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var targets = workflow.AllowedTargets(StatusId(workflow, "Notable"));
+
+        // Assert
+        targets.Select(s => s.Name).Should().Equal("Proposed", "Terminal");
+    }
+
+    [Fact]
+    public void TargetRef_ShouldCarryTheStatusesAMoveIsAllowedFrom()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+        var terminal = workflow.Statuses.Single(s => s.Name == "Terminal");
+
+        // Act
+        var target = workflow.TargetRef(terminal.Id);
+
+        // Assert
+        target.Should().NotBeNull();
+        target!.StatusId.Should().Be(terminal.Id);
+        target.Alias.Should().Be(TerminalAlias);
+        target.AllowedFrom.Should().BeEquivalentTo([StatusId(workflow, "Notable")]);
+    }
+
+    [Fact]
+    public void TargetRef_ShouldAllowAnyMove_WhenTheWorkflowAllowsAny()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var target = workflow.TargetRef(StatusId(workflow, "Terminal"));
+
+        // Assert
+        target!.AllowedFrom.Should().BeNull();
+    }
+
+    [Fact]
+    public void TargetRef_ShouldBeNull_ForAStatusOutsideTheWorkflow()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+
+        // Act
+        var target = workflow.TargetRef(Guid.NewGuid());
+
+        // Assert
+        target.Should().BeNull();
+    }
+
+    #endregion Transitions
 }

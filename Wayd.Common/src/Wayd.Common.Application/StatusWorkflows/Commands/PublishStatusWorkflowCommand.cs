@@ -29,9 +29,11 @@ public sealed class PublishStatusWorkflowCommandHandler(
         {
             // Statuses must be included: Publish checks that every required alias is carried by one of
             // them, and an unloaded collection reads as "no status carries any alias" — so a workflow
-            // that genuinely has them would be refused.
+            // that genuinely has them would be refused. Transitions likewise: a restricted workflow is
+            // refused unless every status is reachable, which an unloaded set never is.
             var workflow = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
+                .Include(w => w.Transitions)
                 .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
 
             if (workflow is null)

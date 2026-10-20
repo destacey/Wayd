@@ -58,8 +58,24 @@ public sealed record StatusRef
     public int Alias { get; }
 
     /// <summary>
-    /// Builds a reference from a workflow status.
+    /// The statuses a record may move into this one from, or <c>null</c> when any move is allowed.
     /// </summary>
+    /// <remarks>
+    /// Set by the workflow that resolved the target (<see cref="StatusWorkflow.TargetRef"/>), so the
+    /// record can refuse a move its workflow does not allow without loading the workflow — the same
+    /// reason the category and alias travel here. Never stored: it describes the workflow at the moment
+    /// of the move, not the record.
+    /// </remarks>
+    public IReadOnlySet<Guid>? AllowedFrom { get; init; }
+
+    /// <summary>
+    /// Builds a reference from a workflow status, with no transition restriction.
+    /// </summary>
+    /// <remarks>
+    /// For a move that is exempt from the workflow's transitions — a record's initial status, or a remap
+    /// onto another workflow. A move between statuses goes through <see cref="StatusWorkflow.TargetRef"/>
+    /// so the workflow's restrictions travel with it.
+    /// </remarks>
     public static StatusRef From(WorkflowStatus status)
     {
         Guard.Against.Null(status, nameof(status));

@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
 
@@ -12,8 +13,8 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// </remarks>
 public sealed record WorkflowBaselinedEvent : BaselineEvent<WorkflowBaselinedEvent, WorkflowCreatedEvent>
 {
-    public WorkflowBaselinedEvent(Guid id, int key, string name, string? description, string ownerType, bool isSystem, Guid? sourceWorkflowId, WorkflowStatusValues[] statuses, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
-        : base("Workflow", id, recordCreatedOn, recordCreatedById, timestamp, "1.0")
+    public WorkflowBaselinedEvent(Guid id, int key, string name, string? description, string ownerType, bool isSystem, Guid? sourceWorkflowId, WorkflowStatusValues[] statuses, TransitionMode transitionMode, WorkflowTransitionValues[]? transitions, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
+        : base("Workflow", id, recordCreatedOn, recordCreatedById, timestamp, "1.1")
     {
         Id = id;
         Key = key;
@@ -23,6 +24,8 @@ public sealed record WorkflowBaselinedEvent : BaselineEvent<WorkflowBaselinedEve
         IsSystem = isSystem;
         SourceWorkflowId = sourceWorkflowId;
         Statuses = [.. statuses];
+        TransitionMode = transitionMode;
+        Transitions = [.. transitions ?? []];
     }
 
     public Guid Id { get; }
@@ -33,4 +36,6 @@ public sealed record WorkflowBaselinedEvent : BaselineEvent<WorkflowBaselinedEve
     public bool IsSystem { get; }
     public Guid? SourceWorkflowId { get; }
     public WorkflowStatusValues[] Statuses { get; }
+    public TransitionMode TransitionMode { get; }
+    public WorkflowTransitionValues[] Transitions { get; }
 }

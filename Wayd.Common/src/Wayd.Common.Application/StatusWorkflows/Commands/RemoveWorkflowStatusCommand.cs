@@ -33,8 +33,11 @@ public sealed class RemoveWorkflowStatusCommandHandler(
         {
             // Every status mutation runs through the aggregate, so its collection must be loaded: it
             // enforces name and alias uniqueness across siblings that a lone status cannot see.
+            // Transitions too: removing a status removes the transitions touching it, and the database
+            // refuses to delete a status a transition still references.
             var workflow = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
+                .Include(w => w.Transitions)
                 .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
 
             if (workflow is null)

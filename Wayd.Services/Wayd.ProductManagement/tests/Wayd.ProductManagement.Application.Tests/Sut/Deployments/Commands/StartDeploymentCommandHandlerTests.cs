@@ -30,7 +30,26 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
     }
 
     private StartDeploymentCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<StartDeploymentCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<StartDeploymentCommandHandler>(), DateTimeProvider.Object);
+
+    [Fact]
+    public async Task Handle_ShouldAttributeTheOpeningTransitionToTheActingEmployee()
+    {
+        // Arrange
+        var environment = SeedEnvironment();
+        var product = SeedProduct();
+        var version = SeedVersion(product.Id);
+        var sut = CreateSut();
+
+        // Act
+        await sut.Handle(
+            new StartDeploymentCommand(version.Id, null, environment.Id, null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var deployment = DbContext.Deployments.Should().ContainSingle().Subject;
+        deployment.StatusTransitions.Should().ContainSingle().Which.ActorEmployeeId.Should().Be(ActingEmployeeId);
+    }
 
     [Fact]
     public async Task Handle_ShouldStartTheDeployment()

@@ -39,6 +39,7 @@ public sealed class ReassignWorkflowCommandHandler(
     IStatusWorkflowDbContext dbContext,
     IEnumerable<IStatusRecordMigrator> migrators,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
     ILogger<ReassignWorkflowCommandHandler> logger)
     : ICommandHandler<ReassignWorkflowCommand, int>
@@ -48,6 +49,7 @@ public sealed class ReassignWorkflowCommandHandler(
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly IEnumerable<IStatusRecordMigrator> _migrators = migrators;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ReassignWorkflowCommandHandler> _logger = logger;
 
@@ -132,7 +134,11 @@ public sealed class ReassignWorkflowCommandHandler(
                 return Result.Failure<int>($"No records can be migrated for {assignment.OwnerType}.");
             }
 
-            var actor = EventActor.User(_currentUser.GetUserId());
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. Every migrated record's transition freezes this value,
+            // so a stale one would misattribute the whole migration permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+            var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
             var now = _dateTimeProvider.Now;
 
             var migrated = await migrator.Migrate(remap.Value, assignment.ScopeId, actor, now, cancellationToken);

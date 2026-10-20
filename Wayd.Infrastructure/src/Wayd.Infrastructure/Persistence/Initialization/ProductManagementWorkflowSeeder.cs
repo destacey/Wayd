@@ -9,13 +9,14 @@ using Wayd.ProductManagement.Domain;
 namespace Wayd.Infrastructure.Persistence.Initialization;
 
 /// <summary>
-/// Seeds the default status workflows for Product Management's four owner types.
+/// Seeds the default status workflows for Product Management's five owner types.
 /// </summary>
 /// <remarks>
 /// Deliberately minimal: each workflow carries the aliases its aggregates cannot work without, plus a
-/// starting status, and nothing else. An unused seeded status is not free to remove — deleting an
-/// occupied one needs the remap engine, which does not exist yet — so under-seeding is recoverable
-/// where over-seeding is not.
+/// starting status, and nothing else. A seeded workflow is read-only, so adding or dropping a status
+/// both mean a clone, a publish and a reassignment. The difference is the remap: after an addition
+/// every record still maps on its own, but a dropped status that records hold maps to nothing, and
+/// someone has to decide where those records go. Under-seeding is the cheaper mistake.
 /// <para>
 /// Seeded per owner type rather than all-or-nothing, so a workflow an admin deleted is not silently
 /// recreated while a newly added owner type still gets its default.

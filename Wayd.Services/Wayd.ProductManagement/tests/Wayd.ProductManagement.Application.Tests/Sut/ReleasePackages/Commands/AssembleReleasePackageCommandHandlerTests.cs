@@ -27,7 +27,27 @@ public sealed class AssembleReleasePackageCommandHandlerTests : ProductCommandTe
     }
 
     private AssembleReleasePackageCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<AssembleReleasePackageCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<AssembleReleasePackageCommandHandler>(), DateTimeProvider.Object);
+
+    [Fact]
+    public async Task Handle_ShouldAttributeTheOpeningTransitionToTheActingEmployee()
+    {
+        // Arrange
+        var product = SeedProduct("Api");
+        var sut = CreateSut();
+
+        // Act
+        await sut.Handle(
+            new AssembleReleasePackageCommand("2026.08", null, null,
+            [
+                new ManifestEntry(product.Id, null, "4.8.2", ManifestEntryKind.Changed),
+            ]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var package = DbContext.ReleasePackages.Should().ContainSingle().Subject;
+        package.StatusTransitions.Should().ContainSingle().Which.ActorEmployeeId.Should().Be(ActingEmployeeId);
+    }
 
     [Fact]
     public async Task Handle_ShouldAssembleThePackage()

@@ -66,9 +66,17 @@ public sealed class PreviewStatusRemapQueryHandler(
         var counter = _counters.FirstOrDefault(c =>
             string.Equals(c.OwnerType, assignment.OwnerType, StringComparison.OrdinalIgnoreCase));
 
-        var counts = counter is null
-            ? new Dictionary<Guid, int>()
-            : await counter.CountByStatus(current.Id, assignment.ScopeId, cancellationToken);
+        IReadOnlyDictionary<Guid, int> counts = new Dictionary<Guid, int>();
+        if (counter is not null)
+        {
+            var counted = await counter.CountByStatus(current.Id, assignment.ScopeId, cancellationToken);
+            if (counted.IsFailure)
+            {
+                return Result.Failure<StatusRemapPreviewDto>(counted.Error);
+            }
+
+            counts = counted.Value;
+        }
 
         var descriptor = WorkflowOwners.Resolve(current.OwnerType);
         var aliasNames = descriptor.IsSuccess ? descriptor.Value.Aliases : new Dictionary<int, string>();

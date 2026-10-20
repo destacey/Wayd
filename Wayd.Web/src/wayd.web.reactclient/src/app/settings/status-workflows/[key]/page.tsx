@@ -127,7 +127,10 @@ const StatusWorkflowDetailsPage = (props: {
     }
 
     const stateItems: ItemType[] = []
-    if (canUpdate && statusWorkflow.canPublish) {
+    // Offered on any editable draft, not only a publishable one: the dialog is
+    // where a draft missing a required alias is told which, with Publish
+    // disabled. Nothing else on the page says why a draft cannot be published.
+    if (canUpdate && statusWorkflow.canEdit) {
       stateItems.push({
         key: 'publish',
         label: 'Publish',

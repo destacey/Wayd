@@ -32,6 +32,11 @@ public interface IStatusRecordMigrator
     /// <remarks>
     /// Safe to re-run: <c>SwitchWorkflow</c> is a no-op for a record already on the target workflow, so
     /// an interrupted migration can simply be repeated.
+    /// <para>
+    /// Fails for a non-null <paramref name="scopeId"/> until a record type can say which scope it
+    /// belongs to: records are selected by workflow alone, so a scoped migration would move every
+    /// record on the workflow rather than only that scope's.
+    /// </para>
     /// </remarks>
     /// <returns>How many records moved.</returns>
     Task<Result<int>> Migrate(
@@ -56,7 +61,12 @@ public interface IStatusRecordCounter
     string OwnerType { get; }
 
     /// <summary>Record counts keyed by status id. Statuses holding nothing may be absent.</summary>
-    Task<IReadOnlyDictionary<Guid, int>> CountByStatus(
+    /// <remarks>
+    /// Fails for a non-null <paramref name="scopeId"/>, for the same reason as
+    /// <see cref="IStatusRecordMigrator.Migrate"/>: a scoped count would report every record on the
+    /// workflow.
+    /// </remarks>
+    Task<Result<IReadOnlyDictionary<Guid, int>>> CountByStatus(
         Guid workflowId,
         Guid? scopeId,
         CancellationToken cancellationToken);

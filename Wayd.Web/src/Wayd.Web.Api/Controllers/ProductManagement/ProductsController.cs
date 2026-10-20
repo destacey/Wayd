@@ -115,20 +115,28 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
                 : NotFound();
     }
 
+    /// <param name="productId">
+    /// A product whose allowed moves to return, excluding its current status. Omit for every status in
+    /// the workflow.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the request.</param>
     [HttpGet("status-options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
     [EndpointSummary(
         "Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.")]
     [EndpointDescription(
-        "**Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused. The same list serves every product, so one call covers them all.")]
+        "**Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.\n\nPass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.")]
     [McpTool("Products_GetStatusOptions", "Get product status options")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StatusNavigationDto>>> GetStatusOptions(
-        CancellationToken cancellationToken)
+        [FromQuery] Guid? productId, CancellationToken cancellationToken)
     {
-        var statuses = await _dispatcher.Send(new GetProductStatusOptionsQuery(), cancellationToken);
+        var statuses = await _dispatcher.Send(new GetProductStatusOptionsQuery(productId), cancellationToken);
 
-        return Ok(statuses);
+        return statuses is not null
+            ? Ok(statuses)
+            : NotFound();
     }
 
     [HttpPost]
@@ -338,7 +346,7 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
     [EndpointSummary("Move a product to a different status.")]
     [EndpointDescription(
-        "**Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.\n\nAny status in the product workflow is reachable from any other; there is no transition graph. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.")]
+        "**Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.\n\nThe workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.")]
     [McpTool("Products_ChangeStatus", "Change a product's status", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

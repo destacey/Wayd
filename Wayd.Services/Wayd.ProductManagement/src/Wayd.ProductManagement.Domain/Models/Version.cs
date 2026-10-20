@@ -198,8 +198,13 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A released or withdrawn version cannot be cut.");
         }
 
+        var applied = ApplyStatus(readyStatus, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
         CutAt = cutAt;
-        ApplyStatus(readyStatus, actor, timestamp);
 
         AddDomainEvent(new VersionCutEventV2(Id, Key, ProductId, productName, Number, cutAt, StatusId, actor, timestamp));
 
@@ -231,8 +236,13 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A version cannot be released before it was cut.");
         }
 
+        var applied = ApplyStatus(releasedStatus, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
         ReleasedAt = releasedAt;
-        ApplyStatus(releasedStatus, actor, timestamp);
 
         AddDomainEvent(new VersionReleasedEventV2(Id, Key, ProductId, productName, Number, releasedAt, StatusId, actor, timestamp));
 
@@ -276,9 +286,14 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A reason is required to revert a version.");
         }
 
+        var applied = ApplyStatus(toStatus, actor, timestamp, reason);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
         var fromReleasedAt = ReleasedAt;
         ReleasedAt = null;
-        ApplyStatus(toStatus, actor, timestamp, reason);
 
         AddDomainEvent(new VersionRevertedEventV2(
             Id, Key, ProductId, productName, Number, fromReleasedAt.Value, reason.Trim(), StatusId, actor, timestamp));
@@ -383,7 +398,11 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("This version has already been withdrawn.");
         }
 
-        ApplyStatus(withdrawnStatus, actor, timestamp, reason);
+        var applied = ApplyStatus(withdrawnStatus, actor, timestamp, reason);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
 
         AddDomainEvent(new VersionWithdrawnEvent(Id, Key, ProductId, productName, Number, reason?.Trim(), StatusId, actor, timestamp));
 

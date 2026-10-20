@@ -8,7 +8,7 @@ import {
   useGetProductStatusOptionsQuery,
 } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Modal, Select } from 'antd'
+import { Alert, Form, Modal, Select } from 'antd'
 
 const { Item } = Form
 
@@ -26,9 +26,10 @@ interface ChangeProductStatusFormValues {
  * Moves a product to another status in the workflow governing it.
  *
  * The options come from that workflow rather than a fixed list: statuses are
- * configurable, and the API refuses one belonging to a different workflow. They
- * are offered in the workflow's own order, which is how an administrator laid
- * the lifecycle out.
+ * configurable, and the API refuses one belonging to a different workflow. Only
+ * the moves the workflow allows from the product's current status are offered,
+ * in the workflow's own order, which is how an administrator laid the lifecycle
+ * out.
  */
 const ChangeProductStatusForm = ({
   product,
@@ -38,7 +39,11 @@ const ChangeProductStatusForm = ({
   const messageApi = useMessage()
 
   const [changeProductStatus] = useChangeProductStatusMutation()
-  const { data: statusOptions, isLoading } = useGetProductStatusOptionsQuery()
+  const {
+    data: statusOptions,
+    isLoading,
+    isError,
+  } = useGetProductStatusOptionsQuery(product.id)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<ChangeProductStatusFormValues>({
@@ -89,6 +94,22 @@ const ChangeProductStatusForm = ({
       keyboard={false} // disable esc key to close modal
       destroyOnHidden
     >
+      {isError && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title="The statuses this product can move to could not be loaded."
+        />
+      )}
+      {!isLoading && !isError && options.length === 0 && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={`The workflow allows no move from ${product.status?.name}.`}
+        />
+      )}
       <Form
         form={form}
         size="small"

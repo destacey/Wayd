@@ -85,11 +85,13 @@ Each product reports \`isReleasable\`, flattened from its type, which is what de
 
   ['Products_GetStatusOptions', {
     name: 'Products_GetStatusOptions',
-    description: `Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically. **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused. The same list serves every product, so one call covers them all.`,
-    inputSchema: {"type":"object","properties":{},"required":[]},
+    description: `Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically. **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.
+
+Pass \`productId\` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.`,
+    inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"A product whose allowed moves to return, excluding its current status. Omit for every status in the workflow."}},"required":[]},
     method: 'get',
     pathTemplate: '/api/product-management/products/status-options',
-    executionParameters: [],
+    executionParameters: [{"name":"productId","in":"query"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
     annotations: { title: 'Get product status options', ...readsOnly },
@@ -157,7 +159,7 @@ The move is listed in the activity history of the product and of both its old an
     name: 'Products_ChangeStatus',
     description: `Move a product to a different status. **Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.
 
-Any status in the product workflow is reachable from any other; there is no transition graph. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.`,
+The workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"Must match the id in the path."},"statusId":{"type":"string","format":"uuid","description":"The target status, from Products_GetStatusOptions. Must belong to the product workflow."}},"required":["id","statusId"]}},"required":["id","requestBody"]},
     method: 'put',
     pathTemplate: '/api/product-management/products/{id}/status',

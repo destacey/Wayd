@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
 import {
   StatusWorkflowDetailsDto,
+  TransitionMode,
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
 import WorkflowStatusesList from './workflow-statuses-list'
@@ -63,6 +64,10 @@ const workflow = (
   isAssigned: false,
   statuses: [NEW, IN_FLIGHT, SHIPPED],
   missingRequiredAliases: [],
+  transitionMode: TransitionMode.AnyToAny,
+  transitions: [],
+  supportsRestrictedTransitions: false,
+  transitionIssues: [],
   canEdit: true,
   canPublish: false,
   canArchive: false,

@@ -5,6 +5,7 @@ using NodaTime.Testing;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.ProductManagement.Domain.Models;
@@ -574,6 +575,73 @@ public sealed class ProductTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.DomainEvents.Should().BeEmpty();
+    }
+
+    // A restricted workflow's product lifecycle: Concept → Active → Sunset → Retired, as the references
+    // its TargetRef would hand out, each carrying the statuses a move into it is allowed from.
+    private static (Product Product, StatusRef Active, StatusRef Retired) ProductInConceptUnderARestrictedWorkflow(Instant now)
+    {
+        var workflowId = Guid.CreateVersion7();
+        var concept = StatusRefFactory.For(StatusCategory.Proposed, workflowId: workflowId, name: "Concept");
+        var active = StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Active, workflowId) with { AllowedFrom = new HashSet<Guid> { concept.StatusId } };
+        var sunset = StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Sunset, workflowId);
+        var retired = StatusRefFactory.For(StatusCategory.Done, ProductStatusAlias.Retired, workflowId) with { AllowedFrom = new HashSet<Guid> { sunset.StatusId } };
+
+        var product = Product.Create("Checkout", null, Guid.CreateVersion7(), null, null, concept, EventActor.System, now);
+        product.ClearDomainEvents();
+
+        return (product, active, retired);
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldMove_WhenTheWorkflowAllowsTheMove()
+    {
+        // Arrange
+        var (sut, active, _) = ProductInConceptUnderARestrictedWorkflow(_dateTimeProvider.Now);
+
+        // Act
+        var result = sut.ChangeStatus(active, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusId.Should().Be(active.StatusId);
+        sut.StatusTransitions.Should().HaveCount(2);
+        sut.DomainEvents.Should().ContainSingle(e => e is ProductLifecycleChangedEventV2);
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldRefuseAMoveTheWorkflowDoesNotAllow_NamingBothStatuses()
+    {
+        // Arrange
+        var (sut, _, retired) = ProductInConceptUnderARestrictedWorkflow(_dateTimeProvider.Now);
+        var concept = sut.StatusId;
+
+        // Act
+        var result = sut.ChangeStatus(retired, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The workflow does not allow a move from 'Concept' to 'Retired'.");
+        sut.StatusId.Should().Be(concept);
+        sut.StatusName.Should().Be("Concept");
+        sut.StatusCategory.Should().Be(StatusCategory.Proposed);
+        sut.StatusTransitions.Should().ContainSingle("only the initial status was recorded");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Create_ShouldEnterItsInitialStatus_WhateverMovesTheWorkflowAllowsIntoIt()
+    {
+        // Arrange
+        // Nothing moves into an initial status, but a record entering the workflow is not a move.
+        var initial = StatusRefFactory.For(StatusCategory.Proposed, name: "Concept") with { AllowedFrom = new HashSet<Guid>() };
+
+        // Act
+        var sut = Product.Create("Checkout", null, Guid.CreateVersion7(), null, null, initial, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.StatusId.Should().Be(initial.StatusId);
+        sut.StatusTransitions.Should().ContainSingle();
     }
 
     #endregion ChangeStatus

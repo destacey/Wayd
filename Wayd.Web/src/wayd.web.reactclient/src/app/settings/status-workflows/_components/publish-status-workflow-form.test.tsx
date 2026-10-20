@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StatusWorkflowDetailsDto } from '@/src/services/wayd-api'
+import {
+  StatusWorkflowDetailsDto,
+  TransitionMode,
+} from '@/src/services/wayd-api'
 import PublishStatusWorkflowForm from './publish-status-workflow-form'
 
 const publishStatusWorkflow = jest.fn()
@@ -42,6 +45,10 @@ const workflow = (
   isAssigned: false,
   statuses: [],
   missingRequiredAliases: [],
+  transitionMode: TransitionMode.AnyToAny,
+  transitions: [],
+  supportsRestrictedTransitions: false,
+  transitionIssues: [],
   canEdit: true,
   canPublish: true,
   canArchive: false,
@@ -75,6 +82,37 @@ describe('PublishStatusWorkflowForm', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Ready')).toBeInTheDocument()
     expect(screen.getByText('Withdrawn')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
+  })
+
+  it('names each transition problem and disables Publish', () => {
+    // Arrange
+    const draft = workflow({
+      transitionMode: TransitionMode.Restricted,
+      transitionIssues: [
+        "'Sunset' has no transition out of it, so a record that reaches it could not move on.",
+      ],
+      canPublish: false,
+    })
+
+    // Act
+    render(
+      <PublishStatusWorkflowForm
+        statusWorkflow={draft}
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText('Transitions would strand a status'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "'Sunset' has no transition out of it, so a record that reaches it could not move on.",
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
   })
 

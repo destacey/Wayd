@@ -7,14 +7,18 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Common.Domain.StatusWorkflows;
 
 /// <summary>
-/// One status change, recorded as it happened. Immutable once written.
+/// A move a record made.
 /// </summary>
 /// <remarks>
+/// One status change, recorded as it happened and immutable once written. Not to be confused with
+/// <see cref="WorkflowTransition"/>, a move the workflow allows.
+/// <para>
 /// The history of a record lives here rather than being reconstructed from the workflow, because a
 /// workflow only ever describes its <em>current</em> shape: a status can be renamed while active, and
 /// once the remap engine exists it can be deleted outright. Both names and ids are frozen at write
 /// time, so a later rename cannot rewrite what a past row reads as — the same reason
 /// <c>Deployment.EnvironmentCategory</c> is frozen.
+/// </para>
 /// <para>
 /// Storing the id alongside the name is the one place this departs from Jira's changelog, which keeps
 /// only strings and so cannot join a historical entry back to a status after a rename.

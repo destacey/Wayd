@@ -61,7 +61,8 @@ public sealed class ChangeProductStatusCommandHandler(
                 return Result.Failure(workflow.Error);
             }
 
-            var status = workflow.Value.Statuses.FirstOrDefault(s => s.Id == request.StatusId);
+            // TargetRef carries the moves the workflow allows into the status, which the aggregate enforces.
+            var status = workflow.Value.TargetRef(request.StatusId);
 
             if (status is null)
             {
@@ -76,7 +77,7 @@ public sealed class ChangeProductStatusCommandHandler(
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var changeResult = product.ChangeStatus(
-                StatusRef.From(status),
+                status,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 

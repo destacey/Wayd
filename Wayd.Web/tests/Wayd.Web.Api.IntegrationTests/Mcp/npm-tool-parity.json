@@ -1589,7 +1589,9 @@
         "idempotentHint": true,
         "openWorldHint": false
       },
-      "arguments": [],
+      "arguments": [
+        "productId"
+      ],
       "required": []
     },
     {

@@ -39,6 +39,11 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
 
         builder.Property(w => w.IsSystem).IsRequired();
 
+        builder.Property(w => w.TransitionMode).IsRequired()
+            .HasConversion<EnumConverter<TransitionMode>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
         // Relationships
         builder.HasMany(w => w.Statuses)
             .WithOne()
@@ -47,9 +52,49 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
 
         builder.Navigation(w => w.Statuses).HasField("_statuses").UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.HasMany(w => w.Transitions)
+            .WithOne()
+            .HasForeignKey(t => t.WorkflowId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(w => w.Transitions).HasField("_transitions").UsePropertyAccessMode(PropertyAccessMode.Field);
+
         // Ignore
         builder.Ignore(w => w.RequiredAliases);
         builder.Ignore(w => w.InitialStatus);
+        builder.Ignore(w => w.SupportsRestrictedTransitions);
+        builder.Ignore(w => w.EnforcesTransitions);
+    }
+}
+
+public class WorkflowTransitionConfiguration : IEntityTypeConfiguration<WorkflowTransition>
+{
+    public void Configure(EntityTypeBuilder<WorkflowTransition> builder)
+    {
+        builder.ToTable("WorkflowTransitions", SchemaNames.StatusWorkflows);
+
+        builder.HasKey(t => t.Id);
+
+        builder.HasIndex(t => new { t.WorkflowId, t.FromStatusId, t.ToStatusId }).IsUnique();
+
+        builder.Property(t => t.Id).ValueGeneratedNever();
+
+        builder.Property(t => t.WorkflowId).IsRequired();
+        builder.Property(t => t.FromStatusId).IsRequired();
+        builder.Property(t => t.ToStatusId).IsRequired();
+
+        // NoAction rather than Cascade: the workflow already cascades to both the statuses and the
+        // transitions, and SQL Server refuses multiple cascade paths. The aggregate removes a status's
+        // transitions itself when the status is removed.
+        builder.HasOne<WorkflowStatus>()
+            .WithMany()
+            .HasForeignKey(t => t.FromStatusId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne<WorkflowStatus>()
+            .WithMany()
+            .HasForeignKey(t => t.ToStatusId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }
 

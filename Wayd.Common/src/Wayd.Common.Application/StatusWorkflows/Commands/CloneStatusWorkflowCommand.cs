@@ -39,9 +39,12 @@ public sealed class CloneStatusWorkflowCommandHandler(
     {
         try
         {
-            // Statuses must be included or the clone comes back empty — copying them is the point.
+            // Statuses and transitions must be included or the clone comes back without them — copying
+            // them is the point.
             var workflow = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
+                .Include(w => w.Transitions)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
 
             if (workflow is null)

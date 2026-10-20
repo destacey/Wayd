@@ -38,6 +38,7 @@ public interface IStatusResolver : IScopedService
     /// </param>
     /// <param name="alias">The meaning to resolve, cast from the module's own alias enum.</param>
     /// <returns>
+    /// The status, carrying the moves the workflow allows into it (<see cref="StatusRef.AllowedFrom"/>).
     /// A failure when the scope has no assignment, the workflow is missing, or no status carries that
     /// alias — all of which are misconfiguration a caller should surface rather than throw on.
     /// </returns>
@@ -52,5 +53,9 @@ public interface IStatusResolver : IScopedService
     /// Loads the whole workflow governing a scope, for the rarer callers that need more than one status
     /// — building a remap, or presenting every status a record could move to.
     /// </summary>
+    /// <remarks>
+    /// The workflow comes with its statuses and transitions. A caller moving a record builds the target
+    /// with <see cref="StatusWorkflow.TargetRef"/>, so the move carries the workflow's restrictions.
+    /// </remarks>
     Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken);
 }

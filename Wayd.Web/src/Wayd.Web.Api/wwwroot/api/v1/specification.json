@@ -6097,8 +6097,21 @@
           "Products"
         ],
         "summary": "Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.",
-        "description": "**Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused. The same list serves every product, so one call covers them all.",
+        "description": "**Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.\n\nPass `productId` to get only the moves that product's workflow allows from its current status — a workflow can restrict which status may move to which, and a move outside them is refused. Without it, every status in the workflow is returned.",
         "operationId": "Products_GetStatusOptions",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "query",
+            "description": "A product whose allowed moves to return, excluding its current status. Omit for every status in\nthe workflow.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -6109,6 +6122,16 @@
                   "items": {
                     "$ref": "#/components/schemas/StatusNavigationDto"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -6635,7 +6658,7 @@
           "Products"
         ],
         "summary": "Move a product to a different status.",
-        "description": "**Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.\n\nAny status in the product workflow is reachable from any other; there is no transition graph. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.",
+        "description": "**Call Products_GetStatusOptions first** — this needs a status UUID, and statuses are per-organization configuration rather than a fixed set. A status belonging to a different workflow is refused.\n\nThe workflow may restrict which status can move to which; a move it does not allow is refused with both statuses named. Pass the product's id to Products_GetStatusOptions to get only its allowed moves. The status name is frozen onto the history at the moment of the change, so renaming a status later does not rewrite what past entries read as.",
         "operationId": "Products_ChangeStatus",
         "parameters": [
           {
@@ -41942,6 +41965,132 @@
         ]
       }
     },
+    "/api/status-workflows/{id}/transition-mode": {
+      "put": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Allow any move in a draft status workflow, or only its transitions.",
+        "operationId": "StatusWorkflows_SetTransitionMode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetWorkflowTransitionModeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/transitions": {
+      "put": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Replace the moves a draft status workflow allows.",
+        "operationId": "StatusWorkflows_SetTransitions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetWorkflowTransitionsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/admin/settings/scheduling": {
       "get": {
         "tags": [
@@ -59887,6 +60036,41 @@
         },
         "additionalProperties": false
       },
+      "SetWorkflowTransitionModeRequest": {
+        "required": [
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TransitionMode"
+              }
+            ],
+            "description": "`AnyToAny` to allow every move, or `Restricted` to allow only the workflow's transitions."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to let a draft workflow's records move between any statuses, or only along its transitions."
+      },
+      "SetWorkflowTransitionsRequest": {
+        "required": [
+          "transitions"
+        ],
+        "type": "object",
+        "properties": {
+          "transitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowTransitionRequest"
+            },
+            "description": "Every move the workflow should allow. Moves not listed are removed; an empty list removes them all."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to replace the moves a draft workflow allows."
+      },
       "SimpleNavigationDto": {
         "required": [
           "id",
@@ -61658,6 +61842,10 @@
           "isSystem",
           "isAssigned",
           "statuses",
+          "transitionMode",
+          "transitions",
+          "supportsRestrictedTransitions",
+          "transitionIssues",
           "missingRequiredAliases",
           "canEdit",
           "canPublish",
@@ -61697,6 +61885,32 @@
             "items": {
               "$ref": "#/components/schemas/WorkflowStatusDto"
             }
+          },
+          "transitionMode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TransitionMode"
+              }
+            ],
+            "description": "Whether records may move between any two statuses, or only along IReadOnlyCollection&lt;WorkflowTransitionDto&gt; StatusWorkflowDetailsDto.Transitions."
+          },
+          "transitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowTransitionDto"
+            },
+            "description": "The moves this workflow allows, ordered by their from and then their to status's position.\nEnforced only when TransitionMode StatusWorkflowDetailsDto.TransitionMode is restricted."
+          },
+          "supportsRestrictedTransitions": {
+            "type": "boolean",
+            "description": "Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for\nan owner type that cannot is refused at publish."
+          },
+          "transitionIssues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Why the transitions stop this workflow being published, one sentence per problem, each naming\nthe status at fault. Empty when the workflow allows any move."
           },
           "missingRequiredAliases": {
             "type": "array",
@@ -65461,6 +65675,13 @@
           }
         },
         "additionalProperties": false
+      },
+      "TransitionMode": {
+        "enum": [
+          "AnyToAny",
+          "Restricted"
+        ],
+        "type": "string"
       },
       "UnavailableMetricDto": {
         "required": [
@@ -69450,7 +69671,8 @@
           "key",
           "displayName",
           "aliases",
-          "requiredAliases"
+          "requiredAliases",
+          "supportsRestrictedTransitions"
         ],
         "type": "object",
         "properties": {
@@ -69474,6 +69696,10 @@
               "format": "int32"
             },
             "description": "The aliases a workflow must carry before it can be published."
+          },
+          "supportsRestrictedTransitions": {
+            "type": "boolean",
+            "description": "Whether a workflow for this owner type may restrict which moves its records make."
           }
         },
         "additionalProperties": false,
@@ -69555,6 +69781,54 @@
         },
         "additionalProperties": false,
         "description": "One status within a workflow."
+      },
+      "WorkflowTransitionDto": {
+        "required": [
+          "id",
+          "fromStatusId",
+          "toStatusId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The transition's own id, stable while the workflow keeps the move.",
+            "format": "uuid"
+          },
+          "fromStatusId": {
+            "type": "string",
+            "description": "The status a record moves out of.",
+            "format": "uuid"
+          },
+          "toStatusId": {
+            "type": "string",
+            "description": "The status a record moves into.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A move a workflow allows, from one of its statuses to another."
+      },
+      "WorkflowTransitionRequest": {
+        "required": [
+          "fromStatusId",
+          "toStatusId"
+        ],
+        "type": "object",
+        "properties": {
+          "fromStatusId": {
+            "type": "string",
+            "description": "The status a record moves out of.",
+            "format": "uuid"
+          },
+          "toStatusId": {
+            "type": "string",
+            "description": "The status a record moves into.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One move a workflow allows, between two of its statuses."
       },
       "WorkItemBacklogItemDto": {
         "required": [

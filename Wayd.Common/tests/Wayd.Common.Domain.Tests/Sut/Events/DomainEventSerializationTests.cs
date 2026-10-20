@@ -578,13 +578,17 @@ public sealed class DomainEventSerializationTests
     public void WorkflowCreatedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange - the status collection, whose elements carry an enum and a nullable description.
+        var proposedId = Guid.NewGuid();
+        var doneId = Guid.NewGuid();
         var original = new WorkflowCreatedEvent(
             Guid.NewGuid(), 3, "Widget Workflow", null, "test.widget", isSystem: false, sourceWorkflowId: Guid.NewGuid(),
             statuses:
             [
-                new WorkflowStatusValues(Guid.NewGuid(), "Proposed", null, StatusCategory.Proposed, 0, 1),
-                new WorkflowStatusValues(Guid.NewGuid(), "Done", "Finished.", StatusCategory.Done, 12, 2),
+                new WorkflowStatusValues(proposedId, "Proposed", null, StatusCategory.Proposed, 0, 1),
+                new WorkflowStatusValues(doneId, "Done", "Finished.", StatusCategory.Done, 12, 2),
             ],
+            TransitionMode.Restricted,
+            [new WorkflowTransitionValues(Guid.NewGuid(), proposedId, doneId)],
             EventActor.System,
             Instant.FromUtc(2026, 3, 1, 12, 0, 0));
 
@@ -595,6 +599,58 @@ public sealed class DomainEventSerializationTests
         roundTripped.Statuses.Should().Equal(original.Statuses);
         roundTripped.SourceWorkflowId.Should().Be(original.SourceWorkflowId);
         roundTripped.Description.Should().BeNull();
+        roundTripped.TransitionMode.Should().Be(TransitionMode.Restricted);
+        roundTripped.Transitions.Should().Equal(original.Transitions);
+    }
+
+    [Fact]
+    public void WorkflowCreatedEvent_PayloadWrittenBeforeTransitions_StillDeserializes()
+    {
+        // Arrange — the 1.0 shape: no transition mode, no transitions
+        var payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 3,
+              "Name": "Widget Workflow",
+              "Description": null,
+              "OwnerType": "test.widget",
+              "IsSystem": false,
+              "SourceWorkflowId": null,
+              "Statuses": [{ "StatusId": "019f2a10-0000-7000-8000-000000000002", "Name": "Proposed", "Description": null, "Category": 0, "Alias": 0, "Order": 1 }],
+              "Timestamp": "2026-03-01T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 1, "UserId": null, "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<WorkflowCreatedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.TransitionMode.Should().Be(TransitionMode.AnyToAny);
+        restored.Transitions.Should().BeEmpty();
+        restored.Statuses.Should().ContainSingle().Which.Name.Should().Be("Proposed");
+    }
+
+    [Fact]
+    public void WorkflowTransitionsChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var kept = new WorkflowTransitionValues(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var added = new WorkflowTransitionValues(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var removed = new WorkflowTransitionValues(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var original = new WorkflowTransitionsChangedEvent(
+            Guid.NewGuid(), 3, [added], [removed], [kept, added], EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Added.Should().Equal(added);
+        roundTripped.Removed.Should().Equal(removed);
+        roundTripped.Transitions.Should().Equal(kept, added);
     }
 
     [Fact]

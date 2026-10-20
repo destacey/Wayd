@@ -8114,10 +8114,14 @@ export class ProductsClient {
 
     /**
      * Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically.
+     * @param productId (optional) A product whose allowed moves to return, excluding its current status. Omit for every status in
+    the workflow.
      * @return OK
      */
-    getStatusOptions( cancelToken?: CancelToken): Promise<StatusNavigationDto[]> {
-        let url_ = this.baseUrl + "/api/product-management/products/status-options";
+    getStatusOptions(productId?: string | null | undefined, cancelToken?: CancelToken): Promise<StatusNavigationDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/products/status-options?";
+        if (productId !== undefined && productId !== null)
+            url_ += "productId=" + encodeURIComponent("" + productId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -8156,6 +8160,13 @@ export class ProductsClient {
             let resultData200  = _responseText;
             result200 = resultData200;
             return Promise.resolve<StatusNavigationDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -48696,6 +48707,144 @@ export class StatusWorkflowsClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Allow any move in a draft status workflow, or only its transitions.
+     * @return No Content
+     */
+    setTransitionMode(id: string, request: SetWorkflowTransitionModeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/status-workflows/{id}/transition-mode";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTransitionMode(_response);
+        });
+    }
+
+    protected processSetTransitionMode(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Replace the moves a draft status workflow allows.
+     * @return No Content
+     */
+    setTransitions(id: string, request: SetWorkflowTransitionsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/status-workflows/{id}/transitions";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTransitions(_response);
+        });
+    }
+
+    protected processSetTransitions(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class SystemSettingsClient {
@@ -54730,6 +54879,18 @@ export interface SetupRequest {
     password: string;
 }
 
+/** A request to let a draft workflow's records move between any statuses, or only along its transitions. */
+export interface SetWorkflowTransitionModeRequest {
+    /** `AnyToAny` to allow every move, or `Restricted` to allow only the workflow's transitions. */
+    mode: TransitionMode;
+}
+
+/** A request to replace the moves a draft workflow allows. */
+export interface SetWorkflowTransitionsRequest {
+    /** Every move the workflow should allow. Moves not listed are removed; an empty list removes them all. */
+    transitions: WorkflowTransitionRequest[];
+}
+
 export interface SimpleNavigationDto {
     id: number;
     name: string;
@@ -55348,6 +55509,17 @@ export interface StatusWorkflowDetailsDto {
     isSystem: boolean;
     isAssigned: boolean;
     statuses: WorkflowStatusDto[];
+    /** Whether records may move between any two statuses, or only along IReadOnlyCollection&lt;WorkflowTransitionDto&gt; StatusWorkflowDetailsDto.Transitions. */
+    transitionMode: TransitionMode;
+    /** The moves this workflow allows, ordered by their from and then their to status's position.
+Enforced only when TransitionMode StatusWorkflowDetailsDto.TransitionMode is restricted. */
+    transitions: WorkflowTransitionDto[];
+    /** Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
+an owner type that cannot is refused at publish. */
+    supportsRestrictedTransitions: boolean;
+    /** Why the transitions stop this workflow being published, one sentence per problem, each naming
+the status at fault. Empty when the workflow allows any move. */
+    transitionIssues: string[];
     /** The required aliases this workflow does not yet carry, named rather than numbered. */
     missingRequiredAliases: string[];
     /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
@@ -56553,6 +56725,11 @@ export interface TokenResponse {
     mustChangePassword: boolean;
 }
 
+export enum TransitionMode {
+    AnyToAny = "AnyToAny",
+    Restricted = "Restricted",
+}
+
 /** A measure this module does not compute yet, and why. */
 export interface UnavailableMetricDto {
     /** The measure's name, as a reader would recognise it. */
@@ -57741,6 +57918,8 @@ export interface WorkflowOwnerTypeDto {
     aliases: WorkflowAliasDto[];
     /** The aliases a workflow must carry before it can be published. */
     requiredAliases: number[];
+    /** Whether a workflow for this owner type may restrict which moves its records make. */
+    supportsRestrictedTransitions: boolean;
 }
 
 export interface WorkflowSchemeDto {
@@ -57763,6 +57942,24 @@ export interface WorkflowStatusDto {
     /** The alias in the module's vocabulary, or null when it carries none. */
     aliasName?: string | undefined;
     order: number;
+}
+
+/** A move a workflow allows, from one of its statuses to another. */
+export interface WorkflowTransitionDto {
+    /** The transition's own id, stable while the workflow keeps the move. */
+    id: string;
+    /** The status a record moves out of. */
+    fromStatusId: string;
+    /** The status a record moves into. */
+    toStatusId: string;
+}
+
+/** One move a workflow allows, between two of its statuses. */
+export interface WorkflowTransitionRequest {
+    /** The status a record moves out of. */
+    fromStatusId: string;
+    /** The status a record moves into. */
+    toStatusId: string;
 }
 
 export interface WorkItemBacklogItemDto {

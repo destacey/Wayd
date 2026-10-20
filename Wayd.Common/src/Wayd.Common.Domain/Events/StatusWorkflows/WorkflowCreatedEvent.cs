@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
 
@@ -24,9 +25,11 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
         bool isSystem,
         Guid? sourceWorkflowId,
         WorkflowStatusValues[] statuses,
+        TransitionMode transitionMode,
+        WorkflowTransitionValues[]? transitions,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -36,6 +39,8 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
         IsSystem = isSystem;
         SourceWorkflowId = sourceWorkflowId;
         Statuses = [.. statuses];
+        TransitionMode = transitionMode;
+        Transitions = [.. transitions ?? []];
 
         Timestamp = timestamp;
     }
@@ -55,6 +60,15 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
 
     /// <summary>The statuses it was created with, in display order.</summary>
     public WorkflowStatusValues[] Statuses { get; }
+
+    /// <summary>
+    /// Whether it was created allowing any move or only its transitions. Added in 1.1; earlier payloads
+    /// read as <see cref="TransitionMode.AnyToAny"/>, which every workflow was before.
+    /// </summary>
+    public TransitionMode TransitionMode { get; }
+
+    /// <summary>The moves it was created allowing. Added in 1.1; empty in earlier payloads.</summary>
+    public WorkflowTransitionValues[] Transitions { get; }
 
     [JsonIgnore]
     public string AggregateType => "Workflow";

@@ -30,7 +30,8 @@ public abstract class StatusWorkflowHandlerTestBase
         "test.widget",
         "Widget",
         new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
-        [NotableAlias, TerminalAlias]);
+        [NotableAlias, TerminalAlias],
+        supportsRestrictedTransitions: true);
 
     protected readonly FakeWaydDbContext DbContext = new();
     protected readonly Mock<ICurrentUser> CurrentUser = new();

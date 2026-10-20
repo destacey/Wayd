@@ -17,8 +17,9 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// Status is data; semantics stay in code. Records store a status id plus a denormalized category, and
 /// anything the domain must decide resolves through an alias.
 /// <para>
-/// Transitions are not modelled: until a <c>WorkflowTransition</c> exists the engine is any-to-any.
-/// Aggregates still refuse nonsense on their own terms, which are domain rules rather than workflow
+/// Which moves a record may make is the workflow's <see cref="TransitionMode"/>: any-to-any by default,
+/// or only along its <see cref="Transitions"/> when restricted and the owner type supports it. Either
+/// way, aggregates still refuse nonsense on their own terms, which are domain rules rather than workflow
 /// configuration.
 /// </para>
 /// </remarks>
@@ -36,6 +37,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     private const string ArchivedError = "An archived workflow cannot be modified.";
 
     private readonly List<WorkflowStatus> _statuses = [];
+    private readonly List<WorkflowTransition> _transitions = [];
 
     private StatusWorkflow() { }
 
@@ -99,6 +101,74 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// The statuses in this workflow, in display order.
     /// </summary>
     public IReadOnlyCollection<WorkflowStatus> Statuses => _statuses.OrderBy(s => s.Order).ToList().AsReadOnly();
+
+    /// <summary>
+    /// Whether a record may move between any two statuses, or only along <see cref="Transitions"/>.
+    /// </summary>
+    public TransitionMode TransitionMode { get; private set; } = TransitionMode.AnyToAny;
+
+    /// <summary>
+    /// The moves this workflow allows. Consulted only when <see cref="EnforcesTransitions"/>.
+    /// </summary>
+    public IReadOnlyCollection<WorkflowTransition> Transitions => _transitions.AsReadOnly();
+
+    /// <summary>
+    /// Whether this workflow's owner type may be governed by a restricted transition set, from its
+    /// registered descriptor.
+    /// </summary>
+    public bool SupportsRestrictedTransitions =>
+        WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } resolved && resolved.Value.SupportsRestrictedTransitions;
+
+    /// <summary>
+    /// Whether records under this workflow are held to its transitions: it is restricted and its owner
+    /// type supports that.
+    /// </summary>
+    public bool EnforcesTransitions => TransitionMode == TransitionMode.Restricted && SupportsRestrictedTransitions;
+
+    /// <summary>
+    /// The statuses a record may move into <paramref name="toStatusId"/> from, or <c>null</c> when any
+    /// status may.
+    /// </summary>
+    public IReadOnlySet<Guid>? AllowedFrom(Guid toStatusId) =>
+        EnforcesTransitions
+            ? _transitions.Where(t => t.ToStatusId == toStatusId).Select(t => t.FromStatusId).ToHashSet()
+            : null;
+
+    /// <summary>
+    /// The statuses a record holding <paramref name="fromStatusId"/> may move to, in display order.
+    /// </summary>
+    /// <remarks>
+    /// Excludes the status itself, which is not a move. Under enforced transitions a status from another
+    /// workflow has no allowed moves, matching what <see cref="StatusTrackedEntity"/> would refuse.
+    /// </remarks>
+    public IReadOnlyList<WorkflowStatus> AllowedTargets(Guid fromStatusId)
+    {
+        var targets = _statuses.Where(s => s.Id != fromStatusId);
+
+        if (EnforcesTransitions)
+        {
+            var allowed = _transitions.Where(t => t.FromStatusId == fromStatusId).Select(t => t.ToStatusId).ToHashSet();
+            targets = targets.Where(s => allowed.Contains(s.Id));
+        }
+
+        return targets.OrderBy(s => s.Order).ToList();
+    }
+
+    /// <summary>
+    /// Builds the reference a record is moved to, carrying the statuses this workflow allows the move
+    /// from so the record can enforce it without loading the workflow.
+    /// </summary>
+    /// <returns><c>null</c> when the status does not belong to this workflow.</returns>
+    public StatusRef? TargetRef(Guid statusId)
+    {
+        var status = _statuses.SingleOrDefault(s => s.Id == statusId);
+
+        // Built through the constructor rather than `with`: the history checks read an init setter's
+        // field write as this method changing the workflow's state.
+        return status is null
+            ? null
+            : new StatusRef(status.WorkflowId, status.Id, status.Name, status.Category, status.Alias, AllowedFrom(statusId));
+    }
 
     /// <summary>
     /// Resolves the status carrying a well-known meaning, or <c>null</c> when the workflow has none.
@@ -236,6 +306,15 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         var name = status.Name;
         AddKeyedDomainEvent(() => new WorkflowStatusRemovedEvent(Id, Key, statusId, name, actor, timestamp));
+
+        // A transition cannot outlive either end. Recorded as its own change so the activity log shows
+        // which moves went with the status.
+        var orphaned = _transitions.Where(t => t.FromStatusId == statusId || t.ToStatusId == statusId).ToList();
+        if (orphaned.Count > 0)
+        {
+            _transitions.RemoveAll(orphaned.Contains);
+            RaiseTransitionsChanged([], orphaned, actor, timestamp);
+        }
 
         return Result.Success();
     }
@@ -386,8 +465,98 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Switches between allowing any move and allowing only <see cref="Transitions"/>. Draft only, like
+    /// any structural change: records on a published workflow were moved under its rules.
+    /// </summary>
+    /// <remarks>
+    /// Allowed for any owner type so a draft can be prepared; a restricted workflow whose owner type
+    /// does not support it is refused at <see cref="Publish"/>. The transitions are kept when switching
+    /// back, so a round trip loses nothing.
+    /// </remarks>
+    public Result SetTransitionMode(TransitionMode mode, EventActor actor, Instant timestamp)
+    {
+        var guard = GuardStructuralEdit();
+        if (guard.IsFailure)
+        {
+            return guard;
+        }
+
+        if (!Enum.IsDefined(mode))
+        {
+            return Result.Failure("Unknown transition mode.");
+        }
+
+        var fromMode = TransitionMode;
+        TransitionMode = mode;
+
+        if (fromMode != TransitionMode)
+        {
+            var toMode = TransitionMode;
+            AddKeyedDomainEvent(() => new WorkflowTransitionModeChangedEvent(Id, Key, fromMode, toMode, actor, timestamp));
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces the moves this workflow allows with exactly <paramref name="transitions"/>. Draft only.
+    /// </summary>
+    /// <remarks>
+    /// A whole-set replacement rather than add and remove, because an editor holds the whole grid. A move
+    /// kept from before keeps its identity, so anything later attached to it survives the edit.
+    /// </remarks>
+    public Result SetTransitions(IReadOnlyCollection<(Guid FromStatusId, Guid ToStatusId)> transitions, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(transitions, nameof(transitions));
+
+        var guard = GuardStructuralEdit();
+        if (guard.IsFailure)
+        {
+            return guard;
+        }
+
+        foreach (var (fromStatusId, toStatusId) in transitions)
+        {
+            if (_statuses.All(s => s.Id != fromStatusId) || _statuses.All(s => s.Id != toStatusId))
+            {
+                return Result.Failure("Every transition must be between statuses in this workflow.");
+            }
+
+            if (fromStatusId == toStatusId)
+            {
+                return Result.Failure($"'{StatusName(fromStatusId)}' cannot have a transition to itself.");
+            }
+        }
+
+        var requested = transitions.ToHashSet();
+        if (requested.Count != transitions.Count)
+        {
+            return Result.Failure("The same transition is listed more than once.");
+        }
+
+        var removed = _transitions.Where(t => !requested.Contains((t.FromStatusId, t.ToStatusId))).ToList();
+        var added = requested
+            .Where(pair => !_transitions.Any(t => t.FromStatusId == pair.FromStatusId && t.ToStatusId == pair.ToStatusId))
+            .Select(pair => new WorkflowTransition(Id, pair.FromStatusId, pair.ToStatusId))
+            .ToList();
+
+        if (removed.Count == 0 && added.Count == 0)
+        {
+            return Result.Success();
+        }
+
+        _transitions.RemoveAll(removed.Contains);
+        _transitions.AddRange(added);
+
+        RaiseTransitionsChanged(added, removed, actor, timestamp);
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Publishes the workflow, refusing one that cannot supply its owner type's required
-    /// aliases — caught here rather than later, inside an aggregate, on a record already created.
+    /// aliases or whose restricted transitions would strand a record — caught here rather than later,
+    /// inside an aggregate, on a record already created.
     /// </summary>
     public Result Publish(EventActor actor, Instant timestamp)
     {
@@ -406,7 +575,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(ArchivedError);
         }
 
-        var guard = GuardRequiredAliases();
+        var guard = GuardPublishable();
         if (guard.IsFailure)
         {
             return guard;
@@ -470,9 +639,19 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     {
         var clone = new StatusWorkflow(name, description ?? Description, OwnerType, isSystem: false);
 
+        var cloneStatusIds = new Dictionary<Guid, Guid>();
         foreach (var status in _statuses.OrderBy(s => s.Order))
         {
-            clone._statuses.Add(new WorkflowStatus(clone.Id, status.Name, status.Description, status.Category, status.Alias, status.Order));
+            var copy = new WorkflowStatus(clone.Id, status.Name, status.Description, status.Category, status.Alias, status.Order);
+            clone._statuses.Add(copy);
+            cloneStatusIds[status.Id] = copy.Id;
+        }
+
+        clone.TransitionMode = TransitionMode;
+        foreach (var transition in _transitions)
+        {
+            clone._transitions.Add(new WorkflowTransition(
+                clone.Id, cloneStatusIds[transition.FromStatusId], cloneStatusIds[transition.ToStatusId]));
         }
 
         clone.RaiseCreated(Id, actor, timestamp);
@@ -519,9 +698,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         WorkflowStatusValues[] statuses = [.. _statuses
             .OrderBy(s => s.Order)
             .Select(s => new WorkflowStatusValues(s.Id, s.Name, s.Description, s.Category, s.Alias, s.Order))];
+        var transitionMode = TransitionMode;
+        var transitions = TransitionValues(_transitions);
 
         AddPostPersistenceAction(() => AddDomainEvent(new WorkflowCreatedEvent(
-            Id, Key, name, description, ownerType, isSystem, sourceWorkflowId, statuses, actor, timestamp)));
+            Id, Key, name, description, ownerType, isSystem, sourceWorkflowId, statuses, transitionMode, transitions, actor, timestamp)));
     }
 
     /// <summary>
@@ -548,12 +729,26 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             Id, Key, statusId, name, description, category, alias, order, actor, timestamp));
     }
 
+    private void RaiseTransitionsChanged(
+        IReadOnlyCollection<WorkflowTransition> added, IReadOnlyCollection<WorkflowTransition> removed, EventActor actor, Instant timestamp)
+    {
+        var (addedValues, removedValues, transitions) = (TransitionValues(added), TransitionValues(removed), TransitionValues(_transitions));
+
+        AddKeyedDomainEvent(() => new WorkflowTransitionsChangedEvent(Id, Key, addedValues, removedValues, transitions, actor, timestamp));
+    }
+
+    private static WorkflowTransitionValues[] TransitionValues(IEnumerable<WorkflowTransition> transitions) =>
+        [.. transitions
+            .OrderBy(t => t.FromStatusId)
+            .ThenBy(t => t.ToStatusId)
+            .Select(t => new WorkflowTransitionValues(t.Id, t.FromStatusId, t.ToStatusId))];
+
     /// <summary>
-    /// Publishes a seeded workflow, bypassing the system read-only guard but not the alias check.
+    /// Publishes a seeded workflow, bypassing the system read-only guard but not the publish checks.
     /// </summary>
     public Result PublishSystem(EventActor actor, Instant timestamp)
     {
-        var guard = GuardRequiredAliases();
+        var guard = GuardPublishable();
         if (guard.IsFailure)
         {
             return guard;
@@ -580,6 +775,94 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         else
             AddDomainEvent(build());
     }
+
+    /// <summary>
+    /// Refuses a structural edit unless the workflow is an organization's own draft.
+    /// </summary>
+    private Result GuardStructuralEdit()
+    {
+        if (IsSystem)
+        {
+            return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
+        }
+
+        return State == StatusWorkflowState.Draft ? Result.Success() : Result.Failure(NotDraftError);
+    }
+
+    private Result GuardPublishable()
+    {
+        var aliases = GuardRequiredAliases();
+        if (aliases.IsFailure)
+        {
+            return aliases;
+        }
+
+        var issues = TransitionIssues();
+
+        return issues.Count == 0 ? Result.Success() : Result.Failure(string.Join(" ", issues));
+    }
+
+    /// <summary>
+    /// What stops this workflow's transitions being published, one sentence per problem, each naming
+    /// the status at fault. Always empty for an any-to-any workflow.
+    /// </summary>
+    /// <remarks>
+    /// Checked at publish rather than on every edit, since a draft is half-built by design. A status no
+    /// path reaches can never be entered, and a Proposed or Active status with no way out would strand
+    /// every record that reaches it. Done and Removed statuses may be final.
+    /// </remarks>
+    public IReadOnlyList<string> TransitionIssues()
+    {
+        if (TransitionMode != TransitionMode.Restricted)
+        {
+            return [];
+        }
+
+        if (!SupportsRestrictedTransitions)
+        {
+            var displayName = WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } descriptor ? descriptor.Value.DisplayName : OwnerType;
+            return [$"{displayName} workflows cannot restrict transitions. Allow any move to publish this workflow."];
+        }
+
+        var initial = InitialStatus;
+        if (initial is null)
+        {
+            return [];
+        }
+
+        var reachable = new HashSet<Guid> { initial.Id };
+        var frontier = new Queue<Guid>([initial.Id]);
+        while (frontier.TryDequeue(out var from))
+        {
+            foreach (var transition in _transitions.Where(t => t.FromStatusId == from))
+            {
+                if (reachable.Add(transition.ToStatusId))
+                {
+                    frontier.Enqueue(transition.ToStatusId);
+                }
+            }
+        }
+
+        var issues = new List<string>();
+
+        foreach (var status in _statuses.OrderBy(s => s.Order))
+        {
+            if (!reachable.Contains(status.Id))
+            {
+                issues.Add($"'{status.Name}' cannot be reached from '{initial.Name}', the initial status.");
+            }
+
+            if (status.Category is StatusCategory.Proposed or StatusCategory.Active
+                && _transitions.All(t => t.FromStatusId != status.Id))
+            {
+                issues.Add($"'{status.Name}' has no transition out of it, so a record that reaches it could not move on.");
+            }
+        }
+
+        return issues;
+    }
+
+    private string StatusName(Guid statusId) => _statuses.Single(s => s.Id == statusId).Name;
 
     /// <summary>
     /// Refuses activation when the workflow cannot answer what its owner type asks of it.

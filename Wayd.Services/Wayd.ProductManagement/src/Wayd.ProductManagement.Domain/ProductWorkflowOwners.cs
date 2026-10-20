@@ -23,11 +23,18 @@ namespace Wayd.ProductManagement.Domain;
 public static class ProductWorkflowOwners
 {
     /// <summary>A node in the product taxonomy. Governs the product lifecycle.</summary>
+    /// <remarks>
+    /// Supports restricted transitions: a product changes status through one method that takes any
+    /// target, so a custom transition set cannot contradict a domain rule. The delivery owner types below
+    /// do not yet — they move through named methods (cut, release, fail, roll back) whose rules, and the
+    /// change-failure figures built on them, a custom set could contradict.
+    /// </remarks>
     public static readonly WorkflowOwnerDescriptor Product = new(
         "product.product",
         "Product",
         Names(ProductStatusAlias.Active, ProductStatusAlias.Sunset, ProductStatusAlias.Retired),
-        [(int)ProductStatusAlias.Active, (int)ProductStatusAlias.Retired]);
+        [(int)ProductStatusAlias.Active, (int)ProductStatusAlias.Retired],
+        supportsRestrictedTransitions: true);
 
     /// <summary>A versioned cut of a releasable product node.</summary>
     /// <remarks>

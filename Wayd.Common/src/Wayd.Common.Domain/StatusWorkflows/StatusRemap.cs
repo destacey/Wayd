@@ -27,11 +27,13 @@ public sealed class StatusRemap
 {
     private readonly Dictionary<Guid, StatusRef> _decisions = [];
     private readonly List<WorkflowStatus> _unresolved = [];
+    private readonly StatusWorkflow _to;
 
-    private StatusRemap(Guid fromWorkflowId, Guid toWorkflowId)
+    private StatusRemap(Guid fromWorkflowId, StatusWorkflow to)
     {
         FromWorkflowId = fromWorkflowId;
-        ToWorkflowId = toWorkflowId;
+        ToWorkflowId = to.Id;
+        _to = to;
     }
 
     /// <summary>The workflow being moved away from.</summary>
@@ -53,6 +55,11 @@ public sealed class StatusRemap
     /// <summary>
     /// Where a status translates to, or <c>null</c> when it is still unresolved.
     /// </summary>
+    /// <remarks>
+    /// Built by the target workflow (<see cref="StatusWorkflow.TargetRef"/>) like any other target, so it
+    /// carries that workflow's transition restrictions. Applying it is exempt from them — see
+    /// <see cref="StatusTrackedEntity.SwitchWorkflow"/> — which is the record's decision, not the remap's.
+    /// </remarks>
     public StatusRef? For(Guid fromStatusId) =>
         _decisions.TryGetValue(fromStatusId, out var target) ? target : null;
 
@@ -73,7 +80,7 @@ public sealed class StatusRemap
             return Result.Failure("That status is not in the workflow being moved from.");
         }
 
-        _decisions[fromStatusId] = StatusRef.From(target);
+        _decisions[fromStatusId] = _to.TargetRef(target.Id)!;
         _unresolved.RemoveAll(s => s.Id == fromStatusId);
 
         return Result.Success();
@@ -107,7 +114,7 @@ public sealed class StatusRemap
                 $"A {from.OwnerType} workflow cannot be remapped to a {to.OwnerType} one.");
         }
 
-        var remap = new StatusRemap(from.Id, to.Id);
+        var remap = new StatusRemap(from.Id, to);
         var targets = to.Statuses.ToList();
 
         foreach (var source in from.Statuses)
@@ -123,7 +130,7 @@ public sealed class StatusRemap
                 continue;
             }
 
-            remap._decisions[source.Id] = StatusRef.From(match);
+            remap._decisions[source.Id] = to.TargetRef(match.Id)!;
         }
 
         return Result.Success(remap);

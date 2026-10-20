@@ -115,10 +115,18 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
     /// Moves the record to a status and records the move. The only way to change status.
     /// </summary>
     /// <returns>
-    /// <c>true</c> when the status actually changed; <c>false</c> when it was already there, so a
-    /// caller can skip raising an event for a no-op.
+    /// A failure, with nothing changed, when the target's workflow does not allow a move from the current
+    /// status (<see cref="StatusRef.AllowedFrom"/>). Moving to the status already held succeeds without
+    /// recording anything. A record's initial status is never checked.
     /// </returns>
-    protected bool ApplyStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null)
+    /// <remarks>
+    /// The check lives here, not in each aggregate method, so no path that changes status can forget it.
+    /// Callers apply the status before touching any other state, so a refusal leaves nothing to undo.
+    /// </remarks>
+    protected Result ApplyStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null) =>
+        ApplyStatus(status, actor, timestamp, reason, enforceTransitions: true);
+
+    private Result ApplyStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason, bool enforceTransitions)
     {
         Guard.Against.Null(status, nameof(status));
         Guard.Against.Null(actor, nameof(actor));
@@ -127,7 +135,12 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
         if (!isInitial && status.StatusId == StatusId)
         {
-            return false;
+            return Result.Success();
+        }
+
+        if (enforceTransitions && !isInitial && status.AllowedFrom is { } allowedFrom && !allowedFrom.Contains(StatusId))
+        {
+            return Result.Failure($"The workflow does not allow a move from '{StatusName}' to '{status.Name}'.");
         }
 
         // The outgoing side is built from this record's own workflow, not the incoming status's. They
@@ -156,7 +169,7 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
         StatusTransitionCount++;
 
-        return true;
+        return Result.Success();
     }
 
     /// <summary>
@@ -195,7 +208,15 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
         var from = new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
 
-        if (ApplyStatus(target, actor, timestamp, reason))
+        // Exempt from the target workflow's transitions: a migration must move every record, whatever
+        // its status, and the remap has already decided where each one lands.
+        var applied = ApplyStatus(target, actor, timestamp, reason, enforceTransitions: false);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
+        if (from.StatusId != target.StatusId)
         {
             var transition = _statusTransitions[^1];
 

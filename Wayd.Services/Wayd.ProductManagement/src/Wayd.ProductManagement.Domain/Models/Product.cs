@@ -605,7 +605,11 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         var fromCategory = StatusCategory;
         var fromAlias = StatusAlias;
 
-        ApplyStatus(status, actor, timestamp);
+        var applied = ApplyStatus(status, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
 
         AddDomainEvent(new ProductLifecycleChangedEventV2(
             Id, Key,

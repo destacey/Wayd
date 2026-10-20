@@ -345,8 +345,13 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
                 "This release carries a version or package that has not shipped. Release those first, or remove them from this release.");
         }
 
+        var applied = ApplyStatus(releasedStatus, actor, timestamp);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
         ReleasedDate = releasedDate;
-        ApplyStatus(releasedStatus, actor, timestamp);
 
         AddDomainEvent(new ReleaseReleasedEvent(
             Id, Key, ProductId, Version, releasedDate, _versions.Count, _packages.Count, StatusId, actor, timestamp));
@@ -382,9 +387,14 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A reason is required to revert a release.");
         }
 
+        var applied = ApplyStatus(toStatus, actor, timestamp, reason);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
         var fromReleasedDate = ReleasedDate;
         ReleasedDate = null;
-        ApplyStatus(toStatus, actor, timestamp, reason);
 
         AddDomainEvent(new ReleaseRevertedEvent(
             Id, Key, ProductId, Version, fromReleasedDate.Value, reason.Trim(), StatusId, actor, timestamp));
@@ -466,7 +476,11 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("This release has already been withdrawn.");
         }
 
-        ApplyStatus(withdrawnStatus, actor, timestamp, reason);
+        var applied = ApplyStatus(withdrawnStatus, actor, timestamp, reason);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
 
         AddDomainEvent(new ReleaseWithdrawnEvent(Id, Key, ProductId, Version, reason?.Trim(), StatusId, actor, timestamp));
 

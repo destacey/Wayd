@@ -20,7 +20,7 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
 
         return status is null
             ? Result.Failure<StatusRef>($"'{workflow.Value.Name}' has no status for {DescribeAlias(ownerType, alias)}.")
-            : Result.Success(StatusRef.From(status));
+            : Result.Success(workflow.Value.TargetRef(status.Id)!);
     }
 
     public async Task<Result<StatusRef>> Initial(string ownerType, Guid? scopeId, CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
 
         return status is null
             ? Result.Failure<StatusRef>($"'{workflow.Value.Name}' has no statuses.")
-            : Result.Success(StatusRef.From(status));
+            : Result.Success(workflow.Value.TargetRef(status.Id)!);
     }
 
     public async Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken)
@@ -62,8 +62,12 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
                 $"No workflow is assigned for {descriptor.Value.DisplayName}. An administrator must assign one.");
         }
 
+        // Transitions are loaded with the statuses: every reference built from this workflow carries the
+        // moves it allows, and a missing include would silently allow every move.
         var workflow = await _dbContext.StatusWorkflows
             .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(w => w.Id == workflowId, cancellationToken);
 
         return workflow is null

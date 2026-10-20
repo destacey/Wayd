@@ -39,6 +39,19 @@ public sealed record WorkflowStatusDto
     public required int Order { get; init; }
 }
 
+/// <summary>A move a workflow allows, from one of its statuses to another.</summary>
+public sealed record WorkflowTransitionDto
+{
+    /// <summary>The transition's own id, stable while the workflow keeps the move.</summary>
+    public required Guid Id { get; init; }
+
+    /// <summary>The status a record moves out of.</summary>
+    public required Guid FromStatusId { get; init; }
+
+    /// <summary>The status a record moves into.</summary>
+    public required Guid ToStatusId { get; init; }
+}
+
 /// <summary>A workflow with its statuses and what may currently be done to it.</summary>
 public sealed record StatusWorkflowDetailsDto
 {
@@ -51,6 +64,29 @@ public sealed record StatusWorkflowDetailsDto
     public required bool IsSystem { get; init; }
     public required bool IsAssigned { get; init; }
     public required IReadOnlyCollection<WorkflowStatusDto> Statuses { get; init; }
+
+    /// <summary>
+    /// Whether records may move between any two statuses, or only along <see cref="Transitions"/>.
+    /// </summary>
+    public required TransitionMode TransitionMode { get; init; }
+
+    /// <summary>
+    /// The moves this workflow allows, ordered by their from and then their to status's position.
+    /// Enforced only when <see cref="TransitionMode"/> is restricted.
+    /// </summary>
+    public required IReadOnlyCollection<WorkflowTransitionDto> Transitions { get; init; }
+
+    /// <summary>
+    /// Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
+    /// an owner type that cannot is refused at publish.
+    /// </summary>
+    public required bool SupportsRestrictedTransitions { get; init; }
+
+    /// <summary>
+    /// Why the transitions stop this workflow being published, one sentence per problem, each naming
+    /// the status at fault. Empty when the workflow allows any move.
+    /// </summary>
+    public required IReadOnlyCollection<string> TransitionIssues { get; init; }
 
     /// <summary>
     /// The required aliases this workflow does not yet carry, named rather than numbered.
@@ -98,6 +134,9 @@ public sealed record WorkflowOwnerTypeDto
 
     /// <summary>The aliases a workflow must carry before it can be published.</summary>
     public required IReadOnlyCollection<int> RequiredAliases { get; init; }
+
+    /// <summary>Whether a workflow for this owner type may restrict which moves its records make.</summary>
+    public required bool SupportsRestrictedTransitions { get; init; }
 }
 
 public sealed record WorkflowAliasDto

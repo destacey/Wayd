@@ -35,13 +35,19 @@ If this is your first login and you see a **Must Change Password** prompt, you'l
 
 Each time you sign in — on a laptop, a phone, a second browser — Wayd records a **session**. Signing in somewhere new does not sign you out anywhere else.
 
-The **Sessions** tab on your profile lists every device currently signed in to your account, showing:
+The **Sessions** tab on your profile lists every device currently signed in to your account, and every application you have connected, showing:
 
-- **Device** — the browser and operating system it signed in from
+- **Device or application** — the browser and operating system a device signed in from, or the name of a connected application
 - **IP address** — where it signed in from
 - **Last active** and **Signed in** — when it was last used, and when the session started
 
 The session you are using is marked **This device**.
+
+### Connected applications
+
+An AI assistant you connect to Wayd's [hosted MCP endpoint](./mcp-server.mdx#connecting-with-sign-in) by signing in gets a session of its own, marked **Connected application**. The row shows the name the application gave itself and, beneath it, the site it belongs to. That site is what identifies it: any application can call itself anything. Connecting the same application on two computers gives you two rows.
+
+To remove an application's access, choose **Disconnect** from the row's actions menu. It loses access to Wayd straight away; to use it again, connect it again.
 
 ### Signing out a device
 
@@ -49,7 +55,7 @@ Use the row's actions menu to sign out a single device, or **Sign out of all dev
 
 Signing out revokes a device's ability to stay signed in. That device can keep working for up to an hour, until the access token it already holds expires — so it is not instant. If you believe your account is compromised, change your password as well.
 
-> Signing out does **not** revoke personal access tokens. Those are managed separately on the **PATs** tab.
+> **Sign out of all devices** disconnects every connected application too. Signing out does **not** revoke personal access tokens. Those are managed separately on the **PATs** tab.
 
 ## Personal Access Tokens
 

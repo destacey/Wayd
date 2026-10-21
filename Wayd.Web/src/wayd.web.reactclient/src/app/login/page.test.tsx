@@ -14,14 +14,16 @@ jest.mock('@/src/services/clients', () => ({
   storeAuth: jest.fn(),
 }))
 
-jest.mock('@/src/components/contexts/auth/oidc-client-registry', () => ({
-  signinRedirect: jest.fn(),
-  completeSignin: jest.fn(),
-  signinSilent: jest.fn().mockResolvedValue(null),
-  getChosenProviderName: jest.fn().mockReturnValue(null),
-  clearChosenProvider: jest.fn(),
-  getLastProviderName: jest.fn().mockReturnValue(null),
-  clearLastProvider: jest.fn(),
+// Mocked beneath the real oidc-client-registry, so a test can tell whether the
+// page builds a client for an identity provider.
+jest.mock('oidc-client-ts', () => ({
+  UserManager: jest.fn().mockImplementation(() => ({
+    signinRedirect: jest.fn(),
+    signinRedirectCallback: jest.fn(),
+    signinSilent: jest.fn(),
+    signoutRedirect: jest.fn(),
+  })),
+  WebStorageStateStore: jest.fn(),
 }))
 
 const mockNavigate = jest.fn()
@@ -44,13 +46,8 @@ jest.mock('@/src/store/features/common/auth-providers-api', () => ({
 
 // Imports after mocks
 import LoginPage from './page'
+import { UserManager } from 'oidc-client-ts'
 import { getAuthClient, storeAuth } from '@/src/services/clients'
-import {
-  completeSignin,
-  getChosenProviderName,
-  getLastProviderName,
-  signinSilent,
-} from '@/src/components/contexts/auth/oidc-client-registry'
 
 const entraProvider = {
   name: 'MicrosoftEntraId',
@@ -68,6 +65,12 @@ describe('LoginPage provider gating', () => {
     // (?code= param). jsdom sets href to 'about:blank' by default which means
     // new URL(window.location.href).searchParams.has('code') === false — that's
     // exactly what we want for the "not a redirect" case.
+  })
+
+  afterEach(() => {
+    // jest.setup.ts replaces localStorage with jest.fn() stubs; clearAllMocks
+    // keeps a test's mockImplementation, so it would leak into the next test.
+    jest.mocked(localStorage.getItem).mockReset()
   })
 
   it('hides OIDC buttons and shows local form when no OIDC providers', async () => {
@@ -128,6 +131,29 @@ describe('LoginPage provider gating', () => {
     expect(screen.queryByPlaceholderText('Email')).not.toBeInTheDocument()
   })
 
+  it('contacts no identity provider on load, even after an earlier SSO sign-in', async () => {
+    // Arrange
+    jest
+      .mocked(localStorage.getItem)
+      .mockImplementation((key) =>
+        key === 'wayd.oidc.lastProvider' ? entraProvider.name : null,
+      )
+    mockUseGetAuthProvidersQuery.mockReturnValue({
+      data: { local: true, oidc: [entraProvider] },
+      isLoading: false,
+    })
+
+    // Act
+    render(<LoginPage />)
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByText('Microsoft Entra ID')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Completing sign-in…')).not.toBeInTheDocument()
+    expect(UserManager).not.toHaveBeenCalled()
+  })
+
   it('shows local form while the providers query is loading', () => {
     mockUseGetAuthProvidersQuery.mockReturnValue({
       data: undefined,
@@ -164,13 +190,13 @@ describe('LoginPage return to the requested page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     window.history.replaceState(null, '', '/oauth/consent?request=handle-abc123')
-    // clearAllMocks keeps return values, and each test sets its own sign-in path.
-    jest.mocked(getLastProviderName).mockReturnValue(null)
-    jest.mocked(getChosenProviderName).mockReturnValue(null)
   })
 
   afterEach(() => {
     window.history.replaceState(null, '', '/')
+    // jest.setup.ts replaces sessionStorage with jest.fn() stubs; clearAllMocks
+    // keeps a test's mockImplementation, so it would leak into the next test.
+    jest.mocked(sessionStorage.getItem).mockReset()
   })
 
   it.each([
@@ -205,29 +231,6 @@ describe('LoginPage return to the requested page', () => {
     },
   )
 
-  it('after a silent sign-in, goes to the stored page', async () => {
-    // Arrange
-    mockUseGetAuthProvidersQuery.mockReturnValue({
-      data: { local: false, oidc: [entraProvider] },
-      isLoading: false,
-    })
-    jest.mocked(getLastProviderName).mockReturnValue(entraProvider.name)
-    jest
-      .mocked(signinSilent)
-      .mockResolvedValue({ access_token: 'entra-token' } as never)
-    jest.mocked(getAuthClient).mockReturnValue({
-      exchange: jest.fn().mockResolvedValue({ token: 't' }),
-    } as never)
-    mockTakeReturnUrl.mockReturnValue(RETURN_PATH)
-
-    // Act
-    render(<LoginPage />)
-
-    // Assert
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(RETURN_PATH))
-    expect(storeAuth).toHaveBeenCalledWith({ token: 't' })
-  })
-
   it('after a Microsoft sign-in callback, goes to the stored page', async () => {
     // Arrange
     window.history.replaceState(null, '', '/login?code=c1&state=s1')
@@ -235,10 +238,19 @@ describe('LoginPage return to the requested page', () => {
       data: { local: false, oidc: [entraProvider] },
       isLoading: false,
     })
-    jest.mocked(getChosenProviderName).mockReturnValue(entraProvider.name)
     jest
-      .mocked(completeSignin)
-      .mockResolvedValue({ access_token: 'entra-token' } as never)
+      .mocked(sessionStorage.getItem)
+      .mockImplementation((key) =>
+        key === 'wayd.oidc.chosenProvider' ? entraProvider.name : null,
+      )
+    jest.mocked(UserManager).mockImplementationOnce(
+      () =>
+        ({
+          signinRedirectCallback: jest
+            .fn()
+            .mockResolvedValue({ access_token: 'entra-token' }),
+        }) as never,
+    )
     jest.mocked(getAuthClient).mockReturnValue({
       exchange: jest.fn().mockResolvedValue({ token: 't' }),
     } as never)

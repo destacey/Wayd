@@ -50178,6 +50178,9 @@ export interface ActivityLogDto {
     aggregateId: string;
     actorKind: EventActorKind;
     employee?: EmployeeNavigationDto | undefined;
+    /** The OAuth client the change was made through, such as an agent connected to the hosted MCP endpoint: its
+`client_id`, the URL of its metadata document, whose host identifies it. Null for a change made directly. */
+    clientId?: string | undefined;
     timestamp: Date;
     correlationId?: string | undefined;
     eventVersion: string;

@@ -96,7 +96,7 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
             }
         }
 
-        var response = await pipeline.Send(caller, HttpMethod, path.ToString(), query.ToQueryString(), headers, body, cancellationToken);
+        var response = await pipeline.Send(ProtocolTool.Name, caller, HttpMethod, path.ToString(), query.ToQueryString(), headers, body, cancellationToken);
         var filters = Arguments.Where(a => a.Location == ArgumentLocation.Query).Select(a => a.Name).ToList();
         return ApiToolResult.From(response, output, new ResultBounds(filters, Paged, offset));
     }

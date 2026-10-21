@@ -9,8 +9,8 @@ internal static class ConfigureServices
     private static readonly TimeSpan _fetchTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// Registers Wayd's authorization server, the scheme that accepts its access tokens, and how it resolves its
-    /// clients. The resolver gets an
+    /// Registers Wayd's authorization server, the schemes that accept its access tokens and the tokens tool calls are
+    /// delegated with, and how it resolves its clients. The resolver gets an
     /// <see cref="HttpClient"/> of its own rather than one from the factory, whose defaults add service discovery
     /// (which would resolve a client-chosen host name to an internal service) and retries.
     /// </summary>
@@ -26,6 +26,6 @@ internal static class ConfigureServices
             .Validate(o => o.ResourcePath?.StartsWith('/') == true, $"{nameof(AuthorizationServerOptions)}.{nameof(AuthorizationServerOptions.ResourcePath)} must be set to the protected resource's path.");
         services.AddScoped<IAuthorizationServer, AuthorizationServer>();
 
-        return services.AddOAuthAccessTokenAuth();
+        return services.AddOAuthAccessTokenAuth().AddDelegatedAccessTokenAuth();
     }
 }

@@ -105,6 +105,18 @@ const raisedOnLabel = (activity: ActivityLogDto): string =>
   activity.raisedOn?.name ??
   `another ${formatFieldLabel(activity.aggregateType).toLowerCase()}`
 
+/**
+ * The host of a connected application's client id, which is how the consent page identified it to the user. The
+ * client id is the URL of the application's metadata document; anything that does not parse is shown as it is.
+ */
+export const clientHost = (clientId: string): string => {
+  try {
+    return new URL(clientId).host || clientId
+  } catch {
+    return clientId
+  }
+}
+
 const actorTagColor = (kind: EventActorKind): string => {
   switch (kind) {
     case EventActorKind.User:
@@ -306,7 +318,9 @@ export const isActivityMatchingQuery = (
   const employeeName = (act.employee?.name ?? '').toLowerCase()
   const badgeLabel = getEventBadge(act.category).label.toLowerCase()
   const raisedOn = act.isRelated ? raisedOnLabel(act).toLowerCase() : ''
+  const client = act.clientId ? clientHost(act.clientId).toLowerCase() : ''
   return (
+    client.includes(q) ||
     summary.includes(q) ||
     eventType.includes(q) ||
     actorKind.includes(q) ||
@@ -672,6 +686,18 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                           </Flex>
                         )}
 
+                        {entry.clientId && (
+                          <Tooltip title={entry.clientId}>
+                            <Text
+                              type="secondary"
+                              ellipsis
+                              style={{ fontSize: token.fontSizeSM, maxWidth: 200 }}
+                            >
+                              via {clientHost(entry.clientId)}
+                            </Text>
+                          </Tooltip>
+                        )}
+
                         {entry.isRelated && (
                           <Text
                             type="secondary"
@@ -914,6 +940,19 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                         >
                           {actorDisplay.subtitle}
                         </Text>
+                        {selectedActivity.clientId && (
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: token.fontSizeSM }}
+                          >
+                            Through the connected application{' '}
+                            <Tooltip title={selectedActivity.clientId}>
+                              <Text strong style={{ fontSize: token.fontSizeSM }}>
+                                {clientHost(selectedActivity.clientId)}
+                              </Text>
+                            </Tooltip>
+                          </Text>
+                        )}
                       </Flex>
                     </Flex>
                   </Card>

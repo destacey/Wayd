@@ -372,6 +372,10 @@ internal class TokenService(
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = ConfigureServices.CreateSigningKey(settings.Secret),
             ValidateLifetime = false, // Allow expired tokens for refresh
+
+            // Only the web app's own tokens; the access tokens Wayd's authorization server issues are typed at+jwt
+            // and share this key.
+            ValidTypes = ["JWT"],
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();

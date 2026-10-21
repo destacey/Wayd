@@ -43149,6 +43149,11 @@
             ],
             "nullable": true
           },
+          "clientId": {
+            "type": "string",
+            "description": "The OAuth client the change was made through, such as an agent connected to the hosted MCP endpoint: its\n`client_id`, the URL of its metadata document, whose host identifies it. Null for a change made directly.",
+            "nullable": true
+          },
           "timestamp": {
             "type": "string",
             "format": "date-time"

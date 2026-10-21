@@ -255,6 +255,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
 
+                    b.Property<string>("ClientId")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");

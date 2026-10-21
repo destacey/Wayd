@@ -41,6 +41,7 @@ public class ActivityLogConfiguration : IEntityTypeConfiguration<ActivityLogEntr
             .HasMaxLength(32);
 
         builder.Property(x => x.UserId).HasMaxLength(450);
+        builder.Property(x => x.ClientId).HasMaxLength(2048);
         builder.Property(x => x.EmployeeId);
         builder.HasOne(x => x.Employee)
             .WithMany()

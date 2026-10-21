@@ -1,6 +1,12 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Net.Http.Headers;
+using Wayd.Infrastructure;
+using Wayd.Infrastructure.Auth.OAuth;
+using Wayd.Infrastructure.Hosting;
+using Wayd.Infrastructure.OpenTelemetry;
 
 namespace Wayd.Web.Api.Mcp;
 
@@ -9,14 +15,27 @@ namespace Wayd.Web.Api.Mcp;
 /// authorized, validated and answered by exactly the code that serves the same HTTP request.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Registered as an <see cref="IStartupFilter"/> to capture the pipeline from its first middleware. The
 /// caller's credentials are forwarded rather than its principal, because the authorization middleware
 /// authenticates afresh with the schemes its policy names.
+/// </para>
+/// <para>
+/// A personal access token or the web app's token is forwarded as it came. An OAuth access token is not: it is bound
+/// to <c>/mcp</c>, which the API's endpoints refuse, so the request carries a token minted for it instead
+/// (<see cref="DelegatedAccessTokens"/>) that names the user and, as its actor, the client, so a change is recorded
+/// as made through that client.
+/// </para>
 /// </remarks>
 public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStartupFilter
 {
     /// <summary>Headers carried from the caller's request, which between them hold every credential the API accepts.</summary>
-    private static readonly string[] _forwardedHeaders = [HeaderNames.Authorization, "x-api-key"];
+    private static readonly string[] _forwardedHeaders = [HeaderNames.Authorization, AuthConstants.ApiKeyHeaderName];
+
+    private static readonly ActivitySource _activitySource = new(McpTelemetry.Name);
+    private static readonly Meter _meter = new(McpTelemetry.Name);
+    private static readonly Histogram<double> _duration = _meter.CreateHistogram<double>(
+        McpTelemetry.ToolCallDuration, "s", "How long a hosted MCP tool call took to answer, by tool and credential.");
 
     private readonly IHttpContextFactory _httpContextFactory = httpContextFactory;
     private RequestDelegate? _pipeline;
@@ -33,6 +52,7 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
     };
 
     /// <summary>Sends a request on behalf of <paramref name="caller"/> and returns the API's answer.</summary>
+    /// <param name="tool">The name of the tool making the call, for telemetry.</param>
     /// <param name="caller">The request whose credentials the inner request carries.</param>
     /// <param name="method">The HTTP method.</param>
     /// <param name="path">The path, starting with a slash.</param>
@@ -40,7 +60,8 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
     /// <param name="headers">Extra request headers.</param>
     /// <param name="body">The request body and its content type, if any.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
-    public Task<ApiResponse> Send(
+    public async Task<ApiResponse> Send(
+        string tool,
         HttpContext caller,
         string method,
         string path,
@@ -56,10 +77,17 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
             [HeaderNames.Host] = caller.Request.Host.Value ?? "localhost",
             [HeaderNames.Accept] = "application/json",
         };
-        foreach (var name in _forwardedHeaders)
+        var accessToken = OAuthAccessTokens.AccessTokenIdentityOf(caller.User);
+        // The delegated token travels only in the request feature, never a header, so nothing that reads or logs
+        // headers can carry it out of the process.
+        var delegation = accessToken is null ? null : Delegate(caller, accessToken);
+        if (delegation is null)
         {
-            if (caller.Request.Headers.TryGetValue(name, out var value))
-                requestHeaders[name] = value;
+            foreach (var name in _forwardedHeaders)
+            {
+                if (caller.Request.Headers.TryGetValue(name, out var value))
+                    requestHeaders[name] = value;
+            }
         }
         foreach (var (name, value) in headers ?? new Dictionary<string, string>())
             requestHeaders[name] = value;
@@ -82,7 +110,20 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
         };
 
         var connection = caller.Features.Get<IHttpConnectionFeature>();
+        var credential = accessToken is not null ? "oauth"
+            : caller.Request.Headers.ContainsKey(AuthConstants.ApiKeyHeaderName) ? "personal_access_token"
+            : "session";
+
+        using var activity = _activitySource.StartActivity($"tools/call {tool}", ActivityKind.Internal);
+        activity?.SetTag(McpTelemetry.ToolTag, tool);
+        activity?.SetTag(McpTelemetry.CredentialTag, credential);
+        activity?.SetTag(McpTelemetry.ClientIdTag, accessToken?.FindFirst(OAuthAccessTokens.ClientIdClaim)?.Value);
+        activity?.SetTag("http.request.method", method);
+        activity?.SetTag("url.path", path);
         var parentActivity = Activity.Current;
+        var started = Stopwatch.GetTimestamp();
+
+        Task<ApiResponse> sent;
 
         // HttpContextAccessor clears the context of whatever holder the current execution context carries
         // when the inner context is assigned to it, which would leave the caller's own request with no
@@ -90,15 +131,68 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
         // request a holder of its own.
         using (ExecutionContext.SuppressFlow())
         {
-            return Task.Run(async () =>
+            sent = Task.Run(async () =>
             {
                 Activity.Current = parentActivity;
-                return await Invoke(pipeline, request, connection, cancellationToken);
+                return await Invoke(pipeline, request, delegation, connection, cancellationToken);
             }, cancellationToken);
         }
+
+        ApiResponse response;
+        try
+        {
+            response = await sent;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            RecordDuration(started, tool, credential, new("error.type", ex.GetType().FullName));
+            throw;
+        }
+
+        activity?.SetTag("http.response.status_code", response.StatusCode);
+        if (!response.IsSuccess)
+            activity?.SetStatus(ActivityStatusCode.Error);
+        RecordDuration(started, tool, credential, new("http.response.status_code", response.StatusCode));
+
+        return response;
     }
 
-    private async Task<ApiResponse> Invoke(RequestDelegate pipeline, HttpRequestFeature request, IHttpConnectionFeature? connection, CancellationToken cancellationToken)
+    /// <summary>Records how long a tool call took, with how it ended: its status code, or the error that ended it.</summary>
+    private static void RecordDuration(long started, string tool, string credential, KeyValuePair<string, object?> outcome) =>
+        _duration.Record(
+            Stopwatch.GetElapsedTime(started).TotalSeconds,
+            new KeyValuePair<string, object?>(McpTelemetry.ToolTag, tool),
+            new KeyValuePair<string, object?>(McpTelemetry.CredentialTag, credential),
+            outcome);
+
+    /// <summary>
+    /// Exchanges the caller's OAuth access token for a token the API accepts, naming the same user and the client as
+    /// its actor. The <c>/mcp</c> scheme has already checked the access token and its session for this request.
+    /// </summary>
+    private static InProcessDelegation Delegate(HttpContext caller, ClaimsIdentity accessToken)
+    {
+        var userId = accessToken.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("An OAuth access token names no user.");
+        var clientId = accessToken.FindFirst(OAuthAccessTokens.ClientIdClaim)?.Value
+            ?? throw new InvalidOperationException("An OAuth access token names no client.");
+
+        var services = caller.RequestServices;
+        return new InProcessDelegation(DelegatedAccessTokens.Issue(
+            services.GetRequiredService<IConfiguration>(),
+            services.GetRequiredService<PublicUrl>().For(caller.Request),
+            userId,
+            clientId,
+            services.GetRequiredService<IDateTimeProvider>().Now));
+    }
+
+    private async Task<ApiResponse> Invoke(
+        RequestDelegate pipeline,
+        HttpRequestFeature request,
+        InProcessDelegation? delegation,
+        IHttpConnectionFeature? connection,
+        CancellationToken cancellationToken)
     {
         using var responseBody = new MemoryStream();
         var response = new HttpResponseFeature();
@@ -109,14 +203,20 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
         features.Set<IHttpResponseBodyFeature>(new StreamResponseBodyFeature(responseBody));
         features.Set<IHttpRequestLifetimeFeature>(new HttpRequestLifetimeFeature { RequestAborted = cancellationToken });
         features.Set<IHttpRequestIdentifierFeature>(new HttpRequestIdentifierFeature());
-        features.Set<IHttpConnectionFeature>(new HttpConnectionFeature
+        // The inner request shares the caller's connection, so rate limits and logs see the same address and id.
+        if (connection is not null)
         {
-            ConnectionId = connection?.ConnectionId,
-            RemoteIpAddress = connection?.RemoteIpAddress,
-            RemotePort = connection?.RemotePort ?? 0,
-            LocalIpAddress = connection?.LocalIpAddress,
-            LocalPort = connection?.LocalPort ?? 0,
-        });
+            features.Set<IHttpConnectionFeature>(new HttpConnectionFeature
+            {
+                ConnectionId = connection.ConnectionId,
+                RemoteIpAddress = connection.RemoteIpAddress,
+                RemotePort = connection.RemotePort,
+                LocalIpAddress = connection.LocalIpAddress,
+                LocalPort = connection.LocalPort,
+            });
+        }
+        if (delegation is not null)
+            features.Set(delegation);
 
         var context = _httpContextFactory.Create(features);
         try

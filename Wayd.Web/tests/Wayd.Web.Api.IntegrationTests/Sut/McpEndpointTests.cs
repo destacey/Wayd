@@ -377,6 +377,52 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task CallTool_RecordsItsDuration_ByToolAndTheCredentialTheCallerUsed()
+    {
+        // Arrange — the web app's token and a personal access token, for the same tool
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Projects);
+        var (user, token) = await CreateUserWithToken(permission);
+        await using var withToken = await Connect(token);
+        await using var withSession = await McpClient.CreateAsync(
+            new HttpClientTransport(
+                new HttpClientTransportOptions { Endpoint = new Uri(_factory.Server.BaseAddress, McpServerSetup.Path) },
+                user.Client,
+                ownsHttpClient: false),
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var recorded = new System.Collections.Concurrent.ConcurrentBag<(string? Tool, string? Credential, int? Status)>();
+        using var listener = new System.Diagnostics.Metrics.MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (instrument.Meter.Name == Wayd.Infrastructure.OpenTelemetry.McpTelemetry.Name
+                && instrument.Name == Wayd.Infrastructure.OpenTelemetry.McpTelemetry.ToolCallDuration)
+                l.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<double>((_, _, tags, _) =>
+        {
+            string? tool = null, credential = null;
+            int? status = null;
+            foreach (var tag in tags)
+            {
+                if (tag.Key == Wayd.Infrastructure.OpenTelemetry.McpTelemetry.ToolTag) tool = tag.Value as string;
+                else if (tag.Key == Wayd.Infrastructure.OpenTelemetry.McpTelemetry.CredentialTag) credential = tag.Value as string;
+                else if (tag.Key == "http.response.status_code") status = tag.Value as int?;
+            }
+            recorded.Add((tool, credential, status));
+        });
+        listener.Start();
+
+        // Act
+        await withSession.CallToolAsync("Projects_GetStatuses", cancellationToken: TestContext.Current.CancellationToken);
+        await withToken.CallToolAsync("Projects_GetStatuses", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains(("Projects_GetStatuses", "session", 200), recorded);
+        Assert.Contains(("Projects_GetStatuses", "personal_access_token", 200), recorded);
+    }
+
+    [Fact]
     public async Task CallTool_AnswersWithAnArrayAsStructuredContentUnderResult()
     {
         // Arrange
@@ -650,6 +696,38 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.NotEqual(HttpStatusCode.UnsupportedMediaType, direct.StatusCode);
         Assert.True(result.IsError);
         Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
+    }
+
+    [Fact]
+    public async Task CallTool_WithAPersonalAccessToken_ChangesAsTheUser_ThroughNoClient()
+    {
+        // Arrange — a personal access token is forwarded as it came, so the change is the user's own
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.Create, ApplicationResource.ProjectPortfolios);
+        var (user, token) = await CreateUserWithToken(permission);
+        await using var mcp = await Connect(token);
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Portfolios_Create",
+            new Dictionary<string, object?> { ["requestBody"] = new { name = $"PAT {Guid.NewGuid():N}"[..20], description = "Created through a tool call." } },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError is not true, TextOf(result));
+        var portfolioId = Guid.Parse(StructuredContentOf(result)["id"]!.GetValue<string>());
+        using var scope = _factory.Services.CreateScope();
+        var entries = await scope.ServiceProvider.GetRequiredService<Wayd.Infrastructure.Persistence.Context.WaydDbContext>().ActivityLogs
+            .AsNoTracking()
+            .Where(a => a.AggregateId == portfolioId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        Assert.NotEmpty(entries);
+        Assert.All(entries, entry =>
+        {
+            Assert.Null(entry.ClientId);
+            Assert.Equal(EventActorKind.User, entry.ActorKind);
+            Assert.Equal(user.UserId, entry.UserId);
+        });
     }
 
     /// <summary>The <c>resource_metadata</c> parameter every challenge from the endpoint carries, written out rather than read from the API's constants.</summary>

@@ -886,6 +886,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         // correlation id — one save is one chain of consequences. Never throws or blocks on there being a
         // signed-in user: CorrelationId falls back to the ambient trace id, then to a new Guid.
         var correlationId = _requestCorrelationIdProvider.CorrelationId;
+        var clientId = _currentUser.ClientId;
 
         foreach (var entity in entitiesWithEvents)
         {
@@ -894,7 +895,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             foreach (var domainEvent in domainEvents)
             {
                 // Auto-capture into ActivityLogs table
-                var activityLog = ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, entity, _activityOrdinal++, correlationId);
+                var activityLog = ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, entity, _activityOrdinal++, correlationId, clientId);
                 Set<ActivityLogEntry>().Add(activityLog);
                 enrolledActivity = true;
 

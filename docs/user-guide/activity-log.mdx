@@ -41,6 +41,8 @@ Each timeline entry shows an icon for the kind of change (created, updated, acti
 - **Import** or **Sync** — a CSV import, or an integration syncing from an external system.
 - **System** — no human actor: a scheduled job, a message being delivered, or startup work.
 
+A change made by an application you [connected by signing in](../getting-started/mcp-server.mdx#connecting-with-sign-in), such as an AI agent, is still yours, and the entry adds **via** the site the application belongs to, the same site the connection request named. Hovering it, or opening the entry, shows the application's full address. A change made with a personal access token names no application, because Wayd cannot tell which tool used the token.
+
 Selecting an entry opens its detail, which adds the event type, the module it came from, the kind of record it targeted, and the **payload** — the full data the event carried, as recorded at the time.
 
 A change records what it replaced as well as the result: a timeline change carries the previous dates, a lifecycle change the lifecycle it moved from, a details edit the name and description it overwrote, and a role or theme change who and what was added and removed. One entry is enough to see what an edit altered. Entries recorded by earlier releases may carry only the result.
@@ -49,7 +51,7 @@ Some changes concern more than the record they were made on. Moving a product un
 
 Two entries can be compared: **Compare** on an event shows its payload beside the previous one for the same record, with changed fields called out. It is most useful across different kinds of change, or for older entries that recorded only the result.
 
-Use the search box to narrow the timeline by event, actor, or type. Long histories load a page at a time — **Load more** fetches the next page.
+Use the search box to narrow the timeline by event, actor, type, or the site of the application a change was made through. Long histories load a page at a time — **Load more** fetches the next page.
 
 ## Exporting
 

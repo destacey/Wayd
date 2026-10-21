@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -48,6 +49,14 @@ public static class OAuthAccessTokens
     }
 
     /// <summary>
+    /// The identity <paramref name="principal"/> authenticated with one of these tokens, or null when it used another
+    /// credential. Its subject is the user (<see cref="ClaimTypes.NameIdentifier"/>) and its <see cref="ClientIdClaim"/>
+    /// the client.
+    /// </summary>
+    public static ClaimsIdentity? AccessTokenIdentityOf(ClaimsPrincipal principal) =>
+        principal.Identities.FirstOrDefault(i => i.IsAuthenticated && i.AuthenticationType == AuthConstants.OAuthAccessTokenScheme);
+
+    /// <summary>
     /// Registers <see cref="AuthConstants.OAuthAccessTokenScheme"/>, which accepts only these tokens, and only when
     /// their issuer and audience are this API's for the current request and the session they were issued from is still
     /// live. No policy uses it unless the host names it.
@@ -65,6 +74,8 @@ public static class OAuthAccessTokens
                     options.MapInboundClaims = true;
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
+                        // Names the identity after the scheme, which is how a tool call knows to delegate (AccessTokenIdentityOf).
+                        AuthenticationType = AuthConstants.OAuthAccessTokenScheme,
                         ValidTypes = [TokenType],
                         ValidateIssuer = true,
                         IssuerValidator = (issuer, _, _) => string.Equals(issuer, Issuer(), StringComparison.Ordinal)

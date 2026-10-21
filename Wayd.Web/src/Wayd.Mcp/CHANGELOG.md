@@ -1,5 +1,12 @@
 # @wayd/mcp
 
+## 0.20.0
+
+### Minor Changes
+
+- 6032ba0: `Products_GetStatusOptions` takes an optional `productId` and then returns only the moves that product's workflow allows from its current status. A product workflow can now restrict which status may move to which, and `Products_ChangeStatus` refuses a move outside them, naming both statuses.
+- 1d1dba5: `Products_ChangeStatus` takes an optional `reason`, recorded on the product's status history. A product workflow can now require a reason for a move: `Products_GetStatusOptions` lists each allowed move's `conditions`, and a move whose conditions include `RequiresReason` is refused without one.
+
 ## 0.19.0
 
 ### Minor Changes

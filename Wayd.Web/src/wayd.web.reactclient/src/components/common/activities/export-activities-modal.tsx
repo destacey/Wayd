@@ -71,6 +71,7 @@ export const formatEventForExport = (event: ActivityLogDto) => {
           name: event.employee.name,
         }
       : undefined,
+    clientId: event.clientId,
     summary: event.summary,
     correlationId: event.correlationId,
     eventVersion: event.eventVersion ?? '1.0',

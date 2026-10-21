@@ -6,7 +6,10 @@ import {
   ActivityLogDto,
   EventActorKind,
 } from '@/src/services/wayd-api'
-import ActivityLogTimeline from './activity-log-timeline'
+import ActivityLogTimeline, {
+  clientHost,
+  isActivityMatchingQuery,
+} from './activity-log-timeline'
 
 jest.mock('./export-activities-modal', () => {
   const MockExportModal = ({ open }: any) =>
@@ -821,5 +824,50 @@ describe('ActivityLogTimeline', () => {
     expect(
       screen.queryByRole('button', { name: /Compare changes/i }),
     ).not.toBeInTheDocument()
+  })
+  it('names the connected application a change was made through by its host', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 2,
+            clientId: 'https://agent.acme.example/oauth/client-metadata.json',
+          }),
+        ]}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.getByText('via agent.acme.example')).toBeInTheDocument()
+  })
+
+  it('names no application for a change made directly', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[createActivity({ id: 2 })]}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.queryByText(/^via /)).not.toBeInTheDocument()
+  })
+
+  it('finds a change by the host of the application it was made through', () => {
+    const activity = createActivity({
+      clientId: 'https://agent.acme.example/oauth/client-metadata.json',
+    })
+
+    expect(isActivityMatchingQuery(activity, 'acme.example')).toBe(true)
+    expect(isActivityMatchingQuery(createActivity(), 'acme.example')).toBe(
+      false,
+    )
+  })
+
+  it.each([
+    ['https://agent.acme.example/metadata.json', 'agent.acme.example'],
+    ['https://agent.acme.example:8443/metadata.json', 'agent.acme.example:8443'],
+    ['not a url', 'not a url'],
+  ])('shows client id %s as %s', (clientId, expected) => {
+    expect(clientHost(clientId)).toBe(expected)
   })
 })

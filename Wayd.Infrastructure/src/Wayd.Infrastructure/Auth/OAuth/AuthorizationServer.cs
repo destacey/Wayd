@@ -121,7 +121,7 @@ internal sealed class AuthorizationServer(
         if (client.IsFailure)
             return Refuse(client.Error);
 
-        if (!client.Value.RedirectUris.Contains(redirectUri, StringComparer.Ordinal))
+        if (!RedirectUriMatch.IsRegistered(client.Value.RedirectUris, redirectUri))
             return Refuse("The redirect_uri is not one of those the client's metadata document lists.");
 
         var now = _dateTimeProvider.Now;

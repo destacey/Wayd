@@ -1,0 +1,37 @@
+.page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--ant-color-bg-layout);
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--ant-color-text-secondary);
+}
+
+.brandIcon {
+  width: 28px;
+  height: 28px;
+}
+
+/* A client host or name is a single unbroken token; without this a long one
+   pushes the card wider than a phone screen. */
+.identity {
+  overflow-wrap: anywhere;
+}
+
+.grants {
+  margin: 0;
+  padding-inline-start: 20px;
+}

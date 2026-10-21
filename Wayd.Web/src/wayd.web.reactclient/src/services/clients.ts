@@ -58,10 +58,12 @@ import {
   ImportsClient,
   MessagingClient,
   PersonalAccessTokensClient,
+  OAuthAuthorizationRequestsClient,
   SearchClient,
   TokenResponse,
 } from './wayd-api'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
+import { storeReturnUrl } from '@/src/utils/return-url'
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -206,15 +208,7 @@ function isNetworkError(error: unknown): boolean {
 
 function redirectToLoginWithReturnUrl(): void {
   if (typeof window === 'undefined') return
-  const { pathname } = window.location
-  if (
-    pathname &&
-    pathname !== '/' &&
-    pathname !== '/login' &&
-    pathname !== '/logout'
-  ) {
-    sessionStorage.setItem('wayd.returnUrl', pathname)
-  }
+  storeReturnUrl()
   navigateWithFullReload('/login')
 }
 
@@ -308,9 +302,8 @@ axiosClient.interceptors.response.use(
           //
           // 1. Server reachable, refresh rejected (4xx/5xx): the session is
           //    invalid. Wipe storage and hard-navigate to /login so AuthGate
-          //    re-renders unauthenticated. We also stash the current path
-          //    under the same key AuthGate uses (see app/layout.tsx) so the
-          //    user lands back where they were.
+          //    re-renders unauthenticated. We also remember the current page
+          //    (storeReturnUrl) so the user lands back where they were.
           //
           // 2. Network error (offline, server unreachable, request aborted):
           //    no proof the session is bad — we just couldn't ask. Wiping
@@ -538,6 +531,8 @@ export const getRolesClient = () => new RolesClient('', axiosClient)
 export const getUsersClient = () => new UsersClient('', axiosClient)
 export const getPersonalAccessTokensClient = () =>
   new PersonalAccessTokensClient('', axiosClient)
+export const getOAuthAuthorizationRequestsClient = () =>
+  new OAuthAuthorizationRequestsClient('', axiosClient)
 
 /**
  * Performs an authenticated fetch request.

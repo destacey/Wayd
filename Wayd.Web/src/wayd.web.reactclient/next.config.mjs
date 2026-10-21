@@ -18,6 +18,20 @@ const nextConfig = {
     // build-time type checking enabled, since the alias does provide it.
     useTypeScriptCli: false,
   },
+  // The consent page approves access to Wayd for another application, so no
+  // other site may frame it and overlay its Approve button. Only this route:
+  // silent sign-in loads /login in a same-origin iframe.
+  async headers() {
+    return [
+      {
+        source: '/oauth/consent',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Frame-Options', value: 'DENY' },
+        ],
+      },
+    ]
+  },
   // Sprint URLs from before the pages moved under /work, still in bookmarks and shared links.
   async redirects() {
     return [

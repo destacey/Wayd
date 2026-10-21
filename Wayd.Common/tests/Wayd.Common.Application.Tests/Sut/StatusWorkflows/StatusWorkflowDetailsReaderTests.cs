@@ -1,21 +1,24 @@
 using FluentAssertions;
-using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Conditions;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Application.Tests.Sut.StatusWorkflows.Conditions;
-using Wayd.Common.Application.StatusWorkflows.Queries;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
-namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Queries;
+namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows;
 
 /// <summary>
 /// A workflow's detail: its transitions, and whether they stop it being published.
 /// </summary>
-public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTestBase
+public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTestBase
 {
-    private GetStatusWorkflowQueryHandler CreateSut(params ITransitionConditionEvaluator[] evaluators) =>
-        new(DbContext, new TransitionConditionChecker(evaluators));
+    private StatusWorkflowDetailsReader CreateSut() => new(DbContext);
+
+    /// <summary>Reads <paramref name="workflow"/> with only <paramref name="evaluators"/> able to check conditions.</summary>
+    private Task<StatusWorkflowDetailsDto?> Read(StatusWorkflow workflow, params ITransitionConditionEvaluator[] evaluators) =>
+        CreateSut().Read(w => w.Id == workflow.Id, new TransitionConditionChecker(evaluators).IsAvailable, TestContext.Current.CancellationToken);
 
     private static Guid StatusId(StatusWorkflow workflow, string name) => workflow.Statuses.Single(s => s.Name == name).Id;
 
@@ -33,7 +36,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
             WorkflowMove.Optional("Ship", 21, 22, TransitionConditionKind.RequiresReason, TransitionConditionKind.RequiresPassedApproval),
         ]);
 
-    public GetStatusWorkflowQueryHandlerTests() => WorkflowOwners.Register(Gadget);
+    public StatusWorkflowDetailsReaderTests() => WorkflowOwners.Register(Gadget);
 
     [Fact]
     public async Task Handle_ShouldDescribeTheDeclaredMoves_WithTheConditionsSomethingCanCheck()
@@ -47,7 +50,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         var (planned, ready, shipped) = (StatusId(workflow, "Planned"), StatusId(workflow, "Ready"), StatusId(workflow, "Shipped"));
 
         // Act
-        var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+        var result = await Read(workflow);
 
         // Assert
         result!.DeclaredMoves.Select(m => (m.FromStatusId, m.ToStatusId, m.IsRequired, string.Join(",", m.Actions)))
@@ -64,7 +67,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         var workflow = SeedWorkflow();
 
         // Act
-        var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+        var result = await Read(workflow);
 
         // Assert
         result.Should().NotBeNull();
@@ -86,7 +89,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         workflow.SetTransitions([new(notable, terminal), new(proposed, terminal), new(proposed, notable)], EventActor.System, Now);
 
         // Act
-        var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+        var result = await Read(workflow);
 
         // Assert
         result!.TransitionMode.Should().Be(TransitionMode.Restricted);
@@ -105,7 +108,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
             [new(proposed, notable), new(notable, terminal, [TransitionConditionKind.RequiresReason])], EventActor.System, Now);
 
         // Act
-        var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+        var result = await Read(workflow);
 
         // Assert
         result!.Transitions.Single(t => t.FromStatusId == notable).Conditions.Should().Equal(TransitionConditionKind.RequiresReason);
@@ -120,8 +123,8 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         var approvals = new FakeConditionEvaluator(TransitionConditionKind.RequiresPassedApproval, isMet: true);
 
         // Act
-        var without = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
-        var with = await CreateSut(approvals).Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+        var without = await Read(workflow);
+        var with = await Read(workflow, approvals);
 
         // Assert
         without!.AvailableConditions.Should().Equal(TransitionConditionKind.RequiresReason);
@@ -137,7 +140,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         workflow.SetTransitions([new(StatusId(workflow, "Proposed"), StatusId(workflow, "Notable"))], EventActor.System, Now);
 
         // Act
-        var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+        var result = await Read(workflow);
 
         // Assert
         result!.TransitionIssues.Should().Equal(

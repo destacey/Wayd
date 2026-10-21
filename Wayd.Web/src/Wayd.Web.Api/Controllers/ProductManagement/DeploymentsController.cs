@@ -120,6 +120,22 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
                 : NotFound();
     }
 
+    [HttpGet("{idOrKey}/status-workflow")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
+    [EndpointSummary("Get the status workflow a deployment currently moves through.")]
+    [EndpointDescription(
+        "The workflow's statuses, the moves it allows and the conditions on each, with the moves the deployment's actions make, as the workflow's own detail returns them. Readable by anyone who can view the deployment, so its status history can be drawn on the workflow without the settings permission.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StatusWorkflowDetailsDto>> GetStatusWorkflow(
+        string idOrKey, CancellationToken cancellationToken)
+    {
+        var workflow = await _dispatcher.Send(
+            new GetDeploymentStatusWorkflowQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return workflow is not null ? Ok(workflow) : NotFound();
+    }
+
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
     [EndpointSummary("Record a deployment beginning.")]

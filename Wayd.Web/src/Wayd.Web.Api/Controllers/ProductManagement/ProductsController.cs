@@ -115,6 +115,22 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
                 : NotFound();
     }
 
+    [HttpGet("{idOrKey}/status-workflow")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
+    [EndpointSummary("Get the status workflow a product currently moves through.")]
+    [EndpointDescription(
+        "The workflow's statuses, the moves it allows and the conditions on each, as the workflow's own detail returns them. Readable by anyone who can view the product, so its status history can be drawn on the workflow without the settings permission.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StatusWorkflowDetailsDto>> GetStatusWorkflow(
+        string idOrKey, CancellationToken cancellationToken)
+    {
+        var workflow = await _dispatcher.Send(
+            new GetProductStatusWorkflowQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return workflow is not null ? Ok(workflow) : NotFound();
+    }
+
     /// <param name="productId">
     /// A product whose allowed moves to return, excluding its current status. Omit for every status in
     /// the workflow.

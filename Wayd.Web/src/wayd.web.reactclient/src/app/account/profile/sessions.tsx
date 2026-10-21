@@ -20,6 +20,15 @@ import { ItemType } from 'antd/es/menu/interface'
 
 const { Text } = Typography
 
+/** The host of a connected application's client id, which is a URL; the id itself if it does not parse. */
+const clientHost = (clientId: string): string => {
+  try {
+    return new URL(clientId).host || clientId
+  } catch {
+    return clientId
+  }
+}
+
 const Sessions: FC = () => {
   const messageApi = useMessage()
   const { modal } = App.useApp()
@@ -40,6 +49,26 @@ const Sessions: FC = () => {
         okText: 'Sign out',
         okButtonProps: { danger: true },
         onOk: () => logout(),
+      })
+      return
+    }
+
+    if (session.clientId) {
+      modal.confirm({
+        title: 'Disconnect this application?',
+        content: `${session.deviceLabel ?? 'This application'} (${clientHost(session.clientId)}) will lose access to Wayd straight away. To use it again, connect it again.`,
+        okText: 'Disconnect',
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          try {
+            await revokeSession(session.id).unwrap()
+            messageApi.success('Application disconnected.')
+          } catch {
+            messageApi.error(
+              'Unable to disconnect that application. Please try again.',
+            )
+          }
+        },
       })
       return
     }
@@ -86,7 +115,11 @@ const Sessions: FC = () => {
       getItems: (session): ItemType[] => [
         {
           key: 'revoke',
-          label: session.isCurrent ? 'Sign out' : 'Sign out this session',
+          label: session.clientId
+            ? 'Disconnect'
+            : session.isCurrent
+              ? 'Sign out'
+              : 'Sign out this session',
           danger: true,
           onClick: () => handleRevoke(session),
         },
@@ -95,14 +128,30 @@ const Sessions: FC = () => {
     {
       id: 'deviceLabel',
       accessorKey: 'deviceLabel',
-      header: 'Device',
+      header: 'Device or application',
       size: 320,
-      cell: ({ row }) => (
-        <Space>
-          <Text>{row.original.deviceLabel ?? 'Unknown device'}</Text>
-          {row.original.isCurrent && <Tag color="success">This device</Tag>}
-        </Space>
-      ),
+      cell: ({ row }) => {
+        const session = row.original
+        if (session.clientId) {
+          // The label is the name the application gave itself; the host of its
+          // client id is the part that identifies it.
+          return (
+            <Flex vertical>
+              <Space>
+                <Text>{session.deviceLabel ?? 'Unknown application'}</Text>
+                <Tag>Connected application</Tag>
+              </Space>
+              <Text type="secondary">{clientHost(session.clientId)}</Text>
+            </Flex>
+          )
+        }
+        return (
+          <Space>
+            <Text>{session.deviceLabel ?? 'Unknown device'}</Text>
+            {session.isCurrent && <Tag color="success">This device</Tag>}
+          </Space>
+        )
+      },
     },
     {
       id: 'ipAddress',

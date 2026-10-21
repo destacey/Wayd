@@ -36,7 +36,14 @@ jest.mock('@/src/store/features/user-management/user-sessions-api', () => ({
   ],
 }))
 
-import { render, screen } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
+import { App } from 'antd'
 import Sessions from './sessions'
 
 const session = (overrides: Record<string, unknown> = {}) => ({
@@ -135,6 +142,64 @@ describe('Sessions', () => {
 
     // Assert
     expect(screen.getByText('Unknown device')).toBeInTheDocument()
+  })
+
+  describe('connected applications', () => {
+    const connector = () =>
+      session({
+        id: '33333333-3333-3333-3333-333333333333',
+        deviceLabel: 'Acme Assistant',
+        clientId: 'https://tools.acme.example/oauth/client.json',
+      })
+
+    it('marks a connector session as a connected application with its client host', () => {
+      // Arrange
+      mockQueryState = { data: [connector()], isLoading: false }
+
+      // Act
+      render(<Sessions />)
+
+      // Assert
+      expect(screen.getByText('Acme Assistant')).toBeInTheDocument()
+      expect(screen.getByText('Connected application')).toBeInTheDocument()
+      expect(screen.getByText('tools.acme.example')).toBeInTheDocument()
+    })
+
+    it('does not mark a browser session as a connected application', () => {
+      // Arrange
+      mockQueryState = { data: [session({ clientId: null })], isLoading: false }
+
+      // Act
+      render(<Sessions />)
+
+      // Assert
+      expect(screen.queryByText('Connected application')).not.toBeInTheDocument()
+    })
+
+    it('disconnects a connector through the row action', async () => {
+      // Arrange
+      mockQueryState = { data: [connector()], isLoading: false }
+      render(
+        <App>
+          <Sessions />
+        </App>,
+      )
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Session actions' }))
+      fireEvent.click(await screen.findByText('Disconnect'))
+      const dialog = await screen.findByRole('dialog')
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }))
+
+      // Assert
+      expect(within(dialog).getByText(/tools\.acme\.example/)).toBeInTheDocument()
+      await waitFor(() =>
+        expect(mockRevokeSession).toHaveBeenCalledWith(
+          '33333333-3333-3333-3333-333333333333',
+        ),
+      )
+      expect(mockLogout).not.toHaveBeenCalled()
+    })
   })
 
   it('disables sign-out-everywhere when there are no sessions', () => {

@@ -17,9 +17,7 @@ import {
   clearChosenProvider,
   completeSignin,
   getChosenProviderName,
-  getLastProviderName,
   signinRedirect,
-  signinSilent,
 } from '@/src/components/contexts/auth/oidc-client-registry'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
 
@@ -504,7 +502,6 @@ export default function LoginPage() {
   >('idle')
   const [exchangeError, setExchangeError] = useState<string | null>(null)
   const exchangeStartedRef = useRef(false)
-  const silentStartedRef = useRef(false)
 
   // Tab selection: only relevant when both OIDC and local are enabled.
   const [tabOverride, setTabOverride] = useState<'oidc' | 'local' | null>(null)
@@ -517,49 +514,6 @@ export default function LoginPage() {
       router.replace('/')
     }
   }, [router])
-
-  // Silent sign-in: if the user has visited before, try to re-authenticate
-  // automatically using their IdP's existing SSO session. Runs once after
-  // providers load, skipped when we're already handling a redirect callback.
-  useEffect(() => {
-    if (silentStartedRef.current) return
-    if (isAuthActive()) return
-    if (!providers) return
-
-    // Skip if we're handling a redirect callback — that flow takes over.
-    const url = new URL(window.location.href)
-    if (url.searchParams.has('code') || url.searchParams.has('error')) return
-
-    const lastProviderName = getLastProviderName()
-    if (!lastProviderName) return
-
-    const provider = providers.oidc.find((p) => p.name === lastProviderName)
-    if (!provider) return
-
-    silentStartedRef.current = true
-    setExchangeState('running')
-
-    const run = async () => {
-      const oidcUser = await signinSilent(provider)
-      if (!oidcUser) {
-        // No active SSO session — show the login page normally.
-        setExchangeState('idle')
-        return
-      }
-      try {
-        const tokenResponse = await getAuthClient().exchange({
-          provider: provider.name,
-          subjectToken: oidcUser.access_token,
-        })
-        storeAuth(tokenResponse)
-        navigateWithFullReload('/')
-      } catch (error) {
-        console.error('[Login] Silent exchange failed:', error)
-        setExchangeState('idle')
-      }
-    }
-    run()
-  }, [providers])
 
   // OIDC redirect callback handler. Fires when we return from the IdP with a
   // `code` param in the URL. We stored the chosen provider name in

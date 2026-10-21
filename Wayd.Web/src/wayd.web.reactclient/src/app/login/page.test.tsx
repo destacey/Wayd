@@ -14,14 +14,16 @@ jest.mock('@/src/services/clients', () => ({
   storeAuth: jest.fn(),
 }))
 
-jest.mock('@/src/components/contexts/auth/oidc-client-registry', () => ({
-  signinRedirect: jest.fn(),
-  completeSignin: jest.fn(),
-  signinSilent: jest.fn().mockResolvedValue(null),
-  getChosenProviderName: jest.fn().mockReturnValue(null),
-  clearChosenProvider: jest.fn(),
-  getLastProviderName: jest.fn().mockReturnValue(null),
-  clearLastProvider: jest.fn(),
+// Mocked beneath the real oidc-client-registry, so a test can tell whether the
+// page builds a client for an identity provider.
+jest.mock('oidc-client-ts', () => ({
+  UserManager: jest.fn().mockImplementation(() => ({
+    signinRedirect: jest.fn(),
+    signinRedirectCallback: jest.fn(),
+    signinSilent: jest.fn(),
+    signoutRedirect: jest.fn(),
+  })),
+  WebStorageStateStore: jest.fn(),
 }))
 
 // Controlled return for the auth providers hook
@@ -33,6 +35,7 @@ jest.mock('@/src/store/features/common/auth-providers-api', () => ({
 
 // Imports after mocks
 import LoginPage from './page'
+import { UserManager } from 'oidc-client-ts'
 
 const entraProvider = {
   name: 'MicrosoftEntraId',
@@ -50,6 +53,12 @@ describe('LoginPage provider gating', () => {
     // (?code= param). jsdom sets href to 'about:blank' by default which means
     // new URL(window.location.href).searchParams.has('code') === false — that's
     // exactly what we want for the "not a redirect" case.
+  })
+
+  afterEach(() => {
+    // jest.setup.ts replaces localStorage with jest.fn() stubs; clearAllMocks
+    // keeps a test's mockImplementation, so it would leak into the next test.
+    jest.mocked(localStorage.getItem).mockReset()
   })
 
   it('hides OIDC buttons and shows local form when no OIDC providers', async () => {
@@ -108,6 +117,29 @@ describe('LoginPage provider gating', () => {
     })
     // Local form should not be visible initially
     expect(screen.queryByPlaceholderText('Email')).not.toBeInTheDocument()
+  })
+
+  it('contacts no identity provider on load, even after an earlier SSO sign-in', async () => {
+    // Arrange
+    jest
+      .mocked(localStorage.getItem)
+      .mockImplementation((key) =>
+        key === 'wayd.oidc.lastProvider' ? entraProvider.name : null,
+      )
+    mockUseGetAuthProvidersQuery.mockReturnValue({
+      data: { local: true, oidc: [entraProvider] },
+      isLoading: false,
+    })
+
+    // Act
+    render(<LoginPage />)
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByText('Microsoft Entra ID')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Completing sign-in…')).not.toBeInTheDocument()
+    expect(UserManager).not.toHaveBeenCalled()
   })
 
   it('shows local form while the providers query is loading', () => {

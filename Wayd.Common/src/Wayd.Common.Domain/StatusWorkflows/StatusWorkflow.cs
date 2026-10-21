@@ -213,6 +213,61 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } resolved ? resolved.Value.RequiredAliases : [];
 
     /// <summary>
+    /// The moves this workflow's owner type declares (<see cref="WorkflowOwnerDescriptor.Moves"/>), located
+    /// in this workflow, one per pair of statuses.
+    /// </summary>
+    /// <remarks>
+    /// A move whose alias this workflow lacks is left out — the missing alias is its own publish error —
+    /// and so is one whose ends are the same status, as when the initial status carries the alias a move
+    /// goes to: a record already there does not move.
+    /// </remarks>
+    public IReadOnlyList<ResolvedWorkflowMove> DeclaredMoves()
+    {
+        if (WorkflowOwners.Resolve(OwnerType) is not { IsSuccess: true } descriptor)
+        {
+            return [];
+        }
+
+        var initial = InitialStatus;
+        var located = new List<(Guid FromStatusId, Guid ToStatusId, WorkflowMove Move)>();
+
+        foreach (var move in descriptor.Value.Moves)
+        {
+            var from = move.FromAlias is { } fromAlias ? StatusFor(fromAlias) : initial;
+            var to = move.ToAlias is { } toAlias ? StatusFor(toAlias) : initial;
+
+            if (from is not null && to is not null && from.Id != to.Id)
+            {
+                located.Add((from.Id, to.Id, move));
+            }
+        }
+
+        return located
+            .GroupBy(l => (l.FromStatusId, l.ToStatusId))
+            .Select(g => new ResolvedWorkflowMove(g.Key.FromStatusId, g.Key.ToStatusId, g.Select(l => l.Move).ToList()))
+            .ToList();
+    }
+
+    /// <summary>
+    /// The conditions a transition from <paramref name="fromStatusId"/> to <paramref name="toStatusId"/>
+    /// may carry: any kind, unless the owner type declares its moves, in which case only those the move
+    /// accepts — none, for a move no method makes.
+    /// </summary>
+    /// <remarks>
+    /// Whether anything can evaluate a kind is a separate question the application layer answers.
+    /// </remarks>
+    public IReadOnlySet<TransitionConditionKind> AcceptedConditions(Guid fromStatusId, Guid toStatusId)
+    {
+        if (WorkflowOwners.Resolve(OwnerType) is not { IsSuccess: true, Value.DeclaresMoves: true })
+        {
+            return Enum.GetValues<TransitionConditionKind>().ToHashSet();
+        }
+
+        return DeclaredMoves().SingleOrDefault(m => m.FromStatusId == fromStatusId && m.ToStatusId == toStatusId)?.AcceptedConditions
+            ?? new HashSet<TransitionConditionKind>();
+    }
+
+    /// <summary>
     /// Renders an alias for an error message, via the owning module's descriptor.
     /// </summary>
     /// <remarks>
@@ -560,6 +615,17 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
                 return Result.Failure(
                     $"The move from '{StatusName(fromStatusId)}' to '{StatusName(toStatusId)}' lists the same condition more than once.");
             }
+
+            // Only additions are refused, so a condition a move already holds never blocks editing the
+            // rest of the set; publish names it instead.
+            var held = _transitions.SingleOrDefault(t => t.FromStatusId == fromStatusId && t.ToStatusId == toStatusId)?.ConditionKinds() ?? [];
+            var accepted = AcceptedConditions(fromStatusId, toStatusId);
+            var refused = conditions.Where(kind => !held.Contains(kind) && !accepted.Contains(kind)).Order().ToList();
+            if (refused.Count > 0)
+            {
+                return Result.Failure(
+                    $"The move from '{StatusName(fromStatusId)}' to '{StatusName(toStatusId)}' cannot require {string.Join(" or ", refused.Select(k => k.DescribeMissing()))} in {OwnerDisplayName()} workflow.");
+            }
         }
 
         if (transitions.Select(t => (t.FromStatusId, t.ToStatusId)).Distinct().Count() != transitions.Count)
@@ -869,6 +935,12 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// Checked at publish rather than on every edit, since a draft is half-built by design. A status no
     /// path reaches can never be entered, and a Proposed or Active status with no way out would strand
     /// every record that reaches it. Done and Removed statuses may be final.
+    /// <para>
+    /// An owner type that declares its moves is checked against those instead: its records enter a
+    /// status only through a named method or a reassignment, never by following a transition, so what
+    /// matters is that every status it can rest in has a way out, that every required move is allowed,
+    /// and that no transition carries a condition its move cannot meet.
+    /// </para>
     /// </remarks>
     public IReadOnlyList<string> TransitionIssues()
     {
@@ -877,10 +949,17 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return [];
         }
 
+        var descriptor = WorkflowOwners.Resolve(OwnerType);
+
         if (!SupportsRestrictedTransitions)
         {
-            var displayName = WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } descriptor ? descriptor.Value.DisplayName : OwnerType;
+            var displayName = descriptor.IsSuccess ? descriptor.Value.DisplayName : OwnerType;
             return [$"{displayName} workflows cannot restrict transitions. Allow any move to publish this workflow."];
+        }
+
+        if (descriptor.Value.DeclaresMoves)
+        {
+            return DeclaredMoveIssues(descriptor.Value);
         }
 
         var initial = InitialStatus;
@@ -921,7 +1000,95 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         return issues;
     }
 
+    /// <summary>
+    /// Every status a record could rest in but never leave, every required move this workflow does not
+    /// allow, and every condition a transition carries that its move does not accept, in status order.
+    /// </summary>
+    /// <remarks>
+    /// A record reaches a status other than the initial or an aliased one only through a reassignment,
+    /// whose mapping can name any status — and no action moves a record out of it, since every action
+    /// resolves one of the owner type's aliases. So such a status is refused outright, as is one whose
+    /// alias the owner type does not declare. An initial or aliased status that is not final needs at
+    /// least one allowed move an action makes, or a record mapped into it would be stuck the same way;
+    /// transitions no action makes do not count. Each message says how to fix it: the declared moves
+    /// to allow, or, where the status has none, what to change about the status.
+    /// </remarks>
+    private List<string> DeclaredMoveIssues(WorkflowOwnerDescriptor descriptor)
+    {
+        var displayName = descriptor.DisplayName;
+        var order = _statuses.ToDictionary(s => s.Id, s => s.Order);
+        var moves = DeclaredMoves();
+        var issues = new List<string>();
+        var initial = InitialStatus;
+
+        foreach (var status in _statuses.OrderBy(s => s.Order))
+        {
+            if (status.Id == initial?.Id || status.Alias != NoAlias)
+            {
+                if (status.Alias != NoAlias && !descriptor.Aliases.ContainsKey(status.Alias))
+                {
+                    issues.Add(
+                        $"'{status.Name}' carries an alias {displayName} records do not have, so no {displayName} action can move a record out of it. Give it one of theirs, remove it, or allow any move.");
+                    continue;
+                }
+
+                if (status.Category is not (StatusCategory.Proposed or StatusCategory.Active))
+                {
+                    continue;
+                }
+
+                var ways = moves.Where(m => m.FromStatusId == status.Id).OrderBy(m => order[m.ToStatusId]).ToList();
+                if (ways.Any(m => _transitions.Any(t => t.FromStatusId == m.FromStatusId && t.ToStatusId == m.ToStatusId)))
+                {
+                    continue;
+                }
+
+                var fix = ways.Count > 0
+                    ? $"Allow {string.Join(" or ", ways.Select(m => $"'{status.Name}' to '{StatusName(m.ToStatusId)}'"))}."
+                    : "Remove it or allow any move.";
+                issues.Add(
+                    $"'{status.Name}' has no move out of it that {OwnerDisplayName()} action makes, so a record in it could not move on. {fix}");
+            }
+            else
+            {
+                issues.Add(
+                    $"'{status.Name}' is neither the initial status nor an aliased one, so no {displayName} action can move a record out of it. Remove it, give it an alias, or allow any move.");
+            }
+        }
+
+        foreach (var move in moves.Where(m => m.IsRequired).OrderBy(m => order[m.FromStatusId]).ThenBy(m => order[m.ToStatusId]))
+        {
+            if (!_transitions.Any(t => t.FromStatusId == move.FromStatusId && t.ToStatusId == move.ToStatusId))
+            {
+                issues.Add(
+                    $"A restricted {displayName} workflow must allow '{StatusName(move.FromStatusId)}' to '{StatusName(move.ToStatusId)}', which {move.DescribeActions()} makes.");
+            }
+        }
+
+        foreach (var transition in _transitions.OrderBy(t => order[t.FromStatusId]).ThenBy(t => order[t.ToStatusId]))
+        {
+            var accepted = moves.SingleOrDefault(m => m.FromStatusId == transition.FromStatusId && m.ToStatusId == transition.ToStatusId)?.AcceptedConditions
+                ?? new HashSet<TransitionConditionKind>();
+
+            foreach (var kind in transition.ConditionKinds().Where(k => !accepted.Contains(k)))
+            {
+                issues.Add(
+                    $"'{StatusName(transition.FromStatusId)}' to '{StatusName(transition.ToStatusId)}' cannot require {kind.DescribeMissing()} in {OwnerDisplayName()} workflow.");
+            }
+        }
+
+        return issues;
+    }
+
     private string StatusName(Guid statusId) => _statuses.Single(s => s.Id == statusId).Name;
+
+    /// <summary>The owner type's name with its article, for a message: "a Version", "an Order".</summary>
+    private string OwnerDisplayName()
+    {
+        var name = WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } descriptor ? descriptor.Value.DisplayName : OwnerType;
+
+        return "AEIOUaeiou".Contains(name[0]) ? $"an {name}" : $"a {name}";
+    }
 
     /// <summary>
     /// Refuses activation when the workflow cannot answer what its owner type asks of it.

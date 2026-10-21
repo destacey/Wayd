@@ -139,6 +139,68 @@ public sealed class WorkflowOwnersTests
     }
 
     [Fact]
+    public void Descriptor_ShouldReject_AMoveBetweenAliasesItDoesNotDeclare()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.move-undeclared", "Gadget", new Dictionary<int, string> { [1] = "One" }, [1],
+            moves: [WorkflowMove.Optional("Jump", 1, 2)]);
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithMessage("*'Jump' between aliases it does not declare*");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldReject_ARequiredMoveToAnAliasItDoesNotRequire()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.move-optional-alias", "Gadget", new Dictionary<int, string> { [1] = "One", [2] = "Two" }, [1],
+            moves: [WorkflowMove.Required("Jump", 1, 2)]);
+
+        // Assert
+        // A workflow may publish without alias 2, and then the required move could never be checked.
+        act.Should().Throw<ArgumentException>().WithMessage("*requires the move 'Jump', which names an alias it does not require*");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldAccept_AnOptionalMoveToAnAliasItDoesNotRequire()
+    {
+        // Act
+        var descriptor = new WorkflowOwnerDescriptor(
+            "test.owners.move-optional", "Gadget", new Dictionary<int, string> { [1] = "One", [2] = "Two" }, [1],
+            moves: [WorkflowMove.Optional("Jump", 1, 2)]);
+
+        // Assert
+        descriptor.DeclaresMoves.Should().BeTrue();
+        descriptor.Moves.Should().ContainSingle().Which.Action.Should().Be("Jump");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldReject_TheSameMoveDeclaredTwice()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.move-duplicate", "Gadget", new Dictionary<int, string> { [1] = "One", [2] = "Two" }, [1, 2],
+            moves: [WorkflowMove.Required("Jump", 1, 2), WorkflowMove.Optional("Leap", 1, 2)]);
+
+        // Assert
+        // One pair cannot be both required and optional.
+        act.Should().Throw<ArgumentException>().WithMessage("*same move more than once*");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldDeclareNoMoves_ByDefault()
+    {
+        // Act
+        var descriptor = Descriptor("test.owners.no-moves", 1);
+
+        // Assert
+        descriptor.DeclaresMoves.Should().BeFalse();
+        descriptor.Moves.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Descriptor_ShouldReject_ABlankKey()
     {
         // Act

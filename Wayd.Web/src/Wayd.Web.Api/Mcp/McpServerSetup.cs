@@ -69,6 +69,13 @@ public static class McpServerSetup
                 PublicUrl.ConfigurationKey);
         }
 
+        if (app.Services.GetRequiredService<WebClientUrl>().Value is null)
+        {
+            app.Logger.LogWarning(
+                "{Setting} is not set, so MCP clients cannot sign in with OAuth: there is no consent page to send the user to.",
+                WebClientUrl.ConfigurationKey);
+        }
+
         app.UseWhen(
             context => context.Request.Path.StartsWithSegments(Path),
             branch => branch.Use(async (context, next) =>
@@ -87,6 +94,7 @@ public static class McpServerSetup
 
         app.MapMcp(Path).RequireAuthorization(McpAuthentication.Policy);
         app.MapWaydAuthorizationServerMetadata();
+        app.MapWaydAuthorizationServer();
 
         return app;
     }

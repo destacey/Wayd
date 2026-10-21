@@ -16,6 +16,7 @@ services:
             - ASPNETCORE_ENVIRONMENT=Development
             - ASPNETCORE_URLS=https://+:443;http://+:80
             - CorsSettings__WebClient=http://localhost:5002
+            - ApiSettings__WebClientUrl=http://localhost:5002
             - Serilog__Using__1=Serilog.Sinks.Seq
             - Serilog__WriteTo__1__Name=Seq
             - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341

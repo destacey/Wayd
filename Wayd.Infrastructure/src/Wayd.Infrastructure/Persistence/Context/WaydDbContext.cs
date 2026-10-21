@@ -58,6 +58,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<User> WaydUsers => Set<User>();
     public DbSet<UserIdentity> UserIdentities => Set<UserIdentity>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
+    public DbSet<OAuthAuthorization> OAuthAuthorizations => Set<OAuthAuthorization>();
     public DbSet<SystemSettingsSection> SystemSettingsSections => Set<SystemSettingsSection>();
 
     #endregion Common

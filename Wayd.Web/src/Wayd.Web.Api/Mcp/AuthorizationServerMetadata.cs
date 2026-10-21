@@ -36,7 +36,8 @@ public static class AuthorizationServerMetadata
 
     /// <summary>
     /// Describes the server whose issuer is <paramref name="issuer"/>: the authorization code grant for public
-    /// clients only, with PKCE by S256, and clients identified by their Client ID Metadata Documents.
+    /// clients only, with PKCE by S256, clients identified by their Client ID Metadata Documents, and <c>iss</c> in
+    /// every authorization response.
     /// </summary>
     internal static Document Describe(string issuer) => new(
         Issuer: issuer,
@@ -46,7 +47,8 @@ public static class AuthorizationServerMetadata
         GrantTypesSupported: ["authorization_code", "refresh_token"],
         CodeChallengeMethodsSupported: ["S256"],
         TokenEndpointAuthMethodsSupported: ["none"],
-        ClientIdMetadataDocumentSupported: true);
+        ClientIdMetadataDocumentSupported: true,
+        AuthorizationResponseIssParameterSupported: true);
 
     /// <summary>The metadata document, in RFC 8414's member names.</summary>
     /// <param name="Issuer">The authorization server's identifier, which every token it issues carries as <c>iss</c>.</param>
@@ -57,6 +59,7 @@ public static class AuthorizationServerMetadata
     /// <param name="CodeChallengeMethodsSupported">Only <c>S256</c>; a request without PKCE, or with <c>plain</c>, is refused.</param>
     /// <param name="TokenEndpointAuthMethodsSupported">Only <c>none</c>: clients are public and prove themselves with PKCE.</param>
     /// <param name="ClientIdMetadataDocumentSupported">That a <c>client_id</c> may be the URL of the client's metadata document.</param>
+    /// <param name="AuthorizationResponseIssParameterSupported">That every authorization response carries <c>iss</c> (RFC 9207), so a client can tell which server answered.</param>
     internal sealed record Document(
         [property: JsonPropertyName("issuer")] string Issuer,
         [property: JsonPropertyName("authorization_endpoint")] string AuthorizationEndpoint,
@@ -65,5 +68,6 @@ public static class AuthorizationServerMetadata
         [property: JsonPropertyName("grant_types_supported")] IReadOnlyList<string> GrantTypesSupported,
         [property: JsonPropertyName("code_challenge_methods_supported")] IReadOnlyList<string> CodeChallengeMethodsSupported,
         [property: JsonPropertyName("token_endpoint_auth_methods_supported")] IReadOnlyList<string> TokenEndpointAuthMethodsSupported,
-        [property: JsonPropertyName("client_id_metadata_document_supported")] bool ClientIdMetadataDocumentSupported);
+        [property: JsonPropertyName("client_id_metadata_document_supported")] bool ClientIdMetadataDocumentSupported,
+        [property: JsonPropertyName("authorization_response_iss_parameter_supported")] bool AuthorizationResponseIssParameterSupported);
 }

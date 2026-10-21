@@ -9,7 +9,8 @@ internal static class ConfigureServices
     private static readonly TimeSpan _fetchTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// Registers how Wayd's authorization server resolves its clients. The resolver gets an
+    /// Registers Wayd's authorization server, the scheme that accepts its access tokens, and how it resolves its
+    /// clients. The resolver gets an
     /// <see cref="HttpClient"/> of its own rather than one from the factory, whose defaults add service discovery
     /// (which would resolve a client-chosen host name to an internal service) and retries.
     /// </summary>
@@ -21,6 +22,10 @@ internal static class ConfigureServices
             _fetchTimeout,
             sp.GetRequiredService<ILogger<ClientMetadataDocumentResolver>>()));
 
-        return services;
+        services.AddOptions<AuthorizationServerOptions>()
+            .Validate(o => o.ResourcePath?.StartsWith('/') == true, $"{nameof(AuthorizationServerOptions)}.{nameof(AuthorizationServerOptions.ResourcePath)} must be set to the protected resource's path.");
+        services.AddScoped<IAuthorizationServer, AuthorizationServer>();
+
+        return services.AddOAuthAccessTokenAuth();
     }
 }

@@ -167,7 +167,7 @@ variable "log_analytics_retention_in_days" {
 
 variable "client_url" {
   type        = string
-  description = "Additional client URL to allow in CORS for the API (e.g. a custom domain). Leave empty if the container app's default hostname is the only allowed client."
+  description = "The web app's custom domain (e.g. https://wayd.example.com): allowed in CORS alongside the container app's default hostname, and used as the OAuth consent page's origin. Must be an HTTPS origin with no path. Leave empty to use the default hostname."
   default     = ""
 }
 

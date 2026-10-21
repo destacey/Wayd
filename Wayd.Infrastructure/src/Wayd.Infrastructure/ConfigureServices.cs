@@ -20,6 +20,7 @@ using Wayd.Infrastructure.Hosting;
 using Wayd.Infrastructure.Logging;
 using Wayd.Infrastructure.OpenTelemetry;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Infrastructure.RateLimiting;
 using Wayd.Infrastructure.SignalR;
 using Wayd.Infrastructure.StatusWorkflows;
 using Wayd.Infrastructure.SystemSettings;
@@ -134,12 +135,14 @@ public static class ConfigureServices
 
         // Read on first resolution rather than here, so a test host's configuration overrides reach it.
         services.AddSingleton(sp => PublicUrl.From(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton(sp => WebClientUrl.From(sp.GetRequiredService<IConfiguration>()));
 
         return services
             .AddApiVersioning()
             .AddAuth(config, environment)
             .AddBackgroundJobs(config)
             .AddCorsPolicy(config)
+            .AddRateLimiting(config)
             .AddUserActivityTracking()
             .AddProblemDetails(options =>
             {
@@ -211,6 +214,7 @@ public static class ConfigureServices
             //.UseHttpsRedirection() // TODO: we don't currently need this because we are using docker.  Add a config setting to enable this when needed.
             .UseRouting()
             .UseCorsPolicy()
+            .UseRateLimiting()
             .UseAuthentication()
             .UseAuthorization()
             .UseUserActivityTracking()

@@ -252,7 +252,8 @@ internal class TokenService(
                 s.CreatedAt,
                 s.LastUsedAt,
                 s.ExpiresAt,
-                s.Id == currentId))
+                s.Id == currentId,
+                s.ClientId))
             .ToList();
     }
 

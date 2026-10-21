@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   CorrectVersionDatesRequest,
   CutVersionRequest,
+  DeliveryWorkflowActionDto,
   MarkVersionReleasedRequest,
   RevertVersionReleaseRequest,
   MoveVersionTargetDateRequest,
@@ -39,6 +40,19 @@ export const versionTags = (id: string, cacheKey: number) => [
   { type: QueryTags.Version, id },
   { type: QueryTags.StatusHistory, id },
   { type: QueryTags.StatusHistory, id: String(cacheKey) },
+]
+
+/**
+ * Tags a date correction invalidates for one version: the record, and the lifecycle actions its
+ * workflow allows — which move when the cut moment is added or cleared, because a revert returns a
+ * cut version to Ready and an uncut one to the start of its workflow. Not the status history, which
+ * a correction leaves alone. Keyed by id and short key for the reason given on `versionTags`.
+ */
+export const correctedVersionDatesTags = (id: string, cacheKey: number) => [
+  { type: QueryTags.Version, id: 'LIST' },
+  { type: QueryTags.Version, id },
+  { type: QueryTags.WorkflowActions, id },
+  { type: QueryTags.WorkflowActions, id: String(cacheKey) },
 ]
 
 export const versionsApi = apiSlice.injectEndpoints({
@@ -94,6 +108,31 @@ export const versionsApi = apiSlice.injectEndpoints({
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
+    /**
+     * The lifecycle actions the version's workflow allows from its current status.
+     *
+     * Tagged as the version's status history, which every status change already invalidates: the
+     * answer moves whenever the status does. Its own tag covers the one change that moves the answer
+     * without moving the status — a date correction adding or clearing the cut moment.
+     */
+    getVersionWorkflowActions: builder.query<
+      DeliveryWorkflowActionDto[],
+      string
+    >({
+      queryFn: async (idOrKey) => {
+        try {
+          const data = await getVersionsClient().getWorkflowActions(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+        { type: QueryTags.WorkflowActions, id: arg },
+      ],
+    }),
     planVersion: builder.mutation<ObjectIdAndKey, PlanVersionRequest>({
       queryFn: async (request) => {
         try {
@@ -141,11 +180,11 @@ export const versionsApi = apiSlice.injectEndpoints({
     /**
      * Corrects recorded dates without moving the version's status.
      *
-     * Invalidates the version but not its status history, which a correction leaves untouched.
+     * See `correctedVersionDatesTags` for what it invalidates.
      */
     correctVersionDates: builder.mutation<
       void,
-      { id: string; request: CorrectVersionDatesRequest }
+      { id: string; cacheKey: number; request: CorrectVersionDatesRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -156,10 +195,8 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => [
-        { type: QueryTags.Version, id: 'LIST' },
-        { type: QueryTags.Version, id: arg.id },
-      ],
+      invalidatesTags: (result, error, arg) =>
+        correctedVersionDatesTags(arg.id, arg.cacheKey),
     }),
     cutVersion: builder.mutation<
       void,
@@ -281,6 +318,7 @@ export const {
   useGetVersionsQuery,
   useGetVersionQuery,
   useGetVersionStatusHistoryQuery,
+  useGetVersionWorkflowActionsQuery,
   usePlanVersionMutation,
   useUpdateVersionMutation,
   useMoveVersionTargetDateMutation,

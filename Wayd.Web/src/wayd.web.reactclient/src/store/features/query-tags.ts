@@ -39,6 +39,7 @@ export enum QueryTags {
   StatusWorkflow = 'Common.StatusWorkflow',
   TimeZone = 'Common.TimeZone',
   StatusHistory = 'Common.StatusHistory',
+  WorkflowActions = 'Common.WorkflowActions',
   WorkflowAssignment = 'Common.WorkflowAssignment',
 
   // ORGANIZATIONS

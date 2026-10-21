@@ -1,4 +1,8 @@
-import { VersionDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  DeliveryAction,
+  VersionDto,
+  StatusCategory,
+} from '@/src/services/wayd-api'
 import { versionActionAvailability } from './version-actions'
 
 const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
@@ -207,5 +211,46 @@ describe('versionActionAvailability', () => {
     // Assert
     expect(available.canWithdraw).toBe(true)
     expect(available.canRevert).toBe(true)
+  })
+
+  it.each([
+    [DeliveryAction.Cut, 'canCut', planned],
+    [DeliveryAction.MarkReleased, 'canRelease', planned],
+    [DeliveryAction.Withdraw, 'canWithdraw', released],
+    [DeliveryAction.RevertRelease, 'canRevert', released],
+  ] as const)(
+    'withholds %s when the workflow does not allow it',
+    (action, flag, fixture) => {
+      // Arrange
+      const everyOther = Object.values(DeliveryAction).filter(
+        (a) => a !== action,
+      )
+
+      // Act
+      const withAll = versionActionAvailability(
+        fixture(),
+        Object.values(DeliveryAction),
+      )
+      const without = versionActionAvailability(fixture(), everyOther)
+
+      // Assert
+      expect(withAll[flag]).toBe(true)
+      expect(without[flag]).toBe(false)
+    },
+  )
+
+  it('withholds every lifecycle action until the workflow answers, but not corrections', () => {
+    // Arrange / Act
+    const available = versionActionAvailability(planned(), [])
+
+    // Assert
+    expect(available).toEqual({
+      canCut: false,
+      canRelease: false,
+      canWithdraw: false,
+      canMoveTargetDate: true,
+      canCorrectDates: true,
+      canRevert: false,
+    })
   })
 })

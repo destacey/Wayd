@@ -114,6 +114,7 @@ describe('CorrectVersionDatesForm', () => {
         // Assert
         expect(correctDates).toHaveBeenCalledWith({
           id: 'version-1',
+          cacheKey: 4,
           request: expect.objectContaining({
             cutAt: new Date(CUT_AT),
             releasedAt: new Date(RELEASED_AT),

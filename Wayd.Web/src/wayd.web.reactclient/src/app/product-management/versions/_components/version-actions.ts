@@ -1,4 +1,8 @@
-import { VersionDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  DeliveryAction,
+  VersionDto,
+  StatusCategory,
+} from '@/src/services/wayd-api'
 
 /**
  * Which lifecycle moves a version will accept.
@@ -15,6 +19,12 @@ import { VersionDto, StatusCategory } from '@/src/services/wayd-api'
  * Reverting is separate from withdrawing and answers a different question. Withdrawing says a real
  * version was pulled; reverting says it never shipped and the record was wrong. It is therefore
  * offered only where there is a released date to take back.
+ *
+ * The version's workflow has the last word on the four lifecycle moves: a
+ * restricted workflow can forbid one — withdrawing a released version, say —
+ * and `workflowActions` lists those it allows from the current status. Left
+ * out when unknown, nothing is withheld on its account; the server still
+ * refuses a move the workflow does not allow.
  */
 export interface VersionActionAvailability {
   canCut: boolean
@@ -27,17 +37,26 @@ export interface VersionActionAvailability {
 
 export const versionActionAvailability = (
   version: VersionDto,
+  workflowActions?: readonly DeliveryAction[],
 ): VersionActionAvailability => {
   const isWithdrawn = version.status.category === StatusCategory.Removed
   const isTerminal =
     version.status.category === StatusCategory.Done || isWithdrawn
+  const allows = (action: DeliveryAction) =>
+    workflowActions?.includes(action) ?? true
 
   return {
-    canCut: !version.cutAt && !isTerminal,
-    canRelease: !version.releasedAt && !isWithdrawn,
-    canWithdraw: !isWithdrawn,
+    canCut: !version.cutAt && !isTerminal && allows(DeliveryAction.Cut),
+    canRelease:
+      !version.releasedAt &&
+      !isWithdrawn &&
+      allows(DeliveryAction.MarkReleased),
+    canWithdraw: !isWithdrawn && allows(DeliveryAction.Withdraw),
     canMoveTargetDate: !isTerminal,
     canCorrectDates: !isWithdrawn,
-    canRevert: !!version.releasedAt && !isWithdrawn,
+    canRevert:
+      !!version.releasedAt &&
+      !isWithdrawn &&
+      allows(DeliveryAction.RevertRelease),
   }
 }

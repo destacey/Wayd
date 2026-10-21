@@ -9,6 +9,7 @@ import {
   ReleasePackageDto,
   SetReleasePackageManifestRequest,
   StatusTransitionDto,
+  StatusWorkflowDetailsDto,
   WithdrawReleasePackageRequest,
   PagedResponseOfActivityLogDto,
   StatusCategory,
@@ -96,6 +97,29 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+      ],
+    }),
+    /**
+     * The workflow the package moves through, to draw its history on. Tagged with the history too: a
+     * reassignment records a transition, which is what moves the package onto another workflow.
+     */
+    getReleasePackageStatusWorkflow: builder.query<
+      StatusWorkflowDetailsDto,
+      string
+    >({
+      queryFn: async (idOrKey) => {
+        try {
+          const data =
+            await getReleasePackagesClient().getStatusWorkflow(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        ...(result ? [{ type: QueryTags.StatusWorkflow, id: result.id }] : []),
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
@@ -282,6 +306,7 @@ export const {
   useGetReleasePackagesQuery,
   useGetReleasePackageQuery,
   useGetReleasePackageStatusHistoryQuery,
+  useGetReleasePackageStatusWorkflowQuery,
   useGetReleasePackageWorkflowActionsQuery,
   useAssembleReleasePackageMutation,
   useSetReleasePackageManifestMutation,

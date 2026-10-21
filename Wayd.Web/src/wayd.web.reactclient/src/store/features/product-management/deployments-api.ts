@@ -8,6 +8,7 @@ import {
   RollBackDeploymentRequest,
   StartDeploymentRequest,
   StatusTransitionDto,
+  StatusWorkflowDetailsDto,
   SucceedDeploymentRequest,
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
@@ -91,6 +92,28 @@ export const deploymentsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+      ],
+    }),
+    /**
+     * The workflow the deployment moves through, to draw its history on. Tagged with the history too:
+     * a reassignment records a transition, which is what moves the deployment onto another workflow.
+     */
+    getDeploymentStatusWorkflow: builder.query<
+      StatusWorkflowDetailsDto,
+      string
+    >({
+      queryFn: async (idOrKey) => {
+        try {
+          const data = await getDeploymentsClient().getStatusWorkflow(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        ...(result ? [{ type: QueryTags.StatusWorkflow, id: result.id }] : []),
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
@@ -206,6 +229,7 @@ export const {
   useGetDeploymentsQuery,
   useGetDeploymentQuery,
   useGetDeploymentStatusHistoryQuery,
+  useGetDeploymentStatusWorkflowQuery,
   useStartDeploymentMutation,
   useSucceedDeploymentMutation,
   useFailDeploymentMutation,

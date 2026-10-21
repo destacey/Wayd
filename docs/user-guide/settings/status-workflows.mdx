@@ -138,6 +138,24 @@ A draft can be in any state while you build it. Wayd refuses to publish a restri
 
 It does not check whether every status can be reached, because a delivery record never enters a status by following a move.
 
+### Seeing a workflow as a diagram
+
+The **Diagram** section of a workflow's detail page draws the workflow: its statuses as boxes, grouped into columns by category — Proposed, Active, Done, Removed, left to right — and each allowed move as an arrow. Within a column, statuses follow their order. The same workflow always draws the same way, so a dead end or a skipped review step shows up at a glance. The diagram is read-only; change moves in the **Transitions** grid.
+
+- **Start** marks the initial status, where a new record begins.
+- A status with an alias shows it beneath its name.
+- A move with conditions is marked with the same conditions icon the grid uses; hover or tab to it to see what the move needs. A move that skips a column runs above the columns, and one back to an earlier column below them, so no arrow crosses a status it does not join.
+- In a version, release, release package or deployment workflow, each arrow is labelled with the action that makes the move — Cut, Mark Released, Withdraw — and a lock marks a required one, as in the grid. A move an action makes that the workflow leaves out is drawn dashed and faint, so you can see which actions it refuses; hovering it names the action.
+- A workflow that allows **any move** draws its statuses without arrows, with a note saying any move is allowed. In a delivery workflow the note adds that records still move only through their actions.
+
+Drag the canvas to pan, and use its zoom, fit and fullscreen controls to read a large workflow; **Esc** leaves fullscreen. The boxes cannot be moved.
+
+#### On a record
+
+The **Status History** section of a product, version, release, release package or deployment has a **Timeline / Diagram** switch. **Diagram** draws the workflow the record uses now, with its current status ringed and marked **Current**, and the statuses and moves it has passed through highlighted. Everything else is set back. Under a workflow that allows any move, only the moves the record made are drawn.
+
+The diagram draws only what happened under the current workflow. Changes made under an earlier one — and the move onto this workflow when its records were reassigned — are listed beneath the diagram, under **Under an earlier workflow**. A record that left this workflow and was later moved back has both of its stays on it drawn; only the time spent elsewhere is listed. Anyone who can see the record can see its diagram; it does not need the status workflow permissions.
+
 ## The lifecycle of a workflow
 
 A workflow is **Draft**, **Published** or **Archived**.
@@ -267,3 +285,4 @@ A workflow's detail page carries an **Activity** section holding its recorded hi
 | Create a workflow, or clone one | `Permissions.StatusWorkflows.Create` |
 | Edit a draft, publish, and reassign a record type | `Permissions.StatusWorkflows.Update` |
 | Archive a workflow | `Permissions.StatusWorkflows.Delete` |
+| See a record's workflow diagram | The permission to view that record — `Permissions.Products.View`, `Permissions.Delivery.View` or `Permissions.Releases.View` |

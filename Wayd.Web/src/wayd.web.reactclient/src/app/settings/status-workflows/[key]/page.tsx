@@ -18,7 +18,9 @@ import {
   useActivityLog,
 } from '@/src/components/common/activities'
 import { isApiError } from '@/src/utils'
+import { Skeleton } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
+import dynamic from 'next/dynamic'
 import { notFound, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import ArchiveStatusWorkflowForm from '../_components/archive-status-workflow-form'
@@ -30,9 +32,17 @@ import WorkflowTransitionsEditor from '../_components/workflow-transitions-edito
 import StatusWorkflowDetailsLoading from './loading'
 import { StatusWorkflowFacts } from './_components'
 
+// Loaded on demand: React Flow and its stylesheet are only needed once the section is open.
+const WaydWorkflowDiagram = dynamic(
+  () =>
+    import('@/src/components/common/status-workflows/wayd-workflow-diagram'),
+  { ssr: false, loading: () => <Skeleton active paragraph={{ rows: 6 }} /> },
+)
+
 enum StatusWorkflowSections {
   Statuses = 'statuses',
   Transitions = 'transitions',
+  Diagram = 'diagram',
   Activities = 'activities',
 }
 
@@ -169,6 +179,7 @@ const StatusWorkflowDetailsPage = (props: {
       count: statusWorkflow?.statuses?.length,
     },
     { id: StatusWorkflowSections.Transitions, label: 'Transitions' },
+    { id: StatusWorkflowSections.Diagram, label: 'Diagram' },
     { id: StatusWorkflowSections.Activities, label: 'Activity' },
   ]
 
@@ -182,6 +193,12 @@ const StatusWorkflowDetailsPage = (props: {
             statusWorkflow={statusWorkflow!}
             canUpdate={canUpdate}
           />
+        )
+      case StatusWorkflowSections.Diagram:
+        // Shows the moves an action makes that the workflow refuses: reviewing a workflow is the time
+        // to see what it switches off.
+        return (
+          <WaydWorkflowDiagram workflow={statusWorkflow!} showOmittedMoves />
         )
       case StatusWorkflowSections.Statuses:
         return (

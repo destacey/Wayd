@@ -5646,6 +5646,54 @@
         ]
       }
     },
+    "/api/product-management/deployments/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Get the status workflow a deployment currently moves through.",
+        "description": "The workflow's statuses, the moves it allows and the conditions on each, with the moves the deployment's actions make, as the workflow's own detail returns them. Readable by anyone who can view the deployment, so its status history can be drawn on the workflow without the settings permission.",
+        "operationId": "Deployments_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/deployments/import": {
       "post": {
         "tags": [
@@ -6246,6 +6294,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get the status workflow a product currently moves through.",
+        "description": "The workflow's statuses, the moves it allows and the conditions on each, as the workflow's own detail returns them. Readable by anyone who can view the product, so its status history can be drawn on the workflow without the settings permission.",
+        "operationId": "Products_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
                 }
               }
             }
@@ -8560,6 +8656,54 @@
         ]
       }
     },
+    "/api/product-management/release-packages/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get the status workflow a package currently moves through.",
+        "description": "The workflow's statuses, the moves it allows and the conditions on each, with the moves the package's actions make, as the workflow's own detail returns them. Readable by anyone who can view the package, so its status history can be drawn on the workflow without the settings permission.",
+        "operationId": "ReleasePackages_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/{idOrKey}/workflow-actions": {
       "get": {
         "tags": [
@@ -9345,6 +9489,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Get the status workflow a release currently moves through.",
+        "description": "The workflow's statuses, the moves it allows and the conditions on each, with the moves the release's actions make, as the workflow's own detail returns them. Readable by anyone who can view the release, so its status history can be drawn on the workflow without the settings permission.",
+        "operationId": "Releases_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
                 }
               }
             }
@@ -10312,6 +10504,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Get the status workflow a version currently moves through.",
+        "description": "The workflow's statuses, the moves it allows and the conditions on each, with the moves the version's actions make, as the workflow's own detail returns them. Readable by anyone who can view the version, so its status history can be drawn on the workflow without the settings permission.",
+        "operationId": "Versions_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
                 }
               }
             }

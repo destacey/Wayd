@@ -118,6 +118,22 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
                 : NotFound();
     }
 
+    [HttpGet("{idOrKey}/status-workflow")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
+    [EndpointSummary("Get the status workflow a release currently moves through.")]
+    [EndpointDescription(
+        "The workflow's statuses, the moves it allows and the conditions on each, with the moves the release's actions make, as the workflow's own detail returns them. Readable by anyone who can view the release, so its status history can be drawn on the workflow without the settings permission.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StatusWorkflowDetailsDto>> GetStatusWorkflow(
+        string idOrKey, CancellationToken cancellationToken)
+    {
+        var workflow = await _dispatcher.Send(
+            new GetReleaseStatusWorkflowQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return workflow is not null ? Ok(workflow) : NotFound();
+    }
+
     [HttpGet("{idOrKey}/workflow-actions")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
     [EndpointSummary("Get the lifecycle actions a release's workflow allows from the status it holds.")]

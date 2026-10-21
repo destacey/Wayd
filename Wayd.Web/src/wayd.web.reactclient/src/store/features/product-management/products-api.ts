@@ -14,6 +14,7 @@ import {
   ReparentProductRequest,
   StatusOptionDto,
   StatusTransitionDto,
+  StatusWorkflowDetailsDto,
   LinkProductExternallyRequest,
   RetypeProductRequest,
   UpdateProductRequest,
@@ -146,6 +147,25 @@ export const productsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+      ],
+    }),
+    /**
+     * The workflow the product moves through, to draw its history on. Tagged with the history too: a
+     * reassignment records a transition, which is what moves the product onto another workflow.
+     */
+    getProductStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
+      queryFn: async (productId) => {
+        try {
+          const data = await getProductsClient().getStatusWorkflow(productId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        ...(result ? [{ type: QueryTags.StatusWorkflow, id: result.id }] : []),
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
@@ -450,6 +470,7 @@ export const {
   useGetProductQuery,
   useGetProductStatusOptionsQuery,
   useGetProductStatusHistoryQuery,
+  useGetProductStatusWorkflowQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useReparentProductMutation,

@@ -11,6 +11,7 @@ import {
   RevertReleaseRequest,
   SetReleaseContentsRequest,
   StatusTransitionDto,
+  StatusWorkflowDetailsDto,
   UpdateReleaseRequest,
   WithdrawReleaseRequest,
   PagedResponseOfActivityLogDto,
@@ -97,6 +98,25 @@ export const releasesApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+      ],
+    }),
+    /**
+     * The workflow the release moves through, to draw its history on. Tagged with the history too: a
+     * reassignment records a transition, which is what moves the release onto another workflow.
+     */
+    getReleaseStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
+      queryFn: async (idOrKey) => {
+        try {
+          const data = await getReleasesClient().getStatusWorkflow(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        ...(result ? [{ type: QueryTags.StatusWorkflow, id: result.id }] : []),
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
@@ -316,6 +336,7 @@ export const {
   useGetReleasesQuery,
   useGetReleaseQuery,
   useGetReleaseStatusHistoryQuery,
+  useGetReleaseStatusWorkflowQuery,
   useGetReleaseWorkflowActionsQuery,
   usePlanReleaseMutation,
   useUpdateReleaseMutation,

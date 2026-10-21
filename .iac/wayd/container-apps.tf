@@ -171,6 +171,21 @@ resource "azurerm_container_app" "wayd_backend" {
       }
 
       env {
+        name = "ApiSettings__WebClientUrl"
+        # Where the OAuth authorization endpoint sends a user to consent: the custom domain when one is set,
+        # otherwise the frontend's name pattern (matches wayd_frontend; referencing it would form a cycle).
+        value = var.client_url != "" ? var.client_url : "https://${var.project}-client-${var.environment}.${azurerm_container_app_environment.wayd_cae.default_domain}"
+      }
+
+      env {
+        name = "ASPNETCORE_FORWARDEDHEADERS_ENABLED"
+        # Ingress is the only way in, so trust the X-Forwarded-For and X-Forwarded-Proto it appends. Without this
+        # every request appears to come from the proxy: rate limits keyed on the caller's address become one shared
+        # limit, and the sessions list records the proxy's address.
+        value = "true"
+      }
+
+      env {
         name        = "DatabaseSettings__ConnectionString"
         secret_name = "sql-conn-string"
       }

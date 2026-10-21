@@ -6,12 +6,14 @@ using Microsoft.Net.Http.Headers;
 using ModelContextProtocol.AspNetCore.Authentication;
 using ModelContextProtocol.Authentication;
 using Wayd.Infrastructure;
+using Wayd.Infrastructure.Auth.OAuth;
 using Wayd.Infrastructure.Hosting;
 
 namespace Wayd.Web.Api.Mcp;
 
 /// <summary>
-/// Authenticates callers of <see cref="McpServerSetup.Path"/> with the API's own credentials, and refuses an
+/// Authenticates callers of <see cref="McpServerSetup.Path"/> with the API's own credentials or an access token from
+/// Wayd's authorization server (<see cref="AuthorizationServerEndpoints"/>), and refuses an
 /// unauthenticated one the way the MCP authorization spec expects: a 401 whose <c>WWW-Authenticate</c> header
 /// points at the endpoint's protected resource metadata (RFC 9728), which names Wayd as the authorization server.
 /// </summary>
@@ -48,13 +50,17 @@ public static class McpAuthentication
                 })
             .AddPolicyScheme(Scheme, "MCP", options =>
             {
-                // Must choose as PermissionPolicyProvider's default policy does, or /mcp and the endpoints its
-                // tools call would accept different credentials.
-                options.ForwardDefaultSelector = context => context.Request.Headers.ContainsKey(AuthConstants.ApiKeyHeaderName)
-                    ? AuthConstants.PersonalAccessTokenScheme
+                // Chooses as PermissionPolicyProvider's default policy does, plus the authorization server's access
+                // tokens, which only this endpoint accepts. A tool call made with one is refused by the endpoint it
+                // calls until ApiPipeline exchanges it for a token the API accepts.
+                options.ForwardDefaultSelector = context =>
+                    context.Request.Headers.ContainsKey(AuthConstants.ApiKeyHeaderName) ? AuthConstants.PersonalAccessTokenScheme
+                    : OAuthAccessTokens.IsAccessToken(context.Request.Headers.Authorization) ? AuthConstants.OAuthAccessTokenScheme
                     : AuthConstants.LocalJwtScheme;
                 options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme;
             });
+
+        services.Configure<AuthorizationServerOptions>(options => options.ResourcePath = McpServerSetup.Path);
 
         return services;
     }

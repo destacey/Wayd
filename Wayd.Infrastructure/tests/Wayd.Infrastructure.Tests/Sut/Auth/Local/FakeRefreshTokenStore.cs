@@ -51,6 +51,14 @@ internal sealed class FakeRefreshTokenStore : IRefreshTokenStore
         session.Token = $"expired:{session.Token}";
     }
 
+    /// <summary>Not modelled: <see cref="TokenService"/> never opens or refreshes an OAuth client's session.</summary>
+    public Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, SessionContext context, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
+    /// <summary>Not modelled: <see cref="TokenService"/> never opens or refreshes an OAuth client's session.</summary>
+    public Task<ClientRotationResult> RotateForClient(string clientId, string presentedToken, Func<string, CancellationToken, Task<bool>> mayRefresh, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
     public Task<string> Issue(string userId, SessionContext context, CancellationToken cancellationToken)
     {
         var token = $"refresh-{++_counter}";

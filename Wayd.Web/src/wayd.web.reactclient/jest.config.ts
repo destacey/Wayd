@@ -1,5 +1,16 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { Config } from 'jest'
-import nextJest from 'next/jest.js'
+
+// Jest's own process loads Next too — the config here, and Next's transformer when --coverage
+// instruments untested files — and Next's server environment patches console.error/warn and error
+// inspection to call AsyncLocalStorage. Next captures the class once, as its modules load, and falls
+// back to a fake whose methods throw, so it has to be set before anything from Next is imported:
+// hence the dynamic import. Without it, any warning Jest prints (a slow worker being force-exited,
+// say) crashes the run with "AsyncLocalStorage accessed in runtime where it is not available" after
+// every test has passed. The test workers get theirs from src/jest.globals.ts.
+;(globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
+  AsyncLocalStorage
+const { default: nextJest } = await import('next/jest.js')
 
 const createJestConfig = nextJest({
   // Provide the path to your Next.js app to load next.config.js and .env files in your test environment

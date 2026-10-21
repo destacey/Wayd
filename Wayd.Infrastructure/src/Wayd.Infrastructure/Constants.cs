@@ -22,4 +22,10 @@ public static class AuthConstants
     /// policy names it: the hosted MCP endpoint.
     /// </summary>
     public const string OAuthAccessTokenScheme = "OAuthAccessToken";
+
+    /// <summary>
+    /// The authentication scheme for the token a hosted MCP tool call made with an OAuth access token carries through
+    /// the API in process, naming the user and, as its actor, the client. It accepts nothing that arrives over HTTP.
+    /// </summary>
+    public const string DelegatedAccessTokenScheme = "DelegatedAccessToken";
 }

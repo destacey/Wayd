@@ -51,8 +51,8 @@ public static class McpAuthentication
             .AddPolicyScheme(Scheme, "MCP", options =>
             {
                 // Chooses as PermissionPolicyProvider's default policy does, plus the authorization server's access
-                // tokens, which only this endpoint accepts. A tool call made with one is refused by the endpoint it
-                // calls until ApiPipeline exchanges it for a token the API accepts.
+                // tokens, which only this endpoint accepts. A tool call made with one reaches the endpoint it calls
+                // with a delegated token ApiPipeline mints in its place.
                 options.ForwardDefaultSelector = context =>
                     context.Request.Headers.ContainsKey(AuthConstants.ApiKeyHeaderName) ? AuthConstants.PersonalAccessTokenScheme
                     : OAuthAccessTokens.IsAccessToken(context.Request.Headers.Authorization) ? AuthConstants.OAuthAccessTokenScheme

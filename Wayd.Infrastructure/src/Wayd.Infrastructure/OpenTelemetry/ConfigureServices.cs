@@ -29,7 +29,8 @@ internal static class ConfigureServices
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddMeter(McpTelemetry.Name);
             })
             .WithTracing(tracing =>
             {
@@ -37,6 +38,7 @@ internal static class ConfigureServices
                     .AddSource("Microsoft.FeatureManagement")
                     // Wolverine emits its own OTel activities for message send/handle under this source.
                     .AddSource("Wolverine")
+                    .AddSource(McpTelemetry.Name)
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         // Exclude health check requests from tracing

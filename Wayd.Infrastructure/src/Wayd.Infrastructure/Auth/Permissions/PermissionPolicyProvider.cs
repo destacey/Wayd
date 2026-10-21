@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Wayd.Infrastructure.Auth.OAuth;
 
 namespace Wayd.Infrastructure.Auth.Permissions;
 
@@ -25,7 +26,17 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
         var hasApiKeyHeader = httpContext?.Request.Headers.ContainsKey(AuthConstants.ApiKeyHeaderName) == true;
 
         AuthorizationPolicy policy;
-        if (hasApiKeyHeader)
+        if (httpContext?.Features.Get<InProcessDelegation>() is not null)
+        {
+            // A hosted MCP tool call made with an OAuth access token, which carries a delegated token only this
+            // scheme accepts. Chosen by the feature, which no HTTP request can set, so a request from outside
+            // never reaches the scheme.
+            policy = new AuthorizationPolicyBuilder()
+                .AddAuthenticationSchemes(AuthConstants.DelegatedAccessTokenScheme)
+                .RequireAuthenticatedUser()
+                .Build();
+        }
+        else if (hasApiKeyHeader)
         {
             // If PAT header is present, ONLY use PersonalAccessToken authentication
             // This ensures we don't try JWT authentication when the user is explicitly using a PAT

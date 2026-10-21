@@ -1076,6 +1076,32 @@ public class TokenServiceTests
         _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(2, "an unknown token is not a reuse signal");
     }
 
+    [Fact]
+    public async Task RefreshTokenAsync_RefusesAnAccessTokenTypedAtJwt_EvenWithTheWebAppsIssuerAndAudience()
+    {
+        // Arrange — the authorization server's tokens share this key, so their type is what keeps them out
+        var user = CreateLocalUser();
+        var refreshToken = await SignIn(user);
+        var accessToken = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().CreateToken(
+            new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
+            {
+                TokenType = "at+jwt",
+                Issuer = TestIssuer,
+                Audience = TestAudience,
+                Subject = new ClaimsIdentity([new Claim("sub", user.Id), new Claim(ClaimTypes.NameIdentifier, user.Id)]),
+                SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(
+                    Wayd.Infrastructure.Auth.Local.ConfigureServices.CreateSigningKey(TestSecret),
+                    Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256),
+            });
+
+        // Act
+        var act = () => Refresh(user, accessToken, refreshToken);
+
+        // Assert
+        await act.Should().ThrowAsync<Microsoft.IdentityModel.Tokens.SecurityTokenInvalidTypeException>();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1, "the refresh token is left unspent");
+    }
+
     #endregion
 
     #region Per-device sign-out

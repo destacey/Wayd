@@ -252,7 +252,7 @@ public static class ImportTools
                 ?? throw new InvalidOperationException("An API tool can only run within an HTTP request.");
 
             var response = await services.GetRequiredService<ApiPipeline>().Send(
-                caller, "POST", format!.Path, query.ToQueryString(), null, (body, content.Headers.ContentType!.ToString()), cancellationToken);
+                ProtocolTool.Name, caller, "POST", format!.Path, query.ToQueryString(), null, (body, content.Headers.ContentType!.ToString()), cancellationToken);
             return ApiToolResult.From(response, _output);
         }
     }

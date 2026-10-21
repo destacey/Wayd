@@ -19,6 +19,44 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
 
     private static Guid StatusId(StatusWorkflow workflow, string name) => workflow.Statuses.Single(s => s.Name == name).Id;
 
+    // An owner type that declares its moves. Shipping accepts a reason and an approval, though nothing
+    // here evaluates approvals.
+    private static readonly WorkflowOwnerDescriptor Gadget = new(
+        "test.query-gadget",
+        "Gadget",
+        new Dictionary<int, string> { [21] = "Ready", [22] = "Shipped" },
+        [21, 22],
+        supportsRestrictedTransitions: true,
+        moves:
+        [
+            WorkflowMove.Required("Prepare", fromAlias: null, 21),
+            WorkflowMove.Optional("Ship", 21, 22, TransitionConditionKind.RequiresReason, TransitionConditionKind.RequiresPassedApproval),
+        ]);
+
+    public GetStatusWorkflowQueryHandlerTests() => WorkflowOwners.Register(Gadget);
+
+    [Fact]
+    public async Task Handle_ShouldDescribeTheDeclaredMoves_WithTheConditionsSomethingCanCheck()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Gadget Workflow", null, Gadget.Key, EventActor.System, Now).Value;
+        workflow.AddStatus("Planned", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Now);
+        workflow.AddStatus("Ready", null, StatusCategory.Active, 21, EventActor.System, Now);
+        workflow.AddStatus("Shipped", null, StatusCategory.Done, 22, EventActor.System, Now);
+        DbContext.AddStatusWorkflow(workflow);
+        var (planned, ready, shipped) = (StatusId(workflow, "Planned"), StatusId(workflow, "Ready"), StatusId(workflow, "Shipped"));
+
+        // Act
+        var result = await CreateSut().Handle(new GetStatusWorkflowQuery(new IdOrKey(workflow.Id.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.DeclaredMoves.Select(m => (m.FromStatusId, m.ToStatusId, m.IsRequired, string.Join(",", m.Actions)))
+            .Should().Equal((planned, ready, true, "Prepare"), (ready, shipped, false, "Ship"));
+        result.DeclaredMoves.Last().AcceptedConditions.Should().Equal(TransitionConditionKind.RequiresReason);
+        result.DeclaredMoves.First().AcceptedConditions.Should().BeEmpty();
+        result.AvailableConditions.Should().BeEmpty("no action makes a move outside the declared ones");
+    }
+
     [Fact]
     public async Task Handle_ShouldDescribeAnAnyToAnyWorkflow()
     {
@@ -34,6 +72,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
         result.Transitions.Should().BeEmpty();
         result.TransitionIssues.Should().BeEmpty();
         result.SupportsRestrictedTransitions.Should().BeTrue();
+        result.DeclaredMoves.Should().BeEmpty();
         result.CanPublish.Should().BeTrue();
     }
 

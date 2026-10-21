@@ -57,6 +57,36 @@ public sealed record WorkflowTransitionDto
     public required IReadOnlyCollection<TransitionConditionKind> Conditions { get; init; }
 }
 
+/// <summary>
+/// A move one of the owner type's actions makes — cut, release, withdraw — located in a workflow.
+/// </summary>
+public sealed record WorkflowMoveDto
+{
+    /// <summary>The status the move starts from.</summary>
+    public required Guid FromStatusId { get; init; }
+
+    /// <summary>The status the move ends in.</summary>
+    public required Guid ToStatusId { get; init; }
+
+    /// <summary>
+    /// The actions that make the move, as the owner type names them. Usually one; more where the
+    /// workflow's initial status carries an alias another action starts from.
+    /// </summary>
+    public required IReadOnlyCollection<string> Actions { get; init; }
+
+    /// <summary>
+    /// Whether a restricted workflow must allow the move. An optional one may be left out, and the
+    /// action that makes it is then refused.
+    /// </summary>
+    public required bool IsRequired { get; init; }
+
+    /// <summary>
+    /// The conditions a transition along this move may carry: those the action can satisfy and something
+    /// can check. Often none.
+    /// </summary>
+    public required IReadOnlyCollection<TransitionConditionKind> AcceptedConditions { get; init; }
+}
+
 /// <summary>A workflow with its statuses and what may currently be done to it.</summary>
 public sealed record StatusWorkflowDetailsDto
 {
@@ -82,10 +112,21 @@ public sealed record StatusWorkflowDetailsDto
     public required IReadOnlyCollection<WorkflowTransitionDto> Transitions { get; init; }
 
     /// <summary>
-    /// The conditions a transition may carry: those a record checks itself, and those something is in
-    /// place to evaluate. Attaching any other is refused.
+    /// The conditions a transition other than a declared move may carry: those a record checks
+    /// itself, and those something is in place to evaluate. None when the owner type declares its moves,
+    /// since no method makes such a transition. Attaching any other is refused.
     /// </summary>
     public required IReadOnlyCollection<TransitionConditionKind> AvailableConditions { get; init; }
+
+    /// <summary>
+    /// The moves this owner type's actions make, located in this workflow, in the order of their
+    /// statuses. Empty when the owner type moves to any status it is given.
+    /// </summary>
+    /// <remarks>
+    /// A restricted workflow must allow every required one before it can be published, so an editor
+    /// shows those as fixed.
+    /// </remarks>
+    public required IReadOnlyCollection<WorkflowMoveDto> DeclaredMoves { get; init; }
 
     /// <summary>
     /// Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for

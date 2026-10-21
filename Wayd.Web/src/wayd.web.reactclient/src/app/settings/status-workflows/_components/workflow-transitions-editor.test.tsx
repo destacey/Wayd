@@ -65,6 +65,7 @@ const workflow = (
     { id: 't1', fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
   ],
   availableConditions: [TransitionConditionKind.RequiresReason],
+  declaredMoves: [],
   supportsRestrictedTransitions: true,
   transitionIssues: [],
   missingRequiredAliases: [],

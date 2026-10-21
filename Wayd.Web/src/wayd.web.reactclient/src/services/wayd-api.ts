@@ -55525,9 +55525,13 @@ export interface StatusWorkflowDetailsDto {
     /** The moves this workflow allows, ordered by their from and then their to status's position.
 Enforced only when TransitionMode StatusWorkflowDetailsDto.TransitionMode is restricted. */
     transitions: WorkflowTransitionDto[];
-    /** The conditions a transition may carry: those a record checks itself, and those something is in
-place to evaluate. Attaching any other is refused. */
+    /** The conditions a transition other than a declared move may carry: those a record checks
+itself, and those something is in place to evaluate. None when the owner type declares its moves,
+since no method makes such a transition. Attaching any other is refused. */
     availableConditions: TransitionConditionKind[];
+    /** The moves this owner type's actions make, located in this workflow, in the order of their
+statuses. Empty when the owner type moves to any status it is given. */
+    declaredMoves: WorkflowMoveDto[];
     /** Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
 an owner type that cannot is refused at publish. */
     supportsRestrictedTransitions: boolean;
@@ -57921,6 +57925,23 @@ export interface WorkflowDto {
     ownership: SimpleNavigationDto;
     isActive: boolean;
     schemes: WorkflowSchemeDto[];
+}
+
+/** A move one of the owner type's actions makes — cut, release, withdraw — located in a workflow. */
+export interface WorkflowMoveDto {
+    /** The status the move starts from. */
+    fromStatusId: string;
+    /** The status the move ends in. */
+    toStatusId: string;
+    /** The actions that make the move, as the owner type names them. Usually one; more where the
+workflow's initial status carries an alias another action starts from. */
+    actions: string[];
+    /** Whether a restricted workflow must allow the move. An optional one may be left out, and the
+action that makes it is then refused. */
+    isRequired: boolean;
+    /** The conditions a transition along this move may carry: those the action can satisfy and something
+can check. Often none. */
+    acceptedConditions: TransitionConditionKind[];
 }
 
 /** An owner type, as referenced from a workflow or an assignment. */

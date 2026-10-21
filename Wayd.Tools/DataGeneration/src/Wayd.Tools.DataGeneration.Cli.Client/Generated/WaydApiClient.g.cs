@@ -107358,13 +107358,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<WorkflowTransitionDto> Transitions { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowTransitionDto>();
 
         /// <summary>
-        /// The conditions a transition may carry: those a record checks itself, and those something is in
-        /// <br/>place to evaluate. Attaching any other is refused.
+        /// The conditions a transition other than a declared move may carry: those a record checks
+        /// <br/>itself, and those something is in place to evaluate. None when the owner type declares its moves,
+        /// <br/>since no method makes such a transition. Attaching any other is refused.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("availableConditions")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TransitionConditionKind> AvailableConditions { get; set; } = new System.Collections.ObjectModel.Collection<TransitionConditionKind>();
+
+        /// <summary>
+        /// The moves this owner type's actions make, located in this workflow, in the order of their
+        /// <br/>statuses. Empty when the owner type moves to any status it is given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("declaredMoves")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkflowMoveDto> DeclaredMoves { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowMoveDto>();
 
         /// <summary>
         /// Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
@@ -114545,6 +114554,53 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("schemes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowSchemeDto> Schemes { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowSchemeDto>();
+
+    }
+
+    /// <summary>
+    /// A move one of the owner type's actions makes — cut, release, withdraw — located in a workflow.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowMoveDto
+    {
+
+        /// <summary>
+        /// The status the move starts from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fromStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid FromStatusId { get; set; } = default!;
+
+        /// <summary>
+        /// The status the move ends in.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("toStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid ToStatusId { get; set; } = default!;
+
+        /// <summary>
+        /// The actions that make the move, as the owner type names them. Usually one; more where the
+        /// <br/>workflow's initial status carries an alias another action starts from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Whether a restricted workflow must allow the move. An optional one may be left out, and the
+        /// <br/>action that makes it is then refused.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isRequired")]
+        public bool IsRequired { get; set; } = default!;
+
+        /// <summary>
+        /// The conditions a transition along this move may carry: those the action can satisfy and something
+        /// <br/>can check. Often none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("acceptedConditions")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TransitionConditionKind> AcceptedConditions { get; set; } = new System.Collections.ObjectModel.Collection<TransitionConditionKind>();
 
     }
 

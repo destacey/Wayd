@@ -10,7 +10,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 using NodaTime;
+using Wayd.Common.Domain.Activities;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.FeatureManagement.Commands;
 using Wayd.Common.Application.Interfaces;
@@ -43,6 +46,9 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     private const string Challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
 
     private const string ConsentPage = "http://localhost:3000/oauth/consent";
+
+    private static readonly string CreatePortfolios =
+        ApplicationPermission.NameFor(ApplicationAction.Create, ApplicationResource.ProjectPortfolios);
 
     private readonly WaydSqlServerApiFactory _factory = factory;
 
@@ -103,6 +109,95 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CallTool_WithAnAccessToken_ChangesAsTheUser_AndTheActivityLogNamesTheClient()
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = RegisterClient();
+        var (user, accessToken) = await ConnectedUser(client, CreatePortfolios);
+        await using var mcp = await ConnectToMcp(accessToken);
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Portfolios_Create",
+            new Dictionary<string, object?> { ["requestBody"] = new { name = $"OAuth {Guid.NewGuid():N}"[..20], description = "Created through a tool call." } },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError is not true, TextOf(result));
+        var portfolioId = Guid.Parse(result.StructuredContent!.Value.GetProperty("id").GetString()!);
+        var entries = await ActivityFor(portfolioId);
+        Assert.NotEmpty(entries);
+        Assert.All(entries, entry =>
+        {
+            Assert.Equal(client.ClientId, entry.ClientId);
+            Assert.Equal(EventActorKind.User, entry.ActorKind);
+            Assert.Equal(user.UserId, entry.UserId);
+        });
+    }
+
+    [Fact]
+    public async Task CallTool_WithAnAccessToken_IsRefused_OnceTheUserIsDeactivated()
+    {
+        // Arrange — the /mcp scheme checks only the session, so the delegated token's own check is what refuses
+        await SetFlag(true);
+        var (user, accessToken) = await ConnectedUser(RegisterClient(), CreatePortfolios);
+        await using var mcp = await ConnectToMcp(accessToken);
+        await SetUserActive(user.UserId, false);
+
+        // Act
+        var result = await mcp.CallToolAsync(
+            "Portfolios_Create",
+            new Dictionary<string, object?> { ["requestBody"] = new { name = $"OAuth {Guid.NewGuid():N}"[..20], description = "Created through a tool call." } },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError);
+        Assert.StartsWith("API Error: Status 401", TextOf(result));
+    }
+
+    [Theory]
+    [InlineData("/api/user-management/personal-access-tokens")]
+    [InlineData("/api/oauth/authorization-requests/any-handle")]
+    public async Task DelegatedToken_IsRefusedOverHttp(string path)
+    {
+        // Arrange — a correctly signed delegated token, as if copied out of the process
+        await SetFlag(true);
+        var client = RegisterClient();
+        var (user, _) = await ConnectedUser(client);
+        var token = DelegatedAccessTokens.Issue(
+            _factory.Services.GetRequiredService<IConfiguration>(), Issuer, user.UserId, client.ClientId, SystemClock.Instance.GetCurrentInstant());
+        var api = _factory.CreateClient();
+        api.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // Act
+        var response = await api.GetAsync(path, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Mcp_RefusesADelegatedToken()
+    {
+        // Arrange — typed like an access token, but for the API's audience rather than /mcp
+        await SetFlag(true);
+        var client = RegisterClient();
+        var (user, _) = await ConnectedUser(client);
+        var token = DelegatedAccessTokens.Issue(
+            _factory.Services.GetRequiredService<IConfiguration>(), Issuer, user.UserId, client.ClientId, SystemClock.Instance.GetCurrentInstant());
+        var mcp = _factory.CreateClient();
+        mcp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // Act
+        var response = await mcp.PostAsJsonAsync(McpServerSetup.Path, new { }, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Contains("error=\"invalid_token\"", response.Headers.WwwAuthenticate.ToString());
     }
 
     [Fact]
@@ -569,16 +664,40 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         return QueryHelpers.ParseQuery(response.Headers.Location!.Query)["request"].ToString();
     }
 
-    /// <summary>Has a new user approve a new request from <paramref name="client"/>, and answers the code it was given.</summary>
-    private async Task<(AuthenticatedClient User, string Code)> Approve(OAuthClient client)
+    /// <summary>
+    /// Has a new user holding <paramref name="permissions"/> approve a new request from <paramref name="client"/>, and
+    /// answers the code it was given.
+    /// </summary>
+    private async Task<(AuthenticatedClient User, string Code)> Approve(OAuthClient client, params string[] permissions)
     {
         var handle = await StartAuthorization(client);
-        var user = await _factory.CreateAuthenticatedClient();
+        var user = await _factory.CreateAuthenticatedClient(permissions);
         var approved = await user.Client.PostAsync($"/api/oauth/authorization-requests/{handle}/approve", null, TestContext.Current.CancellationToken);
         approved.EnsureSuccessStatusCode();
         var redirectUrl = (await approved.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken)).GetProperty("redirectUrl").GetString()!;
         return (user, QueryHelpers.ParseQuery(new Uri(redirectUrl).Query)["code"].ToString());
     }
+
+    /// <summary>Has a new user holding <paramref name="permissions"/> connect <paramref name="client"/>, and answers its access token.</summary>
+    private async Task<(AuthenticatedClient User, string AccessToken)> ConnectedUser(OAuthClient client, params string[] permissions)
+    {
+        var (user, code) = await Approve(client, permissions);
+        var response = await RedeemRequest(client, code);
+        response.EnsureSuccessStatusCode();
+        var tokens = await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        return (user, tokens.GetProperty("access_token").GetString()!);
+    }
+
+    private async Task<List<ActivityLogEntry>> ActivityFor(Guid aggregateId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<WaydDbContext>().ActivityLogs
+            .AsNoTracking()
+            .Where(a => a.AggregateId == aggregateId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static string TextOf(CallToolResult result) => string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
 
     private async Task<JsonElement> Redeem(OAuthClient client)
     {

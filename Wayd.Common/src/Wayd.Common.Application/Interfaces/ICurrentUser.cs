@@ -29,4 +29,11 @@ public interface ICurrentUser
     string? GetUserEmail();
 
     bool IsAuthenticated();
+
+    /// <summary>
+    /// The OAuth client acting for the user, such as an agent connected to the hosted MCP endpoint: its
+    /// <c>client_id</c>, the URL of its metadata document. Null when the user is acting directly — through the web
+    /// app or a personal access token — and off the HTTP path.
+    /// </summary>
+    string? ClientId { get; }
 }

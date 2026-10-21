@@ -23,6 +23,12 @@ public sealed record ActivityLogDto : IMapFrom<ActivityLogEntry>
     public Guid AggregateId { get; init; }
     public EventActorKind ActorKind { get; init; }
     public EmployeeNavigationDto? Employee { get; init; }
+
+    /// <summary>
+    /// The OAuth client the change was made through, such as an agent connected to the hosted MCP endpoint: its
+    /// <c>client_id</c>, the URL of its metadata document, whose host identifies it. Null for a change made directly.
+    /// </summary>
+    public string? ClientId { get; init; }
     public Instant Timestamp { get; init; }
     public string? CorrelationId { get; init; }
     public string EventVersion { get; init; } = "1.0";

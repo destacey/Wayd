@@ -29,7 +29,8 @@ public sealed class ActivityLogEntry : BaseEntity<long>
         string payload,
         string? summary = null,
         string eventVersion = "1.0",
-        IEnumerable<AggregateReference>? relatedAggregates = null)
+        IEnumerable<AggregateReference>? relatedAggregates = null,
+        string? clientId = null)
     {
         EventId = Guard.Against.Default(eventId, nameof(eventId));
         EventType = Guard.Against.NullOrWhiteSpace(eventType, nameof(eventType)).Trim();
@@ -43,6 +44,7 @@ public sealed class ActivityLogEntry : BaseEntity<long>
         ActorKind = actor.Kind;
         UserId = actor.UserId;
         EmployeeId = actor.EmployeeId;
+        ClientId = string.IsNullOrWhiteSpace(clientId) ? null : clientId.Trim();
 
         Timestamp = timestamp;
         Ordinal = Guard.Against.Negative(ordinal, nameof(ordinal));
@@ -143,6 +145,17 @@ public sealed class ActivityLogEntry : BaseEntity<long>
 
     /// <summary>The employee behind the change, where there is one.</summary>
     public Guid? EmployeeId { get; private init; }
+
+    /// <summary>
+    /// The OAuth client the user made the change through, such as an agent connected to the hosted MCP endpoint: its
+    /// <c>client_id</c>, the URL of its metadata document. Null for a change the user made directly.
+    /// </summary>
+    /// <remarks>
+    /// Taken from the request that saved the change, as <see cref="CorrelationId"/> is, rather than from the event: the
+    /// event records what the user did, and this records how the request reached Wayd. A reaction handled later, in a
+    /// scope of its own, has none.
+    /// </remarks>
+    public string? ClientId { get; private init; }
 
     /// <summary>The employee navigation entity.</summary>
     public Wayd.Common.Domain.Employees.Employee? Employee { get; private init; }

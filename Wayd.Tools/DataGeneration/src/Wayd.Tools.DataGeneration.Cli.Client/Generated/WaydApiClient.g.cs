@@ -90721,6 +90721,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("employee")]
         public EmployeeNavigationDto? Employee { get; set; } = default!;
 
+        /// <summary>
+        /// The OAuth client the change was made through, such as an agent connected to the hosted MCP endpoint: its
+        /// <br/>`client_id`, the URL of its metadata document, whose host identifies it. Null for a change made directly.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clientId")]
+        public string? ClientId { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Timestamp { get; set; } = default!;

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Wayd.Common.Application.Identity;
+using Wayd.Infrastructure.Auth.OAuth;
 
 namespace Wayd.Infrastructure.Auth;
 
@@ -67,6 +68,9 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor, AmbientUserId
 
     public bool IsAuthenticated() =>
         User?.Identity?.IsAuthenticated is true;
+
+    public string? ClientId =>
+        IsAuthenticated() ? User!.FindFirstValue(DelegatedAccessTokens.ActingClientIdClaim) : null;
 
     public void SetCurrentUserId(string userId) =>
         // Stored on the scoped AmbientUserId (shared with the handler's DbContext in the same scope)

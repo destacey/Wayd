@@ -36,7 +36,8 @@ internal static partial class ActivityLogEntryFactory
         return options;
     }
 
-    internal static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IEntity entity, int ordinal, string? correlationId)
+    /// <param name="clientId">The OAuth client the change was made through, when it was (<see cref="ActivityLogEntry.ClientId"/>).</param>
+    internal static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IEntity entity, int ordinal, string? correlationId, string? clientId = null)
     {
         var eventType = domainEvent.GetType().Name;
 
@@ -75,7 +76,8 @@ internal static partial class ActivityLogEntryFactory
             payload,
             summary,
             domainEvent.EventVersion,
-            RelatedAggregatesOf(domainEvent));
+            RelatedAggregatesOf(domainEvent),
+            clientId);
     }
 
     private static IEnumerable<AggregateReference>? RelatedAggregatesOf(DomainEvent domainEvent) =>

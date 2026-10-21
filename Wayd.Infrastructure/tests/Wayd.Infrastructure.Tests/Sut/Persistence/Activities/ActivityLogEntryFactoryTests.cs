@@ -104,6 +104,28 @@ public sealed class ActivityLogEntryFactoryTests
         entry.DomainArea.Should().Be("Work");
     }
 
+    [Theory]
+    [InlineData("https://agent.acme.example/client-metadata.json", "https://agent.acme.example/client-metadata.json")]
+    [InlineData(null, null)]
+    [InlineData("  ", null)]
+    public void CreateActivityLogEntry_RecordsTheClientTheChangeWasMadeThrough(string? clientId, string? expected)
+    {
+        // Arrange
+        var timestamp = Instant.FromUtc(2026, 10, 2, 9, 0);
+        var sprint = Iteration.Create("Sprint 1", IterationType.Sprint,
+            new IterationDateRange(new LocalDate(2026, 10, 1), new LocalDate(2026, 10, 14)), null,
+            OwnershipInfo.CreateWaydOwned(), [], EventActor.System, timestamp);
+        var raised = new IterationTeamChangedEvent(sprint.Id, 7, null, Guid.NewGuid(), EventActor.User("user-1"), timestamp);
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, sprint, ordinal: 0, correlationId: null, clientId);
+
+        // Assert
+        entry.ClientId.Should().Be(expected);
+        entry.ActorKind.Should().Be(EventActorKind.User);
+        entry.UserId.Should().Be("user-1");
+    }
+
     [Fact]
     public void CreateActivityLogEntry_ForABaseline_SummarisesAsTheRecordBaselined()
     {

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Infrastructure.Auth;
+using Wayd.Infrastructure.Auth.OAuth;
 
 namespace Wayd.Infrastructure.Tests.Sut.Auth;
 
@@ -156,5 +157,53 @@ public sealed class CurrentUserTests
 
         // Assert
         name.Should().Be(SystemIdentity.Name);
+    }
+
+    [Fact]
+    public void ClientId_ForAUserActingThroughAClient_IsTheClient()
+    {
+        // Arrange
+        GivenHttpUser(new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, "user-1"),
+                new Claim(DelegatedAccessTokens.ActingClientIdClaim, "https://agent.acme.example/client-metadata.json"),
+            ],
+            authenticationType: "Test")));
+        var sut = CreateSut();
+
+        // Act
+        var clientId = sut.ClientId;
+
+        // Assert
+        clientId.Should().Be("https://agent.acme.example/client-metadata.json");
+    }
+
+    [Fact]
+    public void ClientId_ForAUserActingDirectly_IsNull()
+    {
+        // Arrange
+        GivenHttpUser(AuthenticatedUser("user-1"));
+        var sut = CreateSut();
+
+        // Act
+        var clientId = sut.ClientId;
+
+        // Assert
+        clientId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ClientId_ForAnUnauthenticatedIdentityCarryingTheClaim_IsNull()
+    {
+        // Arrange — a claim on an identity no scheme vouched for names nobody
+        GivenHttpUser(new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(DelegatedAccessTokens.ActingClientIdClaim, "https://agent.acme.example/client-metadata.json")])));
+        var sut = CreateSut();
+
+        // Act
+        var clientId = sut.ClientId;
+
+        // Assert
+        clientId.Should().BeNull();
     }
 }

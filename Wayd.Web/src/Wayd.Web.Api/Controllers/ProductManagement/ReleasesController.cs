@@ -7,6 +7,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Application.DeliveryWorkflows;
 using Wayd.ProductManagement.Application.Releases.Commands;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 using Wayd.ProductManagement.Application.Releases.Imports;
@@ -115,6 +116,21 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
             : result.Value is not null
                 ? Ok(result.Value)
                 : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/workflow-actions")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
+    [EndpointSummary("Get the lifecycle actions a release's workflow allows from the status it holds.")]
+    [EndpointDescription(
+        "Lists `MarkReleased`, `RevertRelease` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — reverting a release, say — and the action is then refused. This answers for the workflow only: the release's own rules (it cannot be announced while it carries something unshipped) still decide whether the action succeeds.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<DeliveryWorkflowActionDto>>> GetWorkflowActions(
+        string idOrKey, CancellationToken cancellationToken)
+    {
+        var actions = await _dispatcher.Send(new GetReleaseWorkflowActionsQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return actions is not null ? Ok(actions) : NotFound();
     }
 
     [HttpPost]

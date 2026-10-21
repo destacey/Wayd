@@ -8383,6 +8383,57 @@
         ]
       }
     },
+    "/api/product-management/release-packages/{idOrKey}/workflow-actions": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get the lifecycle actions a package's workflow allows from the status it holds.",
+        "description": "Lists `MarkReleased` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — withdrawing a released package, say — and the action is then refused. This answers for the workflow only: the package's own rules still decide whether the action succeeds.",
+        "operationId": "ReleasePackages_GetWorkflowActions",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryWorkflowActionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/import": {
       "post": {
         "tags": [
@@ -9117,6 +9168,57 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{idOrKey}/workflow-actions": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Get the lifecycle actions a release's workflow allows from the status it holds.",
+        "description": "Lists `MarkReleased`, `RevertRelease` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — reverting a release, say — and the action is then refused. This answers for the workflow only: the release's own rules (it cannot be announced while it carries something unshipped) still decide whether the action succeeds.",
+        "operationId": "Releases_GetWorkflowActions",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryWorkflowActionDto"
+                  }
                 }
               }
             }
@@ -10033,6 +10135,57 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{idOrKey}/workflow-actions": {
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Get the lifecycle actions a version's workflow allows from the status it holds.",
+        "description": "Lists `Cut`, `MarkReleased`, `RevertRelease` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — withdrawing a released version, say — and the action is then refused. This answers for the workflow only: the version's own rules (a version cuts once; a withdrawn one cannot ship) still decide whether the action succeeds.",
+        "operationId": "Versions_GetWorkflowActions",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryWorkflowActionDto"
+                  }
                 }
               }
             }
@@ -47276,6 +47429,16 @@
         "additionalProperties": false,
         "description": "Outcome of deleting an OIDC provider: either it was deleted, or deletion was refused\nbecause users still sign in through it, with how many active identities remain bound."
       },
+      "DeliveryAction": {
+        "enum": [
+          "Cut",
+          "MarkReleased",
+          "RevertRelease",
+          "Withdraw"
+        ],
+        "type": "string",
+        "description": "A lifecycle action on a version, release or release package that moves its status."
+      },
       "DeliveryMetricsDto": {
         "required": [
           "from",
@@ -47373,6 +47536,24 @@
         },
         "additionalProperties": false,
         "description": "What the figures cover."
+      },
+      "DeliveryWorkflowActionDto": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryAction"
+              }
+            ],
+            "description": "The action."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A lifecycle action whose move a record's workflow allows from the status the record holds."
       },
       "DependencyDto": {
         "required": [

@@ -713,6 +713,52 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
+    public async Task CodeFlow_AcceptsAnyPortOnALoopbackRedirectRegisteredWithout_AndBindsTheCodeToThatPort()
+    {
+        // Arrange — a desktop client registers its loopback redirect without a port and listens on whichever is free
+        await SetFlag(true);
+        const string registered = "http://127.0.0.1/callback";
+        const string requested = "http://127.0.0.1:53817/callback";
+        var client = _factory.OAuthClients.Register(new OAuthClient(
+            $"https://client.acme.example/{Guid.NewGuid():N}/client-metadata.json", "Acme Agent", [registered], null, null));
+        var handle = await StartAuthorization(client, requested);
+        var user = await _factory.CreateAuthenticatedClient();
+        var approved = await user.Client.PostAsync($"/api/oauth/authorization-requests/{handle}/approve", null, TestContext.Current.CancellationToken);
+        var redirectUrl = (await approved.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken)).GetProperty("redirectUrl").GetString()!;
+        var form = RedeemForm(client, QueryHelpers.ParseQuery(new Uri(redirectUrl).Query)["code"].ToString());
+        form["redirect_uri"] = registered;
+
+        // Act
+        var redeemedWithoutThePort = await PostToken(form);
+
+        // Assert
+        Assert.StartsWith(requested + "?", redirectUrl);
+        await AssertRefused(redeemedWithoutThePort, "invalid_grant");
+    }
+
+    [Fact]
+    public async Task CodeFlow_RedeemsALoopbackCode_WithThePortItWasRequestedWith()
+    {
+        // Arrange
+        await SetFlag(true);
+        const string requested = "http://127.0.0.1:53817/callback";
+        var client = _factory.OAuthClients.Register(new OAuthClient(
+            $"https://client.acme.example/{Guid.NewGuid():N}/client-metadata.json", "Acme Agent", ["http://127.0.0.1/callback"], null, null));
+        var handle = await StartAuthorization(client, requested);
+        var user = await _factory.CreateAuthenticatedClient();
+        var approved = await user.Client.PostAsync($"/api/oauth/authorization-requests/{handle}/approve", null, TestContext.Current.CancellationToken);
+        var redirectUrl = (await approved.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken)).GetProperty("redirectUrl").GetString()!;
+        var form = RedeemForm(client, QueryHelpers.ParseQuery(new Uri(redirectUrl).Query)["code"].ToString());
+        form["redirect_uri"] = requested;
+
+        // Act
+        var response = await PostToken(form);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Consent_FlagsAWebRedirectOnAnotherHost()
     {
         // Arrange

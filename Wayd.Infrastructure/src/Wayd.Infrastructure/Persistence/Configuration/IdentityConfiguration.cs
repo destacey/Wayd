@@ -147,6 +147,52 @@ public class UserRefreshTokenConfig : IEntityTypeConfiguration<UserRefreshToken>
             .WithMany(u => u.RefreshTokens)
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // A Client ID Metadata Document URL; 2048 matches what browsers and proxies reliably carry.
+        builder.Property(t => t.ClientId).HasMaxLength(2048);
+    }
+}
+
+/// <summary>Maps <see cref="OAuthAuthorization"/>: one row per OAuth authorization request.</summary>
+public class OAuthAuthorizationConfig : IEntityTypeConfiguration<OAuthAuthorization>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<OAuthAuthorization> builder)
+    {
+        builder.ToTable("OAuthAuthorizations", SchemaNames.Identity);
+
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).ValueGeneratedNever();
+
+        // Hex SHA-256 of a 256-bit random value, so unsalted and looked up by equality.
+        builder.Property(a => a.RequestHandleHash).HasMaxLength(64).IsFixedLength().IsRequired();
+        builder.HasIndex(a => a.RequestHandleHash).IsUnique();
+
+        builder.Property(a => a.ClientId).HasMaxLength(2048).IsRequired();
+        builder.Property(a => a.ClientName).HasMaxLength(200).IsRequired();
+        builder.Property(a => a.RedirectUri).HasMaxLength(2048).IsRequired();
+        builder.Property(a => a.CodeChallenge).HasMaxLength(43).IsFixedLength().IsRequired();
+        builder.Property(a => a.Resource).HasMaxLength(2048).IsRequired();
+        builder.Property(a => a.State).HasMaxLength(1024).IsRequired();
+        builder.Property(a => a.Issuer).HasMaxLength(2048).IsRequired();
+
+        // A concurrency token, so two decisions or two redemptions racing on one row cannot both succeed.
+        builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(20).IsRequired().IsConcurrencyToken();
+
+        builder.Property(a => a.CreatedAt).IsRequired();
+        builder.Property(a => a.ExpiresAt).IsRequired();
+        builder.Property(a => a.UserId).HasMaxLength(450);
+
+        builder.Property(a => a.CodeHash).HasMaxLength(64).IsFixedLength();
+        builder.HasIndex(a => a.CodeHash).IsUnique().WhereNotNull(nameof(OAuthAuthorization.CodeHash));
+
+        // Expired rows are purged by age.
+        builder.HasIndex(a => a.ExpiresAt);
+
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

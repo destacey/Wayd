@@ -47,6 +47,10 @@ internal static class ConfigureServices
                     IssuerSigningKey = signingKey,
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromMinutes(1),
+
+                    // The web app's tokens are typed JWT; an OAuth access token (at+jwt) is signed with the same key
+                    // and must never pass here, even if issuers or audiences were ever configured to collide.
+                    ValidTypes = ["JWT"],
                 };
 
                 options.Events = new JwtBearerEvents

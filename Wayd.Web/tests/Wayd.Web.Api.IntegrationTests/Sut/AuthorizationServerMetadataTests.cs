@@ -47,6 +47,7 @@ public sealed class AuthorizationServerMetadataTests(WaydSqlServerApiFactory fac
         Assert.Equal(["S256"], Strings(metadata, "code_challenge_methods_supported"));
         Assert.Equal(["none"], Strings(metadata, "token_endpoint_auth_methods_supported"));
         Assert.True(metadata.GetProperty("client_id_metadata_document_supported").GetBoolean());
+        Assert.True(metadata.GetProperty("authorization_response_iss_parameter_supported").GetBoolean());
     }
 
     [Fact]

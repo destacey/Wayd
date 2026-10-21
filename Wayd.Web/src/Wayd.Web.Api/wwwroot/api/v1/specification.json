@@ -511,6 +511,183 @@
         }
       }
     },
+    "/api/oauth/authorization-requests/{handle}": {
+      "get": {
+        "tags": [
+          "OAuthAuthorizationRequests"
+        ],
+        "summary": "Get a pending OAuth connection request.",
+        "description": "Answers 404 when the request is unknown, has expired, or has already been approved or denied, and 403 to a personal access token: only a user signed in to the web app may answer a request.",
+        "operationId": "OAuthAuthorizationRequests_Get",
+        "parameters": [
+          {
+            "name": "handle",
+            "in": "path",
+            "description": "The handle the authorization endpoint passed to the consent page as `request`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizationRequestResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/oauth/authorization-requests/{handle}/approve": {
+      "post": {
+        "tags": [
+          "OAuthAuthorizationRequests"
+        ],
+        "summary": "Approve a pending OAuth connection request.",
+        "description": "Issues a single-use authorization code bound to the signed-in user and answers the URL to send the browser to. Answers 404 as the get does.",
+        "operationId": "OAuthAuthorizationRequests_Approve",
+        "parameters": [
+          {
+            "name": "handle",
+            "in": "path",
+            "description": "The handle the authorization endpoint passed to the consent page as `request`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizationDecisionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/oauth/authorization-requests/{handle}/deny": {
+      "post": {
+        "tags": [
+          "OAuthAuthorizationRequests"
+        ],
+        "summary": "Deny a pending OAuth connection request.",
+        "description": "Answers the URL that tells the application it was refused. Answers 404 as the get does.",
+        "operationId": "OAuthAuthorizationRequests_Deny",
+        "parameters": [
+          {
+            "name": "handle",
+            "in": "path",
+            "description": "The handle the authorization endpoint passed to the consent page as `request`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizationDecisionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/user-management/oidc-providers": {
       "get": {
         "tags": [
@@ -52485,6 +52662,70 @@
         },
         "additionalProperties": false
       },
+      "OAuthAuthorizationDecisionResponse": {
+        "required": [
+          "redirectUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "redirectUrl": {
+            "type": "string",
+            "description": "The application's redirect URI, carrying the authorization code or the refusal, `state` and `iss`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Where to send the browser after the user approves or denies a connection request."
+      },
+      "OAuthAuthorizationRequestResponse": {
+        "required": [
+          "clientId",
+          "clientHost",
+          "clientName",
+          "redirectUri",
+          "redirectHostDiffers",
+          "redirectIsLoopback",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "The URL of the application's metadata document, which identifies it."
+          },
+          "clientHost": {
+            "type": "string",
+            "description": "The host the application's metadata document is served from: the one fact about who is asking. Show it prominently."
+          },
+          "clientName": {
+            "type": "string",
+            "description": "The application's name for itself, with control and bidirectional-override characters removed and its length capped."
+          },
+          "redirectUri": {
+            "type": "string",
+            "description": "Where the browser goes once the user approves or denies."
+          },
+          "redirectHost": {
+            "type": "string",
+            "description": "The redirect URI's host, or null when it opens an installed app by its own URL scheme.",
+            "nullable": true
+          },
+          "redirectHostDiffers": {
+            "type": "boolean",
+            "description": "Whether the redirect URI's host is not the client's host; the consent page warns when it is not."
+          },
+          "redirectIsLoopback": {
+            "type": "boolean",
+            "description": "Whether the redirect URI is on this computer's loopback interface, as a desktop app's is."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the request stops waiting for a decision.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "An application asking to connect to Wayd as the signed-in user, as the consent page shows it. Only `clientId` and\nthe hosts derived from it are facts; the name is the application's own claim about itself."
+      },
       "ObjectIdAndKey": {
         "required": [
           "id",
@@ -68731,30 +68972,42 @@
         "properties": {
           "id": {
             "type": "string",
+            "description": "The session's id, which revokes it.",
             "format": "uuid"
           },
           "deviceLabel": {
             "type": "string",
+            "description": "The browser and platform it was opened from, or for an application connected with OAuth, the application's name for itself.",
             "nullable": true
           },
           "ipAddress": {
             "type": "string",
+            "description": "The address it was opened from.",
             "nullable": true
           },
           "createdAt": {
             "type": "string",
+            "description": "When it was opened.",
             "format": "date-time"
           },
           "lastUsedAt": {
             "type": "string",
+            "description": "When it was last refreshed.",
             "format": "date-time"
           },
           "expiresAt": {
             "type": "string",
+            "description": "When it ends unless refreshed.",
             "format": "date-time"
           },
           "isCurrent": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether it is the caller's own session."
+          },
+          "clientId": {
+            "type": "string",
+            "description": "The URL identifying the application connected with OAuth, or null for a sign-in to Wayd itself.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -71100,6 +71353,9 @@
     },
     {
       "name": "Auth"
+    },
+    {
+      "name": "OAuthAuthorizationRequests"
     },
     {
       "name": "OidcProviders"

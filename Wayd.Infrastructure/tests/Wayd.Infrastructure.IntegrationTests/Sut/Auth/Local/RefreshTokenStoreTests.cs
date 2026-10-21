@@ -581,4 +581,243 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         // Assert
         found.Should().BeNull();
     }
+
+    private const string ClientId = "https://client.acme.example/oauth/client-metadata.json";
+
+    private static Task<bool> AnyUser(string userId, CancellationToken cancellationToken) => Task.FromResult(true);
+
+    [Fact]
+    public async Task RotateForClient_ShouldLeaveTheSessionUntouched_WhenItsUserMayNotRefresh()
+    {
+        // Arrange — a disabled user's token must work again once they are enabled
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        string? askedAbout = null;
+
+        // Act
+        var refused = await CreateStore(context, Now.Plus(Duration.FromHours(1))).RotateForClient(
+            ClientId, session.Token, (id, _) => { askedAbout = id; return Task.FromResult(false); }, ct);
+
+        // Assert
+        refused.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        askedAbout.Should().Be(userId);
+        var stored = await context.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.Id == session.SessionId, ct);
+        stored.LastUsedAt.Should().Be(Now);
+        stored.RevokedAt.Should().BeNull();
+        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+    }
+
+    [Fact]
+    public async Task RotateForClient_ShouldMatchTheClientExactly()
+    {
+        // Arrange — the column compares case-insensitively; a client_id is a URL whose path does not
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now).RotateForClient(ClientId.ToUpperInvariant(), session.Token, AnyUser, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+    }
+
+    [Fact]
+    public async Task RotateForClient_ShouldNameTheSessionItRotated()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var sessionId = Guid.NewGuid();
+        var session = await CreateStore(context, Now).IssueForClient(sessionId, userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
+
+        // Assert
+        session.SessionId.Should().Be(sessionId);
+        result.SessionId.Should().Be(sessionId);
+    }
+
+    [Fact]
+    public async Task IssueForClient_ShouldOpenASessionNamedForTheClient_WithATokenThatLocatesIt()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Assert
+        var stored = await context.UserRefreshTokens.SingleAsync(t => t.UserId == userId, ct);
+        stored.Id.Should().Be(session.SessionId);
+        stored.ClientId.Should().Be(ClientId);
+        stored.DeviceLabel.Should().Be("Acme Agent");
+        session.Token.Should().StartWith($"{session.SessionId:N}.");
+        stored.TokenHash.Should().NotContain(session.Token);
+        RefreshTokenHasher.Verify(session.Token, stored.TokenHash).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IssueForClient_ShouldKeepEarlierSessionsForTheSameClient()
+    {
+        // Arrange — the same client connected from two machines
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var first = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Assert
+        (await context.UserRefreshTokens.CountAsync(t => t.UserId == userId && t.RevokedAt == null, ct)).Should().Be(2);
+        (await CreateStore(context, Now).RotateForClient(ClientId, first.Token, AnyUser, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+    }
+
+    [Fact]
+    public async Task RotateForClient_ShouldReplaceTheTokenAndNameTheUser()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now.Plus(Duration.FromHours(1))).RotateForClient(ClientId, session.Token, AnyUser, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+        result.UserId.Should().Be(userId);
+        result.Token.Should().StartWith($"{session.SessionId:N}.").And.NotBe(session.Token);
+        var stored = await context.UserRefreshTokens.SingleAsync(t => t.Id == session.SessionId, ct);
+        RefreshTokenHasher.Verify(result.Token, stored.TokenHash).Should().BeTrue();
+        stored.LastUsedAt.Should().Be(Now.Plus(Duration.FromHours(1)));
+    }
+
+    [Fact]
+    public async Task RotateForClient_ShouldRotateNothing_WhenAnotherClientPresentsTheToken()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now).RotateForClient("https://other.acme.example/client.json", session.Token, AnyUser, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct)).Outcome
+            .Should().Be(RefreshRotationOutcome.Rotated, "the rightful client's token must still work");
+    }
+
+    [Theory]
+    [InlineData("not-a-session-token")]
+    [InlineData("00000000000000000000000000000000.secret")]
+    public async Task RotateForClient_ShouldReportNotFound_ForATokenThatNamesNoSession(string token)
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await CreateStore(context, Now).RotateForClient(ClientId, token, AnyUser, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        result.UserId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RotateForClient_ShouldReportNotFound_WhenTheSecretIsWrong()
+    {
+        // Arrange — the session id is right, so only the hash check stands between a guess and the session
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now).RotateForClient(ClientId, $"{session.SessionId:N}.guessed", AnyUser, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+    }
+
+    [Fact]
+    public async Task RotateForClient_ShouldRevokeTheSession_WhenASupersededTokenIsPresented()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var rotated = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
+
+        // Act
+        var result = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.ReuseDetected);
+        var stored = await context.UserRefreshTokens.SingleAsync(t => t.Id == session.SessionId, ct);
+        stored.RevokedReason.Should().Be(UserRefreshTokenRevokeReasons.ReuseDetected);
+        (await CreateStore(context, Now).RotateForClient(ClientId, rotated.Token!, AnyUser, ct)).Outcome
+            .Should().Be(RefreshRotationOutcome.NotFound, "the replacement dies with the session");
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldNotMatchAClientsSession()
+    {
+        // Arrange — the web app's refresh, given a client's token for the same user
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now).Rotate(userId, session.Token, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+    }
+
+    [Fact]
+    public async Task ListActive_ShouldIncludeClientSessions()
+    {
+        // Arrange — a connector is revocable only if it is listed
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        await CreateStore(context, Now).Issue(userId, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+
+        // Act
+        var sessions = await CreateStore(context, Now).ListActive(userId, ct);
+
+        // Assert
+        sessions.Should().HaveCount(2);
+        sessions.Single(s => s.Id == session.SessionId).ClientId.Should().Be(ClientId);
+    }
 }

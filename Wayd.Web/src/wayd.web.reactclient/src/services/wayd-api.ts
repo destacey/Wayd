@@ -1170,6 +1170,230 @@ export class AuthClient {
     }
 }
 
+export class OAuthAuthorizationRequestsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a pending OAuth connection request.
+     * @param handle The handle the authorization endpoint passed to the consent page as `request`.
+     * @return OK
+     */
+    get(handle: string, cancelToken?: CancelToken): Promise<OAuthAuthorizationRequestResponse> {
+        let url_ = this.baseUrl + "/api/oauth/authorization-requests/{handle}";
+        if (handle === undefined || handle === null)
+            throw new globalThis.Error("The parameter 'handle' must be defined.");
+        url_ = url_.replace("{handle}", encodeURIComponent("" + handle));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGet(_response);
+        });
+    }
+
+    protected processGet(response: AxiosResponse): Promise<OAuthAuthorizationRequestResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<OAuthAuthorizationRequestResponse>(result200);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<OAuthAuthorizationRequestResponse>(null as any);
+    }
+
+    /**
+     * Approve a pending OAuth connection request.
+     * @param handle The handle the authorization endpoint passed to the consent page as `request`.
+     * @return OK
+     */
+    approve(handle: string, cancelToken?: CancelToken): Promise<OAuthAuthorizationDecisionResponse> {
+        let url_ = this.baseUrl + "/api/oauth/authorization-requests/{handle}/approve";
+        if (handle === undefined || handle === null)
+            throw new globalThis.Error("The parameter 'handle' must be defined.");
+        url_ = url_.replace("{handle}", encodeURIComponent("" + handle));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processApprove(_response);
+        });
+    }
+
+    protected processApprove(response: AxiosResponse): Promise<OAuthAuthorizationDecisionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<OAuthAuthorizationDecisionResponse>(result200);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<OAuthAuthorizationDecisionResponse>(null as any);
+    }
+
+    /**
+     * Deny a pending OAuth connection request.
+     * @param handle The handle the authorization endpoint passed to the consent page as `request`.
+     * @return OK
+     */
+    deny(handle: string, cancelToken?: CancelToken): Promise<OAuthAuthorizationDecisionResponse> {
+        let url_ = this.baseUrl + "/api/oauth/authorization-requests/{handle}/deny";
+        if (handle === undefined || handle === null)
+            throw new globalThis.Error("The parameter 'handle' must be defined.");
+        url_ = url_.replace("{handle}", encodeURIComponent("" + handle));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeny(_response);
+        });
+    }
+
+    protected processDeny(response: AxiosResponse): Promise<OAuthAuthorizationDecisionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<OAuthAuthorizationDecisionResponse>(result200);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<OAuthAuthorizationDecisionResponse>(null as any);
+    }
+}
+
 export class OidcProvidersClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -52584,6 +52808,32 @@ export interface NavigationDtoOfGuidAndString {
     name: string;
 }
 
+/** Where to send the browser after the user approves or denies a connection request. */
+export interface OAuthAuthorizationDecisionResponse {
+    /** The application's redirect URI, carrying the authorization code or the refusal, `state` and `iss`. */
+    redirectUrl: string;
+}
+
+/** An application asking to connect to Wayd as the signed-in user, as the consent page shows it. Only `clientId` and the hosts derived from it are facts; the name is the application's own claim about itself. */
+export interface OAuthAuthorizationRequestResponse {
+    /** The URL of the application's metadata document, which identifies it. */
+    clientId: string;
+    /** The host the application's metadata document is served from: the one fact about who is asking. Show it prominently. */
+    clientHost: string;
+    /** The application's name for itself, with control and bidirectional-override characters removed and its length capped. */
+    clientName: string;
+    /** Where the browser goes once the user approves or denies. */
+    redirectUri: string;
+    /** The redirect URI's host, or null when it opens an installed app by its own URL scheme. */
+    redirectHost?: string | undefined;
+    /** Whether the redirect URI's host is not the client's host; the consent page warns when it is not. */
+    redirectHostDiffers: boolean;
+    /** Whether the redirect URI is on this computer's loopback interface, as a desktop app's is. */
+    redirectIsLoopback: boolean;
+    /** When the request stops waiting for a decision. */
+    expiresAt: Date;
+}
+
 export interface ObjectIdAndKey {
     id: string;
     key: number;
@@ -57613,13 +57863,22 @@ export interface UserRoleDto {
 
 /** One live sign-in shown on the account's Sessions tab. Carries no token or hash — everything here is display detail plus the id needed to revoke the row. */
 export interface UserSessionResponse {
+    /** The session's id, which revokes it. */
     id: string;
+    /** The browser and platform it was opened from, or for an application connected with OAuth, the application's name for itself. */
     deviceLabel?: string | undefined;
+    /** The address it was opened from. */
     ipAddress?: string | undefined;
+    /** When it was opened. */
     createdAt: Date;
+    /** When it was last refreshed. */
     lastUsedAt: Date;
+    /** When it ends unless refreshed. */
     expiresAt: Date;
+    /** Whether it is the caller's own session. */
     isCurrent: boolean;
+    /** The URL identifying the application connected with OAuth, or null for a sign-in to Wayd itself. */
+    clientId?: string | undefined;
 }
 
 export interface UserThemeConfigDto {

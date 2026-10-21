@@ -16,4 +16,10 @@ public static class AuthConstants
 
     /// <summary>The authentication scheme for a personal access token sent in the <see cref="ApiKeyHeaderName"/> header.</summary>
     public const string PersonalAccessTokenScheme = "PersonalAccessToken";
+
+    /// <summary>
+    /// The authentication scheme for an access token from Wayd's OAuth authorization server, accepted only where a
+    /// policy names it: the hosted MCP endpoint.
+    /// </summary>
+    public const string OAuthAccessTokenScheme = "OAuthAccessToken";
 }

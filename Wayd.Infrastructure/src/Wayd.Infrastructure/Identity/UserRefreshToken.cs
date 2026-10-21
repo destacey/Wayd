@@ -51,6 +51,13 @@ public class UserRefreshToken
     /// </summary>
     public string? IpAddress { get; set; }
 
+    /// <summary>
+    /// The OAuth client this session was opened for, by its <c>client_id</c>, or null for a sign-in to the web
+    /// app. A client's session is refreshed only through the token endpoint and only by that client, and the web
+    /// app's refresh never matches it.
+    /// </summary>
+    public string? ClientId { get; set; }
+
     public Instant CreatedAt { get; set; }
 
     public Instant LastUsedAt { get; set; }
@@ -71,4 +78,7 @@ public static class UserRefreshTokenRevokeReasons
 {
     public const string SignedOut = "SignedOut";
     public const string ReuseDetected = "ReuseDetected";
+
+    /// <summary>The authorization code that opened the session was presented again, so either holder may be a thief.</summary>
+    public const string AuthorizationCodeReused = "AuthorizationCodeReused";
 }

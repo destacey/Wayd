@@ -6,10 +6,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.MsSql;
 using Wayd.Infrastructure;
+using Wayd.Infrastructure.Auth.OAuth;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Tests.Containers;
 using Wayd.Web.Api.Services;
@@ -59,6 +61,9 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     /// <summary>Fails a chosen save; inert unless a test arms it.</summary>
     public SaveFaultInjector SaveFaults { get; } = new();
+
+    /// <summary>The OAuth clients the authorization server can resolve, in place of fetching their metadata documents.</summary>
+    public FakeOAuthClients OAuthClients { get; } = new();
 
     /// <summary>How long an import submission waits on its run before answering 202.</summary>
     public ImportResponseTiming ImportResponseTiming { get; private set; } = _defaultImportResponseTiming;
@@ -147,7 +152,18 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             // Read per scope rather than captured once, so WaitOnImportsFor reaches the next request.
             services.RemoveAll<ImportResponseTiming>();
             services.AddScoped(_ => ImportResponseTiming);
+
+            services.RemoveAll<IOAuthClientResolver>();
+            services.AddSingleton<IOAuthClientResolver>(OAuthClients);
         });
+
+        // Every test shares one caller address, so the OAuth endpoints' production limits would throttle the suite.
+        // A test of the limits themselves lowers them on a host of its own.
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
+        [
+            new KeyValuePair<string, string?>("RateLimitSettings:OAuthAuthorize:PermitLimit", "100000"),
+            new KeyValuePair<string, string?>("RateLimitSettings:OAuthToken:PermitLimit", "100000"),
+        ]));
     }
 
     /// <summary>

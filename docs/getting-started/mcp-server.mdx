@@ -36,7 +36,21 @@ The MCP server exposes 150+ tools across Wayd's core modules:
 
 The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers a few tools the package lacks: partial updates that change only the fields you name, and single-call evidence reads for health checks. Each of the [agent skills](#agent-skills) is served there as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …), so a client that lists prompts can load a skill's guidance without installing it. The npm package will be retired a few weeks after the hosted endpoint is generally available.
 
-An administrator turns it on with the **MCP Server** feature flag (**Settings > Feature Management > Feature Flags**); while the flag is off, `/mcp` answers 404. Authenticate with your [Personal Access Token](./your-profile.mdx#personal-access-tokens) in the `x-api-key` header. Hosted connectors that only support OAuth (claude.ai, ChatGPT) cannot connect yet.
+An administrator turns it on with the **MCP Server** feature flag (**Settings > Feature Management > Feature Flags**); while the flag is off, `/mcp` answers 404. Authenticate with your [Personal Access Token](./your-profile.mdx#personal-access-tokens) in the `x-api-key` header, or [connect by signing in](#connecting-with-sign-in).
+
+### Connecting with Sign-In
+
+Hosted connectors such as claude.ai and ChatGPT cannot send a personal access token; they connect by sending you to Wayd to sign in and approve them. Give the connector the `/mcp` address, and when it opens Wayd:
+
+1. Sign in, if you are not already. You come back to the request afterwards.
+2. Read the **connection request**. It names the site the application belongs to — that is what identifies it — and the name the application gives itself, which is only its own claim. It also says where you will be sent afterwards, and warns you if that is a different site from the application's.
+3. Choose **Approve** to let the application use Wayd as you, or **Deny** to refuse. Either way you are sent back to the application.
+
+An approved application can do anything your account can, with all of your permissions. It appears as a [connected application](./your-profile.mdx#connected-applications) on the **Sessions** tab of your profile, where you can disconnect it at any time. A request you leave unanswered expires after ten minutes; start again from the application.
+
+:::caution Preview
+Connecting and listing tools work, but tool calls made by an application connected this way do not work yet. Use a personal access token until they do.
+:::
 
 Claude Code (`.mcp.json`):
 

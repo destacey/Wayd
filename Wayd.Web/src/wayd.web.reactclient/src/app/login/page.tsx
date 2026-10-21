@@ -20,6 +20,7 @@ import {
   signinRedirect,
 } from '@/src/components/contexts/auth/oidc-client-registry'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
+import { takeReturnUrl } from '@/src/utils/return-url'
 
 const pulseAnimation = `
 @keyframes pulse {
@@ -411,7 +412,9 @@ function LocalLoginTab() {
       storeAuth(tokenResponse)
       // Full reload so AuthProvider hydrates from the freshly-stored token
       // and the layout transitions from unauthenticated view to app shell.
-      navigateWithFullReload('/')
+      // Loading the requested page as a document, not routing to it from '/',
+      // also gives it its own response headers.
+      navigateWithFullReload(takeReturnUrl() ?? '/')
     } catch (err: any) {
       const message =
         err?.detail ||
@@ -556,7 +559,7 @@ export default function LoginPage() {
           subjectToken: oidcUser.access_token,
         })
         storeAuth(tokenResponse)
-        navigateWithFullReload('/')
+        navigateWithFullReload(takeReturnUrl() ?? '/')
       } catch (error) {
         console.error('[Login] OIDC sign-in failed:', error)
         clearChosenProvider()

@@ -1,4 +1,4 @@
-import { getDrawerWidthPixels } from './window-utils'
+import { getDrawerWidthPixels, isFramed } from './window-utils'
 
 describe('getDrawerWidthPixels', () => {
   beforeEach(() => {
@@ -33,5 +33,15 @@ describe('getDrawerWidthPixels', () => {
   it('should return 80% in pixels for window width < 900', () => {
     window.innerWidth = 800
     expect(getDrawerWidthPixels()).toBe(640) // 800 * 0.8
+  })
+})
+
+describe('isFramed', () => {
+  it('is false for a page loaded as the top-level document', () => {
+    // Act
+    const result = isFramed()
+
+    // Assert
+    expect(result).toBe(false)
   })
 })

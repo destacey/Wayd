@@ -1,0 +1,204 @@
+/* The canvas has no intrinsic height; the component gives it one sized to the diagram. */
+.surface {
+  position: relative;
+  width: 100%;
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-bg-container);
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Fills the browser viewport rather than the monitor, as the dependency map's fullscreen does. */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  height: 100vh;
+  border-radius: 0;
+  padding: var(--ant-padding-xs);
+}
+
+/* A backdrop naming the category, behind its statuses: grouping, not something to click. */
+.column {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 8px 12px;
+  border: 1px dashed var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-fill-quaternary);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.status {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 160px;
+  height: 64px;
+  padding: 6px 12px;
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-bg-elevated);
+  color: var(--ant-color-text);
+  font-size: var(--ant-font-size-sm);
+  line-height: 1.3;
+  text-align: center;
+}
+
+/* Category colours, matching the status tag's presets: neutral, processing, success, warning. */
+.proposed {
+  border-color: var(--ant-color-border);
+  background: var(--ant-color-fill-quaternary);
+}
+
+.active {
+  border-color: var(--ant-color-info-border);
+  background: var(--ant-color-info-bg);
+}
+
+.done {
+  border-color: var(--ant-color-success-border);
+  background: var(--ant-color-success-bg);
+}
+
+.removed {
+  border-color: var(--ant-color-warning-border);
+  background: var(--ant-color-warning-bg);
+}
+
+.name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alias {
+  overflow: hidden;
+  color: var(--ant-color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pinned to the node's corner so the name keeps the centre. */
+.badges {
+  position: absolute;
+  top: -10px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.badge {
+  padding: 0 6px;
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius-sm);
+  background: var(--ant-color-bg-elevated);
+  color: var(--ant-color-text-secondary);
+  font-size: calc(var(--ant-font-size-sm) - 1px);
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.currentBadge {
+  border-color: var(--ant-color-primary);
+  background: var(--ant-color-primary);
+  color: var(--ant-color-text-light-solid);
+}
+
+/* The record's own status: ringed in the primary colour, so it reads before anything else. */
+.current {
+  box-shadow: 0 0 0 2px var(--ant-color-primary);
+}
+
+.visited {
+  border-width: 2px;
+  border-color: var(--ant-color-primary-border);
+}
+
+/* Off the record's path: still there to read, but behind the path. */
+.offPath {
+  opacity: 0.55;
+}
+
+/* The dots are decoration; hiding them keeps a read-only diagram from inviting a drag. */
+.handle {
+  opacity: 0;
+}
+
+.edgeLabel {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-sm);
+  background: var(--ant-color-bg-container);
+  color: var(--ant-color-text-secondary);
+  font-size: calc(var(--ant-font-size-sm) - 1px);
+  line-height: 20px;
+  white-space: nowrap;
+  pointer-events: all;
+  cursor: default;
+}
+
+.edgeLabelTaken {
+  border-color: var(--ant-color-primary);
+  color: var(--ant-color-primary);
+}
+
+.edgeLabelOmitted {
+  border-style: dashed;
+  color: var(--ant-color-text-quaternary);
+  text-decoration: line-through;
+}
+
+.edgeLabel:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 1px;
+}
+
+/* A move with nothing written on it still offers its details on hover or focus. */
+.edgeDot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* Read by a screen reader, not shown. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.conditionIcon {
+  color: var(--ant-color-primary);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: var(--ant-margin-xs);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}

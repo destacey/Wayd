@@ -9,3 +9,14 @@ export {
   transitionConditionLabels,
   requiresReason,
 } from './transition-conditions'
+// The diagram's canvas is not exported here: it pulls in React Flow and its stylesheet, so callers load
+// it on demand from './wayd-workflow-diagram' rather than through this barrel.
+export type { WaydWorkflowDiagramProps } from './wayd-workflow-diagram'
+export {
+  buildRecordPath,
+  buildWorkflowDiagram,
+} from './workflow-diagram-layout'
+export type {
+  WorkflowDiagram,
+  WorkflowRecordPath,
+} from './workflow-diagram-layout'

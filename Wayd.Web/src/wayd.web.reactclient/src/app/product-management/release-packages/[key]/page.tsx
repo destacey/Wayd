@@ -3,10 +3,7 @@
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import type { RecordSection } from '@/src/components/common/record'
-import {
-  StatusHistoryTag,
-  StatusHistoryTimeline,
-} from '@/src/components/common/status-workflows'
+import { StatusHistoryTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -38,6 +35,7 @@ import DeleteReleasePackageForm from '../_components/delete-release-package-form
 import WithdrawReleasePackageForm from '../_components/withdraw-release-package-form'
 import ReleasePackageFacts from './_components/release-package-facts'
 import ReleasePackageManifest from './_components/release-package-manifest'
+import ReleasePackageStatusHistory from './_components/release-package-status-history'
 import ReleasePackageDetailsLoading from './loading'
 
 enum ReleasePackageSections {
@@ -253,10 +251,10 @@ const ReleasePackageDetailsPage = (props: {
 
     if (section === ReleasePackageSections.StatusHistory) {
       return (
-        <StatusHistoryTimeline
+        <ReleasePackageStatusHistory
+          idOrKey={key}
           transitions={statusHistory}
           isLoading={statusHistoryLoading}
-          emptyDescription="No status changes have been recorded for this package."
         />
       )
     }

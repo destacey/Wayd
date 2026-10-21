@@ -3,10 +3,7 @@
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import type { RecordSection } from '@/src/components/common/record'
-import {
-  StatusHistoryTag,
-  StatusHistoryTimeline,
-} from '@/src/components/common/status-workflows'
+import { StatusHistoryTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -43,6 +40,7 @@ import DeleteVersionForm from '../_components/delete-version-form'
 import WithdrawVersionForm from '../_components/withdraw-version-form'
 import VersionFacts from './_components/version-facts'
 import VersionOverview from './_components/version-overview'
+import VersionStatusHistory from './_components/version-status-history'
 import VersionDetailsLoading from './loading'
 
 enum VersionSections {
@@ -294,10 +292,10 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
     if (section === VersionSections.StatusHistory) {
       return (
-        <StatusHistoryTimeline
+        <VersionStatusHistory
+          idOrKey={key}
           transitions={statusHistory}
           isLoading={statusHistoryLoading}
-          emptyDescription="No status changes have been recorded for this version."
         />
       )
     }

@@ -381,11 +381,13 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
         }
       },
       // Every record of the owner type just changed status, so caches holding
-      // those records are stale too.
+      // those records are stale too — their histories, which gained the switch,
+      // and the workflows they are drawn on, which carry the history tag.
       invalidatesTags: () => [
         { type: QueryTags.WorkflowAssignment, id: 'LIST' },
         { type: QueryTags.StatusWorkflow, id: 'LIST' },
         { type: QueryTags.Product },
+        { type: QueryTags.StatusHistory },
       ],
     }),
 

@@ -3,10 +3,7 @@
 import { PageActions, WaydEmpty } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import type { RecordSection } from '@/src/components/common/record'
-import {
-  StatusHistoryTag,
-  StatusHistoryTimeline,
-} from '@/src/components/common/status-workflows'
+import { StatusHistoryTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -34,6 +31,7 @@ import DeleteDeploymentForm from '../_components/delete-deployment-form'
 import { deploymentActionAvailability } from '../_components/deployment-actions'
 import RollBackDeploymentForm from '../_components/roll-back-deployment-form'
 import DeploymentFacts from './_components/deployment-facts'
+import DeploymentStatusHistory from './_components/deployment-status-history'
 import DeploymentDetailsLoading from './loading'
 
 const { Paragraph } = Typography
@@ -196,10 +194,10 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
     if (section === DeploymentSections.StatusHistory) {
       return (
-        <StatusHistoryTimeline
+        <DeploymentStatusHistory
+          idOrKey={key}
           transitions={statusHistory}
           isLoading={statusHistoryLoading}
-          emptyDescription="No status changes have been recorded for this deployment."
         />
       )
     }

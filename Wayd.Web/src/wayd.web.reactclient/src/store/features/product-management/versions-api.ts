@@ -11,6 +11,7 @@ import {
   PlanVersionRequest,
   VersionDto,
   StatusTransitionDto,
+  StatusWorkflowDetailsDto,
   UpdateVersionRequest,
   WithdrawVersionRequest,
   PagedResponseOfActivityLogDto,
@@ -105,6 +106,25 @@ export const versionsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+      ],
+    }),
+    /**
+     * The workflow the version moves through, to draw its history on. Tagged with the history too: a
+     * reassignment records a transition, which is what moves the version onto another workflow.
+     */
+    getVersionStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
+      queryFn: async (idOrKey) => {
+        try {
+          const data = await getVersionsClient().getStatusWorkflow(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        ...(result ? [{ type: QueryTags.StatusWorkflow, id: result.id }] : []),
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
@@ -318,6 +338,7 @@ export const {
   useGetVersionsQuery,
   useGetVersionQuery,
   useGetVersionStatusHistoryQuery,
+  useGetVersionStatusWorkflowQuery,
   useGetVersionWorkflowActionsQuery,
   usePlanVersionMutation,
   useUpdateVersionMutation,

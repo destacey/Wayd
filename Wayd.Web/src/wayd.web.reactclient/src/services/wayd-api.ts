@@ -10659,6 +10659,68 @@ export class ReleasePackagesClient {
     }
 
     /**
+     * Get the lifecycle actions a package's workflow allows from the status it holds.
+     * @return OK
+     */
+    getWorkflowActions(idOrKey: string, cancelToken?: CancelToken): Promise<DeliveryWorkflowActionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/{idOrKey}/workflow-actions";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowActions(_response);
+        });
+    }
+
+    protected processGetWorkflowActions(response: AxiosResponse): Promise<DeliveryWorkflowActionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeliveryWorkflowActionDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeliveryWorkflowActionDto[]>(null as any);
+    }
+
+    /**
      * Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
      * @param validateOnly (optional) 
@@ -11487,6 +11549,68 @@ export class ReleasesClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Get the lifecycle actions a release's workflow allows from the status it holds.
+     * @return OK
+     */
+    getWorkflowActions(idOrKey: string, cancelToken?: CancelToken): Promise<DeliveryWorkflowActionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{idOrKey}/workflow-actions";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowActions(_response);
+        });
+    }
+
+    protected processGetWorkflowActions(response: AxiosResponse): Promise<DeliveryWorkflowActionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeliveryWorkflowActionDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeliveryWorkflowActionDto[]>(null as any);
     }
 
     /**
@@ -12506,6 +12630,68 @@ export class VersionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Get the lifecycle actions a version's workflow allows from the status it holds.
+     * @return OK
+     */
+    getWorkflowActions(idOrKey: string, cancelToken?: CancelToken): Promise<DeliveryWorkflowActionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{idOrKey}/workflow-actions";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowActions(_response);
+        });
+    }
+
+    protected processGetWorkflowActions(response: AxiosResponse): Promise<DeliveryWorkflowActionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeliveryWorkflowActionDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeliveryWorkflowActionDto[]>(null as any);
     }
 
     /**
@@ -50883,6 +51069,14 @@ export interface DeleteOidcProviderResult {
     activeIdentityCount: number;
 }
 
+/** A lifecycle action on a version, release or release package that moves its status. */
+export enum DeliveryAction {
+    Cut = "Cut",
+    MarkReleased = "MarkReleased",
+    RevertRelease = "RevertRelease",
+    Withdraw = "Withdraw",
+}
+
 /** The delivery measures over one window. */
 export interface DeliveryMetricsDto {
     /** The start of the window these measures cover, inclusive. */
@@ -50916,6 +51110,12 @@ export interface DeliveryScopeDto {
     product?: NavigationDto | undefined;
     /** How many nodes in scope can have versions cut against them. */
     releasableNodeCount: number;
+}
+
+/** A lifecycle action whose move a record's workflow allows from the status the record holds. */
+export interface DeliveryWorkflowActionDto {
+    /** The action. */
+    action: DeliveryAction;
 }
 
 export interface DependencyDto {
@@ -55525,9 +55725,13 @@ export interface StatusWorkflowDetailsDto {
     /** The moves this workflow allows, ordered by their from and then their to status's position.
 Enforced only when TransitionMode StatusWorkflowDetailsDto.TransitionMode is restricted. */
     transitions: WorkflowTransitionDto[];
-    /** The conditions a transition may carry: those a record checks itself, and those something is in
-place to evaluate. Attaching any other is refused. */
+    /** The conditions a transition other than a declared move may carry: those a record checks
+itself, and those something is in place to evaluate. None when the owner type declares its moves,
+since no method makes such a transition. Attaching any other is refused. */
     availableConditions: TransitionConditionKind[];
+    /** The moves this owner type's actions make, located in this workflow, in the order of their
+statuses. Empty when the owner type moves to any status it is given. */
+    declaredMoves: WorkflowMoveDto[];
     /** Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
 an owner type that cannot is refused at publish. */
     supportsRestrictedTransitions: boolean;
@@ -57921,6 +58125,23 @@ export interface WorkflowDto {
     ownership: SimpleNavigationDto;
     isActive: boolean;
     schemes: WorkflowSchemeDto[];
+}
+
+/** A move one of the owner type's actions makes — cut, release, withdraw — located in a workflow. */
+export interface WorkflowMoveDto {
+    /** The status the move starts from. */
+    fromStatusId: string;
+    /** The status the move ends in. */
+    toStatusId: string;
+    /** The actions that make the move, as the owner type names them. Usually one; more where the
+workflow's initial status carries an alias another action starts from. */
+    actions: string[];
+    /** Whether a restricted workflow must allow the move. An optional one may be left out, and the
+action that makes it is then refused. */
+    isRequired: boolean;
+    /** The conditions a transition along this move may carry: those the action can satisfy and something
+can check. Often none. */
+    acceptedConditions: TransitionConditionKind[];
 }
 
 /** An owner type, as referenced from a workflow or an assignment. */

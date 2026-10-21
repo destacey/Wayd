@@ -15,6 +15,7 @@ import {
   useGetReleasePackageActivitiesQuery,
   useGetReleasePackageQuery,
   useGetReleasePackageStatusHistoryQuery,
+  useGetReleasePackageWorkflowActionsQuery,
   useLazyGetReleasePackageActivitiesQuery,
 } from '@/src/store/features/product-management/release-packages-api'
 import {
@@ -83,6 +84,15 @@ const ReleasePackageDetailsPage = (props: {
   const { data: statusHistory, isLoading: statusHistoryLoading } =
     useGetReleasePackageStatusHistoryQuery(key)
 
+  // Only someone who can act needs to know what the workflow allows. Until it
+  // answers, the lifecycle actions are held back; if it fails, they are offered
+  // and the server has the last word.
+  const { data: workflowActions, isError: workflowActionsFailed } =
+    useGetReleasePackageWorkflowActionsQuery(key, { skip: !canUpdatePackage })
+  const allowedActions = workflowActionsFailed
+    ? undefined
+    : (workflowActions?.map((a) => a.action) ?? [])
+
   // Skipped without the claim: the section is not offered, so the request would only ever 403.
   const { data: deployments, isLoading: deploymentsLoading } =
     useGetDeploymentsQuery(
@@ -147,7 +157,10 @@ const ReleasePackageDetailsPage = (props: {
     return <ReleasePackageDetailsLoading />
   }
 
-  const available = releasePackageActionAvailability(releasePackage)
+  const available = releasePackageActionAvailability(
+    releasePackage,
+    allowedActions,
+  )
 
   const canEditManifest = canUpdatePackage && available.canEditManifest
   const canRelease = canUpdatePackage && available.canRelease

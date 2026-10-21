@@ -65,6 +65,7 @@ const workflow = (
     { id: 't1', fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
   ],
   availableConditions: [TransitionConditionKind.RequiresReason],
+  declaredMoves: [],
   supportsRestrictedTransitions: true,
   transitionIssues: [],
   missingRequiredAliases: [],
@@ -459,7 +460,7 @@ describe('WorkflowTransitionsEditor', () => {
     render(
       <WorkflowTransitionsEditor
         statusWorkflow={workflow({
-          owner: { key: 'delivery.deployment', name: 'Deployment' },
+          owner: { key: 'test.gadget', name: 'Gadget' },
           transitionMode: TransitionMode.AnyToAny,
           supportsRestrictedTransitions: false,
         })}
@@ -469,7 +470,176 @@ describe('WorkflowTransitionsEditor', () => {
 
     // Assert
     expect(
-      screen.getByText('Deployment workflows always allow any move.'),
+      screen.getByText('Gadget workflows always allow any move.'),
     ).toBeInTheDocument()
+  })
+
+  describe('for an owner type that declares its moves', () => {
+    // Concept → Active is required; Active → Retired is optional and accepts
+    // a reason; Concept → Retired is required but missing from the saved set.
+    const declaring = (overrides: Partial<StatusWorkflowDetailsDto> = {}) =>
+      workflow({
+        owner: { key: 'delivery.version', name: 'Version' },
+        availableConditions: [],
+        declaredMoves: [
+          {
+            fromStatusId: CONCEPT,
+            toStatusId: ACTIVE,
+            actions: ['Cut'],
+            isRequired: true,
+            acceptedConditions: [],
+          },
+          {
+            fromStatusId: CONCEPT,
+            toStatusId: RETIRED,
+            actions: ['Mark Released'],
+            isRequired: true,
+            acceptedConditions: [],
+          },
+          {
+            fromStatusId: ACTIVE,
+            toStatusId: RETIRED,
+            actions: ['Withdraw'],
+            isRequired: false,
+            acceptedConditions: [TransitionConditionKind.RequiresReason],
+          },
+        ],
+        ...overrides,
+      })
+
+    it('locks a required move the workflow allows, naming the action that makes it', () => {
+      // Arrange & Act
+      render(
+        <WorkflowTransitionsEditor statusWorkflow={declaring()} canUpdate />,
+      )
+
+      // Assert
+      expect(screen.getByLabelText('Concept to Active')).toBeDisabled()
+      expect(
+        screen.getByLabelText('Concept to Active is required'),
+      ).toBeInTheDocument()
+      expect(screen.getByLabelText('Active to Retired')).toBeEnabled()
+      expect(
+        screen.queryByLabelText('Active to Retired is required'),
+      ).toBeNull()
+    })
+
+    it('keeps every required move in each set it saves', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(
+        <WorkflowTransitionsEditor statusWorkflow={declaring()} canUpdate />,
+      )
+
+      // Act
+      await user.click(screen.getByLabelText('Active to Retired'))
+
+      // Assert
+      expect(setTransitions).toHaveBeenCalledWith({
+        workflowId: '44444444-0000-4000-a000-000000000004',
+        request: {
+          transitions: [
+            { fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
+            { fromStatusId: ACTIVE, toStatusId: RETIRED, conditions: [] },
+            { fromStatusId: CONCEPT, toStatusId: RETIRED, conditions: [] },
+          ],
+        },
+      })
+    })
+
+    it('adds the required moves it lacks when the workflow is restricted', async () => {
+      // Arrange
+      const anyToAny = declaring({
+        transitionMode: TransitionMode.AnyToAny,
+        transitions: [],
+      })
+      render(<WorkflowTransitionsEditor statusWorkflow={anyToAny} canUpdate />)
+
+      // Act
+      await act(async () => {
+        fireEvent.click(screen.getByText('Only allowed moves'))
+      })
+
+      // Assert
+      expect(setTransitionMode).toHaveBeenCalledWith({
+        workflowId: '44444444-0000-4000-a000-000000000004',
+        request: { mode: TransitionMode.Restricted },
+      })
+      expect(setTransitions).toHaveBeenCalledWith({
+        workflowId: '44444444-0000-4000-a000-000000000004',
+        request: {
+          transitions: [
+            { fromStatusId: CONCEPT, toStatusId: ACTIVE, conditions: [] },
+            { fromStatusId: CONCEPT, toStatusId: RETIRED, conditions: [] },
+          ],
+        },
+      })
+    })
+
+    it('adds nothing when restricting a workflow that already has every required move', async () => {
+      // Arrange
+      const complete = declaring({
+        transitionMode: TransitionMode.AnyToAny,
+        transitions: [
+          {
+            id: 't1',
+            fromStatusId: CONCEPT,
+            toStatusId: ACTIVE,
+            conditions: [],
+          },
+          {
+            id: 't2',
+            fromStatusId: CONCEPT,
+            toStatusId: RETIRED,
+            conditions: [],
+          },
+        ],
+      })
+      render(<WorkflowTransitionsEditor statusWorkflow={complete} canUpdate />)
+
+      // Act
+      await act(async () => {
+        fireEvent.click(screen.getByText('Only allowed moves'))
+      })
+
+      // Assert
+      expect(setTransitionMode).toHaveBeenCalled()
+      expect(setTransitions).not.toHaveBeenCalled()
+    })
+
+    it('offers conditions only on a move whose action accepts one', () => {
+      // Arrange
+      const withWithdraw = declaring({
+        transitions: [
+          {
+            id: 't1',
+            fromStatusId: CONCEPT,
+            toStatusId: ACTIVE,
+            conditions: [],
+          },
+          {
+            id: 't2',
+            fromStatusId: ACTIVE,
+            toStatusId: RETIRED,
+            conditions: [],
+          },
+        ],
+      })
+
+      // Act
+      render(
+        <WorkflowTransitionsEditor statusWorkflow={withWithdraw} canUpdate />,
+      )
+
+      // Assert
+      expect(
+        screen.queryByRole('button', {
+          name: 'Conditions on Concept to Active',
+        }),
+      ).toBeNull()
+      expect(
+        screen.getByRole('button', { name: 'Conditions on Active to Retired' }),
+      ).toBeInTheDocument()
+    })
   })
 })

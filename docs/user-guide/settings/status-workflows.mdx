@@ -73,7 +73,7 @@ The **Transitions** section of a workflow's detail page holds the switch and a g
 - **Cloning copies the transitions** onto the copy's statuses.
 - **Switching back to Any move keeps the ticks**, so switching again restores them, with their conditions.
 
-A record governed by a restricted workflow can only make an allowed move. Anything else is refused with both statuses named — "The workflow does not allow a move from 'Concept' to 'Retired'." The status picker on a product offers only the moves allowed from its current status.
+A record governed by a restricted workflow can only make an allowed move. Anything else is refused with both statuses named — "The workflow does not allow a move from 'Concept' to 'Retired'." The status picker on a product offers only the moves allowed from its current status, and a version, release or release package page does not offer an action whose move its workflow does not allow.
 
 Two things are never checked against the transitions:
 
@@ -92,20 +92,51 @@ A condition belongs to one move, not to the status it leads to: Sunset → Retir
 
 Conditions follow the same exemptions as transitions: a new record's first status and a reassignment are never checked against them.
 
-Only the conditions Wayd can check are offered. Requiring a passed approval is planned and will appear once approvals exist.
+Only the conditions Wayd can check are offered. Requiring a passed approval is planned and will appear once approvals exist. Moves in a version, release, release package or deployment workflow carry no conditions: the actions that make them have no way to supply one.
 
 #### Publishing a restricted workflow
 
-Wayd refuses to publish a restricted workflow that would strand a record, and names the status at fault:
+Wayd refuses to publish a restricted product workflow that would strand a record, and names the status at fault:
 
 - **Every status must be reachable** from the initial status — the first Proposed status, or the first status when none is Proposed — through allowed moves.
 - **Every Proposed or Active status needs a way out.** Done and Removed statuses may be final.
 
-The Transitions section and the publish dialog list each problem.
+A restricted delivery workflow is checked differently; see the next section. The Transitions section and the publish dialog list each problem.
 
-#### Which record types can be restricted
+#### Restricting delivery workflows
 
-Only **Product** workflows can be restricted today. Versions, releases, release packages and deployments move through named actions — cut, release, fail, roll back — whose rules, and the delivery figures built on them, a custom set of moves could contradict. Their workflows always allow any move; Wayd refuses to publish one set to **Only allowed moves**.
+Versions, releases, release packages and deployments do not move to a status you pick. They move through their actions — **Cut**, **Mark Released**, **Revert**, **Withdraw**, **Record Success**, **Record Failure**, **Roll Back** — each of which goes to the status carrying a particular alias. Restricting one of these workflows decides which of those actions it allows.
+
+Some moves are **required**: the actions, imports and delivery figures depend on them, so a restricted workflow must allow them. The rest are **optional**: leave one out and the action that makes it is refused, with both statuses named, and is no longer offered on the record's page. In the Transitions grid a required move is ticked and marked with a lock, and cannot be cleared. Choosing **Only allowed moves** adds any that are missing, and so does every later change in the grid. A required move that appears after that — because an alias was moved to another status — shows unticked until the next change adds it or you tick it, and publish names it meanwhile.
+
+| Record | Action | Move | |
+| --- | --- | --- | --- |
+| Version | Cut | initial → Ready | Required |
+| Version | Mark Released | initial → Released, Ready → Released | Required |
+| Version | Revert Version | Released → Ready (Released → initial for a version never cut) | Optional |
+| Version | Withdraw | initial → Withdrawn, Ready → Withdrawn | Required |
+| Version | Withdraw | Released → Withdrawn | Optional |
+| Release | Mark Released | initial → Released, Ready → Released | Required |
+| Release | Revert Release | Released → Ready | Optional |
+| Release | Withdraw | initial → Withdrawn, Ready → Withdrawn | Required |
+| Release | Withdraw | Released → Withdrawn | Optional |
+| Release Package | Mark Released | initial → Released | Required |
+| Release Package | Withdraw | initial → Withdrawn | Required |
+| Release Package | Mark Released, Withdraw | Ready → Released, Ready → Withdrawn | Optional; one is needed while the workflow keeps Ready |
+| Release Package | Withdraw | Released → Withdrawn | Optional |
+| Deployment | Record Success | In Progress → Succeeded | Required |
+| Deployment | Record Failure | In Progress → Failed | Required |
+| Deployment | Roll Back | Succeeded → Rolled Back | Required |
+
+*Initial* is the workflow's initial status — Planned in the default workflows. Releasing a version that was never cut is required because a production deployment releases the version it shipped, and an import records versions that shipped without being cut. Every deployment move is required so that every outcome can be recorded whatever the workflow: change failure rate counts failures and rollbacks, and would be meaningless if a company could forbid recording them.
+
+A draft can be in any state while you build it. Wayd refuses to publish a restricted delivery workflow, and the Transitions section and the publish dialog name the problem, when:
+
+- **It leaves out a required move.** "A restricted Version workflow must allow 'Ready' to 'Released', which Mark Released makes."
+- **It has a status of its own.** Every status must be the initial status or carry one of the record type's aliases. The actions only ever move a record into an aliased status, but [changing which workflow is used](#changing-which-workflow-is-used) can map records into any status, and no action could move them out of one of its own. For instance, adding a Proposed status "Idea" ahead of Planned makes Idea the initial status, and Planned is then neither: "'Planned' is neither the initial status nor an aliased one, so no Version action can move a record out of it." Remove the status, give it an alias, or allow any move. A workflow that allows any move may keep statuses of its own.
+- **An unfinished status has no way out.** A Proposed or Active status needs at least one allowed move that an action makes; a move no action makes doesn't count. The message names the moves to allow — a release package workflow that keeps Ready must allow Ready → Released or Ready → Withdrawn. Where no action leaves the status at all, as with a deployment workflow given its own initial status (a deployment always starts in In Progress), remove the status or allow any move instead.
+
+It does not check whether every status can be reached, because a delivery record never enters a status by following a move.
 
 ## The lifecycle of a workflow
 
@@ -199,7 +230,7 @@ Aliases already held by another status are not offered.
 
 The publish dialog names the required aliases the workflow is missing. Edit the status that should carry one and set its **Alias** — there is no need to delete and recreate it.
 
-For a restricted workflow it also names each status no move reaches and each Proposed or Active status with no move out. Tick the missing moves in the **Transitions** section, or switch the workflow back to **Any move**.
+For a restricted product workflow it also names each status no move reaches and each Proposed or Active status with no move out; for a restricted delivery workflow, each required move it does not allow, each status that is neither the initial one nor aliased, and each Proposed or Active status no action can leave. Each message says what to do: tick the moves it names in the **Transitions** section, remove or re-alias the status it names, or switch the workflow back to **Any move**.
 
 ### Restricting the moves a product can make
 
@@ -208,6 +239,17 @@ For a restricted workflow it also names each status no move reaches and each Pro
 3. Tick each move a product may make
 4. Optionally, use a move's conditions button to require a reason for it — for instance on the move into Retired
 5. **Publish**, then **Reassign** the Product record type to the workflow
+
+### Forbidding a delivery action
+
+To say, for instance, that a released version is never withdrawn:
+
+1. Clone the version workflow in use
+2. Open the **Transitions** section and choose **Only allowed moves**. The required moves are ticked and locked.
+3. Tick the optional moves the company allows — here, every one except Released → Withdrawn
+4. **Publish**, then **Reassign** the Version record type to the workflow
+
+A released version then offers no **Withdraw** action, and an attempt through the API or an agent is refused.
 
 ### Retiring a workflow
 

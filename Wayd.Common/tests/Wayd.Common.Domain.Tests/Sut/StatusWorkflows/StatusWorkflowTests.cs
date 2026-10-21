@@ -22,10 +22,31 @@ public sealed class StatusWorkflowTests
         [NotableAlias, TerminalAlias],
         supportsRestrictedTransitions: true);
 
-    // An owner type whose records cannot be held to a restricted transition set, as delivery records are.
+    // An owner type whose records cannot be held to a restricted transition set.
     private static readonly WorkflowOwnerDescriptor Locked = new("test.locked", "Locked", new Dictionary<int, string>(), []);
 
-    public StatusWorkflowTests() => WorkflowOwners.Register(Widget);
+    private const int ReadyAlias = 21;
+    private const int ShippedAlias = 22;
+    private const int PulledAlias = 23;
+
+    // An owner type that moves only through named methods and declares the moves they make, as delivery
+    // records do. Only pulling a shipped gadget accepts a condition.
+    private static readonly WorkflowOwnerDescriptor Gadget = new(
+        "test.gadget",
+        "Gadget",
+        new Dictionary<int, string> { [ReadyAlias] = "Ready", [ShippedAlias] = "Shipped", [PulledAlias] = "Pulled" },
+        [ReadyAlias, ShippedAlias, PulledAlias],
+        supportsRestrictedTransitions: true,
+        moves:
+        [
+            WorkflowMove.Required("Prepare", fromAlias: null, ReadyAlias),
+            WorkflowMove.Required("Ship", ReadyAlias, ShippedAlias),
+            WorkflowMove.Optional("Dispatch", fromAlias: null, ShippedAlias),
+            WorkflowMove.Required("Pull", ReadyAlias, PulledAlias),
+            WorkflowMove.Optional("Pull", ShippedAlias, PulledAlias, TransitionConditionKind.RequiresReason),
+        ]);
+
+    public StatusWorkflowTests() => WorkflowOwners.Register(Widget, Gadget);
 
     private static StatusWorkflow WidgetWorkflow()
     {
@@ -1653,4 +1674,246 @@ public sealed class StatusWorkflowTests
     }
 
     #endregion Transitions
+
+    #region Declared moves
+
+    // A restricted gadget workflow allowing exactly the required moves: Planned → Ready, Ready → Shipped
+    // and Ready → Pulled. Leaves out the optional Planned → Shipped and Shipped → Pulled.
+    private static StatusWorkflow RestrictedGadgetWorkflow()
+    {
+        var workflow = StatusWorkflow.Create("Gadget Workflow", null, Gadget.Key, EventActor.System, At).Value;
+        workflow.AddStatus("Planned", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.AddStatus("Ready", null, StatusCategory.Active, ReadyAlias, EventActor.System, At);
+        workflow.AddStatus("Shipped", null, StatusCategory.Done, ShippedAlias, EventActor.System, At);
+        workflow.AddStatus("Pulled", null, StatusCategory.Removed, PulledAlias, EventActor.System, At);
+        workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
+        workflow.SetTransitions(
+            [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled")],
+            EventActor.System, At).IsSuccess.Should().BeTrue();
+
+        return workflow;
+    }
+
+    [Fact]
+    public void Publish_ShouldSucceed_ForADeclaringOwnerType_WithEveryRequiredMoveAndNoOptionalOne()
+    {
+        // Arrange
+        var workflow = RestrictedGadgetWorkflow();
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        workflow.AllowedFrom(StatusId(workflow, "Pulled")).Should().BeEquivalentTo(
+            [StatusId(workflow, "Ready")], "a shipped gadget cannot be pulled under this workflow");
+    }
+
+    [Fact]
+    public void Publish_ShouldFail_NamingTheRequiredMoveTheWorkflowDoesNotAllow()
+    {
+        // Arrange
+        var workflow = RestrictedGadgetWorkflow();
+        workflow.SetTransitions([Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Pulled")], EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A restricted Gadget workflow must allow 'Ready' to 'Shipped', which Ship makes.");
+        workflow.State.Should().Be(StatusWorkflowState.Draft);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Publish_ShouldRefuse_AStatusNeitherInitialNorAliased_ForADeclaringOwnerType(bool withTransitions)
+    {
+        // Arrange
+        // A reassignment can map gadgets into Parked, and no action resolves it to move them out — even
+        // along transitions the grid allows, which no action makes.
+        var workflow = RestrictedGadgetWorkflow();
+        workflow.AddStatus("Parked", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, At);
+        if (withTransitions)
+        {
+            workflow.SetTransitions(
+                [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled"),
+                    Move(workflow, "Planned", "Parked"), Move(workflow, "Parked", "Ready")],
+                EventActor.System, At).IsSuccess.Should().BeTrue();
+        }
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(
+            "'Parked' is neither the initial status nor an aliased one, so no Gadget action can move a record out of it. Remove it, give it an alias, or allow any move.");
+        workflow.State.Should().Be(StatusWorkflowState.Draft);
+    }
+
+    [Fact]
+    public void Publish_ShouldRefuse_AStatusWithAnAliasTheOwnerTypeDoesNotDeclare()
+    {
+        // Arrange
+        // Reachable only through the API, which takes any alias number. Even a final status is refused:
+        // a record mapped into it could not be withdrawn or pulled.
+        var workflow = RestrictedGadgetWorkflow();
+        workflow.AddStatus("Archived", null, StatusCategory.Done, 99, EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(
+            "'Archived' carries an alias Gadget records do not have, so no Gadget action can move a record out of it. Give it one of theirs, remove it, or allow any move.");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Publish_ShouldRefuse_AnUnfinishedStatusWithNoDeclaredMoveOut(bool undeclaredMoveOut, bool declaredMoveOut)
+    {
+        // Arrange
+        // Shipped made Active: its only declared move out, Pull, is optional. A move no action makes
+        // (Shipped → Ready) does not count as a way out.
+        var workflow = RestrictedGadgetWorkflow();
+        workflow.ReclassifyStatus(StatusId(workflow, "Shipped"), StatusCategory.Active, ShippedAlias, EventActor.System, At);
+        List<WorkflowTransitionDefinition> moves =
+            [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled")];
+        if (undeclaredMoveOut) moves.Add(Move(workflow, "Shipped", "Ready"));
+        if (declaredMoveOut) moves.Add(Move(workflow, "Shipped", "Pulled"));
+        workflow.SetTransitions(moves, EventActor.System, At).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        if (declaredMoveOut)
+        {
+            result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        }
+        else
+        {
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(
+                "'Shipped' has no move out of it that a Gadget action makes, so a record in it could not move on. Allow 'Shipped' to 'Pulled'.");
+        }
+    }
+
+    [Theory]
+    [InlineData("Ready", "Shipped")]
+    [InlineData("Planned", "Pulled")]
+    public void SetTransitions_ShouldRefuse_AConditionTheMoveDoesNotAccept(string from, string to)
+    {
+        // Arrange
+        var workflow = Saved(RestrictedGadgetWorkflow());
+        var conditioned = Move(workflow, from, to, TransitionConditionKind.RequiresReason);
+        var others = new[] { Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled") }
+            .Where(m => m.FromStatusId != conditioned.FromStatusId || m.ToStatusId != conditioned.ToStatusId);
+
+        // Act
+        var result = workflow.SetTransitions([.. others, conditioned], EventActor.System, At);
+
+        // Assert
+        // Ready → Shipped is made by a method that takes no reason, and Planned → Pulled by no method.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"The move from '{from}' to '{to}' cannot require a reason in a Gadget workflow.");
+        workflow.Transitions.SelectMany(t => t.Conditions).Should().BeEmpty();
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTransitions_ShouldAccept_AConditionTheMoveAccepts()
+    {
+        // Arrange
+        var workflow = RestrictedGadgetWorkflow();
+
+        // Act
+        var result = workflow.SetTransitions(
+            [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled"),
+                Move(workflow, "Shipped", "Pulled", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        workflow.ConditionsFor(StatusId(workflow, "Shipped"), StatusId(workflow, "Pulled"))
+            .Should().Equal(TransitionConditionKind.RequiresReason);
+    }
+
+    [Fact]
+    public void Publish_ShouldFail_WhenATransitionHoldsAConditionItsMoveNoLongerAccepts()
+    {
+        // Arrange
+        var workflow = RestrictedGadgetWorkflow();
+        workflow.SetTransitions(
+            [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled"),
+                Move(workflow, "Shipped", "Pulled", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At);
+
+        // Moving the Pulled alias to a new status leaves Shipped → Pulled a move no method makes, still
+        // holding the condition it was given when it was one.
+        workflow.ReclassifyStatus(StatusId(workflow, "Pulled"), StatusCategory.Removed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.AddStatus("Scrapped", null, StatusCategory.Removed, PulledAlias, EventActor.System, At);
+        workflow.SetTransitions(
+            [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Scrapped"),
+                Move(workflow, "Shipped", "Pulled", TransitionConditionKind.RequiresReason)],
+            EventActor.System, At).IsSuccess.Should().BeTrue("a condition already held never blocks editing");
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        // Pulled, which lost its alias, is reported as well.
+        result.IsFailure.Should().BeTrue();
+        workflow.TransitionIssues().Should().BeEquivalentTo(
+        [
+            "'Pulled' is neither the initial status nor an aliased one, so no Gadget action can move a record out of it. Remove it, give it an alias, or allow any move.",
+            "'Shipped' to 'Pulled' cannot require a reason in a Gadget workflow.",
+        ]);
+    }
+
+    [Fact]
+    public void DeclaredMoves_ShouldLocateEachMove_SkippingOneThatDoesNotMove_AndMergingOnesThatShareAPair()
+    {
+        // Arrange
+        // Ready is the initial status, so Prepare (initial → Ready) does not move, and Dispatch
+        // (initial → Shipped) lands on Ship's pair.
+        var workflow = StatusWorkflow.Create("Gadget Workflow", null, Gadget.Key, EventActor.System, At).Value;
+        workflow.AddStatus("Ready", null, StatusCategory.Proposed, ReadyAlias, EventActor.System, At);
+        workflow.AddStatus("Shipped", null, StatusCategory.Done, ShippedAlias, EventActor.System, At);
+        workflow.AddStatus("Pulled", null, StatusCategory.Removed, PulledAlias, EventActor.System, At);
+        var (ready, shipped, pulled) = (StatusId(workflow, "Ready"), StatusId(workflow, "Shipped"), StatusId(workflow, "Pulled"));
+
+        // Act
+        var moves = workflow.DeclaredMoves();
+
+        // Assert
+        moves.Select(m => (m.FromStatusId, m.ToStatusId, m.IsRequired, m.DescribeActions())).Should().BeEquivalentTo(
+        [
+            (ready, shipped, true, "Ship, Dispatch"),
+            (ready, pulled, true, "Pull"),
+            (shipped, pulled, false, "Pull"),
+        ]);
+        moves.Single(m => m.FromStatusId == ready && m.ToStatusId == shipped).AcceptedConditions.Should().BeEmpty();
+        moves.Single(m => m.FromStatusId == shipped).AcceptedConditions.Should().BeEquivalentTo([TransitionConditionKind.RequiresReason]);
+    }
+
+    [Fact]
+    public void AcceptedConditions_ShouldBeEveryKind_ForAnOwnerTypeThatDeclaresNoMoves()
+    {
+        // Arrange
+        var workflow = RestrictedWidgetWorkflow();
+
+        // Act
+        var accepted = workflow.AcceptedConditions(StatusId(workflow, "Proposed"), StatusId(workflow, "Terminal"));
+
+        // Assert
+        accepted.Should().BeEquivalentTo(Enum.GetValues<TransitionConditionKind>());
+    }
+
+    #endregion Declared moves
 }

@@ -2,8 +2,10 @@
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
@@ -582,4 +584,59 @@ public sealed class ReleaseTests
     }
 
     #endregion Delete
+
+    #region Restricted workflows
+
+    private Release ReleasedUnder(StatusWorkflow workflow)
+    {
+        var at = _dateTimeProvider.Now;
+        var release = Release.Create(null, "2026.07", null, null, null, DeliveryWorkflowFactory.Initial(workflow), EventActor.System, at).Value;
+        release.MarkReleased(new LocalDate(2026, 7, 1), hasUnreleasedContents: false, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Released), EventActor.System, at)
+            .IsSuccess.Should().BeTrue();
+        release.ClearDomainEvents();
+
+        return release;
+    }
+
+    [Theory]
+    [InlineData("Released", "Ready")]
+    [InlineData("Released", "Withdrawn")]
+    public void ReleasedRelease_ShouldRefuseAnOptionalMove_TheWorkflowLeavesOut(string from, string to)
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.DeclaredMovesExcept(ProductWorkflowOwners.Release, (from, to));
+        var sut = ReleasedUnder(workflow);
+        var at = _dateTimeProvider.Now;
+
+        // Act
+        var result = to == "Ready"
+            ? sut.RevertRelease(DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Ready), "Not announced.", EventActor.System, at)
+            : sut.Withdraw(null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Withdrawn), EventActor.System, at);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"The workflow does not allow a move from 'Released' to '{to}'.");
+        sut.StatusName.Should().Be("Released");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Lifecycle_ShouldMoveThroughEveryDeclaredMove_UnderARestrictedWorkflowAllowingThem()
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.DeclaredMovesExcept(ProductWorkflowOwners.Release);
+        var sut = ReleasedUnder(workflow);
+        var at = _dateTimeProvider.Now;
+
+        // Act
+        var reverted = sut.RevertRelease(DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Ready), "Not announced.", EventActor.System, at);
+        var released = sut.MarkReleased(new LocalDate(2026, 7, 2), false, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Released), EventActor.System, at);
+        var withdrawn = sut.Withdraw(null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Withdrawn), EventActor.System, at);
+
+        // Assert
+        new[] { reverted, released, withdrawn }.Should().OnlyContain(r => r.IsSuccess);
+        sut.StatusTransitions.Select(t => t.ToStatusName).Should().Equal("Planned", "Released", "Ready", "Released", "Withdrawn");
+    }
+
+    #endregion Restricted workflows
 }

@@ -5,6 +5,7 @@ using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
@@ -482,4 +483,54 @@ public sealed class DeploymentTests
     }
 
     #endregion Environment category freezing
+
+    #region Restricted workflows
+
+    public static TheoryData<string> PublishedWorkflows => DeliveryWorkflowFactory.DeploymentWorkflowShapes;
+
+    private static StatusWorkflow PublishedWorkflow(string shape) => DeliveryWorkflowFactory.PublishedDeploymentWorkflow(shape);
+
+    private Deployment StartedUnder(StatusWorkflow workflow) =>
+        Deployment.Create(
+            Guid.CreateVersion7(), null, Guid.CreateVersion7(), EnvironmentCategory.Production, null, _dateTimeProvider.Now,
+            DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.InProgress), EnvironmentName, EventActor.System, _dateTimeProvider.Now).Value;
+
+    [Theory]
+    [MemberData(nameof(PublishedWorkflows))]
+    public void Fail_ShouldSucceed_UnderAnyPublishedDeploymentWorkflow(string shape)
+    {
+        // Arrange
+        var workflow = PublishedWorkflow(shape);
+        var sut = StartedUnder(workflow);
+
+        // Act
+        var result = sut.Fail(_dateTimeProvider.Now, null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Failed), EnvironmentName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.Outcome.Should().Be(ProductStatusAlias.Failed);
+        sut.IsChangeFailure.Should().BeTrue();
+    }
+
+    [Theory]
+    [MemberData(nameof(PublishedWorkflows))]
+    public void SucceedThenRollBack_ShouldSucceed_UnderAnyPublishedDeploymentWorkflow(string shape)
+    {
+        // Arrange
+        var workflow = PublishedWorkflow(shape);
+        var sut = StartedUnder(workflow);
+        var at = _dateTimeProvider.Now;
+
+        // Act
+        var succeeded = sut.Succeed(at, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Succeeded), EnvironmentName, EventActor.System, at);
+        var rolledBack = sut.RollBack(at, "Reverted.", DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.RolledBack), EnvironmentName, EventActor.System, at);
+
+        // Assert
+        succeeded.IsSuccess.Should().BeTrue(succeeded.IsFailure ? succeeded.Error : null);
+        rolledBack.IsSuccess.Should().BeTrue(rolledBack.IsFailure ? rolledBack.Error : null);
+        sut.Outcome.Should().Be(ProductStatusAlias.RolledBack);
+        sut.IsChangeFailure.Should().BeTrue();
+    }
+
+    #endregion Restricted workflows
 }

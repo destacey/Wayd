@@ -2,6 +2,7 @@ import { getReleasesClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   CorrectReleaseDatesRequest,
+  DeliveryWorkflowActionDto,
   MarkReleaseReleasedRequest,
   MoveReleaseTargetDateRequest,
   ObjectIdAndKey,
@@ -89,6 +90,29 @@ export const releasesApi = apiSlice.injectEndpoints({
       queryFn: async (idOrKey) => {
         try {
           const data = await getReleasesClient().getStatusHistory(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+      ],
+    }),
+    /**
+     * The lifecycle actions the release's workflow allows from its current status.
+     *
+     * Tagged as the release's status history, which every status change already invalidates: the
+     * answer moves whenever the status does.
+     */
+    getReleaseWorkflowActions: builder.query<
+      DeliveryWorkflowActionDto[],
+      string
+    >({
+      queryFn: async (idOrKey) => {
+        try {
+          const data = await getReleasesClient().getWorkflowActions(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -292,6 +316,7 @@ export const {
   useGetReleasesQuery,
   useGetReleaseQuery,
   useGetReleaseStatusHistoryQuery,
+  useGetReleaseWorkflowActionsQuery,
   usePlanReleaseMutation,
   useUpdateReleaseMutation,
   useSetReleaseContentsMutation,

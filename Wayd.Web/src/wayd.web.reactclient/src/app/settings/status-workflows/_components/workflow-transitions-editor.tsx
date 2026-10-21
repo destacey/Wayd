@@ -13,7 +13,7 @@ import {
   useSetWorkflowTransitionsMutation,
 } from '@/src/store/features/common/status-workflows-api'
 import { isApiError } from '@/src/utils'
-import { AuditOutlined } from '@ant-design/icons'
+import { AuditOutlined, LockOutlined } from '@ant-design/icons'
 import {
   Alert,
   Button,
@@ -63,6 +63,12 @@ const setKey = (moves: Move[]) =>
  * The grid works from its own copy of the set, conditions included, updated as
  * each edit is made: the next edit can land before the workflow is refetched,
  * and a set built from the stale prop would silently undo the edit before it.
+ *
+ * Where the owner type's actions declare the moves they make, the required ones
+ * are locked once allowed: every set the grid saves contains them, and
+ * restricting the workflow adds any that are missing. A required move that
+ * appears later — when an alias moves to another status — stays unticked and
+ * editable until the next save adds it, and publish names it meanwhile.
  */
 const WorkflowTransitionsEditor = ({
   statusWorkflow,
@@ -102,6 +108,34 @@ const WorkflowTransitionsEditor = ({
   )
   const issues = statusWorkflow.transitionIssues ?? []
   const availableConditions = statusWorkflow.availableConditions ?? []
+  const declaredMoves = statusWorkflow.declaredMoves ?? []
+  const declaredByKey = new Map(
+    declaredMoves.map((m) => [moveKey(m.fromStatusId, m.toStatusId), m]),
+  )
+  const requiredMoves = declaredMoves.filter((m) => m.isRequired)
+  const missingRequired = (set: Move[]): Move[] =>
+    requiredMoves
+      .filter(
+        (r) =>
+          !set.some(
+            (m) =>
+              m.fromStatusId === r.fromStatusId &&
+              m.toStatusId === r.toStatusId,
+          ),
+      )
+      .map((r) => ({
+        fromStatusId: r.fromStatusId,
+        toStatusId: r.toStatusId,
+        conditions: [],
+      }))
+
+  // What a move may carry: what its action accepts where the owner type
+  // declares its moves, and what any transition may carry otherwise.
+  const conditionsFor = (move: Move) =>
+    declaredMoves.length > 0
+      ? (declaredByKey.get(moveKey(move.fromStatusId, move.toStatusId))
+          ?.acceptedConditions ?? [])
+      : availableConditions
 
   const reportError = (error: unknown, fallback: string) => {
     messageApi.error((isApiError(error) ? error.detail : undefined) ?? fallback)
@@ -118,11 +152,20 @@ const WorkflowTransitionsEditor = ({
         response.error,
         'An unexpected error occurred while changing the transition mode.',
       )
+      return
+    }
+
+    if (
+      mode === TransitionMode.Restricted &&
+      missingRequired(moves).length > 0
+    ) {
+      await save(moves)
     }
   }
 
-  const save = async (next: Move[]) => {
+  const save = async (edited: Move[]) => {
     const previous = moves
+    const next = [...edited, ...missingRequired(edited)]
     setMoves(next)
 
     const response = await setTransitions({
@@ -174,6 +217,9 @@ const WorkflowTransitionsEditor = ({
     const hasConditions = move.conditions.length > 0
     if (!isEditable && !hasConditions) return null
 
+    const accepted = conditionsFor(move)
+    if (!hasConditions && accepted.length === 0) return null
+
     const label = `Conditions on ${from.name} to ${to.name}`
     const summary = hasConditions
       ? move.conditions.map((c) => transitionConditionLabels[c]).join(', ')
@@ -182,8 +228,8 @@ const WorkflowTransitionsEditor = ({
     // A condition the move already holds stays listed even when it can no
     // longer be added, so it can still be removed.
     const kinds = [
-      ...availableConditions,
-      ...move.conditions.filter((c) => !availableConditions.includes(c)),
+      ...accepted,
+      ...move.conditions.filter((c) => !accepted.includes(c)),
     ]
 
     return (
@@ -203,8 +249,7 @@ const WorkflowTransitionsEditor = ({
                   key={kind}
                   value={kind}
                   disabled={
-                    !availableConditions.includes(kind) &&
-                    !move.conditions.includes(kind)
+                    !accepted.includes(kind) && !move.conditions.includes(kind)
                   }
                 >
                   {transitionConditionLabels[kind]}
@@ -247,14 +292,25 @@ const WorkflowTransitionsEditor = ({
         if (from.id === to.id) return <Text type="secondary">—</Text>
 
         const move = movesByKey.get(moveKey(from.id, to.id))
+        const declared = declaredByKey.get(moveKey(from.id, to.id))
+        const isLocked = move !== undefined && declared?.isRequired === true
         return (
           <Flex align="center" justify="center" gap={4}>
             <Checkbox
               aria-label={`${from.name} to ${to.name}`}
               checked={move !== undefined}
-              disabled={!isEditable || isSaving}
+              disabled={!isEditable || isSaving || isLocked}
               onChange={(e) => toggleMove(from, to, e.target.checked)}
             />
+            {isLocked && (
+              <Tooltip
+                title={`Required: ${declared.actions.join(', ')} makes this move`}
+              >
+                <LockOutlined
+                  aria-label={`${from.name} to ${to.name} is required`}
+                />
+              </Tooltip>
+            )}
             {move && renderConditions(move, from, to)}
           </Flex>
         )
@@ -289,8 +345,22 @@ const WorkflowTransitionsEditor = ({
         <>
           <Text type="secondary">
             A record can only move from a status in the left column to a status
-            checked in its row. A highlighted <AuditOutlined /> marks a move
-            with conditions, such as requiring a reason.
+            checked in its row.
+            {declaredMoves.length > 0 ? (
+              <>
+                {' '}
+                {statusWorkflow.owner.name} records move only through their
+                actions. A <LockOutlined /> marks a move those actions depend
+                on, which cannot be removed; leaving out any other refuses the
+                action that makes it.
+              </>
+            ) : (
+              <>
+                {' '}
+                A highlighted <AuditOutlined /> marks a move with conditions,
+                such as requiring a reason.
+              </>
+            )}
             {!isEditable &&
               ' Clone this workflow into a draft to change its transitions.'}
           </Text>

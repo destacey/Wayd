@@ -46,6 +46,7 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
 
         var descriptor = WorkflowOwners.Resolve(workflow.OwnerType);
         var aliasNames = descriptor.IsSuccess ? descriptor.Value.Aliases : new Dictionary<int, string>();
+        var declaresMoves = descriptor.IsSuccess && descriptor.Value.DeclaresMoves;
 
         var missing = workflow.RequiredAliases
             .Where(alias => workflow.StatusFor(alias) is null)
@@ -104,7 +105,21 @@ public sealed class GetStatusWorkflowQueryHandler(IStatusWorkflowDbContext dbCon
                         Conditions = t.ConditionKinds(),
                     }),
             ],
-            AvailableConditions = [.. Enum.GetValues<TransitionConditionKind>().Where(_conditionChecker.IsAvailable)],
+            AvailableConditions = declaresMoves ? [] : [.. Enum.GetValues<TransitionConditionKind>().Where(_conditionChecker.IsAvailable)],
+            DeclaredMoves =
+            [
+                .. workflow.DeclaredMoves()
+                    .OrderBy(m => statusOrder[m.FromStatusId])
+                    .ThenBy(m => statusOrder[m.ToStatusId])
+                    .Select(m => new WorkflowMoveDto
+                    {
+                        FromStatusId = m.FromStatusId,
+                        ToStatusId = m.ToStatusId,
+                        Actions = [.. m.Moves.Select(move => move.Action)],
+                        IsRequired = m.IsRequired,
+                        AcceptedConditions = [.. m.AcceptedConditions.Where(_conditionChecker.IsAvailable).Order()],
+                    }),
+            ],
         };
     }
 }

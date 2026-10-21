@@ -1,4 +1,8 @@
-import { ReleaseDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  DeliveryAction,
+  ReleaseDto,
+  StatusCategory,
+} from '@/src/services/wayd-api'
 
 /**
  * Which moves a release will accept.
@@ -14,6 +18,11 @@ import { ReleaseDto, StatusCategory } from '@/src/services/wayd-api'
  *
  * Editing details is always offered. The domain refuses nothing there: a label or a set of notes can
  * be wrong long after the announcement, and correcting the wording says nothing about what shipped.
+ *
+ * The release's workflow has the last word on announcing, reverting and withdrawing: a restricted
+ * workflow can forbid one, and `workflowActions` lists those it allows from the current status. Left
+ * out when unknown, nothing is withheld on its account; the server still refuses a move the workflow
+ * does not allow.
  */
 export interface ReleaseActionAvailability {
   canEditContents: boolean
@@ -26,19 +35,24 @@ export interface ReleaseActionAvailability {
 
 export const releaseActionAvailability = (
   release: ReleaseDto,
+  workflowActions?: readonly DeliveryAction[],
 ): ReleaseActionAvailability => {
   const isWithdrawn = release.status.category === StatusCategory.Removed
   const isTerminal =
     release.status.category === StatusCategory.Done || isWithdrawn
   const isAnnounced = !!release.releasedDate
+  const allows = (action: DeliveryAction) =>
+    workflowActions?.includes(action) ?? true
 
   return {
     canEditContents: !isAnnounced && !isWithdrawn,
-    canRelease: !isAnnounced && !isWithdrawn,
-    canWithdraw: !isWithdrawn,
+    canRelease:
+      !isAnnounced && !isWithdrawn && allows(DeliveryAction.MarkReleased),
+    canWithdraw: !isWithdrawn && allows(DeliveryAction.Withdraw),
     canMoveTargetDate: !isTerminal,
     canCorrectDates: !isWithdrawn,
-    canRevert: isAnnounced && !isWithdrawn,
+    canRevert:
+      isAnnounced && !isWithdrawn && allows(DeliveryAction.RevertRelease),
   }
 }
 

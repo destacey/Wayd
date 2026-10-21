@@ -20039,6 +20039,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the lifecycle actions a package's workflow allows from the status it holds.
+        /// </summary>
+        /// <remarks>
+        /// Lists `MarkReleased` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — withdrawing a released package, say — and the action is then refused. This answers for the workflow only: the package's own rules still decide whether the action succeeds.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>> GetWorkflowActionsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
@@ -20623,6 +20634,98 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the lifecycle actions a package's workflow allows from the status it holds.
+        /// </summary>
+        /// <remarks>
+        /// Lists `MarkReleased` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — withdrawing a released package, say — and the action is then refused. This answers for the workflow only: the package's own rules still decide whether the action succeeds.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>> GetWorkflowActionsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/release-packages/{idOrKey}/workflow-actions"
+                    urlBuilder_.Append("api/product-management/release-packages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/workflow-actions");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 404)
@@ -21566,6 +21669,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the lifecycle actions a release's workflow allows from the status it holds.
+        /// </summary>
+        /// <remarks>
+        /// Lists `MarkReleased`, `RevertRelease` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — reverting a release, say — and the action is then refused. This answers for the workflow only: the release's own rules (it cannot be announced while it carries something unshipped) still decide whether the action succeeds.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>> GetWorkflowActionsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
@@ -22189,6 +22303,98 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the lifecycle actions a release's workflow allows from the status it holds.
+        /// </summary>
+        /// <remarks>
+        /// Lists `MarkReleased`, `RevertRelease` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — reverting a release, say — and the action is then refused. This answers for the workflow only: the release's own rules (it cannot be announced while it carries something unshipped) still decide whether the action succeeds.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>> GetWorkflowActionsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/releases/{idOrKey}/workflow-actions"
+                    urlBuilder_.Append("api/product-management/releases/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/workflow-actions");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 404)
@@ -23424,6 +23630,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the lifecycle actions a version's workflow allows from the status it holds.
+        /// </summary>
+        /// <remarks>
+        /// Lists `Cut`, `MarkReleased`, `RevertRelease` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — withdrawing a released version, say — and the action is then refused. This answers for the workflow only: the version's own rules (a version cuts once; a withdrawn one cannot ship) still decide whether the action succeeds.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>> GetWorkflowActionsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
@@ -24026,6 +24243,98 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the lifecycle actions a version's workflow allows from the status it holds.
+        /// </summary>
+        /// <remarks>
+        /// Lists `Cut`, `MarkReleased`, `RevertRelease` and `Withdraw` where the governing status workflow allows the move each one makes. A restricted workflow can leave out a move a company forbids — withdrawing a released version, say — and the action is then refused. This answers for the workflow only: the version's own rules (a version cuts once; a withdrawn one cannot ship) still decide whether the action succeeds.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>> GetWorkflowActionsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/versions/{idOrKey}/workflow-actions"
+                    urlBuilder_.Append("api/product-management/versions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/workflow-actions");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<DeliveryWorkflowActionDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 404)
@@ -93600,6 +93909,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A lifecycle action on a version, release or release package that moves its status.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DeliveryAction
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Cut")]
+        Cut = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"MarkReleased")]
+        MarkReleased = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"RevertRelease")]
+        RevertRelease = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Withdraw")]
+        Withdraw = 3,
+
+    }
+
+    /// <summary>
     /// The delivery measures over one window.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -93698,6 +94028,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasableNodeCount")]
         public int ReleasableNodeCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A lifecycle action whose move a record's workflow allows from the status the record holds.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DeliveryWorkflowActionDto
+    {
+
+        /// <summary>
+        /// The action.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DeliveryAction>))]
+        public DeliveryAction Action { get; set; } = default!;
 
     }
 
@@ -107358,13 +107705,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<WorkflowTransitionDto> Transitions { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowTransitionDto>();
 
         /// <summary>
-        /// The conditions a transition may carry: those a record checks itself, and those something is in
-        /// <br/>place to evaluate. Attaching any other is refused.
+        /// The conditions a transition other than a declared move may carry: those a record checks
+        /// <br/>itself, and those something is in place to evaluate. None when the owner type declares its moves,
+        /// <br/>since no method makes such a transition. Attaching any other is refused.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("availableConditions")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TransitionConditionKind> AvailableConditions { get; set; } = new System.Collections.ObjectModel.Collection<TransitionConditionKind>();
+
+        /// <summary>
+        /// The moves this owner type's actions make, located in this workflow, in the order of their
+        /// <br/>statuses. Empty when the owner type moves to any status it is given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("declaredMoves")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkflowMoveDto> DeclaredMoves { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowMoveDto>();
 
         /// <summary>
         /// Whether this workflow's owner type can be restricted to its transitions. A restricted workflow for
@@ -114545,6 +114901,53 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("schemes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowSchemeDto> Schemes { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowSchemeDto>();
+
+    }
+
+    /// <summary>
+    /// A move one of the owner type's actions makes — cut, release, withdraw — located in a workflow.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowMoveDto
+    {
+
+        /// <summary>
+        /// The status the move starts from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fromStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid FromStatusId { get; set; } = default!;
+
+        /// <summary>
+        /// The status the move ends in.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("toStatusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid ToStatusId { get; set; } = default!;
+
+        /// <summary>
+        /// The actions that make the move, as the owner type names them. Usually one; more where the
+        /// <br/>workflow's initial status carries an alias another action starts from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Whether a restricted workflow must allow the move. An optional one may be left out, and the
+        /// <br/>action that makes it is then refused.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isRequired")]
+        public bool IsRequired { get; set; } = default!;
+
+        /// <summary>
+        /// The conditions a transition along this move may carry: those the action can satisfy and something
+        /// <br/>can check. Often none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("acceptedConditions")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TransitionConditionKind> AcceptedConditions { get; set; } = new System.Collections.ObjectModel.Collection<TransitionConditionKind>();
 
     }
 

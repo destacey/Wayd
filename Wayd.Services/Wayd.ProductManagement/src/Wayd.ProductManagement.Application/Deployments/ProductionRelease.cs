@@ -96,7 +96,9 @@ internal static class ProductionRelease
         var result = package.MarkReleased(shippedAt, status.Value, actor, timestamp);
         if (result.IsFailure)
         {
-            logger.LogInformation(
+            // A warning: the deployment still succeeds, so this line is the only sign that what shipped
+            // was not recorded as released — a workflow forbidding the move, for one.
+            logger.LogWarning(
                 "Release Package {PackageId} was not marked released by its production deployment: {Error}",
                 package.Id, result.Error);
         }
@@ -154,7 +156,8 @@ internal static class ProductionRelease
 
             if (result.IsFailure)
             {
-                logger.LogInformation(
+                // A warning, for the same reason as the package's above.
+                logger.LogWarning(
                     "Version {VersionId} was not marked released by its production deployment: {Error}",
                     version.Id, result.Error);
             }

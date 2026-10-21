@@ -2,8 +2,10 @@
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
@@ -731,4 +733,131 @@ public sealed class VersionTests
     }
 
     #endregion Delete
+
+    #region Restricted workflows
+
+    private Version PlannedUnder(StatusWorkflow workflow)
+    {
+        var version = Version.Create(
+            Guid.CreateVersion7(), "4.8.2", null, null, null, true, DeliveryWorkflowFactory.Initial(workflow),
+            ProductName, EventActor.System, _dateTimeProvider.Now).Value;
+        version.ClearDomainEvents();
+
+        return version;
+    }
+
+    private Version ReleasedUnder(StatusWorkflow workflow, bool cut = true)
+    {
+        var version = PlannedUnder(workflow);
+        var at = _dateTimeProvider.Now;
+
+        if (cut)
+        {
+            version.Cut(at, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Ready), ProductName, EventActor.System, at)
+                .IsSuccess.Should().BeTrue();
+        }
+
+        version.MarkReleased(at, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Released), ProductName, EventActor.System, at)
+            .IsSuccess.Should().BeTrue();
+        version.ClearDomainEvents();
+
+        return version;
+    }
+
+    [Fact]
+    public void Withdraw_ShouldBeRefused_ForAReleasedVersion_WhenTheWorkflowLeavesOutReleasedToWithdrawn()
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.DeclaredMovesExcept(ProductWorkflowOwners.Version, ("Released", "Withdrawn"));
+        var sut = ReleasedUnder(workflow);
+
+        // Act
+        var result = sut.Withdraw("Pulled.", DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Withdrawn), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The workflow does not allow a move from 'Released' to 'Withdrawn'.");
+        sut.StatusName.Should().Be("Released");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Withdraw_ShouldSucceed_BeforeRelease_UnderAWorkflowWithOnlyTheRequiredMoves(bool cut)
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.RequiredMovesOnly(ProductWorkflowOwners.Version);
+        var sut = PlannedUnder(workflow);
+        if (cut)
+        {
+            sut.Cut(_dateTimeProvider.Now, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Ready), ProductName, EventActor.System, _dateTimeProvider.Now)
+                .IsSuccess.Should().BeTrue();
+        }
+
+        // Act
+        var result = sut.Withdraw(null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Withdrawn), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.StatusName.Should().Be("Withdrawn");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MarkReleased_ShouldSucceed_CutOrNot_UnderAWorkflowWithOnlyTheRequiredMoves(bool cut)
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.RequiredMovesOnly(ProductWorkflowOwners.Version);
+
+        // Act
+        var sut = ReleasedUnder(workflow, cut);
+
+        // Assert
+        // An uncut version is released by a production deployment or an import, so that move is required.
+        sut.StatusName.Should().Be("Released");
+    }
+
+    [Theory]
+    [InlineData(true, "Ready")]
+    [InlineData(false, "Planned")]
+    public void RevertRelease_ShouldBeRefused_WhenTheWorkflowLeavesTheRevertOut(bool cut, string revertsTo)
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.DeclaredMovesExcept(ProductWorkflowOwners.Version, ("Released", revertsTo));
+        var sut = ReleasedUnder(workflow, cut);
+        var target = cut ? DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Ready) : DeliveryWorkflowFactory.Initial(workflow);
+
+        // Act
+        var result = sut.RevertRelease(target, "Never shipped.", ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"The workflow does not allow a move from 'Released' to '{revertsTo}'.");
+        sut.ReleasedAt.Should().NotBeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Lifecycle_ShouldBehaveAsUnderAnyToAny_UnderARestrictedWorkflowAllowingEveryMove()
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.Published(DeliveryWorkflowFactory.Restricted(
+            DeliveryWorkflowFactory.Seeded(ProductWorkflowOwners.Version),
+            DeliveryWorkflowFactory.EveryMove(DeliveryWorkflowFactory.Seeded(ProductWorkflowOwners.Version))));
+        var sut = ReleasedUnder(workflow);
+        var at = _dateTimeProvider.Now;
+
+        // Act
+        var reverted = sut.RevertRelease(DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Ready), "Never shipped.", ProductName, EventActor.System, at);
+        var released = sut.MarkReleased(at, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Released), ProductName, EventActor.System, at);
+        var withdrawn = sut.Withdraw(null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Withdrawn), ProductName, EventActor.System, at);
+
+        // Assert
+        new[] { reverted, released, withdrawn }.Should().OnlyContain(r => r.IsSuccess);
+        sut.StatusTransitions.Select(t => t.ToStatusName).Should().Equal("Planned", "Ready", "Released", "Ready", "Released", "Withdrawn");
+    }
+
+    #endregion Restricted workflows
 }

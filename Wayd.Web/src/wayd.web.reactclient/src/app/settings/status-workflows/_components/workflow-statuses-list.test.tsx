@@ -67,6 +67,7 @@ const workflow = (
   transitionMode: TransitionMode.AnyToAny,
   transitions: [],
   availableConditions: [],
+  declaredMoves: [],
   supportsRestrictedTransitions: false,
   transitionIssues: [],
   canEdit: true,

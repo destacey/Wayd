@@ -5,6 +5,7 @@ using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
@@ -479,4 +480,56 @@ public sealed class ReleasePackageTests
     }
 
     #endregion Delete
+
+    #region Restricted workflows
+
+    private ReleasePackage AssembledUnder(StatusWorkflow workflow)
+    {
+        var package = ReleasePackage.Create(
+            "2026.07", null, null, Manifest(changed: 1, carriedForward: 0), DeliveryWorkflowFactory.Initial(workflow), EventActor.System, _dateTimeProvider.Now).Value;
+        package.ClearDomainEvents();
+
+        return package;
+    }
+
+    [Fact]
+    public void Withdraw_ShouldBeRefused_ForAReleasedPackage_WhenTheWorkflowLeavesOutReleasedToWithdrawn()
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.DeclaredMovesExcept(ProductWorkflowOwners.ReleasePackage, ("Released", "Withdrawn"));
+        var sut = AssembledUnder(workflow);
+        var at = _dateTimeProvider.Now;
+        sut.MarkReleased(at, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Released), EventActor.System, at).IsSuccess.Should().BeTrue();
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.Withdraw(null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Withdrawn), EventActor.System, at);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The workflow does not allow a move from 'Released' to 'Withdrawn'.");
+        sut.StatusName.Should().Be("Released");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Withdraw_ShouldSucceed_BeforeRelease_UnderAWorkflowWithOnlyTheRequiredMoves()
+    {
+        // Arrange
+        // Without Ready, which no required move leaves, so the required moves alone can publish.
+        var workflow = DeliveryWorkflowFactory.Seeded(ProductWorkflowOwners.ReleasePackage);
+        workflow.RemoveStatus(DeliveryWorkflowFactory.StatusId(workflow, "Ready"), EventActor.System, _dateTimeProvider.Now);
+        DeliveryWorkflowFactory.Published(
+            DeliveryWorkflowFactory.Restricted(workflow, DeliveryWorkflowFactory.DeclaredMoves(workflow, requiredOnly: true)));
+        var sut = AssembledUnder(workflow);
+
+        // Act
+        var result = sut.Withdraw(null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Withdrawn), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.StatusName.Should().Be("Withdrawn");
+    }
+
+    #endregion Restricted workflows
 }

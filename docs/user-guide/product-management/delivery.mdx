@@ -147,7 +147,10 @@ Each action records something that happened, and each is one-way:
   it shipped is exactly the case this exists for — but a withdrawn one cannot be released.
 
 Actions that a version would refuse are not offered, so the menu shows only what that version will
-actually accept.
+actually accept. That includes its workflow's say: a company can forbid some moves — withdrawing a
+released version, reverting a release — with a
+[restricted workflow](../settings/status-workflows.mdx#restricting-delivery-workflows), and the action
+is then neither offered on the page nor accepted. Releases and release packages follow the same rule.
 
 Cut and released are instants — the build or tag that froze scope, and production receiving it — and
 are entered and shown in your own time zone. A version released at 21:30 in Chicago reads as the 17th

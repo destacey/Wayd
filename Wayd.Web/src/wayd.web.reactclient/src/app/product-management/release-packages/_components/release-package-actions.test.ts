@@ -1,4 +1,5 @@
 import {
+  DeliveryAction,
   ManifestEntryKind,
   ReleasePackageDto,
   StatusCategory,
@@ -124,4 +125,28 @@ describe('releasePackageActionAvailability', () => {
     expect(available.canRelease).toBe(false)
     expect(available.canEditManifest).toBe(true)
   })
+
+  it.each([
+    [DeliveryAction.MarkReleased, 'canRelease', assembled],
+    [DeliveryAction.Withdraw, 'canWithdraw', released],
+  ] as const)(
+    'withholds %s when the workflow does not allow it',
+    (action, flag, fixture) => {
+      // Arrange
+      const everyOther = Object.values(DeliveryAction).filter(
+        (a) => a !== action,
+      )
+
+      // Act
+      const withAll = releasePackageActionAvailability(
+        fixture(),
+        Object.values(DeliveryAction),
+      )
+      const without = releasePackageActionAvailability(fixture(), everyOther)
+
+      // Assert
+      expect(withAll[flag]).toBe(true)
+      expect(without[flag]).toBe(false)
+    },
+  )
 })

@@ -15,6 +15,7 @@ import {
   useGetVersionActivitiesQuery,
   useGetVersionQuery,
   useGetVersionStatusHistoryQuery,
+  useGetVersionWorkflowActionsQuery,
   useLazyGetVersionActivitiesQuery,
 } from '@/src/store/features/product-management/versions-api'
 import {
@@ -86,6 +87,15 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { data: statusHistory, isLoading: statusHistoryLoading } =
     useGetVersionStatusHistoryQuery(key)
 
+  // Only someone who can act needs to know what the workflow allows. Until it
+  // answers, the lifecycle actions are held back; if it fails, they are offered
+  // and the server has the last word.
+  const { data: workflowActions, isError: workflowActionsFailed } =
+    useGetVersionWorkflowActionsQuery(key, { skip: !canUpdateVersion })
+  const allowedActions = workflowActionsFailed
+    ? undefined
+    : (workflowActions?.map((a) => a.action) ?? [])
+
   // Skipped without the claim: the section is not offered, so the request would only ever 403.
   const { data: deployments, isLoading: deploymentsLoading } =
     useGetDeploymentsQuery(
@@ -148,7 +158,7 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     return <VersionDetailsLoading />
   }
 
-  const available = versionActionAvailability(version)
+  const available = versionActionAvailability(version, allowedActions)
 
   const canCut = canUpdateVersion && available.canCut
   const canRelease = canUpdateVersion && available.canRelease

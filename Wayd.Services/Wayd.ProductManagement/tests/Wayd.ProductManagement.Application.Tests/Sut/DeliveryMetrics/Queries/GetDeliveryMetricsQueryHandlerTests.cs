@@ -6,6 +6,7 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.DeliveryMetrics.Queries;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.ProductManagement.Domain.Tests.Data;
 
 namespace Wayd.ProductManagement.Application.Tests.Sut.DeliveryMetrics.Queries;
 
@@ -293,4 +294,50 @@ public sealed class GetDeliveryMetricsQueryHandlerTests : ProductCommandTestBase
     }
 
     #endregion Unavailable measures
+
+    #region Restricted workflows
+
+    [Theory]
+    [MemberData(nameof(DeliveryWorkflowFactory.DeploymentWorkflowShapes), MemberType = typeof(DeliveryWorkflowFactory))]
+    public async Task Handle_ShouldReportTheSameFigures_WhicheverPublishedWorkflowRecordedTheOutcomes(string shape)
+    {
+        // Arrange
+        // The outcomes are recorded through the domain methods with the references the workflow hands
+        // out, as the handlers do, so a workflow that refused one would leave a deployment in progress.
+        var workflow = DeliveryWorkflowFactory.PublishedDeploymentWorkflow(shape);
+        var environment = SeedEnvironment("prod", EnvironmentCategory.Production, 1);
+        var version = SeedVersion(SeedProduct("checkout").Id);
+        var at = WindowStart.Plus(Duration.FromDays(1));
+
+        foreach (var outcome in new[] { ProductStatusAlias.Succeeded, ProductStatusAlias.Succeeded, ProductStatusAlias.Failed, ProductStatusAlias.RolledBack })
+        {
+            var deployment = Deployment.Create(
+                version.Id, null, environment.Id, EnvironmentCategory.Production, null, WindowStart,
+                DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.InProgress), environment.Name, EventActor.System, WindowStart).Value;
+
+            var recorded = outcome == ProductStatusAlias.Failed
+                ? deployment.Fail(at, null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Failed), environment.Name, EventActor.System, at)
+                : deployment.Succeed(at, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Succeeded), environment.Name, EventActor.System, at);
+
+            if (outcome == ProductStatusAlias.RolledBack)
+            {
+                recorded = deployment.RollBack(at, null, DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.RolledBack), environment.Name, EventActor.System, at);
+            }
+
+            recorded.IsSuccess.Should().BeTrue(recorded.IsFailure ? recorded.Error : null);
+            DbContext.AddDeployment(deployment);
+        }
+
+        // Act
+        var metrics = await Run();
+
+        // Assert
+        metrics.DeploymentFrequency.Count.Should().Be(3);
+        metrics.ChangeFailureRate.TotalDeployments.Should().Be(4);
+        metrics.ChangeFailureRate.FailedDeployments.Should().Be(2);
+        metrics.ChangeFailureRate.Rate.Should().Be(0.5);
+        metrics.Unavailable.Select(u => u.Metric).Should().BeEquivalentTo(["Lead time for changes", "Time to restore service"]);
+    }
+
+    #endregion Restricted workflows
 }

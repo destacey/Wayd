@@ -1,4 +1,8 @@
-import { ReleaseDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  DeliveryAction,
+  ReleaseDto,
+  StatusCategory,
+} from '@/src/services/wayd-api'
 import {
   outstandingContents,
   releaseActionAvailability,
@@ -122,6 +126,31 @@ describe('releaseActionAvailability', () => {
     // Moving the target date is the one action reading the category instead, matching the aggregate.
     expect(available.canMoveTargetDate).toBe(false)
   })
+
+  it.each([
+    [DeliveryAction.MarkReleased, 'canRelease', planned],
+    [DeliveryAction.Withdraw, 'canWithdraw', announced],
+    [DeliveryAction.RevertRelease, 'canRevert', announced],
+  ] as const)(
+    'withholds %s when the workflow does not allow it',
+    (action, flag, fixture) => {
+      // Arrange
+      const everyOther = Object.values(DeliveryAction).filter(
+        (a) => a !== action,
+      )
+
+      // Act
+      const withAll = releaseActionAvailability(
+        fixture(),
+        Object.values(DeliveryAction),
+      )
+      const without = releaseActionAvailability(fixture(), everyOther)
+
+      // Assert
+      expect(withAll[flag]).toBe(true)
+      expect(without[flag]).toBe(false)
+    },
+  )
 })
 
 describe('outstandingContents', () => {

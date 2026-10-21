@@ -66,6 +66,7 @@ const CorrectVersionDatesForm = ({
 
           const response = await correctVersionDates({
             id: version.id,
+            cacheKey: version.key,
             request,
           })
           if (response.error) throw response.error

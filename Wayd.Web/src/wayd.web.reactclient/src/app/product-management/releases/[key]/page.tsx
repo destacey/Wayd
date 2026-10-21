@@ -15,6 +15,7 @@ import {
   useGetReleaseActivitiesQuery,
   useGetReleaseQuery,
   useGetReleaseStatusHistoryQuery,
+  useGetReleaseWorkflowActionsQuery,
   useLazyGetReleaseActivitiesQuery,
 } from '@/src/store/features/product-management/releases-api'
 import {
@@ -80,6 +81,15 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { data: statusHistory, isLoading: statusHistoryLoading } =
     useGetReleaseStatusHistoryQuery(key)
 
+  // Only someone who can act needs to know what the workflow allows. Until it
+  // answers, the lifecycle actions are held back; if it fails, they are offered
+  // and the server has the last word.
+  const { data: workflowActions, isError: workflowActionsFailed } =
+    useGetReleaseWorkflowActionsQuery(key, { skip: !canUpdateRelease })
+  const allowedActions = workflowActionsFailed
+    ? undefined
+    : (workflowActions?.map((a) => a.action) ?? [])
+
   const activitiesQuery = useGetReleaseActivitiesQuery(
     { idOrKey: release?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
     { skip: !release?.id || activeSection !== ReleaseSections.Activities },
@@ -127,7 +137,7 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     return <ReleaseDetailsLoading />
   }
 
-  const available = releaseActionAvailability(release)
+  const available = releaseActionAvailability(release, allowedActions)
 
   const canEditContents = canUpdateRelease && available.canEditContents
   const canRelease = canUpdateRelease && available.canRelease

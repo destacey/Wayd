@@ -481,7 +481,7 @@ This means the CSP mitigates clickjacking and injected-form/base-tag attacks, bu
 
 `Strict-Transport-Security` is a browser-side latch: once sent, browsers refuse plain HTTP to that host for the full `max-age` (two years at the default), and it cannot be recalled from the server. Enabling it against a host that is not fully HTTPS-ready locks clients out for that duration.
 
-The middleware also gates it on `context.Request.IsHttps`, so it is never emitted over a plain-HTTP hop. In the current Azure deployment TLS terminates at Container Apps ingress and the container listens on plain HTTP (`ASPNETCORE_URLS=http://+:8080`), so `EnableHsts: true` alone is a **no-op** — `UseForwardedHeaders` must be added first so `IsHttps` reflects `X-Forwarded-Proto`.
+The middleware also gates it on `context.Request.IsHttps`, so it is never emitted over a plain-HTTP hop. In the current Azure deployment TLS terminates at Container Apps ingress and the container listens on plain HTTP (`ASPNETCORE_URLS=http://+:8080`), so `IsHttps` holds only because Terraform sets `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, which makes it reflect `X-Forwarded-Proto` (see [Rate limits](#rate-limits)). Without that setting, `EnableHsts: true` is a **no-op**.
 
 :::note No component currently sends HSTS
 Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not add the header, and there is no Front Door or Application Gateway in `.iac/`. If HSTS is needed, ramp `max-age` (300 → 86400 → 63072000) rather than starting at two years, and only add `preload` if you mean it — that list is effectively permanent.
@@ -576,11 +576,38 @@ It must be an HTTPS origin — scheme, host and optional port — with no path, 
 | Self-hosted behind a proxy | `https://wayd-api.example.com` |
 | Local, Aspire, `docker compose` | unset |
 
+## Web client URL
+
+`ApiSettings:WebClientUrl` (`ApiSettings__WebClientUrl`) is the address people reach the web app at, such as `https://wayd.example.com`. The OAuth authorization endpoint sends the user's browser there to consent, and it cannot be read from a request because the web app is served from another origin. It follows the same rules as the public URL: an HTTPS origin with no path (HTTP only for localhost), or the host fails at startup.
+
+Unset, MCP clients cannot sign in with OAuth: the authorization endpoint answers `server_error`, and the host logs a warning at startup. Personal access tokens are unaffected.
+
+| Deployment | Value |
+|---|---|
+| Azure | `client_url` when set, otherwise the client container app's default hostname (set by Terraform) |
+| Aspire, local | `http://localhost:3000` (`appsettings.Development.json`) |
+| `docker compose` | `http://localhost:5002` |
+
+## Rate limits
+
+`RateLimitSettings` holds the limits of the API's rate-limited endpoints, each a fixed window per caller address. Changes take effect without a restart, from each caller's next window; a limit with a `PermitLimit` or `WindowSeconds` of zero or less stops the host at startup. A refused request gets 429 with `Retry-After`.
+
+| Setting | Default | Endpoint |
+|---|---|---|
+| `RateLimitSettings:OAuthAuthorize` | 30 per 60 s | `GET /oauth/authorize` |
+| `RateLimitSettings:OAuthToken` | 60 per 60 s | `POST /oauth/token` |
+
+Each has `PermitLimit` and `WindowSeconds`. Limits are held in memory, so every replica counts separately.
+
+**The caller address is the proxy's unless forwarded headers are on.** Behind a proxy every request appears to come from it, so a per-address limit becomes one limit shared by everyone, and the sessions list records the proxy's address. `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` makes ASP.NET Core trust `X-Forwarded-For` and `X-Forwarded-Proto` from any sender, which is safe only where the proxy is the sole way in, as Container Apps ingress is; Terraform sets it in Azure. Self-hosted behind a proxy that can be bypassed, configure `ForwardedHeadersOptions` with the proxy's address instead.
+
 ## Environment Variables
 
 | Variable                                | Purpose                                       |
 | --------------------------------------- | --------------------------------------------- |
 | `ApiSettings__PublicUrl`                | The API's public URL — see [Public URL](#public-url) |
+| `ApiSettings__WebClientUrl`             | The web app's URL — see [Web client URL](#web-client-url) |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED`   | Trust a proxy's forwarded headers — see [Rate limits](#rate-limits) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`           | OpenTelemetry collector endpoint              |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights                    |
 | `ASPNETCORE_ENVIRONMENT`                | Runtime environment (Development, Production) |

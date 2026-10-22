@@ -100,16 +100,80 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
-    public void ServerInstructions_MatchTheNpmServers()
+    public void ServerInstructions_ShareTheNpmServersWordForWord()
     {
         // Arrange
         var expected = (string)_snapshot["instructions"]!;
 
         // Act
-        var instructions = McpServerInstructions.Text;
+        var instructions = McpServerInstructions.Shared;
 
         // Assert
         Assert.Equal(expected, instructions);
+    }
+
+    [Fact]
+    public void ServerInstructions_AddHowToFetchASkill_AfterTheSharedText()
+    {
+        // Arrange
+        var shared = McpServerInstructions.Shared;
+
+        // Act
+        var instructions = McpServerInstructions.Text;
+
+        // Assert
+        Assert.StartsWith(shared + " ", instructions);
+        Assert.Contains(SkillTools.Name, instructions[shared.Length..]);
+    }
+
+    [Fact]
+    public async Task GetTools_EndsEveryToolsDescription_WithThePointerToItsSkill()
+    {
+        // Arrange
+        var pointers = Skills.All.Select(s => SkillTools.Pointer(s.Name)).ToList();
+
+        // Act
+        var unpointed = (await GetTools())
+            .Where(t => t.ProtocolTool.Name != SkillTools.Name)
+            .Where(t => !pointers.Any(p => t.ProtocolTool.Description!.EndsWith(" " + p, StringComparison.Ordinal)))
+            .Select(t => t.ProtocolTool.Name)
+            .ToList();
+
+        // Assert
+        Assert.Empty(unpointed);
+    }
+
+    [Fact]
+    public async Task GetTools_PointsEachToolToTheSkillWhoseDescriptionNamesItsPrefix()
+    {
+        // Arrange — each skill's description opens by naming the tool prefixes it covers (Projects_*)
+        var tools = (await GetTools()).Where(t => t.ProtocolTool.Name != SkillTools.Name);
+
+        // Act
+        var mismatches = tools
+            .Select(t => (Name: t.ProtocolTool.Name, Skill: Skills.All.Single(s => t.ProtocolTool.Description!.EndsWith(SkillTools.Pointer(s.Name), StringComparison.Ordinal))))
+            .Where(t => !t.Skill.Description.Contains(t.Name[..(t.Name.IndexOf('_') + 1)] + "*", StringComparison.Ordinal))
+            .Select(t => $"{t.Name} points to {t.Skill.Name}, whose description does not name {t.Name[..(t.Name.IndexOf('_') + 1)]}*")
+            .ToList();
+
+        // Assert
+        Assert.Empty(mismatches);
+    }
+
+    [Fact]
+    public async Task GetTools_GivesEveryApiToolTheSkillItsDescriptionNames()
+    {
+        // Arrange
+        var tools = (await GetTools()).OfType<ApiEndpointTool>();
+
+        // Act
+        var mismatched = tools
+            .Where(t => t.Skill is null || !t.ProtocolTool.Description!.EndsWith(SkillTools.Pointer(t.Skill), StringComparison.Ordinal))
+            .Select(t => t.ProtocolTool.Name)
+            .ToList();
+
+        // Assert
+        Assert.Empty(mismatched);
     }
 
     [Fact]
@@ -144,10 +208,11 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
-    public async Task GetTools_DeclaresAnOutputSchema_ForEveryReadOnlyTool()
+    public async Task GetTools_DeclaresAnOutputSchema_ForEveryReadOnlyTool_ButSkillsGet()
     {
-        // Act
+        // Act — Skills_Get answers with markdown to read, which an output schema would turn into JSON
         var undeclared = (await GetTools())
+            .Where(t => t.ProtocolTool.Name != SkillTools.Name)
             .Where(t => t.ProtocolTool.Annotations?.ReadOnlyHint == true && t.ProtocolTool.OutputSchema is null)
             .Select(t => t.ProtocolTool.Name)
             .ToList();
@@ -272,7 +337,8 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         var tools = await GetCatalog().GetToolsets();
 
         // Assert
-        Assert.Equal(Enum.GetValues<McpToolset>(), tools.Select(t => t.Toolset).Distinct().Order());
+        Assert.Equal(Enum.GetValues<McpToolset>(), tools.Where(t => t.Toolset is not null).Select(t => t.Toolset!.Value).Distinct().Order());
+        Assert.Equal([SkillTools.Name], tools.Where(t => t.Toolset is null).Select(t => t.Tool.ProtocolTool.Name));
     }
 
     [Fact]
@@ -285,11 +351,12 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         // Act
         var tools = await GetCatalog().GetTools(filter);
 
-        // Assert
+        // Assert — plus Skills_Get, which every connection is offered
         var expected = all
-            .Where(t => t.Toolset == McpToolset.Ppm && t.Tool.ProtocolTool.Annotations?.ReadOnlyHint == true)
+            .Where(t => (t.Toolset == McpToolset.Ppm || t.Toolset is null) && t.Tool.ProtocolTool.Annotations?.ReadOnlyHint == true)
             .Select(t => t.Tool.ProtocolTool.Name);
         Assert.NotEmpty(expected);
+        Assert.Contains(SkillTools.Name, expected);
         Assert.Equal(expected, tools.Select(t => t.ProtocolTool.Name));
     }
 

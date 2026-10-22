@@ -13,7 +13,7 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [Route("api/planning/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-[McpTools(McpToolset.Planning)]
+[McpTools(McpToolset.Planning, "wayd-roadmaps")]
 public class RoadmapsController : ControllerBase
 {
     private readonly ILogger<RoadmapsController> _logger;

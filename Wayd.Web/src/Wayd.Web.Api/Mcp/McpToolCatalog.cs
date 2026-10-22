@@ -12,7 +12,8 @@ namespace Wayd.Web.Api.Mcp;
 
 /// <summary>
 /// Every tool the hosted MCP server offers: one per action marked <see cref="McpToolAttribute"/>, described
-/// from the API's OpenAPI document, plus the import tools. Each belongs to one <see cref="McpToolset"/>.
+/// from the API's OpenAPI document, plus the import tools and <see cref="SkillTools"/>. Each belongs to one
+/// <see cref="McpToolset"/>, except <see cref="SkillTools.Name"/>, which every connection is offered.
 /// </summary>
 /// <remarks>
 /// Built on first use rather than at startup, because generating the document needs the whole application,
@@ -22,7 +23,7 @@ public sealed partial class McpToolCatalog(
     IApiDescriptionGroupCollectionProvider apiDescriptions,
     [FromKeyedServices(WaydOpenApiDocument.Name)] IOpenApiDocumentProvider? documentProvider = null)
 {
-    private readonly Lazy<Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>>> _tools = new(() => Build(apiDescriptions, documentProvider));
+    private readonly Lazy<Task<IReadOnlyList<(McpServerTool Tool, McpToolset? Toolset)>>> _tools = new(() => Build(apiDescriptions, documentProvider));
 
     /// <summary>Every tool, in a stable order.</summary>
     public Task<IReadOnlyList<McpServerTool>> GetTools() => GetTools(McpToolFilter.All);
@@ -31,10 +32,13 @@ public sealed partial class McpToolCatalog(
     public async Task<IReadOnlyList<McpServerTool>> GetTools(McpToolFilter filter) =>
         [.. (await _tools.Value).Where(t => filter.Allows(t.Toolset, t.Tool.ProtocolTool.Annotations)).Select(t => t.Tool)];
 
-    /// <summary>Every tool with the toolset it belongs to, in a stable order.</summary>
-    public Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>> GetToolsets() => _tools.Value;
+    /// <summary>
+    /// Every tool with the toolset it belongs to, in a stable order; null for a tool every connection is
+    /// offered.
+    /// </summary>
+    public Task<IReadOnlyList<(McpServerTool Tool, McpToolset? Toolset)>> GetToolsets() => _tools.Value;
 
-    private static async Task<IReadOnlyList<(McpServerTool Tool, McpToolset Toolset)>> Build(
+    private static async Task<IReadOnlyList<(McpServerTool Tool, McpToolset? Toolset)>> Build(
         IApiDescriptionGroupCollectionProvider apiDescriptions,
         IOpenApiDocumentProvider? documentProvider)
     {
@@ -54,7 +58,8 @@ public sealed partial class McpToolCatalog(
         }
 
         var schema = new OpenApiToolSchema(document);
-        var tools = new List<(McpServerTool Tool, McpToolset Toolset)>();
+        var tools = new List<(McpServerTool Tool, McpToolset? Toolset)>();
+        var skills = Skills.All.Select(s => s.Name).ToHashSet(StringComparer.Ordinal);
 
         var actions = apiDescriptions.ApiDescriptionGroups.Items
             .SelectMany(g => g.Items)
@@ -64,8 +69,10 @@ public sealed partial class McpToolCatalog(
 
         foreach (var (description, action, attribute) in actions)
         {
-            var toolset = action!.ControllerTypeInfo.GetCustomAttributes(typeof(McpToolsAttribute), false).OfType<McpToolsAttribute>().SingleOrDefault()?.Toolset
+            var placement = action!.ControllerTypeInfo.GetCustomAttributes(typeof(McpToolsAttribute), false).OfType<McpToolsAttribute>().SingleOrDefault()
                 ?? throw new InvalidOperationException($"Tool '{attribute!.Name}' is on {action.ControllerTypeInfo.Name}, which has no [McpTools] naming its toolset.");
+            if (!skills.Contains(placement.Skill))
+                throw new InvalidOperationException($"{action.ControllerTypeInfo.Name}'s [McpTools] names the skill '{placement.Skill}', which is not a folder in skills/.");
             var method = description.HttpMethod?.ToUpperInvariant()
                 ?? throw new InvalidOperationException($"Tool '{attribute!.Name}' is on an action with no HTTP method.");
             var path = "/" + description.RelativePath;
@@ -90,16 +97,20 @@ public sealed partial class McpToolCatalog(
             {
                 Name = attribute!.Name,
                 Title = attribute.Title,
-                Description = DescriptionOf(operation),
+                Description = $"{DescriptionOf(operation)} {SkillTools.Pointer(placement.Skill)}",
                 InputSchema = JsonSerializer.SerializeToElement(inputSchema),
                 OutputSchema = output is null ? null : JsonSerializer.SerializeToElement(output.Schema),
                 Annotations = McpToolAnnotationDefaults.For(method, attribute),
             };
-            tools.Add((new ApiEndpointTool(protocolTool, method, template, arguments, output, paged), toolset));
+            tools.Add((new ApiEndpointTool(protocolTool, method, template, arguments, output, paged, placement.Skill), placement.Toolset));
         }
 
+        if (!skills.Contains(ImportTools.Skill))
+            throw new InvalidOperationException($"The import tools name the skill '{ImportTools.Skill}', which is not a folder in skills/.");
+
         var formats = ImportFormats.From(document);
-        tools.AddRange(ImportTools.Create(formats, PreflightOutput(formats, operations, schema)).Select(t => (t, McpToolset.Imports)));
+        tools.AddRange(ImportTools.Create(formats, PreflightOutput(formats, operations, schema)).Select(t => (t, (McpToolset?)McpToolset.Imports)));
+        tools.Add((SkillTools.Create(Skills.All), null));
 
         var duplicate = tools.GroupBy(t => t.Tool.ProtocolTool.Name).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)

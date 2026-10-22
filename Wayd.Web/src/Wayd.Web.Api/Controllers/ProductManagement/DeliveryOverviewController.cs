@@ -17,7 +17,7 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-[McpTools(McpToolset.Delivery)]
+[McpTools(McpToolset.Delivery, "wayd-products")]
 public class DeliveryOverviewController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;

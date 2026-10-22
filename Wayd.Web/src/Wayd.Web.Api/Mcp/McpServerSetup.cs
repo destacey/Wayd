@@ -13,8 +13,8 @@ public static class McpServerSetup
     public const string Path = "/mcp";
 
     /// <summary>
-    /// Registers the MCP server, the tool catalogue it serves, and the prompts generated from the skills,
-    /// which every connection is offered whatever toolsets it chose.
+    /// Registers the MCP server, the tool catalogue it serves, and the prompts generated from the skills
+    /// (<see cref="SkillPrompt"/>), which every connection is offered whatever toolsets it chose.
     /// </summary>
     public static IServiceCollection AddWaydMcp(this IServiceCollection services)
     {
@@ -35,7 +35,7 @@ public static class McpServerSetup
                 };
                 options.ServerInstructions = McpServerInstructions.Text;
                 options.Capabilities = new ServerCapabilities { Tools = new ToolsCapability(), Prompts = new PromptsCapability() };
-                options.PromptCollection = [.. SkillPrompts.All];
+                options.PromptCollection = [.. SkillPrompt.All];
             })
             .WithHttpTransport(options =>
             {

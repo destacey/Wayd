@@ -77,7 +77,7 @@
         </Content>
     </ItemGroup>
 
-    <!-- The published skills, served as MCP prompts (Mcp/SkillPrompts.cs) under the logical name
+    <!-- The published skills, served as MCP prompts and by Skills_Get (Mcp/Skills.cs) under the logical name
          skills/<folder>/<path>, with / whichever platform builds it. -->
     <ItemGroup>
         <EmbeddedResource Include="..\..\..\skills\**\*.md" Visible="false">

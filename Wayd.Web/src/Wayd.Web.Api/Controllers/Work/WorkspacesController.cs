@@ -18,7 +18,7 @@ namespace Wayd.Web.Api.Controllers.Work;
 [Route("api/work/workspaces")]
 [ApiVersionNeutral]
 [ApiController]
-[McpTools(McpToolset.Work)]
+[McpTools(McpToolset.Work, "wayd-teams")]
 public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;

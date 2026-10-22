@@ -23,11 +23,14 @@ public static class ApiToolResult
     /// <summary>
     /// A success answers with the response body as it is, which is already compact JSON, and, for a tool
     /// with an <paramref name="output"/>, the same body as structured content; an empty body answers with
-    /// empty text. A failure answers as an error naming the status and the reason the API gave.
+    /// empty text. A failure answers as an error naming the status and the reason the API gave, and, for a
+    /// tool guided by a <paramref name="skill"/>, a note pointing to it when the request itself may be at
+    /// fault (see <see cref="PointsToSkill"/>).
     /// </summary>
     /// <param name="response">The API's answer.</param>
     /// <param name="output">What the tool declares it answers with, or null for a tool with no output schema.</param>
     /// <param name="bounds">How the tool's result is sliced and cut; null leaves it unsliced, with no filters to name.</param>
+    /// <param name="skill">The skill that guides the tool, or null for none.</param>
     /// <remarks>
     /// <para>
     /// A tool with an output schema that gets no body its schema describes answers as an error rather than
@@ -41,10 +44,10 @@ public static class ApiToolResult
     /// tool's output schema.
     /// </para>
     /// </remarks>
-    public static CallToolResult From(ApiResponse response, ToolOutput? output = null, ResultBounds? bounds = null)
+    public static CallToolResult From(ApiResponse response, ToolOutput? output = null, ResultBounds? bounds = null, string? skill = null)
     {
         if (!response.IsSuccess)
-            return Error(DescribeFailure(response));
+            return WithNote(Error(DescribeFailure(response)), skill is not null && PointsToSkill(response.StatusCode) ? SkillTools.FailureNote(skill) : null);
 
         bounds ??= ResultBounds.None;
         var text = Encoding.UTF8.GetString(response.Body);
@@ -189,6 +192,13 @@ public static class ApiToolResult
         return length;
     }
 
+    /// <summary>
+    /// Whether a failure with <paramref name="statusCode"/> may come from how the tools were used, so the
+    /// skill could help: a client error other than a missing sign-in (401) or a rate limit (429), which no
+    /// guidance changes. A server error is not the caller's to fix.
+    /// </summary>
+    public static bool PointsToSkill(int statusCode) => statusCode is >= 400 and < 500 and not 401 and not 429;
+
     /// <summary><paramref name="result"/> with <paramref name="note"/> as a second text block, when there is one.</summary>
     private static CallToolResult WithNote(CallToolResult result, string? note)
     {
@@ -215,6 +225,14 @@ public static class ApiToolResult
 
     /// <summary>An error result holding <paramref name="message"/>.</summary>
     public static CallToolResult Error(string message) => new() { Content = [new TextContentBlock { Text = message }], IsError = true };
+
+    /// <summary>
+    /// An error result for arguments a tool refused before calling the API, holding <paramref name="message"/>
+    /// and, for a tool guided by a <paramref name="skill"/>, the note pointing to it: arguments a tool refuses
+    /// are always the caller's to correct.
+    /// </summary>
+    public static CallToolResult InvalidArguments(string message, string? skill) =>
+        WithNote(Error(message), skill is null ? null : SkillTools.FailureNote(skill));
 
     private static string DescribeUnexpected(ApiResponse response, string text)
     {

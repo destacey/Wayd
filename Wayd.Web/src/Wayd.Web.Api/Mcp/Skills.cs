@@ -1,42 +1,38 @@
-using System.Reflection;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
-
 namespace Wayd.Web.Api.Mcp;
 
 /// <summary>
-/// The MCP prompts the hosted server offers: one per skill folder in the repository's <c>skills/</c>, which
-/// the build embeds in this assembly, so the published skills stay the single source of the guidance.
+/// The published skills: one per folder in the repository's <c>skills/</c>, which the build embeds in this
+/// assembly, so the hosted server's prompts and <see cref="SkillTools"/> serve the same guidance as the
+/// files users install.
 /// </summary>
 /// <remarks>
-/// A prompt is named after its folder, titled by its <c>SKILL.md</c> heading and described by that file's
-/// frontmatter <c>description</c>. It takes no arguments and answers with one user message per file:
-/// <c>SKILL.md</c> without its frontmatter, then every other <c>.md</c> in the folder, at any depth, in
-/// ordinal order of its path. Line endings are normalized to LF, so a prompt reads the same whichever
+/// A skill is named after its folder, titled by its <c>SKILL.md</c> heading and described by that file's
+/// frontmatter <c>description</c>. Line endings are normalized to LF, so a skill reads the same whichever
 /// platform built the image.
 /// </remarks>
-public static class SkillPrompts
+public static class Skills
 {
     /// <summary>The logical-name prefix of every embedded skill file (see <c>Wayd.Web.Api.csproj</c>).</summary>
     public const string ResourcePrefix = "skills/";
 
-    /// <summary>The file in each skill folder that names, describes and opens its prompt.</summary>
+    /// <summary>The file in each skill folder that names, describes and opens the skill.</summary>
     public const string SkillFileName = "SKILL.md";
 
-    private static readonly Lazy<IReadOnlyList<SkillPrompt>> _all = new(() => FromFiles(EmbeddedFiles()));
+    private static readonly Lazy<IReadOnlyList<Skill>> _all = new(() => FromFiles(EmbeddedFiles()));
 
-    /// <summary>Every skill's prompt, ordered by name.</summary>
-    public static IReadOnlyList<SkillPrompt> All => _all.Value;
+    /// <summary>Every skill, ordered by name.</summary>
+    public static IReadOnlyList<Skill> All => _all.Value;
 
     /// <summary>
-    /// Builds one prompt per skill folder from <paramref name="files"/>, each keyed by its path relative to
-    /// <c>skills/</c> (<c>wayd-ppm/reference/health-checks.md</c>), with either separator.
+    /// Builds one skill per folder from <paramref name="files"/>, each keyed by its path relative to
+    /// <c>skills/</c> (<c>wayd-ppm/reference/health-checks.md</c>), with either separator. Only <c>.md</c>
+    /// files beside <c>SKILL.md</c> become its reference files.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// A folder has no <c>SKILL.md</c>, or its <c>SKILL.md</c> lacks an H1 heading or a single-line frontmatter
     /// <c>description</c>.
     /// </exception>
-    public static IReadOnlyList<SkillPrompt> FromFiles(IEnumerable<KeyValuePair<string, string>> files)
+    public static IReadOnlyList<Skill> FromFiles(IEnumerable<KeyValuePair<string, string>> files)
     {
         var folders = files
             .Select(f => (Path: f.Key.Replace('\\', '/'), Text: f.Value.ReplaceLineEndings("\n")))
@@ -44,7 +40,7 @@ public static class SkillPrompts
             .GroupBy(f => f.Path[..f.Path.IndexOf('/')], StringComparer.Ordinal)
             .OrderBy(g => g.Key, StringComparer.Ordinal);
 
-        var prompts = new List<SkillPrompt>();
+        var skills = new List<Skill>();
         foreach (var folder in folders)
         {
             var skillPath = $"{folder.Key}/{SkillFileName}";
@@ -58,21 +54,20 @@ public static class SkillPrompts
             var title = body.Split('\n').FirstOrDefault(l => l.StartsWith("# ", StringComparison.Ordinal))?[2..].Trim()
                 ?? throw new InvalidOperationException($"{skillPath} has no H1 heading.");
 
-            var texts = folder
+            var references = folder
                 .Where(f => f.Path != skillPath && f.Path.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(f => f.Path, StringComparer.Ordinal)
-                .Select(f => f.Text)
-                .Prepend(body);
+                .Select(f => new SkillFile(f.Path[(folder.Key.Length + 1)..], f.Text));
 
-            prompts.Add(new SkillPrompt(folder.Key, title, description, [.. texts]));
+            skills.Add(new Skill(folder.Key, title, description, body, [.. references]));
         }
 
-        return prompts;
+        return skills;
     }
 
     private static IEnumerable<KeyValuePair<string, string>> EmbeddedFiles()
     {
-        var assembly = typeof(SkillPrompts).Assembly;
+        var assembly = typeof(Skills).Assembly;
         foreach (var name in assembly.GetManifestResourceNames())
         {
             if (!name.StartsWith(ResourcePrefix, StringComparison.Ordinal))
@@ -121,30 +116,15 @@ public static class SkillPrompts
     }
 }
 
-/// <summary>A skill served as an MCP prompt; see <see cref="SkillPrompts"/>.</summary>
-public sealed class SkillPrompt : McpServerPrompt
-{
-    /// <summary>A prompt named <paramref name="name"/> whose messages are <paramref name="texts"/>, in order.</summary>
-    public SkillPrompt(string name, string title, string description, IReadOnlyList<string> texts)
-    {
-        ProtocolPrompt = new Prompt { Name = name, Title = title, Description = description };
-        Result = new GetPromptResult
-        {
-            Description = description,
-            Messages = [.. texts.Select(t => new PromptMessage { Role = Role.User, Content = new TextContentBlock { Text = t } })],
-        };
-    }
+/// <summary>One published skill; see <see cref="Skills"/>.</summary>
+/// <param name="Name">The skill's folder name, which names its prompt and is what <c>Skills_Get</c> takes.</param>
+/// <param name="Title">The <c>SKILL.md</c> H1 heading.</param>
+/// <param name="Description">The <c>SKILL.md</c> frontmatter <c>description</c>: when to read the skill.</param>
+/// <param name="Body"><c>SKILL.md</c> without its frontmatter.</param>
+/// <param name="References">Every other <c>.md</c> in the folder, at any depth, in ordinal order of its path.</param>
+public sealed record Skill(string Name, string Title, string Description, string Body, IReadOnlyList<SkillFile> References);
 
-    /// <inheritdoc />
-    public override Prompt ProtocolPrompt { get; }
-
-    /// <inheritdoc />
-    public override IReadOnlyList<object> Metadata { get; } = [];
-
-    /// <summary>What a <c>prompts/get</c> for this prompt answers, whatever arguments it carries.</summary>
-    public GetPromptResult Result { get; }
-
-    /// <inheritdoc />
-    public override ValueTask<GetPromptResult> GetAsync(RequestContext<GetPromptRequestParams> request, CancellationToken cancellationToken = default) =>
-        ValueTask.FromResult(Result);
-}
+/// <summary>A skill's reference file.</summary>
+/// <param name="Path">The path relative to the skill's folder, with <c>/</c> (<c>reference/tasks.md</c>), as <c>SKILL.md</c> links it.</param>
+/// <param name="Text">The file's text.</param>
+public sealed record SkillFile(string Path, string Text);

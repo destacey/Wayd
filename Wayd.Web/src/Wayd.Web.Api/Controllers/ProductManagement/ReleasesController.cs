@@ -34,7 +34,7 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-[McpTools(McpToolset.Delivery)]
+[McpTools(McpToolset.Delivery, "wayd-delivery")]
 public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;

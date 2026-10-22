@@ -129,6 +129,85 @@ public sealed class ApiToolResultTests
         TextOf(result).Should().Be("API Error: Status 403 (Forbidden). No response body received.");
     }
 
+    [Theory]
+    [InlineData(400)]
+    [InlineData(403)]
+    [InlineData(404)]
+    [InlineData(409)]
+    [InlineData(422)]
+    public void From_PointsAFailureToTheToolsSkill_WhenTheRequestMayBeAtFault(int status)
+    {
+        // Arrange
+        var response = new ApiResponse(status, null, []);
+
+        // Act
+        var result = ApiToolResult.From(response, skill: "wayd-ppm");
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.Content.OfType<TextContentBlock>().Select(c => c.Text).Should().HaveCount(2)
+            .And.EndWith(SkillTools.FailureNote("wayd-ppm"));
+    }
+
+    [Theory]
+    [InlineData(401)]
+    [InlineData(429)]
+    [InlineData(500)]
+    [InlineData(503)]
+    public void From_LeavesTheSkillOut_WhenNoGuidanceChangesTheFailure(int status)
+    {
+        // Arrange
+        var response = new ApiResponse(status, null, []);
+
+        // Act
+        var result = ApiToolResult.From(response, skill: "wayd-ppm");
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        TextOf(result).Should().StartWith($"API Error: Status {status}");
+    }
+
+    [Fact]
+    public void From_LeavesTheSkillOutOfASuccess()
+    {
+        // Arrange
+        var response = new ApiResponse(200, "application/json", Encoding.UTF8.GetBytes("""{"id":1}"""));
+
+        // Act
+        var result = ApiToolResult.From(response, skill: "wayd-ppm");
+
+        // Assert
+        TextOf(result).Should().Be("""{"id":1}""");
+    }
+
+    [Fact]
+    public void InvalidArguments_PointsToTheToolsSkill()
+    {
+        // Arrange
+        var message = "Invalid arguments for tool 'Projects_GetProject': idOrKey is required.";
+
+        // Act
+        var result = ApiToolResult.InvalidArguments(message, "wayd-ppm");
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.Content.OfType<TextContentBlock>().Select(c => c.Text).Should().Equal(message, SkillTools.FailureNote("wayd-ppm"));
+    }
+
+    [Fact]
+    public void InvalidArguments_HoldsOnlyTheMessage_ForAToolWithNoSkill()
+    {
+        // Arrange
+        var message = "Invalid arguments.";
+
+        // Act
+        var result = ApiToolResult.InvalidArguments(message, null);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        TextOf(result).Should().Be(message);
+    }
+
     [Fact]
     public void From_CutsAnArrayOverTheLimitFromTheEnd_AndNamesTheFilters()
     {

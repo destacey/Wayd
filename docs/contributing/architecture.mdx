@@ -123,7 +123,7 @@ Most of the application authorizes on the permission claim alone: a `[MustHavePe
 
 Every mutating method on those three aggregates takes a `PpmActor`; there is no ungated public overload, so the compiler will not let a new handler forget. Paths with no human actor (importers, creation) pass `PpmActor.System` — grep for it to audit every membership bypass in the codebase.
 
-:::warning Forgetting an `.Include` fails silently
+:::warning[Forgetting an `.Include` fails silently]
 `AncestryRoles()` reads `project.Portfolio?.Roles ?? []`. If the handler's query omits the ancestor includes, the navigation is null, ancestry comes back empty, and a legitimately authorized portfolio Owner is **denied** — with no error to trace. Unit tests using in-memory fakes cannot catch this, because `.Include` is a no-op there and the test populates the navigation directly.
 :::
 
@@ -131,7 +131,7 @@ The read side mirrors the same rule as `canManageProject` / `canManageProgram` /
 
 `ProjectDetailsDto.BackwardStatusTargets` follows the same principle for [reverting a project's status](../user-guide/ppm/projects.mdx#reverting-a-project-status): rather than the UI re-deriving which earlier statuses are reachable, the server answers from `ProjectStatusLifecycle` — the same table and entry requirements `Project.RevertStatus` enforces. Adding a status requirement in one place without the other is what makes the dropdown offer a transition that then fails.
 
-:::warning Not every derived field can be computed in the projection
+:::warning[Not every derived field can be computed in the projection]
 `GetProjectQuery` builds its DTO with `ProjectToType`, so every mapping clause must translate to SQL. `BackwardStatusTargets` cannot — building it calls a static factory inside a `Select` over a collection — so the mapping `.Ignore`s it and `ResolveBackwardStatusTargets()` fills it after materialisation. A clause that fails to translate throws only under a real provider; in-memory fakes run the projection as LINQ-to-Objects and evaluate anything, so changes to this mapping need a test in `Wayd.ProjectPortfolioManagement.IntegrationTests`.
 :::
 

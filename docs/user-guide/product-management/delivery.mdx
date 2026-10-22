@@ -58,12 +58,12 @@ its manifest is what it is.
 | Release package | Its own version, and a manifest naming a product and version per component | A product of its own; an owning release |
 | Deployment | Version *xor* package, environment, frozen category, artifact, outcome | Anything about what changed inside |
 
-:::tip Which one am I looking at?
+:::tip[Which one am I looking at?]
 If a customer would recognise the name, it is a **release**. If it names one artifact and a version
 number, it is a **version**. If it is what the pipeline pushed, it is a **package**.
 :::
 
-:::tip A worked example
+:::tip[A worked example]
 Wayd ships two assemblies together and a tool on its own cadence, and announces the lot as one
 release:
 
@@ -285,7 +285,7 @@ Both routes are edited in one form rather than two because the rule below spans 
 each half would have to be judged against a release only half-changed — and moving a version into the
 package that carries it would work in one order and be refused in the other.
 
-:::warning A version is announced once, by one route
+:::warning[A version is announced once, by one route]
 A version shipping inside one of the release's packages **cannot also be carried directly**.
 Otherwise `2026.07` would announce the same shipment twice and "what did it contain" would have two
 different answers.
@@ -320,7 +320,7 @@ A **release package** is several component versions shipped as one coordinated u
 
 **Where a package exists, it is the unit of deployment** and its component versions are not. One pipeline run shipping fifteen services must count as one deployment, not fifteen — otherwise deployment frequency measures how finely you have subdivided your services rather than how often you ship.
 
-:::warning A package is not a Release Train
+:::warning[A package is not a Release Train]
 A release package is not a Release Train. A Release Train is SAFe's organizational construct — a long-lived group of teams — and Wayd models that as a [Team of Teams](../organizations/index.mdx#teams). A package is one shipment.
 :::
 
@@ -392,7 +392,7 @@ Each environment carries a **category**: Development, Testing, Staging, Producti
 
 Environments are also ordered into **rings**, so progressive rollout is representable.
 
-:::note Reclassifying does not rewrite history
+:::note[Reclassifying does not rewrite history]
 Each deployment freezes the category of the environment it went into, so reclassifying an environment changes where *future* deployments count and leaves past ones as they were. A staging environment promoted to production does not retroactively inflate your deployment frequency. The category is changed on the ordinary Edit form, but Wayd records the change as an event of its own rather than folding it into the edit, so the change in what gets counted from then on stays traceable.
 :::
 
@@ -479,7 +479,7 @@ every version that **changed** in it. Its carried-forward components shipped ear
 A deployment that is later rolled back still shipped first, so it counts too. Deployments outside
 production never mark anything released.
 
-:::note What a rolled-back deployment counts as
+:::note[What a rolled-back deployment counts as]
 A rollback still counts toward **deployment frequency** — it reached production, which is what that
 measures — and counts against **change failure rate**. The two measures deliberately disagree about
 it, which is the point of having both.
@@ -499,7 +499,7 @@ Each entry is the latest deployment that **succeeded and stayed succeeded**, whi
 
 Where a later attempt on the same product failed or was rolled back, the entry is marked. The running version is still the honest answer, but on its own it would hide that someone has since tried to move past it and could not.
 
-:::note A package is expanded, not listed
+:::note[A package is expanded, not listed]
 A package deployment is broken into its [manifest](#release-packages) and each component competes for its own product's slot, so every row on this page is a product. Listing the package itself instead would report **every bundle ever deployed** as running: successive bundles carry the same components, and no bundle supersedes a differently-numbered one.
 
 An entry that arrived inside a package names it, so the deployment the version rode in on stays visible.
@@ -540,15 +540,15 @@ What has happened to versions **and packages** lately, most recent first: releas
 
 Read from [status history](#version-status-history) rather than the records' own cut and released moments, because a record's moment says the state it is in now, while a transition says when it changed — which is what a feed is a list of.
 
-:::note Packages drop out when you scope to a product
+:::note[Packages drop out when you scope to a product]
 A package spans several products, so attributing one to a single node would put the same shipment under each of them. Scoping the page to a product therefore leaves packages out of the feed, and the entries you see are versions alone.
 :::
 
-:::caution Cut to released excludes what it cannot measure
+:::caution[Cut to released excludes what it cannot measure]
 A version can be marked released without ever having been cut, and [that is deliberate](#recording-a-version) — demanding a cut first would make importing historical versions impossible. Those versions carry no latency, so they are left out rather than counted as zero, which would make the average improve every time more history was loaded. The tile says how many of the window's releases it actually speaks for.
 :::
 
-:::note What this page does not say
+:::note[What this page does not say]
 Neither measure says anything about whether a deployment worked. A version has no failed state — its lifecycle is Planned, Ready, Released and Withdrawn — and failure belongs to the [deployment](#deployments), where it is scoped to production. Measuring it from version records would be inventing an answer. See [Delivery Metrics](#delivery-metrics) for what the deployment record supports.
 :::
 
@@ -578,7 +578,7 @@ The share of production deployments that failed or were rolled back.
 
 Only production counts. A failure caught in staging is a failure that was *prevented*, and counting it would invert what the measure means.
 
-:::caution This is a proxy, not the industry measure
+:::caution[This is a proxy, not the industry measure]
 DORA's change failure rate counts changes that **degraded service** — which a deployment record cannot know. What Wayd counts is deployments recorded as failed or rolled back, which is the closest signal available without an incident feed. The two diverge in both directions: a rollback made as a precaution counts here and should not, and a bad change nobody rolled back does not count here and should. Read it as a trend in remediated deployments rather than as the DORA number, and the screen labels it that way.
 :::
 
@@ -600,7 +600,7 @@ Needs a link from a deployment back to the change it carried, such as a commit o
 
 Needs an incident record: when service degraded and when it recovered. A rollback is not a substitute, because it says a change was reverted rather than that service was restored.
 
-:::tip Combining windows
+:::tip[Combining windows]
 Every metric carries its raw counts alongside the derived figure — deployment frequency reports the
 count and the number of days, change failure rate the failed and total counts. Combine windows or
 scopes by summing those rather than by averaging the rates, which would weight a quiet week the same

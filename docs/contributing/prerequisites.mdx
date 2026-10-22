@@ -58,7 +58,7 @@ credential exists only in the Development-scoped files. Any non-Development host
 configured fails fast with `DB ConnectionString is not configured.` rather than silently connecting
 with a credential that is public in git history.
 
-:::note LocalDB is Windows-only
+:::note[LocalDB is Windows-only]
 
 `(localdb)\mssqllocaldb` was the previous default. It throws `PlatformNotSupportedException` when the
 connection string is parsed on Linux or macOS, so it cannot be used there. Windows developers who

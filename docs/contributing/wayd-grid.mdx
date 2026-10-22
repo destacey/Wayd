@@ -16,7 +16,7 @@ import { WaydGrid, createActionsColumn } from '@/src/components/common/wayd-grid
 import type { ColumnDef } from '@tanstack/react-table'
 ```
 
-:::tip Always use `WaydGrid`
+:::tip[Always use `WaydGrid`]
 Never reach for Ant Design's `Table` or raw TanStack Table directly. `WaydGrid` is the seam that keeps grids consistent and lets us swap the engine once. Columns are plain TanStack [`ColumnDef`](https://tanstack.com/table/latest/docs/api/core/column-def)s, extended with a small `meta` object (see [Column meta](#column-meta)).
 :::
 

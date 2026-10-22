@@ -44,7 +44,7 @@ Wayd seeds a starting set:
 
 **Releasable** is the flag that carries real weight: it decides whether versions can be cut against a node. Grouping nodes like Product Line and Platform are not versioned in their own right — the versions are cut against the services beneath them.
 
-:::note Retyping is constrained by versions
+:::note[Retyping is constrained by versions]
 A type cannot be changed to a non-releasable one once versions exist against the product. Those versions would otherwise be left describing something that cannot be versioned.
 
 Releases do not constrain retyping. A release is an announcement and is deliberately not gated on this flag — it usually sits under a product line, which is normally not releasable.

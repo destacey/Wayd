@@ -64,7 +64,7 @@ Wayd supports two authentication paths:
 - **Local (username + password)** — always available, configured per-deployment via JWT signing settings.
 - **Identity providers (OIDC)** — Microsoft Entra ID and any standards-compliant OIDC provider (Google, Okta, Auth0, Keycloak, …). Providers are stored in the database and managed by admins through the Settings UI; no app restart is needed to add, edit, enable, or disable one.
 
-:::tip First deployment?
+:::tip[First deployment?]
 If this is a fresh deployment with no users yet, see [First-Run Setup](./first-run-setup.mdx) to create the initial administrator account before configuring identity providers.
 :::
 
@@ -104,7 +104,7 @@ The database is the single source of truth for identity providers — there is n
 
 The client ID and API client ID are different values because Wayd follows Entra's standard two-registration pattern (see [Entra App Registration Setup](./entra-app-registration.mdx)).
 
-:::tip Setting up a new environment
+:::tip[Setting up a new environment]
 If you don't yet have an Entra app registration for this deployment, follow [Entra App Registration Setup](./entra-app-registration.mdx) first. That walks through creating the two app registrations (API + client), choosing the right token version, and collecting the GUIDs referenced above.
 :::
 
@@ -164,7 +164,7 @@ cd Wayd.Web/src/Wayd.Web.Api
 dotnet user-secrets set "SecuritySettings:DataProtection:MasterKey" "$(openssl rand -base64 32)"
 ```
 
-:::warning Key loss is unrecoverable
+:::warning[Key loss is unrecoverable]
 This is a **data-encryption** key, not a signing key. If you lose or change it, every connector credential stored in the database becomes undecryptable AEAD garbage — customers must re-enter every PAT and API key. Treat it as write-once for the lifetime of the data. Keep a backup outside the deployment system (password manager, sealed vault).
 
 This is also why `MasterKey` must be **separate** from `LocalJwt:Secret` — JWT secrets are cheap to rotate (sessions die, nothing else); data keys are not. Per [NIST SP 800-57 §5.2](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf), "a key shall be used for only one purpose."
@@ -265,7 +265,7 @@ Only enabled providers appear. `AllowedTenantIds` and any future server-side sec
 
 ### Identity model
 
-:::note `UserName` is address-shaped, and validated as such
+:::note[`UserName` is address-shaped, and validated as such]
 A locally created account takes `UserName` from the email it was created with; an Entra account takes it
 from the UPN. Both are addresses or address-shaped identifiers, so **the allowed-username character set is
 the email grammar** — `IdentityOptions.User.AllowedUserNameCharacters` is assigned
@@ -483,7 +483,7 @@ This means the CSP mitigates clickjacking and injected-form/base-tag attacks, bu
 
 The middleware also gates it on `context.Request.IsHttps`, so it is never emitted over a plain-HTTP hop. In the current Azure deployment TLS terminates at Container Apps ingress and the container listens on plain HTTP (`ASPNETCORE_URLS=http://+:8080`), so `IsHttps` holds only because Terraform sets `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, which makes it reflect `X-Forwarded-Proto` (see [Rate limits](#rate-limits)). Without that setting, `EnableHsts: true` is a **no-op**.
 
-:::note No component currently sends HSTS
+:::note[No component currently sends HSTS]
 Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not add the header, and there is no Front Door or Application Gateway in `.iac/`. If HSTS is needed, ramp `max-age` (300 → 86400 → 63072000) rather than starting at two years, and only add `preload` if you mean it — that list is effectively permanent.
 :::
 

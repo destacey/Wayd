@@ -57,11 +57,11 @@ With your admin account you can now:
 - **Add an identity provider** — Settings → Identity Providers. Lets your team log in via Microsoft Entra ID or another OIDC provider. See [Configuration → Identity providers](./configuration.mdx#identity-providers-db-managed).
 - **Invite users** — Settings → Users → Create user.
 
-:::tip Token expired?
+:::tip[Token expired?]
 The bootstrap token lives only in memory. If you restart the application before completing setup, a new token is generated and printed again.
 :::
 
-:::note API alternative
+:::note[API alternative]
 If you prefer to complete setup without a browser, POST directly to the API:
 
 ```bash
@@ -104,6 +104,6 @@ Two things you may need to change, both covered in [Configuration → Security H
 - **Wayd must be embedded in an iframe** (an intranet portal, another app). `X-Frame-Options: DENY` and `frame-ancestors 'none'` block this by design. This is a deliberate clickjacking defence — the app has destructive controls behind a permission claim, so only relax it if you genuinely need framing, and prefer naming the specific parent origin over allowing all.
 - **Your edge already sets these headers.** Set `Enable: false` rather than emitting them twice; duplicated `X-Frame-Options` is ignored by some browsers.
 
-:::note HSTS is not enabled
+:::note[HSTS is not enabled]
 Wayd does not send `Strict-Transport-Security` by default, and Azure Container Apps ingress does not add it either. If you terminate TLS at a Front Door or Application Gateway, enable it there. See [Configuration → HSTS is off by default](./configuration.mdx#hsts-is-off-by-default) before turning it on anywhere — it is a browser-side latch that cannot be recalled.
 :::

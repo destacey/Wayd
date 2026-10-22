@@ -12,7 +12,7 @@ useful for standing up an environment, onboarding a company's people and teams, 
 another tool. Each import is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and
 each is gated by a permission.
 
-:::info Screen or API
+:::info[Screen or API]
 Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template. Files can also be posted directly to the
 endpoints below (for example with `curl`, a script, or the
@@ -133,7 +133,7 @@ number and may appear **anywhere in the same file** or already exist — the imp
 creating everyone, so order within the file does not matter. An employee whose manager cannot be resolved is
 still created (without a manager) rather than failing the batch.
 
-:::note Splitting a large export
+:::note[Splitting a large export]
 A file holds at most 50,000 employees, so a larger export goes in several files, posted **one at a time
 and each waited for**. A manager resolves only if they are in the same file or already exist: a report
 whose manager arrives in a *later* file is created without one, and the link is not made afterwards.
@@ -157,13 +157,13 @@ Order the files so managers precede their reports where you can, and post them u
 | `IsActive` | No | Whether the employee is current. Defaults to `true`. |
 | `EmployeeType` | No | Free-form worker type (e.g. `Employee`, `Contractor`, `Intern`), mirroring an HRIS descriptor. Max 256 chars. |
 
-:::note Former employees
+:::note[Former employees]
 Set `IsActive` to `false` to record someone who has left. Inactive employees are created active and then
 deactivated through the domain, so the record is consistent — but note that an inactive employee **cannot
 hold a current team membership**, so leave them out of the [staffing import](#team-staffing-import).
 :::
 
-:::note Additional emails
+:::note[Additional emails]
 `AdditionalEmails` records other addresses the same person is known by — typically an address they used
 before a domain or tenant move. Wayd matches people against connected systems on email, so an Azure DevOps
 work item still stamped with someone's previous address resolves to them once that address is listed here.
@@ -209,7 +209,7 @@ date range.
 | `Start` | Yes | When the membership begins. Must be on or after both teams' active dates. |
 | `End` | No | When it ends. Must be on or after `Start`. |
 
-:::note Multi-tier hierarchies
+:::note[Multi-tier hierarchies]
 Because a child may itself be a team of teams, chaining rows builds multiple tiers (for example a team under
 an ART, and that ART under a value stream). The batch is all-or-nothing and rejects a parent that is not a
 team of teams, or a membership that would start before either team was active.
@@ -228,7 +228,7 @@ to give someone **multiple roles** on the same team, add multiple rows.
 | `EmployeeNumber` | Yes | The employee, by number. Must be an **active** employee. |
 | `RoleName` | Yes | A [team member role](./index.mdx#team-members), **by name**. The role must already exist. |
 
-:::warning Roles and active employees
+:::warning[Roles and active employees]
 Two things fail the whole batch if not satisfied: the **role must already exist** (staffing does not create
 roles — resolve them by name), and the **employee and team must both be active** (the domain does not allow
 staffing an inactive person or team). Create any needed roles first, and omit former employees.

@@ -11,7 +11,7 @@ Wayd can load PPM data in bulk from CSV files through a set of **import endpoint
 standing up an environment, migrating from another tool, or seeding realistic data. Each import is a single
 `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a permission.
 
-:::info Screen or API
+:::info[Screen or API]
 Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template. Calls can also be made directly to the
 endpoints below (for example with `curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
@@ -185,7 +185,7 @@ in the note below.
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
 
-:::note Closed and archived portfolios
+:::note[Closed and archived portfolios]
 A portfolio destined to be `Closed` or `Archived` is imported **active** here (with its start date) and
 closed by the [finalize import](#finalize-import) after its programs and projects have been loaded — because
 a portfolio cannot close until its contents are closed.
@@ -214,7 +214,7 @@ reason in the note below.
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
 
-:::note Completed and canceled programs
+:::note[Completed and canceled programs]
 Like portfolios, a program that should end up `Completed` or `Canceled` is imported **active** and closed by
 the [finalize import](#finalize-import), since a program can only be closed once all its projects are closed.
 :::
@@ -290,7 +290,7 @@ project's assigned lifecycle and start as *Not Started*; this import sets each o
 | `StageName` | Yes | A project stage, by name — created from a stage of the project's lifecycle. |
 | `Status` | Yes | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. |
 
-:::note Applied exactly as given
+:::note[Applied exactly as given]
 This import sets stage status to **exactly** the value supplied — it does **not** derive a stage's status
 from its tasks. Whatever produces the file decides what each stage's status should be, so you keep full
 control. (The [data-generation tool](../../contributing/tools/data-generation.mdx) rolls each stage's status

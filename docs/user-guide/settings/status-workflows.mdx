@@ -11,7 +11,7 @@ A **status workflow** is the set of statuses one kind of record moves through �
 
 Workflows are managed under **Settings → Status Workflows** and require the `Permissions.StatusWorkflows.*` permissions.
 
-:::note Status is data, meaning is code
+:::note[Status is data, meaning is code]
 Renaming a status changes what people read; it does not change what Wayd does. The behaviour is carried by a status's **category** and its **alias**, which are described below. That separation is what lets you call a status whatever your organization calls it without breaking the reports built on it.
 :::
 
@@ -172,7 +172,7 @@ stateDiagram-v2
 
 **Published** means records can be assigned to it — and its **structure is frozen**. Statuses cannot be added or removed, none can change category or alias, and the transitions are fixed. Renaming the workflow, renaming or re-describing a status, and reordering statuses are still allowed: they change what people read, not what any record holds.
 
-:::note Why published workflows are frozen
+:::note[Why published workflows are frozen]
 Every record carries a copy of its status's category and alias. Changing a published status would leave every record holding it disagreeing with the status it points at — a product would report as Active while the status said Done. Moving records is a [reassignment](#changing-which-workflow-is-used), not an edit.
 :::
 
@@ -223,7 +223,7 @@ Any automatic choice can be overridden — a Category match in particular deserv
 
 The final step states how many records will move, and from which workflow to which. Every moved record gains an entry in its status history, so the change is traceable afterwards.
 
-:::warning Reassignment is not undone automatically
+:::warning[Reassignment is not undone automatically]
 Moving back is another reassignment. The records will carry both moves in their history.
 :::
 

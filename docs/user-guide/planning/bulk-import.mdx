@@ -13,7 +13,7 @@ Wayd can load planning data in bulk from CSV files through three **import endpoi
 single `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a
 permission.
 
-:::info Screen or API
+:::info[Screen or API]
 Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template. Files can also be posted directly to the
 endpoints below, for example with `curl` or a script. Exact request/response shapes are also in the
@@ -23,7 +23,7 @@ However it was submitted, the run is visible in **Settings → Imports**, where 
 each row and act on a run that did not finish. See [Imports](../settings/imports.mdx).
 :::
 
-:::warning These imports take IDs, not names
+:::warning[These imports take IDs, not names]
 Unlike the [PPM](../ppm/bulk-import.mdx) and [Organization](../organizations/bulk-import.mdx) imports,
 which resolve everything by human-readable natural key, **these reference records by GUID** — teams,
 people and planning intervals — and use **numeric ids** for status, category, impact and likelihood.
@@ -82,7 +82,7 @@ You do not need to work out what happened by re-posting. Open the run in
 - **Resume** a run that stopped partway — cancelled, or interrupted — to apply only the rows it never
   reached.
 
-:::note Row data is kept for 30 days
+:::note[Row data is kept for 30 days]
 Retrying a row re-applies the data you submitted, which is held for 30 days after a run finishes and
 then discarded. After that a row can no longer be retried and the file must be submitted again.
 :::

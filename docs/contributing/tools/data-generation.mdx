@@ -16,7 +16,7 @@ it doubles as an integration smoke test.
 
 **Project:** `Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli` (the executable is `wayd-data`).
 
-:::info Scope
+:::info[Scope]
 Generates the organization (people + team hierarchy), the PPM dataset (portfolios, programs, projects,
 tasks, strategic themes, and strategic initiatives with KPIs), the Product Management dataset
 (products and the dependencies between them, versions, release packages, releases, deployment environments
@@ -37,7 +37,7 @@ the same generation options.
 If you would rather not start from a command line, [`wayd-data ui`](#the-ui) opens a page that builds the
 recipe for you, seeds it, and shows the command it corresponds to.
 
-:::note `generate` writes files to read, not files to post
+:::note[`generate` writes files to read, not files to post]
 The organization files are postable as they stand — every reference in them is a natural key the generator
 owns. The PPM, Product Management and Planning files are the generated model: they name portfolios,
 products, versions and planning intervals rather than pointing at ids, because those ids only exist once a
@@ -78,7 +78,7 @@ A token acts with its account's permissions, so create it as an administrator. B
 seed checks that the token can submit every import it splits into several files, and stops naming any it
 cannot — see [One area can be more than one file](#one-area-can-be-more-than-one-file).
 
-:::tip Re-seeding
+:::tip[Re-seeding]
 The import is **additive** and rejects duplicates, so it expects a clean database. To re-seed, reset the
 database first, then run `seed` again.
 
@@ -238,7 +238,7 @@ API enforces, so the account works immediately either way.
 
 `--skip-users` turns the area off, and `--user-password` overrides the password for one run.
 
-:::note Which employees get an account
+:::note[Which employees get an account]
 The people holding a PPM role — sponsors, owners and managers — plus the executives, which is a few dozen
 rather than the whole company. An account that leads nothing behaves like every other account that leads
 nothing, so there is little to learn from hundreds of them. The executives are included so an
@@ -511,7 +511,7 @@ The `seed` verb bootstraps them through the normal settings API (create-or-get b
 lifecycle) before importing projects, which reference them by id. They are not written as CSV by
 `generate`.
 
-:::note Why some historical work is "finalized" separately
+:::note[Why some historical work is "finalized" separately]
 The domain only lets work be **added** to an active program or portfolio, but only lets one be **closed**
 once everything inside it is closed. So historically-complete programs and portfolios are imported active
 and then closed by a final `finalize` pass, after their contents exist. The generator emits the finalize
@@ -584,7 +584,7 @@ page: deployment frequency climbs toward today and change failure rate falls, ra
 Wayd does not compute lead time yet, but the data already carries what it would read — every production
 deployment follows its version's cut.
 
-:::note The feature flag
+:::note[The feature flag]
 Product Management is seeded **disabled**, and every one of its endpoints — the imports included — answers
 404 until it is enabled. When the area runs, `seed` switches the `product-management` flag on first and
 says so in the log.
@@ -641,7 +641,7 @@ today, which is usually what you want — generated data straddles now, so there
 ahead — but it also means tomorrow's run places every record a day further along, and flips anything that
 crossed today from active to complete.
 
-:::note What "reproducible" means here
+:::note[What "reproducible" means here]
 The seed reproduces the **generated data** — the same names, emails, employee numbers, team codes, and
 hierarchy. It does **not** reproduce the database primary keys. Wayd assigns IDs (and other server-side
 keys) when the rows are created through the API, so seeding the same data twice yields different database

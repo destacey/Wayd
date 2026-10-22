@@ -39,7 +39,7 @@ This is the backend. It defines what "being authenticated to Wayd's API" means.
 4. **Redirect URI**: leave blank. The API never receives redirects.
 5. Click **Register**.
 
-:::note Why both Entra-side and Wayd-side tenant restriction?
+:::note[Why both Entra-side and Wayd-side tenant restriction?]
 When you pick **Multiple Entra ID tenants**, Entra offers an **Allow only certain tenants (Preview)** sub-option that restricts which tenants it will even issue tokens for. Use it, and *also* keep Wayd's `AllowedTenantIds` allowlist populated — defense in depth.
 
 **Why restrict at Entra.** With *Allow all tenants*, a user in any Entra tenant can successfully acquire a valid, signed Entra access token with `aud` = Wayd's API client ID. Wayd rejects it at `/api/auth/exchange` (401, `tid` not in allowlist), so they can't use it — but they *got issued a real signed credential naming your resource*. Narrow exposure, but non-zero, and easy to close: set Entra to refuse the token in the first place.
@@ -79,7 +79,7 @@ By default, new app registrations issue **v1** access tokens. Wayd expects **v2*
    ```
 4. **Save**.
 
-:::warning Field name
+:::warning[Field name]
 The field is `api.requestedAccessTokenVersion` in the current Microsoft manifest schema. Older tutorials and blog posts reference `accessTokenAcceptedVersion` at the root of the manifest — that name belongs to a deprecated schema and will not take effect on current app registrations. See the [Microsoft app manifest reference](https://learn.microsoft.com/en-us/entra/identity-platform/reference-app-manifest).
 :::
 

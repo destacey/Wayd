@@ -345,11 +345,15 @@ Sanitizing before `rehypeRaw` leaves the raw HTML unparsed at that point, so it 
 
 `sanitizeSchema` (`sanitize-schema.ts`) is the default `rehype-sanitize` schema plus `<u>`, which the renderer maps to antd's underline `Text`. The default schema keeps GFM tables, task lists and `language-*` code fences intact while dropping `<iframe>`, `<form>`, `<base>`, `<meta>`, `<style>`, event-handler attributes and the `style` attribute.
 
-:::warning Check additions against the overlay case
+:::warning[Check additions against the overlay case]
 Anything added to `tagNames` or `attributes` must be checked against clickjacking. An attacker who can set `style` on any element can cover the page with a full-viewport overlay — that is same-origin, so no CSP prevents it. `sanitize-schema.test.ts` covers this case explicitly; keep it passing.
 :::
 
 The docs viewer is a **separate** pipeline (`next-mdx-remote` / `MDXRemote`) rendering repo-authored content, and does not go through `MarkdownRenderer`.
+
+### Writing docs for both renderers
+
+The `docs/` folder is rendered by Docusaurus and by the in-app docs viewer, so write only syntax both understand. Admonitions are `:::note`, `:::tip`, `:::info`, `:::warning`, `:::caution` and `:::danger`; a title goes in brackets — `:::warning[Before you start]`. The older `:::warning Before you start` form renders as raw text on both: the docs site's `future.v4` flag turns off the MDX 1 compatibility that read it, and the in-app viewer (`remark-directive` plus `src/lib/remark-docs-admonitions.ts`) never supported it.
 
 ## Key Libraries
 

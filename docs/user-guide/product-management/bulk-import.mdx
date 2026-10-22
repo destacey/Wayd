@@ -12,7 +12,7 @@ are useful for standing up a catalog, migrating from another tool, or seeding re
 is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a
 permission.
 
-:::info Screen or API
+:::info[Screen or API]
 Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template, taking the same CSV described here. The
 endpoints can also be called directly — with `curl`, a script, or anything else — and their exact
@@ -113,7 +113,7 @@ Each step then needs the one above it:
 | Environments | — | Names must not already exist. |
 | Deployments | Environments, versions, packages | A deployment names its environment by name and the version or package it deployed by id. |
 
-:::warning Releases are last, and their contents must have shipped
+:::warning[Releases are last, and their contents must have shipped]
 A release marked with a `ReleasedDate` is **refused while anything it carries has not shipped**. This
 is the one cross-record rule in Product Management, and it is why releases come last.
 
@@ -254,7 +254,7 @@ display as `Category | tag`.
 Both halves must exist and be active. An unknown category, an unknown tag on that category, or an inactive
 one fails the batch.
 
-:::note An axis that allows one value
+:::note[An axis that allows one value]
 Where a [category allows only one tag](./products.mdx#tags), a row naming two from that axis keeps the
 **last** one. The domain treats a second tag on a single-value axis as a correction rather than an error —
 "this is a mobile app, not a web app" — and the import inherits that behaviour rather than refusing.
@@ -475,7 +475,7 @@ state**, not a draft: a repackaging or a pricing change is announced with nothin
 Both routes share one file because the rule below spans them. A version carried directly needs its
 product as well as its number, since a number is only unique within one product.
 
-:::warning A version is announced once, by one route
+:::warning[A version is announced once, by one route]
 A version shipping inside one of the release's packages **cannot also be carried directly**. Otherwise
 one shipment would be announced twice and *what did 2026.07 contain* would have two answers.
 :::

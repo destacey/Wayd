@@ -9,7 +9,7 @@ audience: [developer]
 
 The project was renamed from **Moda** to **Wayd**. This guide walks through the one-time steps to update your local development environment after pulling the rename.
 
-:::info Who needs this?
+:::info[Who needs this?]
 Only developers who had a working local Moda environment before the rename. If you're cloning fresh, skip this page — [Installation](./installation.mdx) covers everything you need.
 :::
 
@@ -135,7 +135,7 @@ not installed on the host.
 
 The script is idempotent — if `[Moda]` doesn't exist, it prints a no-op and EF Core will create `[Wayd]` fresh on the next API run.
 
-:::warning Active connections
+:::warning[Active connections]
 The `SINGLE_USER WITH ROLLBACK IMMEDIATE` step forcibly disconnects anyone holding a connection to the `moda` database. Close SSMS, Azure Data Studio, running API processes, and LINQPad before running the rename.
 :::
 
@@ -184,7 +184,7 @@ if [ -d "$old" ]; then
 fi
 ```
 
-:::note Project slot naming
+:::note[Project slot naming]
 Claude Code derives the slot name from the absolute path, replacing `/` or `\` with `-`. On Windows the drive letter is preserved (e.g., `D--source-repos-Moda`); on macOS/Linux the path starts with `-` (the leading `/` becomes a dash). Adjust the paths above if your repo lives somewhere other than `source/repos/`.
 :::
 

@@ -60,7 +60,7 @@ A preflight becomes a run like any other, marked **Preflight** in the list and o
 same row filters and export. It creates no records, records no activity, sends nothing to other areas of
 Wayd, and does not use up any record numbers.
 
-:::warning A preflight is advice, not a promise
+:::warning[A preflight is advice, not a promise]
 It reports what would have happened when it ran. Someone can create a record with the same name, or
 remove one your file refers to, before you import. The import checks every row again, so it may still
 reject something the preflight passed.
@@ -115,7 +115,7 @@ bookmarked or shared with someone who may see that kind of import. A run that wa
 a batch lists the batch's other files under **Submitted With**, each with its status, so a seed or a
 split export can be walked file by file from any of them.
 
-:::note "0 of 40 applied" is not always a bug
+:::note["0 of 40 applied" is not always a bug]
 Some imports are **all-or-nothing** — a team hierarchy, for instance, because half an imported hierarchy
 is worse than none. One rejected row in those means nothing is written. The run shows which import
 behaves this way.
@@ -177,7 +177,7 @@ row twice.
   `import-stall-recovery`, where its schedule can be changed. If it is deleted, it is scheduled again the
   next time the server starts.
 
-:::warning Row data is kept for 30 days
+:::warning[Row data is kept for 30 days]
 Retrying re-applies the data you submitted, which is held for 30 days after a run finishes and then
 discarded — it is a copy of your file, and keeping it forever would mean holding that data forever.
 After that the run's history remains, but its rows can no longer be retried and the file must be

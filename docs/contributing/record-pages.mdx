@@ -11,7 +11,7 @@ Every entity in Wayd — a project, a team, an employee, a program — gets a **
 
 Start with [Does it get a record page at all?](#does-it-get-a-record-page-at-all) — a record with nothing but its own fields is better served by a panel beside its list than by a page of its own.
 
-:::info Status
+:::info[Status]
 This is the target pattern. Existing pages are migrating to it area by area (see [Adoption](#adoption)). When adding a **new** record page, follow this document rather than copying an older page.
 :::
 
@@ -65,7 +65,7 @@ The identity bar answers two different questions with two different elements. Do
 
 Teams and Team of Teams are the only entities with a `code`. The route still resolves on the numeric key; the code wins the chip because it is what people say out loud.
 
-:::warning Never build the title by concatenation
+:::warning[Never build the title by concatenation]
 Do not write `` title={`${key} - ${name}`} ``. A concatenated key cannot be styled, copied cleanly, or aligned across records of differing key lengths. Pass `recordKey` instead.
 :::
 
@@ -89,7 +89,7 @@ An operational page is not a record, so none of the section rules below apply to
 
 A **config list** keeps the list on screen and renders the selected record's fields in a panel beside it. Selecting a row changes the panel rather than navigating, so comparing three categories costs three clicks instead of six. The open record lives in `?selected=`, because which record you are looking at is a place worth sharing — where a filter is a working preference and stays in local storage.
 
-:::warning A child collection is content, even a small one
+:::warning[A child collection is content, even a small one]
 A work process's schemes list looked like "just one more field" and is not: it has its own query, its own row count, and grows independently of the record. That is a record page. The test is the shape of the data, not how much of it there happens to be today.
 :::
 
@@ -146,7 +146,7 @@ The record name's weight, not its size, is what makes it read first — 600 agai
 </RecordLayout>
 ```
 
-:::danger Do not invent sections to qualify for a rail
+:::danger[Do not invent sections to qualify for a rail]
 Splitting a record into "Details" and "Projects" so it looks consistent with other pages makes it worse — one scroll becomes two clicks. Let the record's real shape decide, and accept that some pages have no rail.
 :::
 
@@ -179,7 +179,7 @@ Rules:
 - **`scroll: false` is required.** Without it the router scrolls to top on every section change.
 - **Validate against the sections the current viewer can see**, not the full list — sections are permission-gated, and a shared link can reach someone without access. Fall back to the default rather than rendering an empty panel.
 
-:::warning Section ids are a public contract
+:::warning[Section ids are a public contract]
 Ids appear in URLs people paste into tickets and Slack. Renaming one breaks existing links. Treat ids as stable, let `label` change freely, and use kebab-case (`work-items`, `cycle-time`).
 :::
 
@@ -219,7 +219,7 @@ Distinguish the two failure kinds: a **render error** is a bug — say so and of
 | Timeline, org chart | Spinner — shape is data-dependent |
 | Refetch of visible content | **Neither** — keep the stale data |
 
-:::warning Drive skeletons off `isLoading`, not `isFetching`
+:::warning[Drive skeletons off `isLoading`, not `isFetching`]
 `isLoading` is the first load; `isFetching` is any load. Replacing content the user is already reading with a skeleton on refetch is worse than showing slightly stale data.
 :::
 
@@ -227,7 +227,7 @@ A skeleton that lies is worse than a spinner. If it shows three rows and twenty 
 
 A chart is the case where that rule is easy to misread. Its *data* is unpredictable, but its *frame* is not: a plot area of known height, in a card of known width. `ChartSkeleton` draws that frame with a chart glyph in it, which is honest — nothing about it implies how many series are coming. A timeline or org chart has no fixed frame, so it still spins.
 
-:::warning Never use a placeholder value as a loading state
+:::warning[Never use a placeholder value as a loading state]
 `value={isLoading ? '—' : count}` reads as a real measurement — "not applicable" — rather than saying a number is on its way, and the tile then jumps as the dash is replaced. Pass `loading` instead and let the card draw its skeleton.
 :::
 
@@ -242,7 +242,7 @@ Decided by **how long the value should survive**, applied in this order:
 
 Most state is (4), and that is fine. Reach for anything heavier only when a specific behaviour demands it.
 
-:::tip Every persisted value has exactly one owner
+:::tip[Every persisted value has exactly one owner]
 A Context or a slice — never a component calling `useLocalStorageState` directly. Which of the two matters less than the single-owner rule; pick a Context when there is one consumer and no interaction with other state, a slice when several features read it.
 :::
 
@@ -272,7 +272,7 @@ const [openDeleteForm, setOpenDeleteForm] = useState(false)
 - **Prefetch on rail hover** with RTK Query's `usePrefetch` — people hover before they click.
 - **Do not keep sections mounted** to make switching fast. It defeats the section-keyed error boundary and holds grid virtualizers alive off-screen; the query cache already makes remounting cheap.
 
-:::danger Counts must share invalidation tags with the data they count
+:::danger[Counts must share invalidation tags with the data they count]
 Add a risk and the Risks count must move. If the counts query does not carry the same tags, the rail quietly disagrees with the section beside it — and a wrong number is worse than no number.
 :::
 
@@ -311,7 +311,7 @@ export class RecordLayoutConstants {
 }
 ```
 
-:::warning Do not add a token for a one-off color
+:::warning[Do not add a token for a one-off color]
 A value used in a single place is an inline style or a CSS module rule, not a token. Tokens are for values that must stay in agreement across many places — adding one for a single element means eight theme edits for no benefit.
 :::
 
@@ -339,7 +339,7 @@ An Overview section's metric tiles use `MetricCard` (or a specific metric like `
 
 Charts come from `@ant-design/charts` (G2 v5), wrapped in **`ChartCard`** so the title, skeleton and card chrome match the metric tiles beside them. Never pass `title` into the chart config — G2 would draw a second heading inside the canvas.
 
-:::danger `autoFit` is not enough on its own
+:::danger[`autoFit` is not enough on its own]
 `autoFit: true` sizes a chart when it mounts and afterwards re-fits **only on the window's `resize` event**. Anything else that changes its width — opening or dragging the record facts rail, collapsing the app sider, a `Col` settling after first paint — never reaches it, so the canvas keeps its old size and overflows its card, or renders at zero width and appears blank.
 
 Every chart needs `autoFit: true` **and** `useChartRemountOnResize()`: attach its `ref` to a wrapper div, pass `renderKey` as the chart's `key`. This has been missed three times; if a chart is blank or overflowing, check this first.
@@ -381,7 +381,7 @@ Not every grid is a data-exploration surface. A section showing a record's four 
 
 A section grid that grows past roughly 25 rows is a signal the section should link to a filtered list page rather than become one — see the `View all` affordance in section headers.
 
-:::tip `variant` is a preset, not a new mode
+:::tip[`variant` is a preset, not a new mode]
 It sets the existing `include*` flags together. Individual props still override it, so `variant="simple"` with `includeExportButton` is valid for the rare section that needs one thing back. Prefer the plain variant where you can — a section grid carrying a full toolbar competes with the page's own chrome.
 :::
 
@@ -447,7 +447,7 @@ At every width:
 - [ ] Text does not wrap into overlap in the identity bar — long record names truncate
 - [ ] No content is unreachable — dropped columns are genuinely low priority, not the only copy of a value
 
-:::tip Test the boundaries, not just the middles
+:::tip[Test the boundaries, not just the middles]
 Bugs live at 767/768 and 991/992, not at 390. The chip tells you which side you are on.
 :::
 
@@ -479,7 +479,7 @@ Recommended order for an area:
 
 `.page-gutters` (in `styles/globals.css`) holds the measurement once: `16px 24px 24px`, tightening below `768px`.
 
-:::danger Never pad a parent and negate it in the child
+:::danger[Never pad a parent and negate it in the child]
 A child cannot reliably un-pad its parent — negative margins work until something clips, which is what `.app-main-content`'s `overflow-x: hidden` was there to hide. This rule is why `SettingsRecordShell` no longer exists: settings used to pad its content column, so its record pages each had to cancel it again. The padding moved onto the settings *list* pages instead, and the negation went away.
 
 An area holding both list and record pages — settings does, and so does the top level — cannot pick one frame for all of them. Keep the gutters on the pages that want them.

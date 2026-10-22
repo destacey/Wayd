@@ -83,6 +83,46 @@
   border-radius: 0 6px 6px 0;
 }
 
+.docs-content .docs-admonition {
+  --admonition-accent: var(--ant-color-border);
+  --admonition-bg: var(--ant-color-fill-quaternary);
+  border-left: 4px solid var(--admonition-accent);
+  background: var(--admonition-bg);
+  border-radius: 0 6px 6px 0;
+  margin: 16px 0;
+  padding: 12px 16px;
+}
+
+.docs-content .docs-admonition-info {
+  --admonition-accent: var(--ant-color-info);
+  --admonition-bg: var(--ant-color-info-bg);
+}
+
+.docs-content .docs-admonition-tip {
+  --admonition-accent: var(--ant-color-success);
+  --admonition-bg: var(--ant-color-success-bg);
+}
+
+.docs-content .docs-admonition-warning,
+.docs-content .docs-admonition-caution {
+  --admonition-accent: var(--ant-color-warning);
+  --admonition-bg: var(--ant-color-warning-bg);
+}
+
+.docs-content .docs-admonition-danger {
+  --admonition-accent: var(--ant-color-error);
+  --admonition-bg: var(--ant-color-error-bg);
+}
+
+.docs-content .docs-admonition-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.docs-content .docs-admonition > :last-child {
+  margin-bottom: 0;
+}
+
 .docs-content a {
   color: var(--ant-color-primary);
 }

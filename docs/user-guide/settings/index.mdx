@@ -22,7 +22,7 @@ Everything below this section is managed from the Wayd UI. A few things are set 
 | [Data Protection key](../../contributing/configuration.mdx#data-protection-at-rest-secret-encryption) | Encrypts connector credentials at rest. **Losing this key makes every stored PAT and API key unrecoverable** — back it up outside the deployment system. |
 | [Database](../../contributing/configuration.mdx#database) | Connection string and provider settings. |
 
-:::note These pages live in the developer documentation
+:::note[These pages live in the developer documentation]
 They are shared with contributors, so they include implementation detail alongside the operational guidance. Each section above links to the part you need.
 :::
 
@@ -160,7 +160,7 @@ Permissions follow a hierarchical pattern:
 - `Permissions.\{Domain\}.Update` — Modify existing entities
 - `Permissions.\{Domain\}.Delete` — Remove entities
 
-:::note PPM requires more than a permission
+:::note[PPM requires more than a permission]
 In [Project Portfolio Management](../ppm/index.mdx), a permission claim alone is not enough to change a project, program, or portfolio — you must also lead the record as an Owner or Manager. See [Permissions](./permissions.mdx) for the full rule.
 :::
 
@@ -432,7 +432,7 @@ Counts are split into two rows, because they answer different questions:
 - **Current** — jobs that exist right now. Each tile agrees with the matching tab: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers.
 - **All time** — running totals of everything that has ever succeeded or been deleted. These keep climbing after the job records themselves are purged, so they are normally far higher than the Current figures.
 
-:::note Succeeded appears in both rows, with different meanings
+:::note[Succeeded appears in both rows, with different meanings]
 Succeeded jobs are retained only briefly before being purged. **Current → Succeeded** counts the ones still on record — often a handful, or none. **All time → Succeeded** counts every job that has ever completed. A large gap between them is expected, not a fault.
 :::
 

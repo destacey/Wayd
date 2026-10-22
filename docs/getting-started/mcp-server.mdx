@@ -28,19 +28,59 @@ The MCP server exposes 150+ tools across Wayd's core modules:
 
 ## Prerequisites
 
-1. A running Wayd instance with API access
-2. A **[Personal Access Token (PAT)](./your-profile.mdx#personal-access-tokens)** — create one from your profile page
-3. **Node.js 22+** installed on your machine
+There are two ways to connect: the [hosted endpoint](#hosted-endpoint-preview), which the Wayd API serves itself, and the [npm package](#setup), which runs on your machine.
+
+- **Hosted endpoint:** a Wayd instance with the **MCP Server** feature flag on, and an assistant that connects to remote MCP servers over HTTP. You can [sign in](#connecting-with-sign-in) with your Wayd account, so no token is needed, or [use a Personal Access Token](#connecting-with-a-personal-access-token).
+- **npm package:** a running Wayd instance, a **[Personal Access Token (PAT)](./your-profile.mdx#personal-access-tokens)** created from your profile page, and **Node.js 22+** installed on your machine.
 
 ## Hosted Endpoint (Preview)
 
 The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers a few tools the package lacks: partial updates that change only the fields you name, and single-call evidence reads for health checks. Each of the [agent skills](#agent-skills) is served there without installing it, two ways: as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …) that you can pick in a client that lists prompts, and through a skills tool, which the assistant calls on its own. Every tool's description names the skill for its area, so an assistant connected to the hosted endpoint is pointed to that guidance whichever toolsets you chose; whether it reads it is up to the assistant. The npm package will be retired a few weeks after the hosted endpoint is generally available.
 
-An administrator turns it on with the **MCP Server** feature flag (**Settings > Feature Management > Feature Flags**); while the flag is off, `/mcp` answers 404. Authenticate with your [Personal Access Token](./your-profile.mdx#personal-access-tokens) in the `x-api-key` header, or [connect by signing in](#connecting-with-sign-in).
+An administrator turns it on with the **MCP Server** feature flag (**Settings > Feature Management > Feature Flags**); while the flag is off, `/mcp` answers 404. Connect in one of two ways:
+
+- **[Sign in](#connecting-with-sign-in)** with your Wayd account and approve the assistant. Nothing to create, copy or store, and you can disconnect it from your profile at any time. Use this whenever your assistant supports it.
+- **[A Personal Access Token](#connecting-with-a-personal-access-token)** in the `x-api-key` header, for an assistant that cannot sign in or a script that runs unattended.
 
 ### Connecting with Sign-In
 
-Hosted connectors such as claude.ai and ChatGPT cannot send a personal access token; they connect by sending you to Wayd to sign in and approve them. Give the connector the `/mcp` address, and when it opens Wayd:
+Give your assistant the `/mcp` address and nothing else: no token and no headers. On its first call Wayd answers that you need to sign in, and the assistant opens Wayd in your browser.
+
+Claude Code — add the server, then authenticate from a session:
+
+```bash
+claude mcp add --transport http wayd https://your-wayd-api.com/mcp
+```
+
+In Claude Code, run `/mcp`, choose **wayd**, and choose **Authenticate**. Or put it in `.mcp.json` without a `headers` block:
+
+```json
+{
+    "mcpServers": {
+        "wayd": {
+            "type": "http",
+            "url": "https://your-wayd-api.com/mcp"
+        }
+    }
+}
+```
+
+VS Code (`.vscode/mcp.json`):
+
+```json
+{
+    "servers": {
+        "wayd": {
+            "type": "http",
+            "url": "https://your-wayd-api.com/mcp"
+        }
+    }
+}
+```
+
+claude.ai, ChatGPT and other hosted assistants: add a custom connector and give it the `/mcp` address. They cannot send a personal access token, so signing in is the only way they connect.
+
+When Wayd opens:
 
 1. Sign in, if you are not already. You come back to the request afterwards.
 2. Read the **connection request**. It names the site the application belongs to — that is what identifies it — and the name the application gives itself, which is only its own claim. It also says where you will be sent afterwards, and warns you if that is a different site from the application's.
@@ -49,6 +89,14 @@ Hosted connectors such as claude.ai and ChatGPT cannot send a personal access to
 An approved application can do anything your account can, with all of your permissions. It appears as a [connected application](./your-profile.mdx#connected-applications) on the **Sessions** tab of your profile, where you can disconnect it at any time. A request you leave unanswered expires after ten minutes; start again from the application.
 
 A change an application makes through Wayd's tools is recorded as yours, and the [Activity](../user-guide/activity-log.mdx) of the record it changed names the application it was made through.
+
+The assistant keeps you signed in and renews its access by itself. If it stops working, sign in again from the assistant (in Claude Code, `/mcp` again).
+
+An assistant can sign in only if it identifies itself the way current MCP clients do, with a Client ID Metadata Document: a public web address describing the assistant. Wayd does not support the older dynamic client registration. If an assistant cannot complete sign-in, connect it with a personal access token instead.
+
+### Connecting with a Personal Access Token
+
+Send a [Personal Access Token](./your-profile.mdx#personal-access-tokens) in the `x-api-key` header. The assistant then skips sign-in and acts with the token's access until you revoke it.
 
 Claude Code (`.mcp.json`):
 
@@ -118,16 +166,15 @@ The query parameter wins when both are sent. An unknown toolset name is refused 
     "mcpServers": {
         "wayd-planning": {
             "type": "http",
-            "url": "https://your-wayd-api.com/mcp?toolsets=planning,teams&readonly=true",
-            "headers": {
-                "x-api-key": "your-personal-access-token"
-            }
+            "url": "https://your-wayd-api.com/mcp?toolsets=planning,teams&readonly=true"
         }
     }
 }
 ```
 
-Read-only mode limits which tools are offered, not what your token may do. For a guarantee, also use a token whose account has view permissions only.
+Hosted assistants that sign in cannot send headers, so give them the selection on the URL. With a personal access token, add its `headers` block as usual.
+
+Read-only mode limits which tools are offered, not what your account may do. For a guarantee, also connect as an account that has view permissions only.
 
 ### Large Results
 
@@ -532,10 +579,9 @@ Deleting a portfolio, program, project, or strategic initiative isn't available 
 
 ## Security
 
-The MCP server authenticates using your [Personal Access Token](./your-profile.mdx#personal-access-tokens). The token inherits your permissions — the MCP server can only access what you can access.
+Whichever way you connect, the assistant acts as you, with your permissions — it can only access what you can access.
 
-- Store your API key securely — don't commit it to version control
-- Use environment variables rather than hardcoding in config files
-- Revoke tokens from your [profile page](./your-profile.mdx#personal-access-tokens) if compromised
+- **Signed in:** nothing is stored in your configuration. Disconnect an assistant from the **Sessions** tab of your [profile](./your-profile.mdx#connected-applications) and it loses access at once.
+- **Personal access token:** store it securely, never commit it to version control, and prefer environment variables or a client's password prompt over hardcoding it in config files. Revoke it from your [profile page](./your-profile.mdx#personal-access-tokens) if it is exposed.
 
-Changing a portfolio, program, or project additionally requires **delivery leadership** — being an Owner or Manager on the record or on one above it. Having permission to view or edit is not enough on its own, and sponsors and project members are excluded. If a change is refused even though your token has the right permission, this is usually why. See [Permissions](../user-guide/settings/permissions.mdx) for details.
+Changing a portfolio, program, or project additionally requires **delivery leadership** — being an Owner or Manager on the record or on one above it. Having permission to view or edit is not enough on its own, and sponsors and project members are excluded. If a change is refused even though you have the right permission, this is usually why. See [Permissions](../user-guide/settings/permissions.mdx) for details.

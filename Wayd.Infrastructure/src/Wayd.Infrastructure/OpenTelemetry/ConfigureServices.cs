@@ -39,6 +39,7 @@ internal static class ConfigureServices
                     // Wolverine emits its own OTel activities for message send/handle under this source.
                     .AddSource("Wolverine")
                     .AddSource(McpTelemetry.Name)
+                    .AddSource(AuthTelemetry.Name)
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         // Exclude health check requests from tracing

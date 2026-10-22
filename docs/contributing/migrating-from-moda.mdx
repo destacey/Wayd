@@ -9,7 +9,7 @@ audience: [developer]
 
 The project was renamed from **Moda** to **Wayd**. This guide walks through the one-time steps to update your local development environment after pulling the rename.
 
-:::info Who needs this?
+:::info[Who needs this?]
 Only developers who had a working local Moda environment before the rename. If you're cloning fresh, skip this page — [Installation](./installation.mdx) covers everything you need.
 :::
 
@@ -135,7 +135,7 @@ not installed on the host.
 
 The script is idempotent — if `[Moda]` doesn't exist, it prints a no-op and EF Core will create `[Wayd]` fresh on the next API run.
 
-:::warning Active connections
+:::warning[Active connections]
 The `SINGLE_USER WITH ROLLBACK IMMEDIATE` step forcibly disconnects anyone holding a connection to the `moda` database. Close SSMS, Azure Data Studio, running API processes, and LINQPad before running the rename.
 :::
 
@@ -184,7 +184,7 @@ if [ -d "$old" ]; then
 fi
 ```
 
-:::note Project slot naming
+:::note[Project slot naming]
 Claude Code derives the slot name from the absolute path, replacing `/` or `\` with `-`. On Windows the drive letter is preserved (e.g., `D--source-repos-Moda`); on macOS/Linux the path starts with `-` (the leading `/` becomes a dash). Adjust the paths above if your repo lives somewhere other than `source/repos/`.
 :::
 
@@ -212,14 +212,14 @@ The Moda → Wayd transition shipped across three PRs:
 - Docusaurus config (title, baseUrl, project URLs)
 - All internal GitHub / Pages URL references
 - **Infrastructure** (in the follow-up PR): new `wayd` Terraform Cloud organization + `wayd-dev` workspace; Azure resources renamed (`rg-wayd-dev`, `sql-wayd-dev`, `sqldb-wayd-dev`, `cae-wayd-dev`, `la-wayd-dev`, `sigr-wayd-dev`, container apps `wayd-api-dev` / `wayd-client-dev`); SQL admin login renamed to `waydadmin`; the unused Azure Static Web App was removed
-- **JWT Issuer / Audience** (in the infrastructure PR): `Moda` / `ModaApi` → `Wayd` / `WaydApi` across `security.json`, Terraform env vars, and C# fallback defaults
+- **JWT Issuer / Audience**: `https://wayd.dev` / `https://api.wayd.dev` in `security.json` and the `LocalJwtSettings` defaults; Terraform does not set them per environment
+- **Login provider**: `LoginProviders.Moda` → `LoginProviders.Wayd`; the `Rename-Moda-LoginProvider-To-Wayd` migration rewrites `LoginProvider = 'Moda'` on existing users, so it runs on the next API start
+- **Local storage keys**: `ReleaseCleanup` (`src/components/release-cleanup.tsx`) moves `modaTheme` and `modaMenuCollapsed` to `appTheme` and `appMenuCollapsed` once per browser and deletes the old `moda.local.*` sign-in keys, so everyone signs in again once
 
 ### What intentionally stayed as "moda"
 
-These are deferred because they live outside the repo or depend on data compatibility:
-
-- `LoginProviders.Moda = "Moda"` constant and matching frontend `loginProvider === 'Moda'` checks — user rows in the database have `LoginProvider = "Moda"`; renaming requires a coordinated data migration
 - `docs/_legacy/*.drawio.svg` — embedded text inside legacy architecture diagrams (art assets)
+- `scripts/rename-db.sh`, `scripts/rename-localdb.ps1` and `scripts/rename-localdb.sql` — they exist to rename the `moda` database
 
 ## Troubleshooting
 

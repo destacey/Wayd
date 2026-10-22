@@ -11,40 +11,73 @@ The Wayd API is an ASP.NET Core Web API using thin controllers that delegate to 
 
 ## Controller Pattern
 
-Controllers should be thin and contain no business logic. Inject `IDispatcher` and call `Send`:
+Controllers should be thin and contain no business logic. Inject `IDispatcher` and call `Send`. Controllers
+live in `Wayd.Web.Api/Controllers/\{DomainArea\}/`; from `ProductsController`:
 
 ```csharp
+[Route("api/product-management/products")]
+[ApiVersionNeutral]
 [ApiController]
-[Route("api/work-management/work-items")]
-public class WorkItemsController : ControllerBase
+[FeatureGate(FeatureFlags.Names.ProductManagement)]
+[McpTools(McpToolset.Products, "wayd-products")]
+public class ProductsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
-    public WorkItemsController(IDispatcher dispatcher) => _dispatcher = dispatcher;
-
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<WorkItemDto>> GetById(Guid id, CancellationToken ct)
+    [HttpGet("{idOrKey}")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
+    [EndpointSummary("Get one product in full …")]
+    [EndpointDescription("Accepts the product's UUID or its short key.")]
+    [McpTool("Products_GetProduct", "Get product")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProductDto>> GetProduct(string idOrKey, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new GetWorkItemQuery(id), ct);
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : NotFound(result.Error);
+        var product = await _dispatcher.Send(new GetProductQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return product is not null ? Ok(product) : NotFound();
     }
 
     [HttpPost]
-    public async Task<ActionResult<Guid>> Create(CreateWorkItemRequest request, CancellationToken ct)
+    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Products)]
+    [EndpointSummary("Add a product to the catalog.")]
+    [McpTool("Products_Create", "Create a product", Destructive = false)]
+    [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
+    public async Task<ActionResult<ObjectIdAndKey>> Create(
+        [FromBody] CreateProductRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(request.ToCommand(), ct);
+        var result = await _dispatcher.Send(request.ToCreateProductCommand(), cancellationToken);
+
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : BadRequest(result.Error);
+            ? CreatedAtAction(nameof(GetProduct), new { idOrKey = result.Value.Id.ToString() }, result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 }
 ```
 
-## Authentication
+- A failed `Result` becomes a `ProblemDetails` body through `ToBadRequestObject(HttpContext)`
+  (`Extensions/ResultExtensions.cs`), never a bare error string.
+- `CreatedAtAction` must supply every route parameter of the action it names, or the create succeeds and the
+  caller gets a 500. `CreatedAtActionRouteTests` checks every call site by reflection.
+- Request and response models live in `Wayd.Web.Api/Models/\{DomainArea\}/` and are named `*Request` /
+  `*Response`; a request converts itself to its command (`ToCreateProductCommand()`). "Dto" means a type from
+  an Application project's `Dtos/` folder.
+- A route that takes a record's id or key binds it as `string idOrKey` and passes `new IdOrKey(idOrKey)`; a
+  value that is neither a Guid nor in the key's format names no record and answers 404 (`IdOrKeyRouteTests`).
+- `[McpTool]` and `[McpTools]` publish the action as a hosted MCP tool; see
+  [MCP Server](./mcp-server.mdx#the-hosted-endpoint).
 
-Controllers are protected by default. Use `[AllowAnonymous]` only for public endpoints.
+## Authentication and authorization
+
+Every controller requires an authenticated caller: controllers are mapped with `RequireAuthorization()`
+(`Wayd.Infrastructure/ConfigureServices.cs`), so an action needs no `[Authorize]` of its own. Use
+`[AllowAnonymous]` only for public endpoints.
+
+Each action names the permission it needs with `[MustHavePermission(ApplicationAction.X, ApplicationResource.Y)]`
+(or `[MustHaveAnyPermission]`), which resolves to the `Permissions.\{Resource\}.\{Action\}` policy. A few areas
+add a check the attribute cannot make — PPM delivery leadership, sprint team membership, time away — and
+enforce it in the domain or the handler; see
+[Permission-based vs membership-based authorization](./architecture.mdx#permission-based-vs-membership-based-authorization).
 
 Feature-gated endpoints use `[FeatureGate(FeatureFlags.Names.MyFlag)]`.
 
@@ -89,7 +122,7 @@ the API serves.
 [Dates and instants](./frontend.mdx#dates-and-instants). Keep it in step with the stock template when NSwag is
 upgraded; it is a copy of it with that one change.
 
-:::note The document target boots the real API
+:::note[The document target boots the real API]
 
 To read the OpenAPI document, the build starts the actual application. It sets
 `WAYD_SKIP_DB_INIT=true`, which `HostIntrospection.SkipsDatabaseInitialization` uses to skip every
@@ -107,7 +140,7 @@ starts.
 ### CSV import endpoints
 
 An import endpoint binds only an uploaded file, so the shape of the CSV it reads never reaches the
-OpenAPI document by itself. Three attributes put it there, and the **Settings → Imports** dialog is
+OpenAPI document by itself. Three attributes put it there, and the **Settings → System → Imports** dialog is
 built from what they publish — its column lists, accepted values and templates:
 
 - `[CsvImport(XImportDefinition.ImportKey)]` on the action names the import definition it submits to.
@@ -154,9 +187,16 @@ values; a new kind of pass that writes differently needs its own case there.
 ## API Conventions
 
 - Use RESTful route patterns
-- Return appropriate HTTP status codes
+- Return appropriate HTTP status codes, and declare each with `[ProducesResponseType]` or a
+  `WaydApiConventions` method so the OpenAPI document lists it
 - Use `CancellationToken` in all async endpoints
-- Validate input through FluentValidation (run automatically by the Wolverine handler pipeline)
+- Validate input through FluentValidation, at two levels. A request model's `IValidator<TRequest>` in
+  `Wayd.Web.Api` runs during model binding (FluentValidation's ASP.NET auto-validation), and a command's
+  validator in its Application project runs in the Wolverine handler pipeline. Both failures answer 422 with
+  validation problem details.
+- A list query ends its order on a unique key (`Key` or `Id` last). The hosted MCP server pages a list over
+  several calls with an `offset`, so an order the database is free to vary repeats and skips records between
+  pages.
 
 ### Partial updates
 

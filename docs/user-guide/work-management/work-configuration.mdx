@@ -19,7 +19,7 @@ erDiagram
     WorkProcessScheme ||--|| Workflow : "to workflow"
     Workflow ||--o{ WorkflowScheme : contains
     WorkflowScheme ||--|| WorkStatus : "includes status"
-    WorkStatus ||--|| WorkStatusCategory : "belongs to"
+    WorkflowScheme ||--|| WorkStatusCategory : "places status in"
     Workspace ||--o{ WorkItem : contains
     WorkItem ||--|| WorkType : "is type"
     WorkItem ||--|| WorkStatus : "has status"
@@ -34,13 +34,15 @@ A work process contains a **Work Process Scheme** that links:
 - **[Work Types](#work-types)** — What categories of work are available
 - **[Workflows](#workflows)** — What status transitions each work type follows
 
+Work processes come from a [connection](../settings/index.mdx#connections) to an external system — an Azure DevOps process — together with their work types and workflows. Wayd has no screen for creating one or changing which work types and workflows it holds.
+
 **Business rules:**
-- A work process requires at least one work type to be configured
 - A work type can only appear once within a work process
 - A single work process can be used by multiple [workspaces](./work-items.mdx#workspaces)
-- Only active work processes can be assigned to workspaces
+- Only active work processes can be assigned to workspaces: a workspace is created and activated only with an active work process
+- A work process cannot be deactivated while an active workspace uses it
 
-A work process detail page carries an **Activity** section holding its recorded history, which for a work process is its integration state changing as an external system syncs it. See [Activity Log](../activity-log.mdx).
+A work process detail page shows its Key, Ownership, Active state and Description, a **Work Types and Workflows** section listing each Work Type with its Description, Workflow and Active state, and an **Activity** section holding its recorded history, which for a work process is its integration state changing as an external system syncs it. See [Activity Log](../activity-log.mdx). Those with permission to update work processes can **Activate** or **Deactivate** it from the page's actions.
 
 ## Work Types
 
@@ -58,9 +60,11 @@ Work types are organized into **Tiers** that group them by purpose and define [h
 | Tier | Purpose | Hierarchy | Examples |
 |------|---------|-----------|----------|
 | **Portfolio** | Container work types. Multiple hierarchy levels allowed. | Can be parents | Epic, Feature |
-| **Requirement** | Base-level work types representing team work. | Cannot be parents of Portfolio types | User Story, Bug |
-| **Task** | Child work types owned by a parent (typically a Requirement). | Must have a parent | Task, Sub-task |
-| **Other** | Non-standard work types. Not shown in backlog/iteration views. | No hierarchy | Impediment, Risk Item |
+| **Requirement** | Base-level work types representing team work. | Cannot be parents | User Story, Bug |
+| **Task** | Child work types owned by a parent (typically a Requirement). | Cannot be parents | Task, Sub-task |
+| **Other** | Non-standard work types. Not shown in backlog/iteration views. Work types synced from Azure DevOps start in this tier. | Cannot be parents, and never take a project | Impediment, Risk Item |
+
+A work type's tier comes from its [level](#work-type-levels): choose the level, and the tier follows.
 
 ### Work Type Levels
 
@@ -73,7 +77,7 @@ Work types are organized into **Tiers** that group them by purpose and define [h
 | Task | Tasks (Level 1) |
 | Other | Other (Level 1) |
 
-Custom Portfolio-tier levels can be added to support deeper hierarchies (e.g., a "Theme" level above Epic).
+Custom Portfolio-tier levels can be added to support deeper hierarchies (e.g., a "Theme" level above Epic). Only the Portfolio tier takes new levels. A new level is added at the bottom of the tier; drag the Portfolio levels into order, top level first. Level names must be unique, and any level's name and description can be edited.
 
 ## Workflows
 
@@ -81,14 +85,14 @@ A **Workflow** defines the set of [statuses](#work-statuses) and their ordering 
 
 A workflow contains a **Workflow Scheme** that defines:
 - **[Work Statuses](#work-statuses)** — The available states
-- **[Work Status Categories](#work-status-categories)** — The normalization group for each status
+- **[Work Status Categories](#work-status-categories)** — The normalization group for each status in this workflow
 - **Order** — The sequence of statuses
 
-**Business rules for owned workflows:**
-- At least three work statuses are required
-- All four [work status categories](#work-status-categories) must be represented
+Workflows come from the external system with their work process: each Azure DevOps work item type's states become a workflow named after the process and the type, and each state's Azure DevOps category is mapped to a [work status category](#work-status-categories). Wayd has no screen for creating or editing a workflow.
+
+**Business rules:**
 - Each work status can only appear once in a workflow
-- Work status categories must be grouped in order — Proposed first, then Active, then Done, with Removed at the end
+- A status's category is set in each workflow, so the same status can belong to different categories in different workflows
 
 **Example workflow:**
 
@@ -107,7 +111,7 @@ A **Work Status** represents a specific state within a [workflow](#workflows) (e
 
 **Business rules:**
 - The name of a work status cannot be changed — a new name requires creating a new status
-- Each work status belongs to a [Work Status Category](#work-status-categories)
+- A work status has no category of its own: each [workflow](#workflows) places it in a [Work Status Category](#work-status-categories)
 
 ## Work Status Categories
 
@@ -124,22 +128,20 @@ This normalization enables Wayd to calculate metrics like [cycle time](./cycle-t
 
 ## Configuration Tasks
 
+Work types, work statuses and work processes are synced from the external system. In Wayd you place each work type in the hierarchy and turn work processes on or off.
+
 ### Configuring Work Types
 
-1. Navigate to [Settings > Work Management > Work Types](../settings/index.mdx#work-types)
-2. Create or modify work types
-3. Assign each work type to a [tier](#work-type-tiers) (Portfolio, Requirement, Task, or Other)
+1. Navigate to [Settings > Work Management > Work Types](../settings/index.mdx#work-types). The grid lists each work type's Name, Description, Level and Active state; **Include Inactive** shows inactive ones too
+2. Choose **Edit** on a work type to change its Description and its **Level**, which sets its [tier](#work-type-tiers) (Portfolio, Requirement, Task, or Other). A work type's name cannot be changed
+3. Open **Work Type Hierarchy** to add, rename and reorder [work type levels](#work-type-levels)
 
-### Configuring Work Statuses
+### Viewing Work Statuses
 
-1. Navigate to [Settings > Work Management > Work Statuses](../settings/index.mdx#work-statuses)
-2. Create work statuses with their display names
-3. Assign each to a [work status category](#work-status-categories)
+Navigate to [Settings > Work Management > Work Statuses](../settings/index.mdx#work-statuses) to see each status's Name, Description and Active state; **Include Inactive** shows inactive ones too. A status's [category](#work-status-categories) is set by each workflow that uses it.
 
 ### Configuring Work Processes
 
-1. Navigate to [Settings > Work Management > Work Processes](../settings/index.mdx#work-processes)
-2. Create a work process
-3. Add [work types](#work-types) and assign [workflows](#workflows) to each
-4. Activate the work process
-5. The work process can then be assigned to [workspaces](./work-items.mdx#workspaces)
+1. Navigate to [Settings > Work Management > Work Processes](../settings/index.mdx#work-processes) to see each work process's Key, Name, Ownership and Active state
+2. Open a work process to see its [work types](#work-types) and the [workflow](#workflows) each one follows
+3. **Activate** or **Deactivate** the work process. Only an active work process can be assigned to [workspaces](./work-items.mdx#workspaces), and one in use by an active workspace cannot be deactivated

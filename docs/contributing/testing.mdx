@@ -13,7 +13,15 @@ Test projects mirror the source structure:
 - `Wayd.\{ServiceName\}.Domain.Tests` - Domain logic tests
 - `Wayd.\{ServiceName\}.Application.Tests` - Handler and validator tests
 - `Wayd.\{ServiceName\}.IntegrationTests` - Run against a real SQL Server via Testcontainers
-- `Wayd.ArchitectureTests` - Enforce Clean Architecture dependency rules
+- `Wayd.Web.Api.Tests` and `Wayd.Web.Api.IntegrationTests` - Controllers, request models, OpenAPI and MCP; the integration suite boots the real API
+- `Wayd.Infrastructure.Tests` and `Wayd.Infrastructure.IntegrationTests` - Persistence, messaging, auth, identity and connector modules
+- `Wayd.Integrations.\{SystemName\}.Tests` - External system clients
+- `Wayd.Tools.DataGeneration.Cli.Tests` - The data generation tool, which seeds through the import endpoints
+- `Wayd.ArchitectureTests` - Enforce Clean Architecture dependency rules (see [Architecture tests](./architecture.mdx#architecture-tests))
+
+Shared helpers live under `Wayd.Common/tests/`: `Wayd.Tests.Shared` (traits, `TestingDateTimeProvider`, the
+cross-cutting fakers, `MockDbSetFactory`), `Wayd.TestData.Core` (`PrivateConstructorFaker<T>`) and
+`Wayd.Tests.Containers` (the SQL Server container).
 
 ### Unit vs integration
 
@@ -85,11 +93,13 @@ that only need a handler to run can still dispatch through `IDispatcher` in a sc
 
 | Library | Purpose |
 |---------|---------|
-| xUnit | Test framework |
-| FluentAssertions | Assertion library |
+| xUnit v3 (`xunit.v3`) | Test framework, on Microsoft.Testing.Platform |
+| FluentAssertions | Assertion library, pinned to 7.1.0 in `Directory.Packages.props` |
 | Moq | Mocking framework |
 | Moq.AutoMock | Automatic dependency mocking |
 | Bogus | Fake data generation |
+| NodaTime.Testing | `FakeClock`, behind `TestingDateTimeProvider` |
+| Testcontainers.MsSql | SQL Server for the integration suites |
 | NetArchTest.Rules | Architecture rule validation |
 
 ## Test Naming
@@ -139,7 +149,7 @@ Domain fakers generate realistic test data with Bogus. They live in **each model
 
 Two intentional exceptions to the colocation rule — reuse these rather than duplicating or relocating them:
 
-- **Cross-cutting fakers** for types no single domain owns live in `Wayd.Tests.Shared/Data/`: `FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`.
+- **Cross-cutting fakers** for types no single domain owns live in `Wayd.Tests.Shared/Data/`: `FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`, `UserFaker`.
 - **Organization** publishes its fakers from a dedicated `Wayd.Organization.TestData` project (`TeamFaker`, `TeamMembershipFaker`, and the rest), because several test projects consume them.
 
 ```csharp
@@ -157,7 +167,7 @@ var model = faker.Generate();
 
 ### Fake DbContext
 
-Fake `DbContext` implementations are available for each application area (e.g. `FakeWaydDbContext`), backing each `DbSet` with an in-memory list so handlers can be tested without a database. They track `SaveChangesCallCount`, which assertions use to verify a handler saved (or didn't) as expected. Combine with `NullLogger<T>.Instance` for the handler's logger.
+Fake `DbContext` implementations are available for each application area, in the Application test project's `Infrastructure/` folder (`FakeWaydDbContext` and `FakeImportDbContext` in `Wayd.Common.Application.Tests`, `FakeWorkDbContext`, `FakeProjectPortfolioManagementDbContext`, and one for each other module with Application tests), backing each `DbSet` with an in-memory list so handlers can be tested without a database. They track `SaveChangesCallCount`, which assertions use to verify a handler saved (or didn't) as expected. Combine with `NullLogger<T>.Instance` for the handler's logger.
 
 ```csharp
 private readonly FakeWaydDbContext _dbContext = new();
@@ -168,6 +178,11 @@ private readonly ScoringModelFaker _faker = new();
 private DeleteScoringModelCommandHandler CreateHandler() =>
     new(_dbContext, _currentUser.Object, _dateTimeProvider, NullLogger<DeleteScoringModelCommandHandler>.Instance);
 ```
+
+A fake runs queries as LINQ-to-Objects, so it cannot catch what only a real provider does: a missing
+`.Include` (the fake's navigations are whatever the test set), a projection that does not translate to SQL,
+or one save that should span two interfaces. A change that depends on any of these needs a test in the
+module's `*.IntegrationTests` project.
 
 ## Running Tests
 

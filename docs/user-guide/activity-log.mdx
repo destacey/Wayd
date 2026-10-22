@@ -18,11 +18,12 @@ Every record whose changes raise domain events carries an **Activity** section i
 | Module | Records |
 |--------|---------|
 | [Organizations](./organizations/index.mdx) | Teams, Teams of Teams |
-| [Planning](./planning/index.mdx) | Planning Intervals, PI Objectives, Risks, Sprints |
+| [Planning](./planning/index.mdx) | Planning Intervals, PI Objectives, Risks |
+| [Work Management](./work-management/index.mdx) | Sprints |
 | [Project Portfolios](./ppm/index.mdx) | Portfolios, Programs, Projects, Strategic Initiatives |
 | [Strategic Management](./strategic-management/index.mdx) | Strategic Themes |
 | [Product Management](./product-management/index.mdx) | Products, Versions, Releases, Release Packages, Deployments |
-| [Administration](./settings/index.mdx) | Users (including their personal access tokens), Identity Providers, Connections, Scoring Models, Status Workflows, Work Processes |
+| [Administration](./settings/index.mdx) | Users (including their personal access tokens), Identity Providers, Connections, Holiday Calendars, Scoring Models, Status Workflows, Work Processes, and the **Scheduling** and **Sprint Metrics** system settings |
 
 Seeing a record's activity needs only the same **View** permission that lets you open the record.
 
@@ -32,14 +33,14 @@ Records not listed here have no Activity section, because nothing they do raises
 
 The section is a master-detail view: the timeline of events on the left, the selected event's full detail on the right.
 
-Each timeline entry shows an icon for the kind of change (created, updated, activated, deactivated, assigned), a short summary, who made it, and when. Hovering the timestamp shows the exact time to the second.
+Each timeline entry shows a tag for the kind of change (**Created**, **Updated**, **Schedule Change**, **Status Change**, **State Change**, **Health**, **Removed**, or **Baseline**), a short summary, who made it, and when. Hovering the timestamp shows the exact time to the second.
 
 **Who made the change** is one of:
 
-- **A person** — the employee behind the change, with their avatar. Selecting them opens their profile card.
+- **A person** — the employee behind the change, with their avatar. Their name links to their employee page, and their avatar opens their profile card. An account with no employee record shows as **User**.
 - **Automation** — Wayd reacting to something a person did, shown as started by that person. They chose the action that set it off, not the change it made, so it is never shown as their own edit.
-- **Import** or **Sync** — a CSV import, or an integration syncing from an external system.
-- **System** — no human actor: a scheduled job, a message being delivered, or startup work.
+- **Data Import** or **Integration Sync** — a CSV import, or an integration syncing from an external system.
+- **System Process** — no human actor: a scheduled job, a message being delivered, or startup work.
 
 A change made by an application you [connected by signing in](../getting-started/mcp-server.mdx#connecting-with-sign-in), such as an AI agent, is still yours, and the entry adds **via** the site the application belongs to, the same site the connection request named. Hovering it, or opening the entry, shows the application's full address. A change made with a personal access token names no application, because Wayd cannot tell which tool used the token.
 
@@ -49,9 +50,9 @@ A change records what it replaced as well as the result: a timeline change carri
 
 Some changes concern more than the record they were made on. Moving a product under a new parent changes the product, but both its old and new parent lost or gained a child, so the move appears in all three Activity sections. On a record other than the one changed, the entry says which record it was made **on**, and its detail links to it. Where that record has since been removed, the entry stays and names only its kind. Today this applies to products moving between parents, to product dependencies, which also appear on the product depended on, and to a team's membership in a team of teams, which also appears on the team of teams. A team of teams names the team a membership entry was made on but does not link to it yet.
 
-Two entries can be compared: **Compare** on an event shows its payload beside the previous one for the same record, with changed fields called out. It is most useful across different kinds of change, or for older entries that recorded only the result.
+Two entries can be compared: **Compare changes** on an event shows its payload beside the previous one for the same record, with changed fields called out. It is most useful across different kinds of change, or for older entries that recorded only the result.
 
-Use the search box to narrow the timeline by event, actor, type, or the site of the application a change was made through. Long histories load a page at a time — **Load more** fetches the next page.
+Use the search box to narrow the timeline by event, actor, type, or the site of the application a change was made through. Long histories load a page at a time — **Load more activities** fetches the next page.
 
 ## Exporting
 

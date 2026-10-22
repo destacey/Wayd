@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Appearance
 
-Wayd lets you personalize the look and feel of the application. Your preferences are saved to your account and follow you across devices.
+Wayd lets you personalize the look and feel of the application. Your primary color and density are saved to your account and follow you across devices. Your theme and mode are remembered by the browser you chose them in.
 
 ## Opening the Theme Manager
 
@@ -19,12 +19,15 @@ A theme is the overall visual identity of the application — its shapes, spacin
 
 | Theme | Description |
 |-------|-------------|
-| **Wayd** | The default look. Clean and professional, with Light, Dark, and Slate modes. |
+| **Wayd** | The default look. Clean and professional, with Light, Mist, Slate, and Dark modes. |
 | **Cartoon** | Playful rounded UI with illustrated background and warm tones. |
-| **Shadcn** | Neutral, minimal style inspired by shadcn design tokens. |
-| **Glass** | Frosted, translucent visual style with soft depth. |
 | **Geek** | High-contrast neon-on-dark style. |
 | **Illustration** | Hand-drawn inspired style with bold outlines and pastel accents. |
+| **Shadcn** | Neutral, minimal style inspired by shadcn design tokens. |
+
+The **Glass** theme is retired: it is listed only while it is your current theme, so you can switch away from it.
+
+Switching theme clears your primary color choice, since each theme has its own default. Your density is kept.
 
 ## Mode
 
@@ -33,18 +36,19 @@ When the selected theme supports more than one mode, a **Mode** control lets you
 | Mode | Description |
 |------|-------------|
 | **Light** | Bright background, dark text. Best for well-lit environments. |
-| **Dark** | Dark background, light text. Best for low-light environments. |
+| **Mist** | A light mode with the glare taken off: pale grey-blue surfaces instead of white. |
 | **Slate** | Cool blue-grey background. A comfortable middle ground between light and dark — great for screen sharing and projectors. |
+| **Dark** | Dark background, light text. Best for low-light environments. |
 
-Themes with a single built-in appearance (such as Glass or Geek) don't show the Mode control.
+Themes with a single built-in appearance (every theme except Wayd) don't show the Mode control.
 
 ## Primary Color
 
-Select an accent color from the preset palette. This color is used for buttons, links, active states, and — in the Wayd theme's Light and Slate modes — the top navigation bar.
+Select an accent color from the preset palette. This color is used for buttons, links, active states, and — in the Wayd theme's Light, Mist and Slate modes — the top navigation bar.
 
-The available colors are drawn from Ant Design's standard palette.
+The available colors are drawn from Ant Design's standard palette. When a theme's own default color is not one of them, it is offered first as **Theme Default**.
 
-Some themes are intentionally style-locked and do not expose primary color customization. In those themes, the primary color section is hidden.
+Some themes are intentionally style-locked and do not expose primary color customization — Cartoon, Geek and Illustration. In those themes, the primary color section is hidden.
 
 ## Density
 

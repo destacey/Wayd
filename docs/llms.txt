@@ -8,16 +8,23 @@ When delivery spans multiple teams, projects, and systems, visibility breaks dow
 
 Wayd supports:
 
-- **Organizations** — Teams and teams of teams with operating models, memberships, and hierarchy
-- **Planning** — Planning intervals (PIs), sprints, objectives, risks, roadmaps, and planning poker
-- **Work Management** — Workspaces, work items, work processes, workflows, and work types
+- **Organizations** — Teams and teams of teams with operating models, memberships, hierarchy, and (behind a feature flag) allocations, time away and team capacity
+- **Planning** — Planning intervals (PIs), objectives, risks, roadmaps, planning poker, and story maps
+- **Work Management** — Workspaces, work items, sprints, work processes, workflows, and work types, synchronized from Azure DevOps; sprint metrics, reports, and delivery forecasting
 - **Project Portfolio Management** — Portfolios, programs, projects with lifecycles/stages/tasks, portfolio ranking, priority scoring, strategic initiatives with KPIs
 - **Strategic Management** — Visions, strategies, and strategic themes for organizational alignment
+- **Product Management** — Product catalog, product dependencies, versions, releases, release packages, deployments, and delivery metrics
 
 ## Documentation
 
 - [Welcome](docs/index.mdx): Overview of Wayd and documentation structure
-- [Organizations](docs/user-guide/organizations/index.mdx): Teams, teams of teams, operating models, and organizational hierarchy
+- [Getting Started](docs/getting-started/index.mdx): Logging in, your profile, navigating the app, and connecting AI assistants
+- [Logging In](docs/getting-started/logging-in.mdx): Organizational account, email and password, or personal access token
+- [Navigation](docs/getting-started/navigation.mdx): Interface layout, sidebar navigation, and key areas
+- [Your Profile](docs/getting-started/your-profile.mdx): Profile, password, preferences, sessions, and personal access tokens
+- [MCP Server](docs/getting-started/mcp-server.mdx): Connecting AI assistants to Wayd through the hosted `/mcp` endpoint or the `@wayd/mcp` package
+- [Organizations](docs/user-guide/organizations/index.mdx): Teams, teams of teams, operating models, organizational hierarchy, allocations, time away, and team capacity
+- [Organizations Bulk Import](docs/user-guide/organizations/bulk-import.mdx): Loading employees, teams, the team hierarchy, and team staffing from CSV
 - [Planning Overview](docs/user-guide/planning/index.mdx): How planning connects teams, sprints, objectives, and work items
 - [Planning Intervals](docs/user-guide/planning/planning-intervals.mdx): PIs, iterations, sprint mapping, objectives, predictability, plan review
 - [Sprints & Metrics](docs/user-guide/work-management/sprints.mdx): Sprint management, metric definitions, cycle time, completion rate
@@ -25,23 +32,32 @@ Wayd supports:
 - [Roadmaps](docs/user-guide/planning/roadmaps.mdx): Activities, milestones, timeboxes, timeline views
 - [Planning Poker](docs/user-guide/planning/planning-poker.mdx): Collaborative estimation with real-time voting
 - [Story Maps](docs/user-guide/planning/story-maps.mdx): User story mapping with goals, steps, tasks, swim lanes, and personas
+- [Planning Bulk Import](docs/user-guide/planning/bulk-import.mdx): Loading planning intervals, objectives, and risks from CSV
 - [Work Management Overview](docs/user-guide/work-management/index.mdx): How work items connect to teams, sprints, and projects
-- [Work Items & Workspaces](docs/user-guide/work-management/work-items.mdx): Work items, workspaces, dependencies, revisions, hierarchy
+- [Work Items & Workspaces](docs/user-guide/work-management/work-items.mdx): Work items, workspaces, dependencies, revisions, hierarchy, setting a work item's project
 - [Work Configuration](docs/user-guide/work-management/work-configuration.mdx): Work processes, types, tiers, levels, workflows, statuses
 - [Cycle Time Report](docs/user-guide/work-management/cycle-time-report.mdx): Cycle time analysis for team-owned and employee-assigned work items
+- [Backlog Health Report](docs/user-guide/work-management/backlog-health-report.mdx): Grading a team's backlog for runway, flow, staleness, readiness, and ordering problems
+- [Work Distribution Report](docs/user-guide/work-management/work-distribution-report.mdx): Where a team's completed work went, by portfolio, program, project, strategic theme, or work type
 - [Delivery Forecasting](docs/user-guide/work-management/delivery-forecasting.mdx): Monte Carlo completion and throughput forecasts for work items, objectives, projects, and teams
 - [PPM Overview](docs/user-guide/ppm/index.mdx): How PPM connects strategy and execution
 - [Portfolios & Programs](docs/user-guide/ppm/portfolios-programs.mdx): Portfolio lifecycle, programs, roles, scoring-model assignment, project ranking
-- [Projects](docs/user-guide/ppm/projects.mdx): Project lifecycle, priority scoring, stages, tasks, dependencies, plan tab
+- [Projects](docs/user-guide/ppm/projects.mdx): Project lifecycle, status reverts, priority scoring, health checks, stages, tasks, dependencies, plan
 - [Scoring Models](docs/user-guide/settings/scoring-models.mdx): Formula-driven criteria, rating scales, outputs, and PPM scoring usage
 - [Strategic Initiatives](docs/user-guide/ppm/strategic-initiatives.mdx): Initiatives, KPIs, checkpoints, measurements
-- [My Projects Dashboard](docs/user-guide/ppm/my-projects.mdx): Personalized project view with task metrics
+- [Projects Dashboard](docs/user-guide/ppm/my-projects.mdx): Triage projects by person, portfolio, or program — health, overdue tasks, stages, and end dates
+- [PPM Bulk Import](docs/user-guide/ppm/bulk-import.mdx): Loading portfolios, programs, projects, tasks, stages, strategic themes, and initiatives from CSV
 - [Strategic Management](docs/user-guide/strategic-management/index.mdx): Visions, strategies, strategic themes, cross-domain alignment
 - [Product Management Overview](docs/user-guide/product-management/index.mdx): Product catalog vs delivery records, module scope, permissions
-- [Products](docs/user-guide/product-management/products.mdx): Product tree, types and releasability, statuses, tags, moving, external links, dependencies between products
-- [Delivery](docs/user-guide/product-management/delivery.mdx): Releases, packages, environments, deployments, DORA metrics
-- [Status Workflows](docs/user-guide/settings/status-workflows.mdx): Statuses, categories, aliases, publish/clone lifecycle, reassignment
-- [Administration](docs/user-guide/settings/index.mdx): Users, roles, feature flags, integrations, background jobs
+- [Products](docs/user-guide/product-management/products.mdx): Product tree, types and releasability, statuses, tags, moving, external links, dependencies between products (strength, interaction, change terms)
+- [Delivery](docs/user-guide/product-management/delivery.mdx): Versions, releases, packages, environments, deployments, rollout, DORA metrics
+- [Product Management Bulk Import](docs/user-guide/product-management/bulk-import.mdx): Loading the product catalog, dependencies, and delivery records from CSV
+- [Activity Log](docs/user-guide/activity-log.mdx): The recorded history of what changed on a record, who changed it, and when
+- [Status Workflows](docs/user-guide/settings/status-workflows.mdx): Statuses, categories, aliases, transitions, publish/clone lifecycle, reassignment
+- [Administration](docs/user-guide/settings/index.mdx): Users, roles, identity providers, feature flags, connections, system settings, background jobs
+- [Permissions](docs/user-guide/settings/permissions.mdx): Permission claims, the PPM delivery-leadership rule, and the permission catalogue
+- [Imports](docs/user-guide/settings/imports.mdx): Following an import run, checking a file before importing it, and stopping, resuming, or retrying a run
+- [Appearance](docs/user-guide/settings/appearance.mdx): Themes, modes, primary color, and density
 - [Architecture](docs/contributing/architecture.mdx): Clean Architecture, DDD, CQRS, vertical slices
 - [Domain Events](docs/contributing/domain-events.mdx): Designing, wiring, and versioning events; activity log
 - [Coding Standards](docs/contributing/coding-standards.mdx): Naming, NodaTime, Result pattern, theming
@@ -49,7 +65,14 @@ Wayd supports:
 - [Adding a Feature](docs/contributing/adding-a-feature.mdx): Step-by-step feature implementation guide
 - [Database & Migrations](docs/contributing/database.mdx): EF Core, shared DbContext, migrations
 - [Frontend Development](docs/contributing/frontend.mdx): Next.js, React, Ant Design, RTK Query
+- [Record Pages](docs/contributing/record-pages.mdx): The standard structure for list and detail pages — sections, record facts, URL state
+- [WaydGrid](docs/contributing/wayd-grid.mdx): The house data grid — filtering, sorting, pinning, column persistence, tree mode, inline editing
 - [API Development](docs/contributing/api.mdx): Controller patterns, authentication, OpenAPI
+- [Configuration](docs/contributing/configuration.mdx): Database, authentication, security headers, system settings, environment configuration
+- [Local Development](docs/contributing/local-development.mdx): Day-to-day workflow with Aspire, debugging, and common tasks
+- [Branches and Commits](docs/contributing/git-workflow.mdx): Branch naming and commit message conventions
+- [MCP Server Development](docs/contributing/mcp-server.mdx): The hosted MCP endpoint, and changing and releasing the `@wayd/mcp` package
+- [Data Generation](docs/contributing/tools/data-generation.mdx): The `wayd-data` CLI that generates an organization and seeds it through the API
 - [API Reference](docs/reference/api.mdx): REST API areas and endpoints
 - [Feature Flags](docs/reference/feature-flags.mdx): Feature management system
 - [Integrations](docs/reference/integrations/index.mdx): Hub page (Azure DevOps, Entra, Workday, Azure OpenAI); each connector has its own setup/permissions/configuration doc under [reference/integrations/](docs/reference/integrations/)

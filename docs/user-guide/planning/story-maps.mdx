@@ -154,7 +154,7 @@ On a wide screen the panel opens beside the board and the board narrows to make 
 | **Personas** | The same tags as the card's dots, with names. A tagged persona shows in its own colour; an untagged one is muted. Click to toggle. |
 | **Checklist** | Sub-items for work too small to be its own task. |
 
-Title and Description each show a character count while you are typing in them.
+Title and Description each show a character count while you are typing in them; a title holds up to 128 characters, a description up to 2,048, and a checklist item up to 256. **Delete task** at the foot of the panel deletes the task after you confirm.
 
 ### Checklists
 
@@ -218,20 +218,24 @@ The export always covers the **whole map**. An active persona filter changes wha
 
 ## Story Map Lifecycle
 
-A story map is **Active** when created. **Actions → Archive** retires it.
+A story map is **Active** when created, and its creator is its **Owner**, shown in the story maps list alongside Key, Name and Status. **Actions → Archive**, or **Archive** in the list's row menu, retires it.
 
 Archived maps become read-only — the add, edit, delete, and drag affordances all disappear — and are hidden from the story maps list unless you switch on **Include Archived**. Archiving cannot be undone, so it asks for confirmation first.
 
 **Delete** removes a map entirely and is separate from archiving; a map does not need to be archived first.
 
+## Guided Tour
+
+The first time you open an active map you can edit, a tour starts. On an empty board it builds along with you — it waits while you add a goal, a step beneath it, and a task beneath that — and on a board that already has content it points out the goals, steps and tasks there. Either way it goes on to opening a task, dragging, personas and swim lanes. Once you finish or close it, it does not start again on its own; the **?** button (**Take a tour**) in the page header replays it.
+
 ## Permissions
 
 | Permission | Grants |
 |---|---|
-| `Permissions.StoryMaps.View` | Open the list and any map; export to CSV |
-| `Permissions.StoryMaps.Create` | Create a story map |
-| `Permissions.StoryMaps.Update` | Everything on the board — goals, steps, tasks, lanes, personas — plus editing and archiving the map |
-| `Permissions.StoryMaps.Delete` | Delete a story map |
+| **View Story Maps** | Open the list and any map; export to CSV |
+| **Create Story Maps** | Create a story map |
+| **Update Story Maps** | Everything on the board — goals, steps, tasks, lanes, personas — plus editing and archiving the map |
+| **Delete Story Maps** | Delete a story map |
 
 Everything a map contains is governed by **Update** on the map itself; there are no separate permissions for goals, steps, tasks, lanes, or personas.
 
@@ -242,7 +246,7 @@ Everything a map contains is governed by **Update** on the map itself; there are
 1. Navigate to **Planning > Story Maps**
 2. Click **Create Story Map**
 3. Enter a **Name** and optional **Description**
-4. Open the new map and click **+ Goal** to start the backbone
+4. Open the new map and click **+ Goal** in the header, or **Add goal** on the empty board, to start the backbone
 
 ### Building the backbone
 

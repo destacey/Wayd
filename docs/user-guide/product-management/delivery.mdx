@@ -58,12 +58,12 @@ its manifest is what it is.
 | Release package | Its own version, and a manifest naming a product and version per component | A product of its own; an owning release |
 | Deployment | Version *xor* package, environment, frozen category, artifact, outcome | Anything about what changed inside |
 
-:::tip Which one am I looking at?
+:::tip[Which one am I looking at?]
 If a customer would recognise the name, it is a **release**. If it names one artifact and a version
 number, it is a **version**. If it is what the pipeline pushed, it is a **package**.
 :::
 
-:::tip A worked example
+:::tip[A worked example]
 Wayd ships two assemblies together and a tool on its own cadence, and announces the lot as one
 release:
 
@@ -144,7 +144,8 @@ Each action records something that happened, and each is one-way:
 - **Mark Released** records the moment it shipped, also defaulting to now, and moves it to Released.
   The released moment cannot be earlier than the cut moment.
 - **Withdraw** pulls a version. A released version can still be withdrawn — pulling something after
-  it shipped is exactly the case this exists for — but a withdrawn one cannot be released.
+  it shipped is exactly the case this exists for — but a withdrawn one cannot be released. A planned
+  version can be withdrawn too, for one that will never be cut.
 
 Actions that a version would refuse are not offered, so the menu shows only what that version will
 actually accept. That includes its workflow's say: a company can forbid some moves — withdrawing a
@@ -193,6 +194,10 @@ Viewing history needs only view access to the version.
 **Correct Dates** fixes a target date, or a cut or released moment, that was recorded wrongly. It
 changes only those values: the version keeps its current status, and its status history is left as
 it is.
+
+**Move Target Date** is the everyday way to replan: it moves the target of a version that has not yet
+been released or withdrawn, and records the move as a change of plan rather than a correction.
+Releases have the same action under the same rule.
 
 This is deliberately separate from Cut and Mark Released. Those assert that the version moved, and
 refuse to run twice — so without a correction action the only way to fix a released moment would be
@@ -285,7 +290,7 @@ Both routes are edited in one form rather than two because the rule below spans 
 each half would have to be judged against a release only half-changed — and moving a version into the
 package that carries it would work in one order and be refused in the other.
 
-:::warning A version is announced once, by one route
+:::warning[A version is announced once, by one route]
 A version shipping inside one of the release's packages **cannot also be carried directly**.
 Otherwise `2026.07` would announce the same shipment twice and "what did it contain" would have two
 different answers.
@@ -303,11 +308,13 @@ manifest is: what was announced is then a matter of record.
 - **Mark Released** records the announcement date. It is **refused while anything the release carries
   has not shipped** — telling customers `2026.07` is out while a version inside it has not gone
   anywhere is the one claim a release can make that its own contents contradict.
-- **Withdraw** retracts a release after it was announced. It says **nothing about the versions it
-  carried**: an artifact that shipped has shipped whatever the market was later told, so each version
+- **Withdraw** retracts a release after it was announced, or abandons one that never will be. It says
+  **nothing about the versions it carried**: an artifact that shipped has shipped whatever the market was later told, so each version
   is withdrawn separately where it too was pulled.
 - **Revert** is for a release marked as announced **by mistake**, exactly as
-  [for a version](#reverting-a-version). It clears the released date and requires a reason.
+  [for a version](#reverting-a-version). It returns the release to Ready, clears the released date and
+  requires a reason. Ready is the status a release reaches this way; from there it can be announced
+  again or withdrawn.
 
 **Correct Dates** fixes a target or released date recorded wrongly, without moving the status. There
 is no cut date to correct.
@@ -320,7 +327,7 @@ A **release package** is several component versions shipped as one coordinated u
 
 **Where a package exists, it is the unit of deployment** and its component versions are not. One pipeline run shipping fifteen services must count as one deployment, not fifteen — otherwise deployment frequency measures how finely you have subdivided your services rather than how often you ship.
 
-:::warning A package is not a Release Train
+:::warning[A package is not a Release Train]
 A release package is not a Release Train. A Release Train is SAFe's organizational construct — a long-lived group of teams — and Wayd models that as a [Team of Teams](../organizations/index.mdx#teams). A package is one shipment.
 :::
 
@@ -346,6 +353,10 @@ offered again.
 carry no identifier of their own — so the form submits every line the package should end up with, and
 a line removed from it is removed from the package.
 
+A manifest cannot be emptied, and cannot gain a version that a release listing this package — other than a withdrawn
+one — already carries directly — [a version is announced once, by one route](#setting-what-a-release-contains).
+Remove it from that release's versions first.
+
 The manifest closes once the package is released or withdrawn, and the action stops being offered:
 
 - A **released** package's manifest is a matter of record. What was in the box cannot be rewritten
@@ -358,15 +369,15 @@ The manifest closes once the package is released or withdrawn, and the action st
   closes the manifest. A package with an empty manifest cannot be released.
 - **Correct Dates** fixes a target date or released moment recorded wrongly, without moving the status.
   The released moment can be changed on a released package but not added or cleared: it is what closes
-  the manifest.
+  the manifest. A withdrawn package cannot have its dates corrected.
+- **Withdraw** pulls the package, with an optional reason recorded on the status transition. As with
+  versions, a released package can still be withdrawn, and a withdrawn one cannot be released.
 
 A package's released moment is an instant — when the pipeline run that shipped it completed — and is
 shown in your own time zone, so the same package reads as the 17th in Chicago and the 18th in London
 when it shipped late in the evening there. Target dates are plans and stay calendar dates. Packages
-released before release moments were recorded carry 12:00 UTC on their original date, which is the
-same day in every zone; correct any whose real moment matters.
-- **Withdraw** pulls the package, with an optional reason recorded on the status transition. As with
-  versions, a released package can still be withdrawn, and a withdrawn one cannot be released.
+released before release moments were recorded carry 12:00 UTC on their original date, which falls on
+the same day in every zone from UTC−11 to UTC+11; correct any whose real moment matters.
 
 Withdrawing keeps the package. **Delete** (with `Permissions.Delivery.Delete`) removes it with its
 manifest, its status history and every deployment of it. It is refused while any release lists the
@@ -392,7 +403,7 @@ Each environment carries a **category**: Development, Testing, Staging, Producti
 
 Environments are also ordered into **rings**, so progressive rollout is representable.
 
-:::note Reclassifying does not rewrite history
+:::note[Reclassifying does not rewrite history]
 Each deployment freezes the category of the environment it went into, so reclassifying an environment changes where *future* deployments count and leaves past ones as they were. A staging environment promoted to production does not retroactively inflate your deployment frequency. The category is changed on the ordinary Edit form, but Wayd records the change as an event of its own rather than folding it into the edit, so the change in what gets counted from then on stays traceable.
 :::
 
@@ -479,7 +490,7 @@ every version that **changed** in it. Its carried-forward components shipped ear
 A deployment that is later rolled back still shipped first, so it counts too. Deployments outside
 production never mark anything released.
 
-:::note What a rolled-back deployment counts as
+:::note[What a rolled-back deployment counts as]
 A rollback still counts toward **deployment frequency** — it reached production, which is what that
 measures — and counts against **change failure rate**. The two measures deliberately disagree about
 it, which is the point of having both.
@@ -499,7 +510,7 @@ Each entry is the latest deployment that **succeeded and stayed succeeded**, whi
 
 Where a later attempt on the same product failed or was rolled back, the entry is marked. The running version is still the honest answer, but on its own it would hide that someone has since tried to move past it and could not.
 
-:::note A package is expanded, not listed
+:::note[A package is expanded, not listed]
 A package deployment is broken into its [manifest](#release-packages) and each component competes for its own product's slot, so every row on this page is a product. Listing the package itself instead would report **every bundle ever deployed** as running: successive bundles carry the same components, and no bundle supersedes a differently-numbered one.
 
 An entry that arrived inside a package names it, so the deployment the version rode in on stays visible.
@@ -511,7 +522,7 @@ Retired environments are left out by default. They still hold the history of eve
 
 **Delivery** measures version activity over a window — what was **cut and shipped**, rather than what reached an environment. It is the overview for the records below it, and it is deliberately answerable without any deployment records at all.
 
-Scope is a product node, defaulting to all products. Selecting a node covers **that node and everything beneath it**, so picking a grouping rolls up its children rather than reporting nothing — a product line has no versions of its own. The picker leaves out any branch with nothing releasable beneath it, since scoping to one could only ever report zero.
+The window is the **Last 14 days** by default, or the last 30 or 90. Scope is a product node, defaulting to all products. Selecting a node covers **that node and everything beneath it**, so picking a grouping rolls up its children rather than reporting nothing — a product line has no versions of its own. The picker leaves out any branch with nothing releasable beneath it, since scoping to one could only ever report zero.
 
 | Measure | What it counts |
 | --- | --- |
@@ -536,19 +547,19 @@ Shading is an **absolute** scale — none, one, two, three, four, and five or mo
 
 ### Recent Delivery Activity
 
-What has happened to versions **and packages** lately, most recent first: released, cut and awaiting release, withdrawn. A package entry says how many components it carried and links to its manifest rather than listing them.
+What has happened to versions **and packages** lately, most recent first: released, cut and awaiting release, withdrawn. A package entry says how many components it carried and links to its manifest rather than listing them. The feed shows the latest few entries whatever the window, so a quiet fortnight still shows the last thing that happened.
 
 Read from [status history](#version-status-history) rather than the records' own cut and released moments, because a record's moment says the state it is in now, while a transition says when it changed — which is what a feed is a list of.
 
-:::note Packages drop out when you scope to a product
+:::note[Packages drop out when you scope to a product]
 A package spans several products, so attributing one to a single node would put the same shipment under each of them. Scoping the page to a product therefore leaves packages out of the feed, and the entries you see are versions alone.
 :::
 
-:::caution Cut to released excludes what it cannot measure
+:::caution[Cut to released excludes what it cannot measure]
 A version can be marked released without ever having been cut, and [that is deliberate](#recording-a-version) — demanding a cut first would make importing historical versions impossible. Those versions carry no latency, so they are left out rather than counted as zero, which would make the average improve every time more history was loaded. The tile says how many of the window's releases it actually speaks for.
 :::
 
-:::note What this page does not say
+:::note[What this page does not say]
 Neither measure says anything about whether a deployment worked. A version has no failed state — its lifecycle is Planned, Ready, Released and Withdrawn — and failure belongs to the [deployment](#deployments), where it is scoped to production. Measuring it from version records would be inventing an answer. See [Delivery Metrics](#delivery-metrics) for what the deployment record supports.
 :::
 
@@ -566,19 +577,21 @@ Environments have no detail page, so their changes are recorded but not browsabl
 
 Two of the four [DORA](https://dora.dev/) measures are computable from what this module records. The other two are reported as explicitly unavailable rather than omitted or approximated, so you can tell "we do not measure this yet" from "there were no deployments."
 
+**Delivery Metrics** opens on the last 90 days; the date range and the **All products** picker above the tiles change the window and the [scope](#scoping-metrics-to-a-product). A deployment counts in the window its completion falls in. Below the tiles, **Not measured yet** lists the two unavailable measures with their reasons, and a grid lists every deployment started since the window opened — in every environment, not only production — so you can check what the production-only measures left out.
+
 ### Deployment Frequency
 
-How often production deployments completed over the window.
+How often production deployments completed over the window, shown per day beside the count and the number of days.
 
 This counts **completed** deployments, not attempts: an in-flight deployment has not been delivered, and a failed one did not reach production. Rolled-back deployments **do** count — they reached production, which is what this measures. Whether that was a good idea is change failure rate's job.
 
 ### Change Failure Rate
 
-The share of production deployments that failed or were rolled back.
+The share of production deployments that failed or were rolled back, out of every production deployment completed in the window — succeeded, failed and rolled back alike. One still in progress is not counted either way. The screen labels it **Change Failure Rate (proxy)**, for the reason below.
 
 Only production counts. A failure caught in staging is a failure that was *prevented*, and counting it would invert what the measure means.
 
-:::caution This is a proxy, not the industry measure
+:::caution[This is a proxy, not the industry measure]
 DORA's change failure rate counts changes that **degraded service** — which a deployment record cannot know. What Wayd counts is deployments recorded as failed or rolled back, which is the closest signal available without an incident feed. The two diverge in both directions: a rollback made as a precaution counts here and should not, and a bad change nobody rolled back does not count here and should. Read it as a trend in remediated deployments rather than as the DORA number, and the screen labels it that way.
 :::
 
@@ -600,7 +613,7 @@ Needs a link from a deployment back to the change it carried, such as a commit o
 
 Needs an incident record: when service degraded and when it recovered. A rollback is not a substitute, because it says a change was reverted rather than that service was restored.
 
-:::tip Combining windows
+:::tip[Combining windows]
 Every metric carries its raw counts alongside the derived figure — deployment frequency reports the
 count and the number of days, change failure rate the failed and total counts. Combine windows or
 scopes by summing those rather than by averaging the rates, which would weight a quiet week the same
@@ -717,11 +730,12 @@ change is attributed to the person who made it. The permission alone is not enou
 is a separate one.
 
 - **Versions** — cut, mark released, revert, withdraw, correct dates. Planning a version, editing its
-  details and moving its target date do not require the link.
-- **Releases** — every action except planning one: editing details, moving the target date and
-  setting contents all require it, as well as announcing, reverting, withdrawing and correcting dates.
-- **Packages** — mark released and withdraw. Assembling a package and editing its manifest do not
-  require the link.
+  details, moving its target date and deleting it do not require the link.
+- **Releases** — every action except adding and deleting one: editing details, moving the target date
+  and setting contents all require it, as well as announcing, reverting, withdrawing and correcting
+  dates.
+- **Packages** — mark released, withdraw and correct dates. Assembling a package and editing its
+  manifest do not require the link.
 - **Deployments** — recording an outcome: succeeded, failed or rolled back. **Starting** a deployment
   does not, so a pipeline reporting in can open a deployment without a linked account.
 - **Environments** — no action requires the link.

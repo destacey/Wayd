@@ -13,7 +13,7 @@ Every project has:
 - **Key** — Unique identifier (2-20 uppercase alphanumeric characters, e.g., `APOLLO`)
 - **Name**, **Description**, **Business Case**, **Expected Benefits**
 - **Status** — Proposed, Approved, Active, Completed, or Canceled
-- **Date Range** — Start and optional end date
+- **Date Range** — Optional planned start and end date, set together
 - **[Expenditure Category](../settings/index.mdx#expenditure-categories)** — Budget classification
 - **[Lifecycle](#project-lifecycles)** — Defines the stages the project goes through
 - **Roles** — Sponsor, Owner, Manager, Member (see [Project Roles](#project-roles))
@@ -40,6 +40,7 @@ stateDiagram-v2
     [*] --> Proposed
     Proposed --> Approved : Lifecycle assigned
     Approved --> Active : Date range set
+    Proposed --> Active : Date range set
     Active --> Completed
     Active --> Canceled
     Proposed --> Canceled
@@ -50,7 +51,9 @@ Projects move forward through these transitions, and can also be moved **backwar
 
 **Business rules:**
 - A [lifecycle](#project-lifecycles) must be assigned before a project can be approved
-- Active/Completed projects require a date range
+- Approval is optional: a Proposed project can be activated directly. The **Actions** menu offers **Activate** on a Proposed project once it has both a lifecycle and a date range, alongside **Approve**
+- Active/Completed projects require a start and end date
+- Only an active lifecycle can be assigned, and a completed or canceled project's lifecycle cannot be assigned or changed
 - Only projects that have never left Proposed can be deleted — a project that ran and was later reverted keeps its history and cannot be deleted
 - A project can belong to at most one [program](./portfolios-programs.mdx#programs) (or none)
 - The project key can be changed (cascades to all [task](#project-tasks) keys)
@@ -125,14 +128,16 @@ Warning alerts appear on Overview when requirements are missing:
 
 **Definition** — Description, Business Case, and Expected Benefits, as expandable Markdown sections. Fields that have not been filled in read *Not provided* rather than being hidden, so a gap is visible on a project awaiting approval.
 
-**Team** — Grid of all [team](../organizations/index.mdx#teams) members with their roles, showing the people assigned across all project roles.
+**Team** — Grid of the people working on the project: everyone who holds a [project role](#project-roles), plus anyone assigned to an open task. Columns are Person, Roles, Assigned Stages, and Active Tasks — the Not Started and In Progress tasks assigned to that person, counting only tasks with no children.
 
 **Plan** (only visible if lifecycle is assigned) — This is the project's work breakdown structure:
 
 - **Tree grid** with hierarchical [tasks](#project-tasks) organized by [stage](#project-stages)
 - **Drag-and-drop** reordering (for users with update permission)
-- **Inline-editable columns**: Name, Type (Task/Milestone), Status, Priority, Start Date, End Date, Planned Date, Assigned Members, Progress %, Estimated Effort
-- **Row actions**: Edit task, Delete task, Add child task
+- **Columns**: WBS, Key, Name, Type, Status, Priority, Schedule, Planned Start, Planned End, Assignees, Progress, and Est Effort (hrs). For a milestone, Planned Start and Planned End both show its planned date
+- **Inline editing** of Name, Type (Task/Milestone), Status, Priority, Planned Start, Planned End, Assignees, Progress, and Est Effort (hrs) on the selected row
+- **Schedule** — derived from the dates and read-only: **Overdue** when the planned end has passed, **Due This Week** when it falls between today and Saturday, **Upcoming** when it falls in the following week. Completed and Canceled items carry no label
+- **Row actions**: Edit task, Delete task, Add child task; on a stage row, Edit (the stage's description, status, assignees, planned date range, and progress) and Add Task
 - **Task details drawer**: Click a task **Key** to open a side drawer with task/milestone details
 - **Drawer actions**: Edit, Delete, and Add child task (same actions as row menu)
 - **Drawer links**: Parent Task and Assignees are clickable links
@@ -151,6 +156,8 @@ Common keyboard shortcuts in Plan:
 **Activity** — The project's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx).
 
 **Health Report** — A report rather than a section, so it sits below the divider at the bottom of the rail. See [View the Health Report](#view-the-health-report).
+
+**Forecast** — A second report, shown when the `delivery-forecasting` feature flag is on: when the project's work items will be done, and the chance of finishing by the project's planned end. See [Delivery Forecasting](../work-management/delivery-forecasting.mdx#where-to-find-it).
 
 ## Project Actions Menu
 
@@ -222,7 +229,7 @@ Project health checks let teams record a current health signal for a project and
 4. Optionally add a Markdown note.
 5. Set an expiration (must be a future date/time), then click **Create**.
 
-After creation, the current health appears as a flag/tag in project views.
+After creation, the current health appears as a flag/tag in project views. A project has one current health check at a time: creating a new one ends the current one, setting its expiration to the moment the new one was recorded. Once a check expires the project has no current health until the next one is created.
 
 ### View the Health Report
 
@@ -238,7 +245,7 @@ Use this view to review trends and reporting history for the project.
 
 - **Projects list/grid** includes a **Health** column.
 - **Project detail header** shows the current health flag/tag.
-- **My Projects dashboard** cards show health beside project status.
+- **[Projects Dashboard](./my-projects.mdx)** shows health on every project and counts Unhealthy, At Risk, and unreported projects in its attention tiles.
 
 ### Permissions
 
@@ -365,7 +372,14 @@ Dragging saves the new dates immediately and follows the same rules as editing d
 
 ### Task Dependencies
 
-Tasks support **Finish-to-Start** dependencies — a predecessor task must complete before its successor can start. Dependencies are soft-deleted (marked as removed rather than permanently deleted).
+Tasks support **Finish-to-Start** dependencies — a predecessor task that should finish before its successor starts. Dependencies are soft-deleted (marked as removed rather than permanently deleted).
+
+Dependencies are added and removed through the API and the [MCP server](../../getting-started/mcp-server.mdx); the Plan section does not show or edit them. Wayd records the relationship but does not enforce it: a successor's status and dates can change whatever its predecessor's state.
+
+- A task cannot depend on itself, and both tasks must belong to the same project.
+- A predecessor can have only one active dependency on the same successor.
+- Chains are not checked for cycles.
+- A task with an active dependency in either direction cannot be deleted until the dependency is removed.
 
 > **Note:** These are project task dependencies within PPM. For work item dependencies across [workspaces](../work-management/work-items.mdx#workspaces), see [Work Item Dependencies](../work-management/work-items.mdx#work-item-dependencies).
 
@@ -373,12 +387,12 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 
 ### Creating a Project
 
-1. Navigate to a [portfolio's](./portfolios-programs.mdx#portfolios) detail page, or **PPM > Projects**
+1. Navigate to **PPM > Projects**
 2. Click **Create Project**
-3. Enter **Name**, **Key** (project code), and **Description**
-4. Optionally set **Business Case**, **Expected Benefits**, and **[Expenditure Category](../settings/index.mdx#expenditure-categories)**
-5. Assign a **[Lifecycle](#project-lifecycles)** to enable approval
-6. Add **Roles** to assign [team](../organizations/index.mdx#teams) members
+3. Choose an Active or On Hold **Portfolio**, and optionally an active **Program** in it
+4. Enter **Key** (project code), **Name**, **Description**, and **[Expenditure Category](../settings/index.mdx#expenditure-categories)**
+5. Optionally set **Business Case**, **Expected Benefits**, **Planned Date Range**, the **Sponsors**, **Owners**, **Project Managers**, and **Members**, and **Strategic Themes**
+6. Optionally choose a **[Lifecycle](#project-lifecycles)** — the form previews its stages. A lifecycle can also be assigned later with **Assign Lifecycle**
 7. **Approve** the project (requires lifecycle), then **Activate** (requires date range)
 
 ### Managing Project Stages and Tasks
@@ -389,8 +403,7 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 4. Set priority, dates, assignees, and estimated effort
 5. Drag and drop to reorder tasks within stages
 6. Use the [Gantt chart](#gantt-chart) to review the schedule and drag bars to reschedule
-7. Set [dependencies](#task-dependencies) between tasks
-8. Track progress and update statuses
+7. Track progress and update statuses
 
 ### Reporting Project Health
 
@@ -398,7 +411,7 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 2. Use the **Create Health Check** button to record current health.
 3. Add a concise note explaining risk, impact, and next step.
 4. Set an expiration aligned to your next review cadence (for example, 1-2 weeks).
-5. Review **Actions > Health Report** during project reviews to track trend changes.
+5. Review the **Health Report**, under **Reports** in the section rail, during project reviews to track trend changes.
 
 ### Setting Up a Project Lifecycle
 

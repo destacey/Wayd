@@ -45,7 +45,7 @@ Wayd uses SQL Server. The default configuration points at the `mssql` service in
 
 ### Apply Migrations
 
-From the repository root:
+The API applies pending migrations on startup, so this step is optional. To apply them without starting the API, run from the repository root (after `dotnet tool restore`):
 
 ```bash
 dotnet ef database update \
@@ -62,7 +62,7 @@ cd Wayd.AppHost
 dotnet run
 ```
 
-Access the Aspire dashboard at `http://localhost:15888` for telemetry, logs, and service URLs.
+The Aspire dashboard opens at `https://localhost:17153` (`http://localhost:15206` with the `http` launch profile) for telemetry, logs, and service URLs. The client is at `http://localhost:3000`. See [Local Development](./local-development.mdx#running-with-aspire-recommended).
 
 ### Option 2: Run Services Individually
 
@@ -83,9 +83,12 @@ docker compose up
 ```
 
 Access points:
-- API: `https://localhost:5001`
+- API: `https://localhost:5001` (`http://localhost:5000`)
 - Client: `http://localhost:5002`
 - Seq (logs): `http://localhost:8081`
+- SQL Server: `localhost:1433` (`MSSQL_PORT` in `.env`)
+
+The API container mounts your user secrets and HTTPS development certificate from the host; their paths differ per OS, so copy `.env.example` to `.env` and set `USER_SECRETS_DIR` and `HTTPS_CERT_DIR` as it describes. Changing an environment variable needs `docker compose down` and `up`, not a restart.
 
 ## First-Run Setup
 

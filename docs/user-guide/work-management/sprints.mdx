@@ -43,7 +43,7 @@ A sprint's synced dates are what was **planned**. Teams often start or finish on
 |---|---|---|
 | **Start** | The moment you choose — now by default, or earlier — as the sprint's actual start | After the team's previous sprint started (and not before it was completed, if it was), up to the end of the sprint's last planned day, and before the next sprint's start. The team's first sprint can be started up to 3 days before its planned start. |
 | **Complete** | The moment you choose — now by default, or earlier — as the sprint's actual end | After the sprint started — pressing Start is not required, its commitment point having passed is enough — before a later sprint has started, and once any earlier sprint the team left open has been completed |
-| **Reopen** | Clears the actual end | While the team has not started a later sprint |
+| **Reopen** | Clears the actual end | While the team has not started a later sprint and, for a sprint the team started, while no other sprint of the team is open |
 
 The dialog offers only the moments the rules allow, so a recorded start or end never overlaps the team's other sprints. A moment can't be in the future. Activity records both the moment you chose and when you recorded it.
 
@@ -108,14 +108,14 @@ The sprint's details show its type and where it came from, and a non-standard sp
 ### Sprint Detail Page
 
 The sprint detail page shows:
-- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), [Correct Actual Dates](#correcting-actual-dates), [Team Days Off](#team-days-off) and [Sprint Type](#sprint-type)
-- **Planned and actual dates** — the planned start and end, the actual start and end the team recorded (**—** until recorded), the sprint's length in days, its [sprint type](#sprint-type) and where it came from, and its team days off
-- **Team** link and timeline progress bar
-- **Capacity** (with Team Capacity Management on) — the team's capacity for the sprint beside its scope, at the top of the Overview, and a **Capacity** section with the sprint's capacity plan. See [Sprint Capacity](#sprint-capacity) below
-- **Sprint Metrics** (for Active/Completed sprints) — a progress row and a commitment row, with one switch between the team's estimate and counting work items. See [Sprint Metrics](#sprint-metrics) below
-- **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in and what became of it, its **Original** and **Final** estimate (**Original SP** and **Final SP** for a Story Points team: the estimate when it came in, and when it was last in the sprint), and when it was **Added to Sprint** or **Removed from Sprint**, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, and Team. A Future sprint shows its current items only
+- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), [Correct Actual Dates](#correcting-actual-dates), [Team Days Off](#team-days-off) and [Sprint Type](#sprint-type). The menu is shown only to those who may [manage the sprint](#starting-completing-and-reopening-a-sprint)
+- **Details panel** — the **Planned start** and **Planned end**, the **Actual start** and **Actual end** the team recorded (**—** until recorded), the sprint's **Length** in days, its **Type** and where it came from, and its **Team days off**; the **Team** link under **Relationships**; and the sprint's **Links**
+- **Overview** — a warning when the sprint's planned dates overlap a neighbouring sprint's, the timeline progress bar, and:
+  - **Capacity** (with Team Capacity Management on) — the team's capacity for the sprint beside its scope. See [Sprint Capacity](#sprint-capacity) below
+  - **Sprint Metrics** (for Active/Completed sprints) — a progress row and a commitment row, with one switch between the team's estimate and counting work items, and the burn charts. See [Sprint Metrics](#sprint-metrics) below
+- **Backlog** — for an Active or Completed sprint, a toggle between **Sprint Scope**, every item that was in the sprint between its commitment point and its end, with how it came in (**Entry**) and what became of it (**Outcome**), its **Original** and **Final** estimate (**Original SP** and **Final SP** for a Story Points team: the estimate when it came in, and when it was last in the sprint), when it was **Added to Sprint** or **Removed from Sprint**, and its **Current Status** and **Current Sprint**, filterable by category; and **Current Items**, the [work items](./work-items.mdx#work-items) in the sprint now, with Rank, Key, Type, Title, the team's estimate ([Story Points, Effort or Size](./work-items.mdx#estimate-columns)), Status, Status Category, Sprint, Parent Key, Parent, Assigned To, Project and Tags. A Future sprint shows its current items only
+- **Capacity** (with Team Capacity Management on, for those who may view teams) — the sprint's capacity plan. See [Sprint Capacity](#sprint-capacity) below
 - **Activity** — the sprint's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx)
-- **Links** section
 
 A **Switch Sprint** dropdown lets you quickly navigate between other sprints on the same team.
 
@@ -138,7 +138,7 @@ Capacity is worked out each time it is read. The ideal line on the [burn-down](#
 
 ### Sprints List Page
 
-The sprints list (**Work Management > Sprints**) shows all sprints across all [teams](../organizations/index.mdx#teams) in a grid with Key, Name, Team, State, [Type](#sprint-type), Start Date, End Date, Started and Completed, sorted by most recent start date. Started and Completed show the actual moments the team recorded, and are empty until the team records them.
+The sprints list (**Work Management > Sprints**) shows all sprints across all [teams](../organizations/index.mdx#teams) in a grid with Key, Name, Team, State, [Type](#sprint-type), Start, End, Started and Completed, sorted by most recent start date. Started and Completed show the actual moments the team recorded, and are empty until the team records them.
 
 Teams also see their sprints in the [Sprints section](../organizations/index.mdx#sprints) of their detail page.
 
@@ -263,11 +263,11 @@ For a deeper analysis of cycle time patterns over longer periods, use the [Cycle
 
 ### PI Iteration Metric Aggregation
 
-When viewing a [PI iteration](../planning/planning-intervals.mdx#pi-iteration-detail-page), metrics are aggregated from all mapped team sprints:
-- **Counts** are summed across all sprints (Total, Completed, In Progress, Not Started, Unestimated)
-- **Estimates** are summed only when every sprint is measured in the same sizing method. When teams size in different units, estimates are never added together: the iteration's totals are counts, and each team's sprint card shows its own unit
-- **Average Cycle Time** is the average of each sprint's average cycle time (simple average, not weighted)
-- **Team Count** and **Sprint Count** show how many teams and sprints are included
+When viewing a [PI iteration](../planning/planning-intervals.mdx#pi-iteration-detail-page), metrics are aggregated from all mapped team sprints, and from the planning interval's Kanban teams, which are measured over the iteration's dates:
+- **Counts** are summed across all sprints (Total, Completed, In Progress, Not Started, Unestimated). Kanban teams add to Completed, In Progress and Unestimated, but not to Total or Not Started, which come from sprints only
+- **Estimates** are summed only when every sprint and Kanban team is measured in the same sizing method. When teams size in different units, estimates are never added together: the iteration's totals are counts, and each team's card shows its own unit
+- **Average Cycle Time** is the total cycle time of every eligible item across the sprints and Kanban teams divided by the number of those items, so a sprint with more completed items weighs more
+- **Team Count** and **Sprint Count** show how many teams (including Kanban teams) and sprints are included
 
 ## Sprint Scope
 

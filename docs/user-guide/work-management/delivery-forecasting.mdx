@@ -20,7 +20,7 @@ Forecasts come from what each team has actually finished recently, not from esti
 
 | Page | Report | Forecasts |
 |------|--------|-----------|
-| Work item detail | **Forecast** | When the work item is done. A portfolio work item (an Epic or Feature, say) is done when the last of its open backlog work items is. |
+| Work item detail | **Forecast** | When the work item is done. A portfolio work item (an Epic or Feature, say) is done when the last of its open backlog work items is. Shown only for Requirement- and Portfolio-tier work items. |
 | PI objective detail | **Forecast** | When the objective's linked work items are done, and the chance of finishing by the objective's target date — or the planning interval's end when it has none. |
 | Project detail | **Forecast** | When the project's work items are done, and the chance of finishing by the project's planned end. |
 | Team detail | **Throughput Forecast** | How many backlog work items the team finishes by a date you choose. |
@@ -32,8 +32,8 @@ Each report has controls above the results. Nothing is saved: every option start
 | Option | Default | Use it to |
 |--------|---------|-----------|
 | **History** | Last 90 days | Forecast from a shorter window when a team's pace changed recently (a reorganization, the end of a holiday period), or a longer one for a stable team. Choose 30, 60, 90, 120, or 180 days. |
-| **Target date** | The objective's target date (or the planning interval's end), or the project's planned end; none on a work item | Ask "what is our chance by this date?". On the team report, **Forecast through** sets the date to count up to. |
-| **Ignore dependencies** | Off | See the forecast as if nothing waited on its predecessors. Comparing the two dates shows what the dependencies cost. The report is marked as a what-if. |
+| **Target date** | The objective's target date (or the planning interval's end), or the project's planned end; none on a work item | Ask "what is our chance by this date?". On the team report, **Forecast through** sets the date to count up to, today included; it starts two weeks out (13 days after today) and must be set. A date can be from today to under two years ahead. |
+| **Ignore dependencies** | Off | Not on the team report. See the forecast as if nothing waited on its predecessors. Comparing the two dates shows what the dependencies cost. The report is marked as a what-if. |
 | **Started work first** | On | Count active work items ahead of proposed ones, since teams usually finish what they have started. Turn it off to forecast in rank order alone. See [Backlog Position](#backlog-position). |
 
 ## How It Works
@@ -73,7 +73,7 @@ Forecasting uses the **tier** of each work type, not its name, so it follows how
 | **Portfolio** | Forecast from its open Requirement-tier work items at any depth. |
 | **Task**, **Other** | Not forecast. |
 
-A work type left in the **Other** tier (the default for new types) is not counted, so check the tier mapping in [Work Configuration](./work-configuration.mdx) if a team's history looks too low.
+A work type left in the **Other** tier (where work types synced from Azure DevOps start) is not counted, so check the tier mapping in [Work Configuration](./work-configuration.mdx) if a team's history looks too low.
 
 ## Reading the Results
 

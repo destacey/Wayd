@@ -16,6 +16,19 @@ Wayd uses Microsoft.FeatureManagement to control feature visibility. Feature fla
 3. Admins **enable/disable** flags through the Settings UI
 4. A **database-backed provider** serves flag state with caching
 
+## Current Flags
+
+| Name | Display name | Controls |
+| --- | --- | --- |
+| `planning-poker` | Planning Poker | The Planning Poker feature |
+| `story-maps` | Story Maps | The Story Maps feature |
+| `product-management` | Product Management | The Product Management module |
+| `delivery-forecasting` | Delivery Forecasting | Monte Carlo delivery forecasts |
+| `mcp-server` | MCP Server | The hosted MCP endpoint (`/mcp`) |
+| `team-capacity-management` | Team Capacity Management | Employee allocation to teams and team capacity planning |
+
+All of them are seeded disabled.
+
 ## Adding a New Feature Flag
 
 ### 1. Define the Flag
@@ -49,9 +62,9 @@ On a controller or action:
 public async Task<ActionResult<MyDto>> Get() { ... }
 ```
 
-Or in a handler:
+Use the controller attribute for an endpoint that exists only with the flag on. For behaviour a flag changes inside an endpoint, inject `IFeatureFlags` (`Wayd.Common.Application.FeatureManagement`) into the handler — the application layers do not reference Microsoft.FeatureManagement:
 ```csharp
-if (!await _featureManager.IsEnabledAsync(FeatureFlags.Names.MyNewFeature))
+if (!await _featureFlags.IsEnabled(FeatureFlags.Names.MyNewFeature, cancellationToken))
     return Result.Failure("Feature is not enabled.");
 ```
 
@@ -59,8 +72,10 @@ if (!await _featureManager.IsEnabledAsync(FeatureFlags.Names.MyNewFeature))
 
 Page-level gate:
 ```typescript
-export default requireFeatureFlag('my-new-feature')(MyPage)
+export default requireFeatureFlag(MyPage, 'my-new-feature')
 ```
+
+While the flag is off, the page answers 404.
 
 Conditional rendering (the hook returns `{ isEnabled, isLoading }` and takes the
 kebab-case flag name):
@@ -82,5 +97,6 @@ Pass flag state into menu builder functions to conditionally show navigation ite
 | `Wayd.Common.Domain/FeatureManagement/FeatureFlags.cs` | Flag definitions |
 | `Wayd.Infrastructure/Persistence/Initialization/FeatureFlagSeeder.cs` | Auto-seeds flags |
 | `Wayd.Infrastructure/FeatureManagement/DatabaseFeatureDefinitionProvider.cs` | Database provider |
+| `Wayd.Common.Application/FeatureManagement/IFeatureFlags.cs` | Flag checks in handlers |
 | `wayd.web.reactclient/src/hooks/use-feature-flag.ts` | Frontend hook |
 | `wayd.web.reactclient/src/components/hoc/require-feature-flag.tsx` | Page-level gate |

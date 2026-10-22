@@ -13,17 +13,17 @@ Wayd can load planning data in bulk from CSV files through three **import endpoi
 single `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a
 permission.
 
-:::info Screen or API
-Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
+:::info[Screen or API]
+Every import described here can be run from [Settings → System → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template. Files can also be posted directly to the
 endpoints below, for example with `curl` or a script. Exact request/response shapes are also in the
 API reference the API serves at `/scalar`.
 
-However it was submitted, the run is visible in **Settings → Imports**, where you can see what became of
+However it was submitted, the run is visible in **Settings → System → Imports**, where you can see what became of
 each row and act on a run that did not finish. See [Imports](../settings/imports.mdx).
 :::
 
-:::warning These imports take IDs, not names
+:::warning[These imports take IDs, not names]
 Unlike the [PPM](../ppm/bulk-import.mdx) and [Organization](../organizations/bulk-import.mdx) imports,
 which resolve everything by human-readable natural key, **these reference records by GUID** — teams,
 people and planning intervals — and use **numeric ids** for status, category, impact and likelihood.
@@ -40,16 +40,16 @@ A few rules apply to all three:
   background worker, and the post waits a few seconds for it: a small file comes back finished
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run — follow it in
-  [Settings → Imports](../settings/imports.mdx), or by its id against the import endpoints.
+  [Settings → System → Imports](../settings/imports.mdx), or by its id against the import endpoints.
 - **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
-  **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
+  **Check File** in [Settings → System → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
   through the import's own checks without anything being created: each comes back passed or rejected
   with its reason, and an all-or-nothing file reports every rejection rather than stopping at the first
   step that finds one. It is advice, not a promise — the data can change before you import — and a
   finished check can be imported for real from its page without posting the file again.
 - **Files posted together can be grouped.** Every endpoint takes an optional `submissionGroupId` query
   parameter — any GUID you choose — and record it on the run, so a set of files posted under one value
-  shows as one batch in [Settings → Imports](../settings/imports.mdx#what-you-see), with summed counts
+  shows as one batch in [Settings → System → Imports](../settings/imports.mdx#what-you-see), with summed counts
   and each run's page linking to the others. Leave it out to submit a file on its own. An empty GUID is
   rejected rather than treated as a group.
 - **A malformed file is still rejected whole, before anything is queued.** Every row is validated on
@@ -75,14 +75,14 @@ A few rules apply to all three:
 it is written. Correct the file and submit it again.
 
 You do not need to work out what happened by re-posting. Open the run in
-[Settings → Imports](../settings/imports.mdx) to see each row's outcome, then:
+[Settings → System → Imports](../settings/imports.mdx) to see each row's outcome, then:
 
 - **Retry rejected rows** once the underlying problem is fixed. Rows that already succeeded are never
   reapplied, so this cannot duplicate them.
 - **Resume** a run that stopped partway — cancelled, or interrupted — to apply only the rows it never
   reached.
 
-:::note Row data is kept for 30 days
+:::note[Row data is kept for 30 days]
 Retrying a row re-applies the data you submitted, which is held for 30 days after a run finishes and
 then discarded. After that a row can no longer be retried and the file must be submitted again.
 :::
@@ -108,7 +108,7 @@ file and post the parts one at a time, waiting for each run; one `submissionGrou
 runs findable as one import. An all-or-nothing file is one database transaction, and 10,000 rows bounds it.
 
 The rules every file shares — request size, `ImportId` length, how rows are chunked, how long the post
-waits, retries, stalls and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
+waits, retries, stalls and retention — are in [Settings → System → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
 
 ---
 
@@ -166,8 +166,8 @@ created by hand or by the [planning intervals import](#planning-intervals-import
 its own interval** in `PlanningIntervalId`, so one file can carry objectives for as many intervals as you
 have: an organization's whole planning history goes in a single file rather than one per interval.
 
-Because the file is all-or-nothing, a row naming an interval that does not exist, or one whose objectives
-are locked, rejects the whole file — including the rows for every other interval in it.
+Because the file is all-or-nothing, a row naming an interval or a team that does not exist, or an interval
+whose objectives are locked, rejects the whole file — including the rows for every other interval in it.
 
 | Column | Required | Notes |
 |---|---|---|
@@ -181,14 +181,14 @@ are locked, rejects the whole file — including the rows for every other interv
 | `StartDate` | No | `yyyy-MM-dd`. Must be before `TargetDate` where both are given. |
 | `TargetDate` | No | `yyyy-MM-dd`. |
 | `IsStretch` | Yes | `true` or `false`. |
-| `ClosedDateUtc` | Conditional | **Required** when the status is Completed or Canceled, and **must be empty** otherwise. |
+| `ClosedDateUtc` | Conditional | UTC instant. **Required** when the status is Completed, Canceled or Missed, and **must be empty** otherwise. |
 | `Order` | No | Display position within the team's objectives. |
 
 ## Risks import
 
 `POST /api/planning/risks/import`
 
-Loads [risks](./risks.mdx).
+Loads [risks](./risks.mdx). A row naming a team, reporter or assignee that Wayd does not have is rejected, which, as the file is all-or-nothing, rejects the whole file.
 
 | Column | Required | Notes |
 |---|---|---|

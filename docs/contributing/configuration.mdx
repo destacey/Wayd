@@ -7,13 +7,24 @@ audience: [developer, operator]
 
 # Configuration
 
+## Configuration sources
+
+The API reads its settings from these sources, each overriding the one before (`Wayd.Web.Api/Configurations/ConfigureServices.cs`):
+
+1. `appsettings.json`, then `appsettings.{Environment}.json`.
+2. One file per concern in `Wayd.Web/src/Wayd.Web.Api/Configurations/` — `logger.json`, `hangfire.json`, `cors.json`, `database.json`, `middleware.json`, `security.json`, `openapi.json`, `securityheaders.json` — each followed by its optional `{name}.{Environment}.json` overlay (`database.Development.json`, `hangfire.Development.json`).
+3. User secrets (`dotnet user-secrets`, in `Wayd.Web/src/Wayd.Web.Api`).
+4. Environment variables, with `__` in place of `:` (`DatabaseSettings__ConnectionString`).
+
 ## Database
 
-Database connection strings are configured in:
+Database settings live under `DatabaseSettings` in:
 
 ```
 Wayd.Web/src/Wayd.Web.Api/Configurations/database.json
 ```
+
+The base file holds an empty connection string; `database.Development.json` supplies the local one and turns on `EnableSensitiveDataLogging`. See [Prerequisites → Database](./prerequisites.mdx#database).
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -64,7 +75,7 @@ Wayd supports two authentication paths:
 - **Local (username + password)** — always available, configured per-deployment via JWT signing settings.
 - **Identity providers (OIDC)** — Microsoft Entra ID and any standards-compliant OIDC provider (Google, Okta, Auth0, Keycloak, …). Providers are stored in the database and managed by admins through the Settings UI; no app restart is needed to add, edit, enable, or disable one.
 
-:::tip First deployment?
+:::tip[First deployment?]
 If this is a fresh deployment with no users yet, see [First-Run Setup](./first-run-setup.mdx) to create the initial administrator account before configuring identity providers.
 :::
 
@@ -74,7 +85,7 @@ Each row in the `Identity.OidcProviders` table is one configured provider — it
 
 The database is the single source of truth for identity providers — there is no config-file or environment-variable equivalent. Providers are created and edited entirely through the admin UI.
 
-**Managing providers.** Once the `IdentityProviders` feature flag is enabled, admins with the `Permissions.OidcProviders.{View|Create|Update|Delete}` permissions can manage providers from **Settings → Identity Providers**. The "Test connection" button fetches the provider's `.well-known/openid-configuration` document so typos in `Authority` are caught at configuration time, not at the user's next login.
+**Managing providers.** Admins with the `Permissions.OidcProviders.{View|Create|Update|Delete}` permissions manage providers from **Settings → Access → Identity Providers**. The **Test** action in the list and **Test discovery** on a provider's page (both need `Permissions.OidcProviders.Update`) fetch the provider's `.well-known/openid-configuration` document so typos in `Authority` are caught at configuration time, not at the user's next login.
 
 | Provider field | Purpose |
 | --- | --- |
@@ -92,7 +103,7 @@ The database is the single source of truth for identity providers — there is n
 | `RequireEmployeeRecord` | When auto-registration is on, gates it to users whose email matches an existing employee. `true` (the safer default) lets only known employees self-register; `false` grants an account to anyone who can authenticate. Ignored when `AllowAutoRegistration` is off. |
 | `DefaultRoleId` | Role assigned to users auto-created through this provider. **Required** when `AllowAutoRegistration` is on (no implicit fallback). Protected by a FK: a role pinned here cannot be deleted until the provider is repointed. Null/ignored when `AllowAutoRegistration` is off. |
 
-**Adding a Microsoft Entra ID provider.** From **Settings → Identity Providers**, choose **Add provider → Microsoft Entra ID** and fill in:
+**Adding a Microsoft Entra ID provider.** From **Settings → Access → Identity Providers**, choose **Create Identity Provider**, pick **Microsoft Entra ID** as the provider type, and fill in:
 
 | Field | Value |
 | --- | --- |
@@ -104,7 +115,7 @@ The database is the single source of truth for identity providers — there is n
 
 The client ID and API client ID are different values because Wayd follows Entra's standard two-registration pattern (see [Entra App Registration Setup](./entra-app-registration.mdx)).
 
-:::tip Setting up a new environment
+:::tip[Setting up a new environment]
 If you don't yet have an Entra app registration for this deployment, follow [Entra App Registration Setup](./entra-app-registration.mdx) first. That walks through creating the two app registrations (API + client), choosing the right token version, and collecting the GUIDs referenced above.
 :::
 
@@ -135,6 +146,8 @@ Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Se
 
 Only `Secret` needs to be set per deploy — the rest have sensible defaults and in particular `Issuer` / `Audience` are JWT claim identifiers, not environment-specific config. Don't override them per environment.
 
+The checked-in `security.json` holds a placeholder secret beginning `DEV-ONLY-SECRET`. A host outside Development refuses to start while the secret is empty or still that placeholder.
+
 ### Data Protection (at-rest secret encryption)
 
 Connector credentials (Azure DevOps PATs, AI API keys, future OAuth refresh tokens) are encrypted at rest before being written to the `Connections` table. Encryption uses AES-256-GCM with a per-row random nonce; the master key lives in configuration.
@@ -157,6 +170,8 @@ Generate the key with:
 openssl rand -base64 32
 ```
 
+The host refuses to start when the key is missing, is not base64, or does not decode to exactly 32 bytes. The key checked into `security.json` is for development only and is **not** rejected elsewhere, so a deployment must override it.
+
 User Secrets for local dev:
 
 ```bash
@@ -164,7 +179,7 @@ cd Wayd.Web/src/Wayd.Web.Api
 dotnet user-secrets set "SecuritySettings:DataProtection:MasterKey" "$(openssl rand -base64 32)"
 ```
 
-:::warning Key loss is unrecoverable
+:::warning[Key loss is unrecoverable]
 This is a **data-encryption** key, not a signing key. If you lose or change it, every connector credential stored in the database becomes undecryptable AEAD garbage — customers must re-enter every PAT and API key. Treat it as write-once for the lifetime of the data. Keep a backup outside the deployment system (password manager, sealed vault).
 
 This is also why `MasterKey` must be **separate** from `LocalJwt:Secret` — JWT secrets are cheap to rotate (sessions die, nothing else); data keys are not. Per [NIST SP 800-57 §5.2](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf), "a key shall be used for only one purpose."
@@ -265,7 +280,7 @@ Only enabled providers appear. `AllowedTenantIds` and any future server-side sec
 
 ### Identity model
 
-:::note `UserName` is address-shaped, and validated as such
+:::note[`UserName` is address-shaped, and validated as such]
 A locally created account takes `UserName` from the email it was created with; an Entra account takes it
 from the UPN. Both are addresses or address-shaped identifiers, so **the allowed-username character set is
 the email grammar** — `IdentityOptions.User.AllowedUserNameCharacters` is assigned
@@ -356,7 +371,7 @@ The policy is enforced in `UserService.CreateOrUpdateFromPrincipalAsync`. Generi
 
 ### Admin-created (pre-provisioned) users
 
-Auto-registration is the *self*-service path. The other way an account comes into being is an admin creating it ahead of the user's first sign-in (**Settings → Users → Add user**).
+Auto-registration is the *self*-service path. The other way an account comes into being is an admin creating it ahead of the user's first sign-in (**Settings → Access → Users → Create User**).
 
 A pre-created Entra user has no `oid` until they sign in, so nothing in the `UserIdentity` table can match their first token. A sign-in is never linked to an existing account by email or display name alone: those are mutable directory attributes, and linking on them let anyone who could set a matching email in an allowlisted tenant take the account over. Creating the user is what authorizes the link instead.
 
@@ -381,7 +396,7 @@ Wayd supports three admin-initiated identity migration workflows. In all three c
 
 #### Entra tenant migration
 
-When an org moves users from one Entra tenant to another, an admin stages the migration **in bulk from the provider page** (**Settings → Identity Providers → [provider]**). Both the **Migrate Users to New Tenant** action (in the page's **Actions** menu) and the read-only **Active Migrations** tab appear only for a `MicrosoftEntraId` provider with **two or more** `AllowedTenantIds` (there must be tenants to move between); the action additionally requires `Permissions.Users.Update` and the tab requires `Permissions.Users.View`. The action opens a modal where the admin picks a **source** and a **target** tenant (both drawn from the provider's allowlist), is shown the users currently bound to that provider+source-tenant with no migration already pending, selects up to 500, and stages them in one action. Each user's rebind completes automatically when they next sign in from the new tenant — the deferred mechanism below is unchanged. The **Active Migrations** tab lists every user with a staged-but-incomplete migration (source/target tenant and when it was staged).
+When an org moves users from one Entra tenant to another, an admin stages the migration **in bulk from the provider page** (**Settings → Access → Identity Providers → [provider]**). Both the **Migrate Users to New Tenant** action (in the page's **Actions** menu) and the read-only **Active Migrations** tab appear only for a `MicrosoftEntraId` provider with **two or more** `AllowedTenantIds` (there must be tenants to move between); the action additionally requires `Permissions.Users.Update` and the tab requires `Permissions.Users.View`. The action opens a modal where the admin picks a **source** and a **target** tenant (both drawn from the provider's allowlist), is shown the users currently bound to that provider+source-tenant with no migration already pending, selects up to 500, and stages them in one action. Each user's rebind completes automatically when they next sign in from the new tenant — the deferred mechanism below is unchanged. The **Active Migrations** tab lists every user with a staged-but-incomplete migration (source/target tenant and when it was staged).
 
 Staging sets `PendingMigrationTenantId` (the target Entra tenant GUID) and `PendingMigrationStagedAt` on each selected `ApplicationUser`. The bulk command (`UserService.StageBulkTenantMigration`) re-validates each user server-side — still Entra, still on the source tenant, no pending migration — so a stale selection can't stage the wrong users; it returns a per-user staged/skipped summary, and the whole batch runs in one transaction (a mid-batch failure stages nobody).
 
@@ -483,7 +498,7 @@ This means the CSP mitigates clickjacking and injected-form/base-tag attacks, bu
 
 The middleware also gates it on `context.Request.IsHttps`, so it is never emitted over a plain-HTTP hop. In the current Azure deployment TLS terminates at Container Apps ingress and the container listens on plain HTTP (`ASPNETCORE_URLS=http://+:8080`), so `IsHttps` holds only because Terraform sets `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, which makes it reflect `X-Forwarded-Proto` (see [Rate limits](#rate-limits)). Without that setting, `EnableHsts: true` is a **no-op**.
 
-:::note No component currently sends HSTS
+:::note[No component currently sends HSTS]
 Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not add the header, and there is no Front Door or Application Gateway in `.iac/`. If HSTS is needed, ramp `max-age` (300 → 86400 → 63072000) rather than starting at two years, and only add `preload` if you mean it — that list is effectively permanent.
 :::
 
@@ -502,9 +517,9 @@ Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not a
 | `Imports:ResponseWaitSeconds` | `5` | How long an import submission waits for its run before answering `202` with the run still in flight. `0` answers immediately. The wait is in time rather than rows because a row's cost differs by an order of magnitude between imports. |
 
 Row caps, chunk size, retry count, stall grace periods and the retention window are fixed in code, not
-configuration — see [Settings → Imports → Limits and rules](../user-guide/settings/imports.mdx#limits-and-rules)
+configuration — see [Settings → System → Imports → Limits and rules](../user-guide/settings/imports.mdx#limits-and-rules)
 for the values. The two maintenance jobs (`import-stall-recovery`, `import-retention-sweep`) are scheduled
-on first start and can be re-timed under **Settings → Background Jobs**.
+on first start and can be re-timed under **Settings → System → Background Jobs**.
 
 ## System settings
 
@@ -601,6 +616,44 @@ Each has `PermitLimit` and `WindowSeconds`. Limits are held in memory, so every 
 
 **The caller address is the proxy's unless forwarded headers are on.** Behind a proxy every request appears to come from it, so a per-address limit becomes one limit shared by everyone, and the sessions list records the proxy's address. `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` makes ASP.NET Core trust `X-Forwarded-For` and `X-Forwarded-Proto` from any sender, which is safe only where the proxy is the sole way in, as Container Apps ingress is; Terraform sets it in Azure. Self-hosted behind a proxy that can be bypassed, configure `ForwardedHeadersOptions` with the proxy's address instead.
 
+## CORS
+
+`CorsSettings:WebClient` (`Configurations/cors.json`) is the semicolon-separated list of origins the web client may call the API from, with credentials. The default lists `https://localhost:5001`, `http://localhost:3000` (Aspire, `npm run dev`) and `http://localhost:5002` (`docker compose`). An origin missing from it fails every request from the browser, including the login page's call to `/api/auth/providers` — see [Local Development](./local-development.mdx#use-the-proxy-ports-not-the-ones-the-processes-bind). Terraform sets it in Azure from the client's hostname and `client_url`.
+
+## Background jobs
+
+Hangfire is configured under `HangfireSettings` in `Configurations/hangfire.json`:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `Route` | `/jobs` | Where the API serves the Hangfire dashboard. |
+| `Storage:StorageProvider` | `mssql` | The only provider wired up. |
+| `Storage:ConnectionString` | — | Hangfire's own connection string, separate from `DatabaseSettings:ConnectionString`; both must be set. |
+| `Storage:Options` | — | Hangfire's `SqlServerStorageOptions`. |
+| `Server` | — | Hangfire's `BackgroundJobServerOptions` (`WorkerCount` 5, queues `default` and `notdefault`). |
+| `Dashboard` | — | Hangfire's `DashboardOptions` (`DashboardTitle`, `StatsPollingInterval`, `AppPath`). |
+| `Credentials:User` / `Credentials:Password` | `admin` / `Test123$` | Basic-auth login for the dashboard. |
+
+:::warning[Change the dashboard credentials]
+The checked-in `Credentials` are public. Override `HangfireSettings__Credentials__User` and `HangfireSettings__Credentials__Password` in any deployment reachable by anyone but you. Jobs are scheduled and re-timed in the app under **Settings → System → Background Jobs**, so the dashboard is a diagnostic surface only.
+:::
+
+## OpenAPI and the API reference
+
+`SwaggerSettings` (`Configurations/openapi.json`) controls the published OpenAPI document. `Enable` (on by default) maps the document and the Scalar API reference at `/scalar`; off, neither is served. `Title`, `Version`, `Description`, `ContactName`, `ContactEmail`, `ContactUrl`, `License`, `LicenseName` and `LicenseUrl` fill the document's `info` block. The Debug build reads this document to regenerate the TypeScript client — see [Wayd.Web.Api/AGENTS.md](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/Wayd.Web.Api/AGENTS.md#openapi-client-generation).
+
+## Request logging
+
+`MiddlewareSettings:EnableHttpsLogging` (`Configurations/middleware.json`, default `true`) turns on the request-logging middleware, which logs each request at a level set by its status code: 401 and 403 as warnings, 404 and 422 as information, any other status above 400 or an exception as an error, and the rest as information. Serilog itself is configured in `Configurations/logger.json` (console sink by default); `docker compose` adds the Seq sink through `Serilog__*` environment variables.
+
+## Real-time (SignalR)
+
+The planning poker and story map hubs (`/hubs/planning-poker`, `/hubs/story-maps`) run on the API's own SignalR by default. Setting `Azure:SignalR:ConnectionString` (`Azure__SignalR__ConnectionString`) moves them to Azure SignalR Service, as Terraform does in Azure. The service token it issues leaves out the `permission` claims, which would exceed its 4 KB cap; hub authorization reads permissions from the database instead.
+
+## Wolverine handler codegen
+
+`Wolverine:CodegenMode` chooses how Wolverine loads message handlers. `Static`, the default, loads the handler tree generated ahead of time; `Auto` compiles handlers at runtime, and `appsettings.Development.json` sets it so a local run needs no codegen step. A **Production** host that resolves to anything but `Static` refuses to start. See [Wayd.Web.Api/AGENTS.md](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/Wayd.Web.Api/AGENTS.md#wolverine-handler-codegen-generated-not-committed).
+
 ## Environment Variables
 
 | Variable                                | Purpose                                       |
@@ -608,6 +661,12 @@ Each has `PermitLimit` and `WindowSeconds`. Limits are held in memory, so every 
 | `ApiSettings__PublicUrl`                | The API's public URL — see [Public URL](#public-url) |
 | `ApiSettings__WebClientUrl`             | The web app's URL — see [Web client URL](#web-client-url) |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED`   | Trust a proxy's forwarded headers — see [Rate limits](#rate-limits) |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`           | OpenTelemetry collector endpoint              |
+| `CorsSettings__WebClient`               | Allowed web client origins — see [CORS](#cors) |
+| `Azure__SignalR__ConnectionString`      | Azure SignalR Service — see [Real-time (SignalR)](#real-time-signalr) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`           | OpenTelemetry collector endpoint; also turns on the Serilog OTLP sink |
+| `OTEL_SERVICE_NAME`                     | `service.name` on logs sent over OTLP (default `wayd-api`) |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights                    |
 | `ASPNETCORE_ENVIRONMENT`                | Runtime environment (Development, Production) |
+| `WAYD_STATIC_HANDLERS`                  | Build-time: `true` compiles the generated Wolverine handler tree into a local build (CI and the Dockerfile set it) |
+| `WAYD_SKIP_DB_INIT`                     | `true` skips startup database work (migrations and seeding, the first-run check, recurring-job registration, the Hangfire server and dashboard); the Debug build sets it while it boots the API to read the OpenAPI document |
+| `WAYD_NO_LAUNCH_BROWSER`                | AppHost only: `true` or `1` stops it opening the Aspire dashboard |

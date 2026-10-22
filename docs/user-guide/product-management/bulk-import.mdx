@@ -12,8 +12,8 @@ are useful for standing up a catalog, migrating from another tool, or seeding re
 is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a
 permission.
 
-:::info Screen or API
-Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
+:::info[Screen or API]
+Every import described here can be run from [Settings → System → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template, taking the same CSV described here. The
 endpoints can also be called directly — with `curl`, a script, or anything else — and their exact
 request/response shapes are in the API reference the API serves at `/scalar`.
@@ -39,17 +39,17 @@ A few rules apply to every import:
   background worker, and the post waits a few seconds for it: a small file comes back finished
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run, and its page under
-  [Settings → Imports](../settings/imports.mdx) shows what became of each row. Importing from the app
+  [Settings → System → Imports](../settings/imports.mdx) shows what became of each row. Importing from the app
   tells you the outcome in the dialog, and takes you to that page when a file is still running.
 - **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
-  **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
+  **Check File** in [Settings → System → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
   through the import's own checks without anything being created: each comes back passed or rejected
   with its reason, and a row kept out only because another row in its group was rejected is reported the
   same way the real run would. It is advice, not a promise — the data can change before you import — and a
   finished check can be imported for real from its page without posting the file again.
 - **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
   query parameter — any GUID you choose — and records it on the run, so a set of files posted under one
-  value shows as one batch in [Settings → Imports](../settings/imports.mdx#what-you-see), with summed
+  value shows as one batch in [Settings → System → Imports](../settings/imports.mdx#what-you-see), with summed
   counts and each run's page linking to the others. Leave it out to submit a file on its own. An empty
   GUID is rejected rather than treated as a group.
 - **`ImportId` is yours, and its cells may be blank.** Any value you like — a row number, a key from
@@ -81,19 +81,20 @@ same constraints apply.
 Because records reference each other, imports must be run in dependency order:
 
 ```
-Product types and tag categories (created in Settings)
+Product types and tag categories (seeded, or created beforehand)
   → Products
     → Dependencies
     → Versions
       → Release packages
         → Releases
 
-Environments (created in Settings, or imported)
+Environments (created under Product Management → Environments, or imported)
   → Deployments (after versions and packages)
 ```
 
-Reference data comes first. [Product types](./products.mdx#product-types) are seeded and managed under
-**Settings → Product Management**, and [tag categories and tags](./products.mdx#tags) under
+Reference data comes first. [Product types](./products.mdx#product-types) are seeded, and any others are
+added through the product types API — they have no screen — while
+[tag categories and tags](./products.mdx#tags) are managed under
 **Settings → Product Management → Product Tags**; neither is imported. Create anything the file
 references there first — a type or tag that does not exist, or that has been deactivated, fails the
 batch rather than being created on the fly. [Environments](./delivery.mdx#environments) are reference
@@ -113,13 +114,14 @@ Each step then needs the one above it:
 | Environments | — | Names must not already exist. |
 | Deployments | Environments, versions, packages | A deployment names its environment by name and the version or package it deployed by id. |
 
-:::warning Releases are last, and their contents must have shipped
+:::warning[Releases are last, and their contents must have shipped]
 A release marked with a `ReleasedDate` is **refused while anything it carries has not shipped**. This
 is the one cross-record rule in Product Management, and it is why releases come last.
 
 So a released release needs its versions and packages imported first **with their own released
 moments**. Importing them unreleased and releasing them later leaves the release unimportable in
-between.
+between. A succeeded [production deployment](#a-production-deployment-marks-what-it-shipped-as-released)
+imported before the release also supplies those moments.
 See [announcing a release](#announcing-a-release).
 :::
 
@@ -170,15 +172,15 @@ Every import here except dependencies accepts at most **10,000 rows per file**; 
 **50,000**. For the two-file imports (packages with their manifest, releases with their contents) the cap
 applies to the first file; the second is read alongside it. A file over the cap is rejected before anything
 is queued, with a message naming the cap. Applying group by group saves in stages rather than in one
-transaction, so the cap is no longer what bounds a run, but it stays where it was until a larger file has
-been proven end to end.
+transaction, so the cap is not what bounds a run; it is held where it is until a larger file has been
+proven end to end.
 
 Splitting a larger file follows the same grouping: split a products file on **top-level products**, keeping
 each tree whole, and a versions file on **product boundaries**. Post the parts one at a time, waiting for
 each run; one `submissionGroupId` across them keeps the runs findable as one import.
 
 The rules every file shares — request size, `ImportId` length, how long the post waits, retries, stalls
-and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
+and retention — are in [Settings → System → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
 
 ---
 
@@ -188,7 +190,7 @@ and retention — are in [Settings → Imports → Limits and rules](../settings
 
 Loads the [product catalog](./products.mdx) — the whole tree in one file, parents and children together.
 
-It loads the tree, which is what a product is made of. The [dependencies between products](./products.mdx#dependencies) — what relies on what — have no import yet, and are recorded on the product's Dependencies section or through its API.
+It loads the tree, which is what a product is made of. The [dependencies between products](./products.mdx#dependencies) — what relies on what — are loaded by their own [dependencies import](#dependencies-import), after this one.
 
 | Column | Required | Notes |
 |---|---|---|
@@ -254,7 +256,7 @@ display as `Category | tag`.
 Both halves must exist and be active. An unknown category, an unknown tag on that category, or an inactive
 one fails the batch.
 
-:::note An axis that allows one value
+:::note[An axis that allows one value]
 Where a [category allows only one tag](./products.mdx#tags), a row naming two from that axis keeps the
 **last** one. The domain treats a second tag on a single-value axis as a correction rather than an error —
 "this is a mobile app, not a web app" — and the import inherits that behaviour rather than refusing.
@@ -284,7 +286,7 @@ everything in it.
 
 That matters after a partially succeeded run: the trees that went in are saved, so posting the corrected
 file again duplicates every one of them. Fix and resubmit **only the rejected trees**, or retry them from
-the run's page in [Settings → Imports](../settings/imports.mdx).
+the run's page in [Settings → System → Imports](../settings/imports.mdx).
 
 ## Dependencies import
 
@@ -300,6 +302,7 @@ kept in a spreadsheet. Each row is one [dependency](./products.mdx#dependencies)
 | `ProductId` | Yes | The product that **has** the dependency, by id. |
 | `DependsOnProductId` | Yes | The product it relies on, by id. Cannot be the same product, or anything above or below it in the tree. |
 | `Strength` | Yes | `Hard` or `Soft` — see [strength](./products.mdx#strength). There is no default. |
+| `InteractionStyles` | No | `Synchronous`, `Asynchronous`, or both separated by a semicolon — see [interaction](./products.mdx#interaction). Blank records nothing, which is not the same as recording that there is neither. |
 | `Description` | No | What it is relied on for. Max 1024 chars. |
 | `StartsOn` | No | `yyyy-MM-dd`. The day it began. Blank means today. Cannot be in the future. |
 | `EndsOn` | No | `yyyy-MM-dd`. The last day it held. Blank means it still holds. Cannot be before `StartsOn` — or before today, when `StartsOn` is blank — or in the future. |
@@ -314,14 +317,14 @@ saved together or not at all, and the other products are still imported. A produ
 recorded — a strength change whose ended half went in without its new half would leave a gap in its
 history. A row kept out only because another row for the same product was rejected says "Not applied:
 another row for the same product was rejected", naming that row, so the fix is always to the one row.
-Retrying the failed rows from [Settings → Imports](../settings/imports.mdx) puts each rejected product
+Retrying the failed rows from [Settings → System → Imports](../settings/imports.mdx) puts each rejected product
 through again.
 
 ### History is rows with dates
 
 A dependency that has stopped is a row with an `EndsOn`. One whose strength changed is **two rows** on the
 same pair, the first ending the day before the second starts — the way the screens record
-[Change Strength](./products.mdx#ending-changing-and-removing):
+[Change Terms](./products.mdx#ending-changing-and-removing):
 
 | ProductId | DependsOnProductId | Strength | StartsOn | EndsOn |
 |---|---|---|---|---|
@@ -346,6 +349,7 @@ and an unknown one fails the run.
 
 | Column | Required | Notes |
 |---|---|---|
+| `ImportId` | No | The row's key **within this file only**. Never stored. Outcomes are reported against it. |
 | `ProductId` | Yes | The product this version was cut against, by id. Its [type must be releasable](./products.mdx#product-types). |
 | `Number` | Yes | The version as you write it — `4.8.2`, `2026.04`. Free text, never parsed. Max 64 chars. |
 | `Name` | No | An optional human name. Max 128 chars. |
@@ -399,6 +403,7 @@ appear in the same dialog.
 
 | Column | Required | Notes |
 |---|---|---|
+| `ImportId` | No | The row's key **within this file only**. Never stored. Manifest lines name it as their `PackageImportId`, so supply it rather than relying on row position. |
 | `Version` | Yes | The package's own version — `WAYD-2026.09`. Free text, never parsed. Max 64 chars. |
 | `Name` | No | An optional human name. Max 128 chars. |
 | `TargetDate` | No | `yyyy-MM-dd`. When it is expected to ship. |
@@ -420,7 +425,7 @@ assembled and one with a released moment has shipped.
 | `Kind` | Yes | `Changed` or `CarriedForward` (case-insensitive). |
 
 Every line must find its package. A line naming one that is not in the packages file is a mistyped
-version rather than a line to skip, so it fails the batch. A component may appear only **once** per
+reference rather than a line to skip, so it fails the whole file before anything is queued. A component may appear only **once** per
 manifest — one component cannot ship at two versions in one box.
 
 ### An unmatched version string is not an error
@@ -447,6 +452,7 @@ announces.
 
 | Column | Required | Notes |
 |---|---|---|
+| `ImportId` | No | The row's key **within this file only**. Never stored. Contents rows name it as their `ReleaseImportId`, so supply it rather than relying on row position. |
 | `Version` | Yes | The release as you announce it — `2026.07`. Free text, never parsed. Max 64 chars. |
 | `Name` | No | An optional human name. Max 128 chars. |
 | `ProductId` | No | The product it is announced under, by id. Usually a product line. |
@@ -458,7 +464,8 @@ announces.
 `ProductId` is **optional by design**. A release spanning product lines has no single owner, so
 requiring one would force a misleading choice — and a release identified partly by product would be
 unresolvable for exactly the releases the model exists to allow. A release is therefore keyed on
-`Version` alone.
+`Version` alone, and a version repeated within the file or already held by a release in Wayd is
+refused, so re-running a file does not duplicate announcements.
 
 ### The contents file
 
@@ -472,10 +479,10 @@ state**, not a draft: a repackaging or a pricing change is announced with nothin
 | `PackageId` | Conditional | Required when `Kind` is `Package`. The package, by id. |
 | `VersionId` | Conditional | Required when `Kind` is `Version`. The version, by id. |
 
-Both routes share one file because the rule below spans them. A version carried directly needs its
-product as well as its number, since a number is only unique within one product.
+Both routes share one file because the rule below spans them. Both are named by id — the ids the
+[versions](#versions-import) and [release packages](#release-packages-import) runs report.
 
-:::warning A version is announced once, by one route
+:::warning[A version is announced once, by one route]
 A version shipping inside one of the release's packages **cannot also be carried directly**. Otherwise
 one shipment would be announced twice and *what did 2026.07 contain* would have two answers.
 :::
@@ -496,7 +503,7 @@ what is holding it back:
 
 ```
 Release '2026.07' is marked as released but carries content that has not shipped:
-'Wayd API 4.12.0'. Import those with their ReleasedAt first, or leave this release's
+'4.12.0'. Import those with their ReleasedAt first, or leave this release's
 ReleasedDate empty.
 ```
 
@@ -511,7 +518,7 @@ released moments in the same run.
 Loads [environments](./delivery.mdx#environments), the targets deployments are recorded against. This is
 the one piece of reference data with an import, because a historical backfill of deployments names every
 environment that ever existed — including the ones long since decommissioned — and defining those by
-hand is the tedious part. In the app the button is under **Product Management → Environments**.
+hand is the tedious part.
 
 | Column | Required | Notes |
 |---|---|---|
@@ -525,12 +532,13 @@ hand is the tedious part. In the app the button is under **Product Management �
 
 Environment names are unique across the organization, which is what lets a deployment row name its
 environment rather than carry an id. A name repeated within the file, or one that already exists, fails
-the batch. There is no update path: an environment that exists is edited in Settings.
+the batch. There is no update path: an environment that exists is edited under
+**Product Management → Environments**.
 
 ### Retired environments are importable
 
-An environment marked `false` is created and then retired through the same transition **Retire** in
-Settings would make, so the retirement is recorded as an event the way one made by hand would be. It is
+An environment marked `false` is created and then retired through the same transition **Retire** on
+the Environments page would make, so the retirement is recorded as an event the way one made by hand would be. It is
 not offered as a deployment target, but a [deployments import](#deployments-import) can still record
 finished deployments against it — which is the reason to import it at all.
 
@@ -609,6 +617,16 @@ environment counted as when a historical deployment actually ran is not recovera
 reclassified since then will have its past deployments counted under today's category. Import
 deployments before reclassifying, where that matters.
 
+### A production deployment marks what it shipped as released
+
+A row that succeeded — or succeeded and was then rolled back — into an environment whose category is
+**Production** marks what it shipped as released at its `CompletedAt`, as
+[recording the success by hand](./delivery.mdx#recording-an-outcome) does: its version, or its package
+and every version that **changed** in that package. A released moment already recorded is never
+replaced, and a withdrawn version or package is left alone. So import deployments **oldest first**, or
+the earliest production success in the file will not be the one that sets the moment. Rows into any
+other category mark nothing released.
+
 ### Running it twice
 
 A deployment has no natural key — two builds of one version reaching one environment are two
@@ -617,7 +635,7 @@ same file twice records everything in it again.
 
 That matters after a partially succeeded run: the rows that went in are saved, so posting the corrected
 file again duplicates every one of them. Fix and resubmit **only the rejected rows**, or retry them from
-the run's page in [Settings → Imports](../settings/imports.mdx).
+the run's page in [Settings → System → Imports](../settings/imports.mdx).
 
 ## Related
 

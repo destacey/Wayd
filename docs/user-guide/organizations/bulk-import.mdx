@@ -12,15 +12,15 @@ useful for standing up an environment, onboarding a company's people and teams, 
 another tool. Each import is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and
 each is gated by a permission.
 
-:::info Screen or API
-Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
+:::info[Screen or API]
+Every import described here can be run from [Settings → System → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template. Files can also be posted directly to the
 endpoints below (for example with `curl`, a script, or the
 [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx), which generates these
 exact CSVs and posts them for you). Exact request/response shapes are also in the API reference the API
 serves at `/scalar`.
 
-However it was submitted, the run is visible in **Settings → Imports**, where you can see what became of
+However it was submitted, the run is visible in **Settings → System → Imports**, where you can see what became of
 each row and act on a run that did not finish. See [Imports](../settings/imports.mdx).
 :::
 
@@ -35,23 +35,23 @@ A few rules apply to every import:
   background worker, and the post waits a few seconds for it: a small file comes back finished
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run, and it has its own page under
-  [Settings → Imports](../settings/imports.mdx).
+  [Settings → System → Imports](../settings/imports.mdx).
 - **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
-  **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
+  **Check File** in [Settings → System → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
   through the import's own checks without anything being created: each comes back passed or rejected
   with its reason, and an all-or-nothing file reports every rejection rather than stopping at the first
   step that finds one. It is advice, not a promise — the data can change before you import — and a
   finished check can be imported for real from its page without posting the file again.
 - **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
   query parameter — any GUID you choose — and records it on the run. Post a set of files under one value
-  and [Settings → Imports](../settings/imports.mdx#what-you-see) shows them as one batch with summed
+  and [Settings → System → Imports](../settings/imports.mdx#what-you-see) shows them as one batch with summed
   counts, and each run's page links to the others; the
   [`wayd-data` seed](../../contributing/tools/data-generation.mdx) does this for each run. Leave it out
   to submit a file on its own. An empty GUID is rejected rather than treated as a group.
 - **Teams, hierarchy and staffing are all-or-nothing; employees are applied row by row.** For the three
-  team imports, any reference that cannot be resolved — an unknown employee number, team code, or role
-  name, or an ambiguous/duplicate value — fails the **entire import** with a message listing the offending
-  values, and nothing is saved. The employee import instead rejects the offending row (a duplicate
+  team imports, any row that is rejected — an unknown employee number, team code, or role name, or a
+  team name or code that is already taken — fails the **entire import**, and nothing is saved; the
+  run shows each rejected row and why. The employee import instead rejects the offending row (a duplicate
   employee number or email, say) and keeps the rest, so a run can finish **partially succeeded**; the run
   shows which rows were rejected and why, and they can be retried once fixed. See [Limits](#limits).
 - **`ImportId` is yours, and its cells may be blank.** Any value you like — a row number, a key from
@@ -120,7 +120,7 @@ database transaction, and 10,000 rows bounds it. A check of an employees file is
 [preflight](../settings/imports.mdx#checking-a-file-first) takes at most 10,000 employees at a time.
 
 The rules every file shares — request size, `ImportId` length, how rows are chunked, how long the post
-waits, retries, stalls and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
+waits, retries, stalls and retention — are in [Settings → System → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
 
 ---
 
@@ -131,9 +131,16 @@ waits, retries, stalls and retention — are in [Settings → Imports → Limits
 Loads [employees](./index.mdx#team-members) and their management chain. A manager is referenced by employee
 number and may appear **anywhere in the same file** or already exist — the import resolves managers after
 creating everyone, so order within the file does not matter. An employee whose manager cannot be resolved is
-still created (without a manager) rather than failing the batch.
+still created (without a manager) rather than failing the batch, and the row carries a warning saying so.
 
-:::note Splitting a large export
+A row is rejected, and the rest of the file still imported, when its employee number already belongs to an
+employee or to an earlier row in the file, or when any of its addresses (`Email` or `AdditionalEmails`) is
+already an employee's primary or additional address or is claimed by an earlier row. Employee numbers and
+addresses are compared case-insensitively. A row that fails the column rules in the table below — a missing
+name, a malformed address, a value too long — fails the whole file when it is posted, before anything is
+queued.
+
+:::note[Splitting a large export]
 A file holds at most 50,000 employees, so a larger export goes in several files, posted **one at a time
 and each waited for**. A manager resolves only if they are in the same file or already exist: a report
 whose manager arrives in a *later* file is created without one, and the link is not made afterwards.
@@ -143,13 +150,13 @@ Order the files so managers precede their reports where you can, and post them u
 
 | Column | Required | Notes |
 |---|---|---|
-| `EmployeeNumber` | Yes | The employee's natural key, unique across the company. |
+| `EmployeeNumber` | Yes | The employee's natural key, unique across the company. Max 256 chars. |
 | `FirstName` | Yes | Max 100 chars. |
-| `MiddleName` | No | |
+| `MiddleName` | No | Max 100 chars. |
 | `LastName` | Yes | Max 100 chars. |
 | `Email` | Yes | A valid email address. Max 256 chars. |
-| `AdditionalEmails` | No | Other **work** addresses this person is known by, semicolon-separated. Each must be a valid address, max 256 chars, and unique across the whole file — including against every `Email`. |
-| `HireDate` | No | The date the employee was hired. |
+| `AdditionalEmails` | No | Other **work** addresses this person is known by, semicolon-separated. Each must be a valid address, max 256 chars, and must not repeat the row's own `Email`. |
+| `HireDate` | No | The date the employee was hired. Unlike the other date columns, this one also accepts a timestamp, read as UTC. |
 | `JobTitle` | No | Max 256 chars. |
 | `Department` | No | Max 256 chars. |
 | `OfficeLocation` | No | Max 256 chars. |
@@ -157,13 +164,13 @@ Order the files so managers precede their reports where you can, and post them u
 | `IsActive` | No | Whether the employee is current. Defaults to `true`. |
 | `EmployeeType` | No | Free-form worker type (e.g. `Employee`, `Contractor`, `Intern`), mirroring an HRIS descriptor. Max 256 chars. |
 
-:::note Former employees
+:::note[Former employees]
 Set `IsActive` to `false` to record someone who has left. Inactive employees are created active and then
 deactivated through the domain, so the record is consistent — but note that an inactive employee **cannot
 hold a current team membership**, so leave them out of the [staffing import](#team-staffing-import).
 :::
 
-:::note Additional emails
+:::note[Additional emails]
 `AdditionalEmails` records other addresses the same person is known by — typically an address they used
 before a domain or tenant move. Wayd matches people against connected systems on email, so an Azure DevOps
 work item still stamped with someone's previous address resolves to them once that address is listed here.
@@ -187,12 +194,19 @@ two; both share the same shape. Teams are flat here — the parent/child structu
 | Column | Required | Notes |
 |---|---|---|
 | `Type` | Yes | `Team` or `TeamOfTeams` (case-insensitive). |
-| `Name` | Yes | Max 128 chars. |
-| `Code` | Yes | The team's natural key: 2–10 uppercase letters/numbers. Unique across teams. |
+| `Name` | Yes | Max 128 chars. Unique across teams and teams of teams, compared case-insensitively. |
+| `Code` | Yes | The team's natural key: 2–10 uppercase letters/numbers. Unique across teams and teams of teams. |
 | `Description` | No | Max 1024 chars. |
 | `ActiveDate` | Yes | The date the team became active. |
 | `IsActive` | No | Whether the team is current. Defaults to `true`. |
 | `InactiveDate` | Conditional | Required when `IsActive` is `false`; must be **after** `ActiveDate`. Must be empty when active. |
+
+A file that repeats a name or a code fails when it is posted. A row whose name or code already belongs to a
+team is rejected, which fails the whole import. Each team is created with the same default operating model
+as one created in the app — Kanban and Count, with the time zone, grace period and working days from the
+[scheduling settings](../settings/index.mdx#scheduling) — and each team of teams with an operating model in
+the scheduling settings' time zone. A row with `IsActive` set to `false` is created active and then
+deactivated on its `InactiveDate`.
 
 ## Team hierarchy import
 
@@ -206,13 +220,15 @@ date range.
 |---|---|---|
 | `ChildCode` | Yes | The child team's code. May be a Team or a Team of Teams. |
 | `ParentCode` | Yes | The parent's code. **Must be a Team of Teams.** Cannot equal `ChildCode`. |
-| `Start` | Yes | When the membership begins. Must be on or after both teams' active dates. |
-| `End` | No | When it ends. Must be on or after `Start`. |
+| `Start` | Yes | When the membership begins. |
+| `End` | No | When it ends. Must be on or after `Start`. Blank for a membership still in place. |
 
-:::note Multi-tier hierarchies
+:::note[Multi-tier hierarchies]
 Because a child may itself be a team of teams, chaining rows builds multiple tiers (for example a team under
-an ART, and that ART under a value stream). The batch is all-or-nothing and rejects a parent that is not a
-team of teams, or a membership that would start before either team was active.
+an ART, and that ART under a value stream). The batch is all-or-nothing and rejects a code no team has, a
+parent that is not a team of teams, a child or parent that is inactive, a membership that overlaps another
+of the child's parent memberships (already in Wayd or earlier in the file), and a parent that is already
+beneath the child, which would make a cycle.
 :::
 
 ## Team staffing import
@@ -224,11 +240,14 @@ to give someone **multiple roles** on the same team, add multiple rows.
 
 | Column | Required | Notes |
 |---|---|---|
-| `TeamCode` | Yes | The team, by code. |
+| `TeamCode` | Yes | The team or team of teams, by code. |
 | `EmployeeNumber` | Yes | The employee, by number. Must be an **active** employee. |
-| `RoleName` | Yes | A [team member role](./index.mdx#team-members), **by name**. The role must already exist. |
+| `RoleName` | Yes | A [team member role](./index.mdx#team-members), **by name** (case-insensitive). The role must already exist. Max 128 chars. |
 
-:::warning Roles and active employees
+Rows add to whoever is already on the team: a person already a member gains the roles the file gives them.
+A row giving someone a role they already hold on that team is rejected, which fails the whole import.
+
+:::warning[Roles and active employees]
 Two things fail the whole batch if not satisfied: the **role must already exist** (staffing does not create
 roles — resolve them by name), and the **employee and team must both be active** (the domain does not allow
 staffing an inactive person or team). Create any needed roles first, and omit former employees.

@@ -14,7 +14,7 @@ A **Portfolio** is the top-level container for [projects](./projects.mdx), progr
 Every portfolio has:
 - **Name** and **Description**
 - **Status** — Lifecycle state (see [Portfolio Status Lifecycle](#portfolio-status-lifecycle))
-- **Date Range** — Start and optional end date
+- **Date Range** — Start and end date, set by activating and closing the portfolio
 - **Roles** — People assigned to portfolio-level roles
 - **Scoring Model** — Optional [active scoring model](../settings/scoring-models.mdx) used to score projects in the portfolio
 - **Project Ranking** — Stack-ranked order of projects in the portfolio
@@ -43,6 +43,7 @@ stateDiagram-v2
     Active --> OnHold : Temporary pause
     Active --> Closed : All children closed
     OnHold --> Active : Resume
+    OnHold --> Closed : All children closed
     Closed --> Archived : Historical record
 ```
 
@@ -55,7 +56,10 @@ stateDiagram-v2
 | **Archived** | Retired, read-only | Start and end date required |
 
 **Transition rules:**
-- All [programs](#programs) and [projects](./projects.mdx) must be closed before closing a portfolio
+- The portfolio page's **Actions** menu offers **Activate** on a Proposed portfolio, **Close** on an Active one, and **Archive** on a Closed one. It has no action to put a portfolio on hold or resume it; a portfolio reaches **On Hold** only through the [portfolios import](./bulk-import.mdx#portfolios-import)
+- A portfolio's dates come from its transitions: activating sets today as its start date, and closing sets today as its end date
+- All [programs](#programs) and [projects](./projects.mdx) must be completed or canceled before closing a portfolio
+- Programs, projects, and strategic initiatives can be created only in an Active or On Hold portfolio
 - Only Proposed portfolios can be deleted
 - Archived portfolios are read-only
 
@@ -63,7 +67,7 @@ stateDiagram-v2
 
 A portfolio can be assigned one active [scoring model](../settings/scoring-models.mdx). Assigning a model enables **Priority Score** on every project in the portfolio; clearing the assignment disables new scoring but does not delete existing project score history.
 
-Use **Actions → Set Scoring Model** on the portfolio detail page to assign or clear the model. Assigning and clearing take portfolio Owner or Manager (or [PPM administrator](../settings/permissions.mdx#ppm-administrator)), the same delivery leadership every other portfolio change takes. Only active scoring models can be assigned. If the assigned model is later archived, existing project scores stay intact and users can still see the recorded history.
+Use **Actions → Set Scoring Model** on the portfolio detail page to assign or clear the model. Assigning and clearing take portfolio Owner or Manager (or [PPM administrator](../settings/permissions.mdx#ppm-administrator)), the same delivery leadership every other portfolio change takes. Only active scoring models can be assigned. If the assigned model is later archived, existing project scores stay intact, users can still see the recorded history, and new scores can still be recorded with it — the score form warns that the model is archived.
 
 Project scoring uses immutable snapshots: every recorded score stores the model name, each criterion rating, and every output value at the time it was recorded. This keeps prior scores meaningful even if the portfolio later switches to a different model.
 
@@ -96,11 +100,11 @@ The filters live in separate tabs because the three collections have **different
 
 Both the tab and the filters are held in the URL, so a filtered view can be shared or bookmarked.
 
-**Programs** — Grid of [programs](#programs) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and [Strategic Themes](../strategic-management/index.mdx#strategic-themes). Supports List and Timeline views. Filtered to show Active programs by default.
+**Programs** — Grid of [programs](#programs) with Key, Name, Status, Start/End dates, PMs, Owners, Sponsors, and [Strategic Themes](../strategic-management/index.mdx#strategic-themes). Supports List and Timeline views. Filtered to show Active programs by default.
 
-**Projects** — Grid of [projects](./projects.mdx) with Key, Name, Status, Portfolio, Program, Start/End dates, Managers, Owners, Sponsors, Strategic Themes, Lifecycle, and Rank. Supports **Card**, **List**, and **Timeline** views. Card view can sort by name or rank. Filtered to show Approved and Active projects by default. The Timeline view groups projects by program.
+**Projects** — Grid of [projects](./projects.mdx) with Rank, Key, Name, Status, Health, Portfolio, Program, Start/End dates, PMs, Owners, Sponsors, Strategic Themes, and Lifecycle. Supports **Card**, **List**, and **Timeline** views. Card view can sort by name or rank. Filtered to show Approved and Active projects by default. The Timeline view groups projects by program.
 
-**Strategic Initiatives** — Grid of [strategic initiatives](./strategic-initiatives.mdx) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and Strategic Themes. Supports List and Timeline views. Filtered to show Approved and Active by default.
+**Strategic Initiatives** — Grid of [strategic initiatives](./strategic-initiatives.mdx) with Key, Name, Status, Start/End dates, Sponsors, and Owners. Supports List and Timeline views. Filtered to show Approved and Active by default.
 
 **Ranking** — Rank-ordered board for Proposed, Approved, and Active projects. Supports drag-to-rank for portfolio Owners/Managers (and [PPM administrators](../settings/permissions.mdx#ppm-administrator)) and includes score breakdown columns when a scoring model is assigned. The board runs on its own fixed status set, so the Overview filter does not apply to it.
 
@@ -112,8 +116,8 @@ A **Program** groups related [projects](./projects.mdx) within a portfolio for c
 
 Every program has:
 - **Name** and **Description**
-- **Status** — Proposed, Active, Completed, or Canceled
-- **Date Range** — Start and optional end date
+- **Status** — Proposed, Active, Completed, or Canceled (see [Program Status Lifecycle](#program-status-lifecycle))
+- **Date Range** — Optional start and end date, set together
 - **Roles** — Sponsor, Owner, Manager
 - **Strategic Theme Tags** — Links to [strategic themes](../strategic-management/index.mdx#strategic-themes) for alignment
 
@@ -127,11 +131,23 @@ Every program has:
 
 Owners and Managers of the **parent portfolio** may also manage the program, and may manage every project inside it. See [Permissions](../settings/permissions.mdx#delivery-leadership-in-ppm).
 
+### Program Status Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Proposed
+    Proposed --> Active : Date range set
+    Proposed --> Canceled
+    Active --> Completed : All projects closed
+    Active --> Canceled : All projects closed
+```
+
 **Business rules:**
 - Only active programs accept new [projects](./projects.mdx)
-- All projects must be completed or canceled before completing a program
-- Only Proposed programs can be deleted
-- Active status requires a date range
+- All projects must be completed or canceled before an active program can be completed or canceled
+- Projects cannot be moved out of a completed or canceled program
+- Only Proposed programs can be deleted, and only while no projects belong to them
+- Active and Completed programs require a start and end date
 
 ### Program Detail Page
 
@@ -141,7 +157,7 @@ The program detail page has an identity bar naming the program, a section rail d
 
 **Overview** — A status filter, a Projects count tile, a timeline progress bar, and two charts breaking the program's projects down by strategic theme and by status. As on a portfolio, the filter is shared with the Projects section and held in the URL.
 
-**Projects** — Project cards that can be expanded or clicked to open a project drawer, filtered to Approved and Active projects by default.
+**Projects** — The program's projects in **Card**, **List**, and **Timeline** views, opening in Card view; a card can be expanded or clicked to open a project drawer. Filtered to Approved and Active projects by default.
 
 **Activity** — The program's recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx).
 
@@ -179,13 +195,22 @@ Click the **gear icon** in the toolbar to toggle:
 
 1. Navigate to **PPM > Portfolios**
 2. Click **Create Portfolio**
-3. Enter **Name** and **Description**
+3. Enter **Name** and **Description**, and optionally the **Sponsors**, **Owners**, and **Portfolio Managers**
 4. The portfolio is created in **Proposed** status
-5. **Activate** the portfolio (requires a start date)
+5. **Activate** the portfolio from its **Actions** menu (today becomes its start date)
+
+### Creating a Program
+
+1. Navigate to **PPM > Programs**
+2. Click **Create Program**
+3. Choose an Active or On Hold **Portfolio**, then enter **Name** and **Description**
+4. Optionally set the **Planned Date Range**, **Sponsors**, **Owners**, **Program Managers**, and **Strategic Themes**
+5. The program is created in **Proposed** status
+6. **Activate** the program from its **Actions** menu (the planned date range must be set first)
 
 ### Enabling Project Scoring
 
-1. Create and activate a scoring model in **Settings → Scoring → Scoring Models**.
+1. Create and activate a scoring model in **Settings → PPM → Scoring Models**.
 2. Open the portfolio detail page.
 3. Select **Actions → Set Scoring Model**.
 4. Choose the active model and click **Save**.

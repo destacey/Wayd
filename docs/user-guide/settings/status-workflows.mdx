@@ -9,9 +9,9 @@ audience: [user, agent]
 
 A **status workflow** is the set of statuses one kind of record moves through — the stages a product passes from Concept to Retired, or a deployment from In Progress to Succeeded. Wayd ships a default workflow for each kind, and this is where you change them.
 
-Workflows are managed under **Settings → Status Workflows** and require the `Permissions.StatusWorkflows.*` permissions.
+Workflows are managed under **Settings → System → Status Workflows** and require the `Permissions.StatusWorkflows.*` permissions.
 
-:::note Status is data, meaning is code
+:::note[Status is data, meaning is code]
 Renaming a status changes what people read; it does not change what Wayd does. The behaviour is carried by a status's **category** and its **alias**, which are described below. That separation is what lets you call a status whatever your organization calls it without breaking the reports built on it.
 :::
 
@@ -19,7 +19,7 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 ### Record types
 
-Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package and Deployment.
+Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package and Deployment. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
 
 The record type also decides the vocabulary available to the workflow's statuses — a Release has a meaning for "Released" that a Product does not.
 
@@ -30,7 +30,7 @@ A **status** is one stage. Each has:
 - **Name** — what people see. Yours to choose.
 - **Description** — what it means, shown when picking a status.
 - **Category** — the rollup it belongs to. One of Proposed, Active, Done or Removed.
-- **Alias** — an optional well-known meaning, drawn from the record type's vocabulary.
+- **Alias** — an optional well-known meaning, drawn from the record type's vocabulary. The status forms and list label it **Meaning**.
 - **Order** — the display position.
 
 ### Categories
@@ -172,7 +172,7 @@ stateDiagram-v2
 
 **Published** means records can be assigned to it — and its **structure is frozen**. Statuses cannot be added or removed, none can change category or alias, and the transitions are fixed. Renaming the workflow, renaming or re-describing a status, and reordering statuses are still allowed: they change what people read, not what any record holds.
 
-:::note Why published workflows are frozen
+:::note[Why published workflows are frozen]
 Every record carries a copy of its status's category and alias. Changing a published status would leave every record holding it disagreeing with the status it points at — a product would report as Active while the status said Done. Moving records is a [reassignment](#changing-which-workflow-is-used), not an edit.
 :::
 
@@ -189,13 +189,13 @@ Renames and reordering apply directly. Anything structural — adding or removin
 1. Choose **Clone** from the workflow's row, or from its detail page. The copy carries every status and transition and arrives as a Draft.
 2. Edit the draft — add, rename, reclassify, remove, reorder.
 3. **Publish** it. Wayd refuses if a required alias is missing, or if restricted transitions would strand a status, and names what needs fixing.
-4. **Reassign** the record type to it, which is where existing records move across.
+4. **Reassign** the record type to it — **Change workflow** on the row of the workflow in use — which is where existing records move across. See [Changing which workflow is used](#changing-which-workflow-is-used).
 
 This is the same shape Jira and Azure DevOps use, and for the same reason: the workflow in use has records depending on it, so changes are staged on a copy rather than applied underneath them.
 
 ## Changing which workflow is used
 
-A record type can have several workflows — the one in use, a draft being prepared, and any it has retired — so the list's **Assigned** column marks the one actually governing records. **Change workflow**, on that row's actions menu, moves the record type to another workflow and brings every existing record with it.
+A record type can have several workflows — the one in use, a draft being prepared, and any it has retired — so the list's **Assigned** column marks the one actually governing records. **Change workflow**, on that row's actions menu, moves the record type to another workflow and brings every existing record with it. The steps below run in a dialog whose last button is **Reassign**.
 
 This is the only operation in Wayd that rewrites every record of a type at once, so it runs in three reviewed steps.
 
@@ -223,7 +223,7 @@ Any automatic choice can be overridden — a Category match in particular deserv
 
 The final step states how many records will move, and from which workflow to which. Every moved record gains an entry in its status history, so the change is traceable afterwards.
 
-:::warning Reassignment is not undone automatically
+:::warning[Reassignment is not undone automatically]
 Moving back is another reassignment. The records will carry both moves in their history.
 :::
 
@@ -231,22 +231,22 @@ Moving back is another reassignment. The records will carry both moves in their 
 
 ### Creating a workflow
 
-1. Navigate to **Settings → Status Workflows**
+1. Navigate to **Settings → System → Status Workflows**
 2. Click **Create Workflow**
-3. Enter a **Name**, choose a **Record Type**, and optionally a **Description**
+3. Enter a **Name**, choose an **Owner Type** (the record type), and optionally a **Description**
 4. Add statuses, then **Publish**
 
 ### Adding a status to a draft
 
 1. Open the workflow
 2. Click **Add Status**
-3. Enter a **Name**, choose a **Category**, and optionally an **Alias** and **Description**
+3. Enter a **Name**, choose a **Category**, and optionally a **Meaning** (the alias) and **Description**
 
 Aliases already held by another status are not offered.
 
 ### Fixing a workflow that will not publish
 
-The publish dialog names the required aliases the workflow is missing. Edit the status that should carry one and set its **Alias** — there is no need to delete and recreate it.
+The publish dialog names the required aliases the workflow is missing. Edit the status that should carry one and set its **Meaning** — there is no need to delete and recreate it.
 
 For a restricted product workflow it also names each status no move reaches and each Proposed or Active status with no move out; for a restricted delivery workflow, each required move it does not allow, each status that is neither the initial one nor aliased, and each Proposed or Active status no action can leave. Each message says what to do: tick the moves it names in the **Transitions** section, remove or re-alias the status it names, or switch the workflow back to **Any move**.
 

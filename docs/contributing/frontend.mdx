@@ -19,13 +19,33 @@ wayd.web.reactclient/
       common/         # Generic reusable components
       contexts/       # React context providers (auth, theme, messaging)
       hoc/            # Higher-order components (feature flags)
+    config/theme/     # Theme presets and the theme registry
     hooks/            # Custom React hooks
+    lib/              # Docs viewer plugins (remark/rehype)
     services/         # API clients and services
       wayd-api.ts     # NSwag-generated TypeScript client
       clients.ts      # Client factory functions
     store/            # Redux Toolkit store and slices
-    styles/           # Global styles and CSS modules
+    utils/            # Helpers (calendar dates, problem details, colors)
+  styles/globals.css  # Global styles; components use CSS modules beside them
+  scripts/            # Search-index and import-template generators
 ```
+
+## Scripts and environment
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Deletes `.next`, rebuilds the docs search index, then runs `next dev --turbopack` |
+| `npm run build` | Rebuilds the search index and runs `typecheck` before `next build` (`output: 'standalone'`) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | `eslint .` — the whole client, even when given paths |
+| `npm run lint:deprecations` | Uses of `@deprecated` APIs (type-aware, slower) |
+| `npm test` | Jest; `npm run test:docs` runs the docs suite on its own config |
+| `npm run generate:import-templates` | Regenerates the CSV import templates from the API spec |
+
+`NEXT_PUBLIC_API_BASE_URL` is the API's address. Aspire sets it; for `npm run dev` on its own, put it in a gitignored `.env.local` (`NEXT_PUBLIC_API_BASE_URL='http://localhost:5150'`). It is inlined at build time, so a change needs `.next` cleared — `npm run dev` does that. The Docker image is built with the placeholder `APP_NEXT_PUBLIC_API_BASE_URL`, which `entrypoint.sh` replaces with the container's `NEXT_PUBLIC_API_BASE_URL` at start and refuses to start without.
+
+`next.config.mjs` turns on the React Compiler (`reactCompiler: true`) — see the client's [AGENTS.md](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/wayd.web.reactclient/AGENTS.md#react-compiler-and-tanstack-table) before adding `useMemo` or `useCallback`. It also holds the permanent redirects for moved routes and the frame-blocking headers on `/oauth/consent`.
 
 ## API Calls
 
@@ -53,10 +73,14 @@ The client generates interfaces only and never parses a response, so both arrive
 `Date`-typed instant is safe to hand to `dayjs(...)`; a calendar date is not a moment and must never be
 treated as one. Use the helpers in `src/utils/calendar-date.ts` (exported from `@/src/utils`):
 
-- `formatCalendarDate(value)` to show one, as written, with no zone conversion.
+- `formatCalendarDate(value, format?)` to show one, as written, with no zone conversion (`MMM D, YYYY` by default).
 - `parseCalendarDate(value)` for date math or a `DatePicker`; it is local midnight of that day.
-- `toCalendarDate(dayjsOrDate)` to send a picked day back to the API.
-- `compareCalendarDates` to sort, and `calendarDaysBetween` / `daysRemaining` to count days.
+- `toCalendarDate(dayjsOrDate)` to send a picked day back to the API, and `todayCalendarDate()` for today.
+- `compareCalendarDates` to sort, `calendarDaysBetween` to count days, and `addCalendarDays` to step.
+- `calendarDateInZone(instant, timeZone)` for the day an instant falls on in a team's zone.
+- `startOfCalendarDate(value)` for epoch milliseconds on a time axis, such as the timeline.
+
+`daysRemaining`, `dayOfPeriod`, `percentageElapsed` and `formatInstantInZone` live in `src/utils/dates.ts`, exported from the same barrel.
 
 **Never `new Date(calendarDate)` or `dayjs.utc(calendarDate)`.** `new Date("2026-09-28")` is UTC midnight,
 which is the previous day anywhere west of UTC. Instants are shown in the viewer's zone; where a record also
@@ -157,9 +181,9 @@ Three rules that apply to every page:
 
 ### Testing
 
-Use the browser device toolbar (`Ctrl/Cmd+Shift+M`). In development a **breakpoint chip** in the bottom-right corner shows the active Ant Design breakpoint — mounted from the root layout behind a `NODE_ENV` check.
+Use the browser device toolbar (`Ctrl/Cmd+Shift+M`). In development a **breakpoint chip** in the bottom-right corner shows the active Ant Design breakpoint — `BreakpointIndicator`, mounted from the root layout behind a `NODE_ENV` check.
 
-Test at **1440 / 1100 / 834 / 390**, and at the boundaries either side of any rule you rely on — bugs live at 767/768 and 991/992, not at 390.
+Test at **1440 / 1100 / 834 / 390**, and at the boundaries either side of any rule you rely on — bugs live at 575/576 and 767/768, not at 390.
 
 See **[Record Pages](./record-pages.mdx#responsive)** for the full per-slot behaviour and checklist.
 
@@ -221,7 +245,7 @@ See **[WaydGrid](./wayd-grid.mdx)** for the full usage guide — props, column `
 
 ## PWA (Progressive Web App)
 
-The client app is installable as a PWA, providing a native app-like experience with app shell caching and network-first API strategy.
+The client app has a web app manifest and a Serwist service worker build.
 
 **Key files:**
 
@@ -236,16 +260,18 @@ The client app is installable as a PWA, providing a native app-like experience w
 
 **Tooling:** [Serwist](https://serwist.pages.dev) (`@serwist/turbopack`) — handles service worker compilation and precache manifest injection via a Next.js route handler.
 
-**Development:** The service worker is only active in production builds. To test PWA features locally, run `npm run build && npm start`.
+**Caching strategy:** `sw.ts` precaches the build and uses Serwist's `defaultCache` for runtime caching, with `skipWaiting`, `clientsClaim` and navigation preload on.
 
-**Caching strategy:** `defaultCache` from Serwist provides network-first for navigations and API calls, and cache-first for static assets (JS, CSS, images, fonts).
+:::warning[The service worker is not registered]
+The route serves the worker, but nothing in the client registers it: `@serwist/turbopack` registers only through `SerwistProvider` (`@serwist/turbopack/react`), which no layout mounts. `ReleaseCleanup` (`src/components/release-cleanup.tsx`, in the root layout) also unregisters every service worker and clears Cache Storage once per browser per `RELEASE_MARKER_VALUE`. Until a provider is mounted, the manifest is served but nothing is cached offline.
+:::
 
 ## Theming
 
 Theming has two orthogonal axes:
 
 - **Theme** — a visual identity (shape language, typography, surface treatments): **Wayd** (the default), **Cartoon**, **Shadcn**, **Glass**, **Geek**, and **Illustration**.
-- **Mode** — a color-scheme variant of a theme: `light`, `dark`, or `slate` (the Wayd theme's alternate dark). Each theme declares which modes it supports; single-mode themes (e.g. Geek is dark-only) simply declare one.
+- **Mode** — a color-scheme variant of a theme: `light`, `mist`, `dark`, or `slate` (`mist` and `slate` are the Wayd theme's alternate light and dark; Wayd supports all four). Each theme declares which modes it supports; single-mode themes (e.g. Geek is dark-only) simply declare one.
 
 On top of that, users can customize density and (for eligible themes) primary color. All theming is built on Ant Design's `ThemeConfig` and `ConfigProvider`; a mode maps to an algorithm + token seed, exactly like Ant Design's `darkAlgorithm`/`compactAlgorithm` model.
 
@@ -257,6 +283,7 @@ The active selection is exposed on `<html>` as two attributes: `data-theme` (ide
 |------|---------|
 | `src/config/theme/wayd-light-theme.tsx` | Wayd theme — light mode |
 | `src/config/theme/wayd-dark-theme.tsx` | Wayd theme — dark mode |
+| `src/config/theme/wayd-mist-theme.tsx` | Wayd theme — mist mode (alternate light) |
 | `src/config/theme/wayd-slate-theme.tsx` | Wayd theme — slate mode (alternate dark) |
 | `src/config/theme/cartoon-theme.tsx` | Cartoon theme config |
 | `src/config/theme/shadcn-theme.tsx` | Shadcn-inspired theme config |
@@ -305,7 +332,7 @@ Consume the theme context via `useTheme()`:
 ```typescript
 const {
   currentTheme,      // ThemeId, e.g. 'wayd'
-  currentMode,       // ThemeMode: 'light' | 'dark' | 'slate'
+  currentMode,       // ThemeMode: 'light' | 'mist' | 'dark' | 'slate'
   availableModes,    // modes supported by the current theme
   setCurrentTheme,   // keeps the current mode when the new theme supports it
   setCurrentMode,    // ignored if the current theme doesn't support the mode
@@ -315,7 +342,7 @@ const {
 } = useTheme()
 ```
 
-The selection persists in localStorage under the `appTheme` key as `{ theme, mode }`. Legacy flat values (a bare theme/mode name string from before the theme × mode split) are normalized transparently on read — `light`/`dark`/`slate` map to the Wayd theme in that mode; other names map to that theme in its default mode.
+The selection persists in localStorage under the `appTheme` key as `{ theme, mode }`. Legacy flat values (a bare theme/mode name string from before the theme × mode split) are normalized transparently on read — a mode name maps to the Wayd theme in that mode; other names map to that theme in its default mode.
 
 ## Links
 
@@ -345,11 +372,15 @@ Sanitizing before `rehypeRaw` leaves the raw HTML unparsed at that point, so it 
 
 `sanitizeSchema` (`sanitize-schema.ts`) is the default `rehype-sanitize` schema plus `<u>`, which the renderer maps to antd's underline `Text`. The default schema keeps GFM tables, task lists and `language-*` code fences intact while dropping `<iframe>`, `<form>`, `<base>`, `<meta>`, `<style>`, event-handler attributes and the `style` attribute.
 
-:::warning Check additions against the overlay case
+:::warning[Check additions against the overlay case]
 Anything added to `tagNames` or `attributes` must be checked against clickjacking. An attacker who can set `style` on any element can cover the page with a full-viewport overlay — that is same-origin, so no CSP prevents it. `sanitize-schema.test.ts` covers this case explicitly; keep it passing.
 :::
 
 The docs viewer is a **separate** pipeline (`next-mdx-remote` / `MDXRemote`) rendering repo-authored content, and does not go through `MarkdownRenderer`.
+
+### Writing docs for both renderers
+
+The `docs/` folder is rendered by Docusaurus and by the in-app docs viewer, so write only syntax both understand. Admonitions are `:::note`, `:::tip`, `:::info`, `:::warning`, `:::caution` and `:::danger`; a title goes in brackets — `:::warning[Before you start]`. The older `:::warning Before you start` form renders as raw text on both: the docs site's `future.v4` flag turns off the MDX 1 compatibility that read it, and the in-app viewer (`remark-directive` plus `src/lib/remark-docs-admonitions.ts`) never supported it.
 
 ## Key Libraries
 

@@ -13,8 +13,11 @@ Every roadmap has:
 - **Name** and optional **Description**
 - **Date Range** — The time period the roadmap covers
 - **Visibility** — Public (visible to all users) or Private (visible to managers only)
-- **Managers** — Users with edit access (at least one required)
+- **Roadmap Managers** — The employees who can change the roadmap (at least one required). You must be among the managers of a roadmap you create or edit
+- **State** — Active or Archived. An archived roadmap is read-only until it is activated again; the Roadmaps list filters by state
 - **Items** — The content of the roadmap
+
+Creating a roadmap needs the **Create Roadmaps** permission and your account to be linked to an employee, since roadmap managers are employees. Changing one needs **Update Roadmaps** and being one of its managers.
 
 ## Roadmap Items
 
@@ -39,7 +42,7 @@ graph TD
 ```
 
 - **Activity** — A deliverable or initiative with a date range. Activities can contain child items (other activities, milestones, or timeboxes), enabling a hierarchical work breakdown.
-- **Milestone** — A point-in-time marker representing a key date or achievement.
+- **Milestone** — A point-in-time marker representing a key date or achievement. Milestones are created through the API rather than the roadmap screens; on the timeline and Gantt chart they show, open in the drawer, and can be dragged to a new date.
 - **Timebox** — A time-bounded period (e.g., a sprint or phase).
 
 Roadmap and item date ranges are inclusive: the end date can be the same as the start date, which creates a single-day range.
@@ -61,20 +64,23 @@ When a form detects that a child date falls outside the selected parent activity
 
 The roadmap detail page offers two views:
 
-**Timeline View** (default) — Visual timeline showing activities, milestones, and timeboxes. Managers can drag and drop items to reorder them. Single-day activity and timebox ranges use a compact marker treatment with the label beside the marker.
+**Timeline View** (default) — Visual timeline showing activities, milestones, and timeboxes. Managers can drag items to change their dates (see [Editing Items](#editing-items-managers-only)). Single-day activity and timebox ranges use a compact marker treatment with the label beside the marker.
 
-**List View** — Hierarchical tree grid showing all items with Name, Type, Start Date, End Date, and Status. Supports inline editing for managers and keyboard shortcuts, and pairs the grid with a [Gantt chart](#gantt-chart).
+**List View** — Hierarchical tree grid showing all items with Name, Type, Start, End, and Color, paired with a [Gantt chart](#gantt-chart). For managers it supports inline editing with keyboard shortcuts (listed under the grid's help), **Create Item** to add an activity or timebox, dragging activities to reorder them or move them under another activity, and a row menu with **Edit** and **Delete**.
 
-Clicking an item opens a **drawer** with full details, edit, and delete actions.
+Clicking an item opens the **Roadmap Item Details** drawer with its full details and, for managers, **Edit**.
 
-**Actions (for managers):**
-- Edit Roadmap (name, description, dates, visibility, managers)
-- Configure Colors (define the roadmap's named color palette — see [Roadmap Colors](#roadmap-colors))
-- Create Activity, Create Timebox
-- Copy Roadmap (creates a deep copy with new name and managers)
-- Delete Roadmap
+**Actions:**
+- **Edit** — name, description, dates, managers and visibility (managers)
+- **Archive** — make the roadmap read-only; **Activate** returns an archived roadmap to Active (managers)
+- **Delete** (managers)
+- **Configure Colors** — define the roadmap's named color palette, see [Roadmap Colors](#roadmap-colors) (managers)
+- **Copy** — anyone who can create roadmaps
+- **Create Activity**, **Create Timebox** (managers)
 
-Roadmaps can be **copied** to create new versions, preserving the full hierarchy of items.
+An archived roadmap offers only **Activate** and **Copy**.
+
+**Copy** creates a new, active roadmap with the name, managers and visibility you give it, keeping the original's description, dates and full hierarchy of items, with their colors. The color palette is not copied.
 
 ## Roadmap Colors
 
@@ -87,7 +93,7 @@ Open **Actions → Configure Colors** to manage the palette:
 - **Set a default** — mark one color (★) as the default. Activities that have no color of their own are shown in this color.
 - **Remove** — delete a color from the palette.
 
-Each color must have a caption, and a color can only be used once per roadmap.
+Each color must have a caption (up to 32 characters), a color can only be used once per roadmap, and a palette holds up to 30 colors.
 
 ### How the palette is used
 
@@ -185,6 +191,6 @@ Click the **? icon** to see a summary of keyboard and mouse controls.
 
 1. Navigate to **Planning > Roadmaps**
 2. Click **Create Roadmap**
-3. Enter **Name**, **Date Range**, and **Visibility**
-4. Add yourself as a **Manager**
-5. Add **Activities**, **Milestones**, and **Timeboxes** to populate the timeline
+3. Enter **Name**, **Dates**, and **Visibility**
+4. Choose the **Roadmap Managers** — you must be one of them
+5. Add **Activities** and **Timeboxes** with **Create Activity** and **Create Timebox**, or **Create Item** in the List view, to populate the timeline

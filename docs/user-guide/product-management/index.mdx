@@ -9,8 +9,8 @@ audience: [user, agent]
 
 Product Management is the record of **what your organization builds** and **what has shipped**. Where [PPM](../ppm/index.mdx) tracks the funded effort to change something and [Work Management](../work-management/index.mdx) tracks the items being worked, Product Management holds the durable catalog those efforts act on — the product lines, applications and services that exist whether or not a project is currently touching them — and the versions, releases and deployments that carry changes into an environment.
 
-:::note Feature flag
-Product Management is gated by the **Product Management** feature flag, which is disabled when first deployed. An administrator enables it under [Settings → Feature Flags](../settings/index.mdx). While it is off the area is not reachable at all.
+:::note[Feature flag]
+Product Management is gated by the **Product Management** feature flag, which is disabled when first deployed. An administrator enables it under [Settings → System → Feature Flags](../settings/index.mdx). While it is off the area is not reachable at all.
 :::
 
 ## Two Different Hierarchies
@@ -65,11 +65,12 @@ A deployment carries **either** a version or a package, never both — see
 
 ## What Is Available Today
 
-Every area of Product Management now has both a screen and an API.
+Every area of Product Management has both a screen and an API, except product types, which are managed through the API alone.
 
 | Area | Interface | API |
 | --- | --- | --- |
-| Products, types, tags | Yes | Yes |
+| Products and tags | Yes | Yes |
+| Product types | No — seeded, and managed through the API | Yes |
 | Product dependencies | Yes | Yes |
 | Releases and versions | Yes | Yes |
 | Release packages | Yes | Yes |
@@ -86,11 +87,11 @@ Delivery metrics reports the two DORA measures this module can compute from what
 
 - **[Products](./products.mdx)** — The catalog: creating products, the tree, types, statuses, tags, moving, external links, and the dependencies between products
 - **[Delivery](./delivery.mdx)** — Releases, versions, packages, deployments, environments, the rollout and version-activity views, and the delivery metrics computed from them
-- **[Bulk Import](./bulk-import.mdx)** — Loading the catalog from CSV through the import API
+- **[Bulk Import](./bulk-import.mdx)** — Loading the catalog, dependencies and delivery records from CSV
 
 ## Permissions
 
-Every action in this area is granted by permission claim alone; unlike PPM, there is no membership or leadership requirement on a record. Permissions are assigned to roles under [Settings → Roles](../settings/index.mdx).
+Every action in this area is granted by permission claim alone; unlike PPM, there is no membership or leadership requirement on a record. Permissions are assigned to roles under [Settings → Access → Roles](../settings/index.mdx).
 
 | Permission | Grants |
 | --- | --- |
@@ -98,7 +99,7 @@ Every action in this area is granted by permission claim alone; unlike PPM, ther
 | `Permissions.Products.Create` | Add products |
 | `Permissions.Products.Update` | Edit, retype, move, tag, change status, link externally, record [dependencies](./products.mdx#dependencies) |
 | `Permissions.Products.Delete` | Remove products |
-| `Permissions.Products.Import` | [Bulk import](./bulk-import.mdx) products from CSV |
+| `Permissions.Products.Import` | [Bulk import](./bulk-import.mdx) products and their dependencies from CSV |
 | `Permissions.ProductTypes.*` | Manage the type list |
 | `Permissions.ProductTagCategories.*` | Manage the tag axes and the tags on them |
 | `Permissions.Delivery.*` | Manage versions, packages and deployments, and [bulk import](./bulk-import.mdx) them |

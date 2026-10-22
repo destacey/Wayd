@@ -1,6 +1,6 @@
 ---
 title: Work Items & Workspaces
-description: Creating, viewing, and managing work items within workspaces in Wayd.
+description: Viewing and managing work items within workspaces in Wayd.
 sidebar_position: 1
 audience: [user, agent]
 ---
@@ -12,12 +12,14 @@ audience: [user, agent]
 A **Workspace** is a container for work items. Each workspace uses a specific [work process](./work-configuration.mdx#work-processes) that defines what types of work items can be created and what [workflows](./work-configuration.mdx#workflows) they follow.
 
 Every workspace has:
-- **Key** — A unique 2-20 character uppercase alphanumeric identifier (e.g., `PLAT`, `MOBILE`)
+- **Key** — A unique 2-20 character uppercase alphanumeric identifier starting with a letter (e.g., `PLAT`, `MOBILE`)
 - **Name** and optional **Description**
 - **[Work Process](./work-configuration.mdx#work-processes)** — The configuration that defines available [work types](./work-configuration.mdx#work-types) and [workflows](./work-configuration.mdx#workflows)
 - **Ownership** — How the workspace is managed:
   - **Owned** — Created and managed within Wayd
   - **Managed** — Synchronized from an external system (e.g., an Azure DevOps project) and read-only in Wayd. See [Administration > Integrations](../settings/index.mdx#integrations).
+
+Workspaces and their work items come from a [connection](../settings/index.mdx#connections) to an external system such as Azure DevOps: Wayd has no screen for creating a workspace or a work item. A workspace can only be active while its work process is active, and work items are added to or removed from a workspace only while it is active.
 
 ### Workspace List Page
 
@@ -28,25 +30,25 @@ Navigate to **Work Management > Workspaces** to see all workspaces. The page sup
 - Description (or "No description provided")
 - Tags: "Inactive" (if inactive), "Managed" (if externally owned, with tooltip)
 
-**List View** — Grid with Key, Name, Description, Ownership, and Is Active columns.
+**List View** — Grid with Key, Name, Description, Ownership, and Active columns.
 
 Click a workspace to view its work items.
 
 ### Workspace Detail Page
 
-The workspace detail page has two tabs:
+The workspace detail page shows the workspace's name and key, with an **Inactive** tag when it is inactive.
 
-**Details Tab:**
-- Key, [Work Process](./work-configuration.mdx#work-processes) (link to process configuration), Ownership type, Is Active status
-- Description
+**Details panel:**
+- Ownership and Description
+- **Relationships** — the [Work Process](./work-configuration.mdx#work-processes) (link to process configuration)
 
-**Work Items Tab:**
+**Work Items:**
 - Sortable, filterable grid of all work items in the workspace
-- Columns: Key, Title, Type, Status, Status Category, Story Points, [Team](../organizations/index.mdx#teams), [Sprint](./sprints.mdx), Parent, Assigned To, [Project](../ppm/projects.mdx)
+- Columns: Key, Title, Type, Status, Status Category, Story Points, [Team](../organizations/index.mdx#teams), [Sprint](./sprints.mdx), Parent Key, Parent, Assigned To, [Project](../ppm/projects.mdx), Tags
 - Effort and Size are available from **Choose Columns** (see [Estimate columns](#estimate-columns))
 - Click a work item to navigate to its detail page
 
-Actions: Set External URLs (for managed workspaces)
+Actions: **Set External URLs** sets the **View Work Item URL** template that links each work item to its page in the external system (managed workspaces only; requires permission to update workspaces)
 
 ## Work Items
 
@@ -54,7 +56,7 @@ A **Work Item** is the fundamental unit of work in Wayd. It represents any piece
 
 Every work item has:
 - **Key** — Unique identifier in format `\{WorkspaceKey\}-\{Number\}` (e.g., `PLAT-1234`). See [Work Item Keys](#work-item-keys).
-- **Title** — A brief description of the work (immutable after creation)
+- **Title** — A brief description of the work, kept in step with the external system
 - **[Type](./work-configuration.mdx#work-types)** — The category of work (defined by the workspace's work process)
 - **[Status](./work-configuration.mdx#work-statuses)** — Current position in the [workflow](./work-configuration.mdx#workflows)
 - **[Status Category](./work-configuration.mdx#work-status-categories)** — Normalized grouping (Proposed, Active, Done, Removed)
@@ -63,50 +65,63 @@ Every work item has:
 - **Story Points** — Optional relative estimate, typically set in sprint planning
 - **Effort** — Optional level-of-effort estimate, often set on features and epics for longer-term planning. Scrum also uses it as the sprint-level estimate.
 - **Size** — Optional size estimate, used by the CMMI process for requirements
+- **Tags** — The tags the work item carries in the external system
+- **Assignee** — The person responsible for the work
+- **[Team](../organizations/index.mdx#teams)** — The team responsible for delivery
+- **Parent** — Optional hierarchical link to a parent work item. See [Hierarchy Rules](#work-item-hierarchy-rules).
+- **[Sprint/Iteration](./sprints.mdx)** — Time-boxed period the work is planned for
+- **[Project](../ppm/projects.mdx)** — Optional association with a PPM project, set on a [Portfolio tier](./work-configuration.mdx#work-type-tiers) item or inherited from its parent
+- **Activated Timestamp** — When work moved to Active status. A work item that went straight to Done or Removed takes its Done Timestamp as its Activated Timestamp, and an Activated Timestamp later than the Done Timestamp is moved back to it.
+- **Done Timestamp** — When work moved to Done or Removed status. It is cleared when the work item moves back to Proposed or Active.
+
+The three estimates are kept separately: an item can carry more than one, and each is synced from its own Azure DevOps field.
 
 ### Estimate columns
 
 Work item grids — a workspace's work items, a team's backlog, a sprint's backlog, a PI iteration's backlog and a project's work items — offer all three estimates as columns. The one that shows at first is the team's [sizing method](../organizations/index.mdx#operating-model): a team that sizes in Effort sees Effort, a CMMI team sizing in Size sees Size. The others start hidden and can be added from **Choose Columns**. A sprint's backlog follows the sizing method in effect on the sprint's planned start. Where there is no single team to follow — a workspace's or project's work items, a PI iteration whose teams size differently — or the team sizes by count, Story Points shows. Once you show or hide an estimate column yourself, your choice is kept; **Reset Columns** returns to the team's default.
 
-  The three estimates are kept separately: an item can carry more than one, and each is synced from its own Azure DevOps field.
-- **Assignee** — The person responsible for the work
-- **[Team](../organizations/index.mdx#teams)** — The team responsible for delivery
-- **Parent** — Optional hierarchical link to a parent work item. See [Hierarchy Rules](#work-item-hierarchy-rules).
-- **[Sprint/Iteration](./sprints.mdx)** — Time-boxed period the work is planned for
-- **[Project](../ppm/projects.mdx)** — Optional association with a PPM project ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only)
-- **Activated Timestamp** — When work moved to Active status
-- **Done Timestamp** — When work moved to Done or Removed status
+### What Work Items Support
 
 Work items support:
 - **Parent/Child hierarchy** — Work items can be nested (e.g., Epic > Feature > User Story > Task). See [Hierarchy Rules](#work-item-hierarchy-rules).
 - **[Dependencies](#work-item-dependencies)** — Predecessor/successor relationships with planning health tracking
-- **[Revisions](#work-item-revisions)** — Change history tracking what changed, when, and by whom
+- **[Revisions](#work-item-revisions)** — The history of each work item's sprint, status, type, team, assignee and estimates, read from the external system
 - **Links** — Cross-entity associations to other objects in Wayd
 - **References** — Tracked references from other domains (e.g., linked to an [objective](../planning/planning-intervals.mdx#objectives) or [project](../ppm/projects.mdx))
 
-> **Note:** Work items in **Managed** workspaces (synced from Azure DevOps) are read-only. They can be viewed and linked to other Wayd objects, but cannot be edited directly.
+> **Note:** Work items in **Managed** workspaces (synced from Azure DevOps) are read-only. They can be viewed and linked to other Wayd objects, but cannot be edited directly. The one exception is the project of a Portfolio tier work item: see [Setting a Work Item's Project](#setting-a-work-items-project).
 
 ### Work Item Detail Page
 
-The work item detail page has multiple tabs that adapt based on the work item's type and status:
+The page header shows the work item's title (linking to the item in the external system), its key, its type, and its status as a tag. The breadcrumb leads to the workspace and, when the item has one, its parent. The page has **Overview**, **Child Work Items** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only) and **Dependencies** sections, and a **Forecast** report under **Reports** for Requirement and Portfolio tier items when [Delivery Forecasting](./delivery-forecasting.mdx) is on.
 
-**Details Tab:**
-- All core properties: Key, [Type](./work-configuration.mdx#work-types), [Status](./work-configuration.mdx#work-statuses), [Status Category](./work-configuration.mdx#work-status-categories), Priority, Story Points, Effort and Size (each shown only when set), [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link, shows "Backlog" if unassigned), Parent (link), [Project](../ppm/projects.mdx) (link), Assigned To, Created By, Last Modified By
-- **Progress Steps** — Visual lifecycle indicator showing Proposed → Active → Done/Removed with timestamps for each transition
-- Timestamps: Created, Activated, Done (formatted with date and time)
+**Details panel:**
+- Type, Priority, Story Points, Effort, Size and Tags (each shown only when set)
+- **People** — Assigned To (or "Unassigned") and [Team](../organizations/index.mdx#teams) (or "No team")
+- **Relationships** — Parent (or "No parent"), [Sprint](./sprints.mdx) for Requirement tier items ("Backlog" if unassigned), and [Project](../ppm/projects.mdx) (or "No project")
+- **History** — Created and Updated, each with its date and time and who made it
 
-**Dashboard Tab** (hidden for Removed items):
-- **Time to Start** — Days from creation to activation (how long work waited before starting)
-- **Cycle Time** — Days from activation to completion (shows "Time Active" while still in progress). Calculated as `Done Timestamp − Activated Timestamp`. See also [Cycle Time Report](./cycle-time-report.mdx) for team- and employee-level analysis.
-- **Lead Time** — Total days from creation to completion (only shown for Done items)
-- For **[Portfolio tier](./work-configuration.mdx#work-type-tiers)** items (Epics, Features), also shows:
-  - **Progress Pie Chart** — Distribution of child items by [status category](./work-configuration.mdx#work-status-categories) (Proposed, Active, Done) with percentages
-  - **Cumulative Flow Chart** — Stacked area chart showing daily count of child items in each status category over time
+**Overview:**
+- **Progress steps** — Proposed → Active → Done (or Removed), with when the item was created, started and completed
+- Timing cards, in days:
+  - **Time Proposed** (Proposed items) — now − created
+  - **Time to Start** (Active and Done items) — activated − created
+  - **Time Active** (Active items) — now − activated
+  - **Cycle Time** (Done items) — done − activated. See also the [Cycle Time Report](./cycle-time-report.mdx) for team- and employee-level analysis.
+  - **Lead Time** (Done items) — done − created
+- **Child Work Items** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only) — the number of direct children; select it to open the Child Work Items section
+- **Cross-Team Dependencies** — the number of the item's dependencies that cross a team boundary; select it to open the Dependencies section
+- Charts, shown when they have something to show:
+  - **Child Work Items by Type** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only) — the direct children by work type
+  - **Progress** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only) — the work beneath the item by [status category](./work-configuration.mdx#work-status-categories) (Proposed, Active, Done): every descendant below the Portfolio tier, through any child Epics and Features, with Removed items left out
+  - **Cross-Team Dependencies by Health** — the cross-team dependencies by [health](#work-item-dependencies). Intra-team dependencies are left out, since they need no coordination between teams
+- **Dependency Map** (when the item has dependencies) — what the item waits on to its left and what waits on it to its right, grouped in boxes by team, with arrows from predecessor to successor colored by health. **All** or **Open only** (dependencies whose predecessor is not done) filters it, **+** on a work item follows the chain further out, selecting a work item opens it in a drawer, and **View all** opens the Dependencies section
+- **Cumulative Flow** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only) — the daily count of the same descendant work items in each status category over time
 
-**Work Items Tab** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only):
-- Grid of child work items belonging to this parent
+**Child Work Items** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only):
+- Grid of the direct child work items of this parent
 
-**Dependencies Tab:**
+**Dependencies:**
 - Two-column grouped grid:
   - **Dependency Info**: Type (Predecessor/Successor with tooltip), State, Health (color-coded), Scope (Intra-Team/Cross-Team with explanation)
   - **Work Item Info**: Key (linked), Title, Type, Status, [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link)
@@ -133,40 +148,53 @@ Each dependency tracks:
 - **State** — Automatically calculated from the predecessor's [status category](./work-configuration.mdx#work-status-categories):
   - **To Do** — Predecessor is Proposed
   - **In Progress** — Predecessor is Active
-  - **Done** — Predecessor is Done or Removed
-- **Planning Health** — Automatically calculated from planned dates ([sprint](./sprints.mdx) end dates):
+  - **Done** — Predecessor is Done
+  - **Removed** — Predecessor is Removed
+  - **Deleted** — The link was removed in the source system
+- **Planning Health** — Automatically calculated from each item's status and planned date, which is the last planned day of the [sprint](./sprints.mdx) it is in. An item in no sprint, or in a sprint whose last planned day (UTC) has passed, counts as unplanned:
 
 | Health | Condition |
 |--------|-----------|
-| **Healthy** | Predecessor is planned before successor, or predecessor is already Done |
-| **At Risk** | One or both items are unplanned |
-| **Unhealthy** | Predecessor is planned after successor, or successor is already active while predecessor hasn't completed |
+| **Healthy** | Predecessor is Done; or predecessor is planned and successor is unplanned; or predecessor is planned on or before the successor's planned date |
+| **At Risk** | Neither item is planned |
+| **Unhealthy** | Predecessor is Removed; or successor is already Active, Done or Removed while the predecessor is not done; or successor is planned and predecessor is not; or predecessor is planned after the successor |
+| **Unknown** | The link was deleted |
 
 - **Scope** — Whether the dependency is within a team (Intra-Team) or across teams (Cross-Team)
 
 Dependencies are visible on:
 - **[Team Dependencies section](../organizations/index.mdx#dependencies)** — All dependencies involving a team
-- **[Work Item detail page](#work-item-detail-page)** — Predecessor and successor lists
+- **[Work Item detail page](#work-item-detail-page)** — The Dependency Map and cross-team counts on the Overview, and the predecessor and successor list in the Dependencies section
 
 ## Work Item Keys
 
-Every work item has a unique **Key** in the format `\{WorkspaceKey\}-\{Number\}` (e.g., `PLAT-1234`). The workspace key is a 2-20 character uppercase alphanumeric code starting with a letter. The number is auto-incremented within the workspace.
+Every work item has a unique **Key** in the format `\{WorkspaceKey\}-\{Number\}` (e.g., `PLAT-1234`). The workspace key is a 2-20 character uppercase alphanumeric code starting with a letter. The number is the work item's ID in the external system, such as its Azure DevOps work item ID.
 
 ## Work Item Revisions
 
-**Revisions** provide an audit trail for work items. Each revision records:
-- **Revision number** — Sequential within the work item
-- **Who** made the change
-- **When** the change occurred
-- **Field-level changes** — Old value and new value for each modified field
+**Revisions** are the work item's history as the external system recorded it, read during sync. Each revision records:
+- **Revision number** — The source system's revision number
+- **When** the source system recorded the change
+- The values after the change of the fields Wayd tracks: sprint, status, work type, team, assignee, and the Story Points, Effort and Size estimates
+
+Wayd builds each work item's history from its revisions, which is what [Sprint Scope](./sprints.mdx#sprint-scope) and the sprint [burn charts](./sprints.mdx#burn-up-and-burn-down) read. Revisions are not shown on the work item page.
 
 ## Work Item Hierarchy Rules
 
 Work items follow strict hierarchy rules based on their [work type tier](./work-configuration.mdx#work-type-tiers):
 - Only **[Portfolio tier](./work-configuration.mdx#work-type-tiers)** work items (e.g., Epic, Feature) can be parents
-- A parent must be a **higher [level](./work-configuration.mdx#work-type-levels)** than the child (e.g., Epic > Feature > Story)
+- A Portfolio tier parent of a Portfolio tier child must be a **higher [level](./work-configuration.mdx#work-type-levels)** than the child (e.g., Epic > Feature); a Requirement or Task tier item can have a parent at any Portfolio level
 - Work items cannot be linked to themselves
-- Portfolio-tier work items can be directly associated with PPM **[Projects](../ppm/projects.mdx)**. Child work items inherit the project assignment from their parent.
+- Portfolio-tier work items can be directly associated with PPM **[Projects](../ppm/projects.mdx)**. Child work items inherit the project assignment from their parent, except work items in the **Other** tier, which never take a project.
+
+## Setting a Work Item's Project
+
+A Portfolio tier work item's project is set in Wayd, not in the external system. On the work item's page, **Edit Project** in the actions menu opens a dialog that says where the item's project comes from — its own assignment, or inherited from its parent (shown as **Parent Project**) — and a **Project** list to change it:
+
+- Choose a project to assign it to this work item, overriding any project it inherits.
+- Clear the field and save to remove the item's own assignment, so it inherits its parent's project again.
+
+Choosing the parent's project is the same as inheriting it, so that project is not offered. The work items beneath it that have no project of their own inherit the change. **Edit Project** appears only for Portfolio tier work items and requires the `Permissions.Projects.ManageProjectWorkItems` permission.
 
 ## Ownership Model
 

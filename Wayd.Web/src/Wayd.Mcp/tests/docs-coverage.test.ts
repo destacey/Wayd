@@ -42,16 +42,35 @@ const skillsDir = join(__dirname, '../../../../skills');
 /** Matches a tool name wherever it appears — a table cell, backticks, or prose. */
 const toolNamePattern = /\b[A-Z][A-Za-z]*_[A-Za-z][A-Za-z0-9]*\b/g;
 
+/**
+ * The page's section for tools only the hosted endpoint (`/mcp` on the API) offers. Its names are
+ * expected to be absent from this package, so the stale check skips them; the API's own tests
+ * (`McpToolCatalogTests`) own whether they exist.
+ */
+const hostedOnlyHeading = /^### Hosted-Only Tools\s*$/m;
+
 let toolNames: string[];
 let docText: string;
 /** Every tool name the page mentions, parsed once and matched whole. */
 let documented: Set<string>;
+/** The tool names in the hosted-only section. */
+let hostedOnly: Set<string>;
+
+/** The text of the section under `heading`, up to the next heading of the same or a higher level. */
+function sectionText(text: string, heading: RegExp): string {
+  const start = text.search(heading);
+  if (start < 0) return '';
+  const body = text.slice(start).replace(heading, '');
+  const end = body.search(/^#{1,3} /m);
+  return end < 0 ? body : body.slice(0, end);
+}
 
 before(async () => {
   const { toolDefinitionMap } = await import('../build/tools/index.js');
   toolNames = [...toolDefinitionMap.keys()];
   docText = readFileSync(docsPath, 'utf8');
   documented = new Set(docText.match(toolNamePattern) ?? []);
+  hostedOnly = new Set(sectionText(docText, hostedOnlyHeading).match(toolNamePattern) ?? []);
 });
 
 describe('documentation coverage', () => {
@@ -69,13 +88,28 @@ describe('documentation coverage', () => {
   test('the docs name no tool that no longer ships', () => {
     const shipped = new Set(toolNames);
 
-    const stale = [...documented].filter((name) => !shipped.has(name)).sort();
+    const stale = [...documented]
+      .filter((name) => !shipped.has(name) && !hostedOnly.has(name))
+      .sort();
 
     assert.deepEqual(
       stale,
       [],
       `${stale.length} tool name(s) in docs/getting-started/mcp-server.mdx do not exist. ` +
         `Rename or remove them:\n  ${stale.join('\n  ')}`,
+    );
+  });
+
+  test('the hosted-only section names no tool this package ships', () => {
+    const shipped = new Set(toolNames);
+
+    const misplaced = [...hostedOnly].filter((name) => shipped.has(name)).sort();
+
+    assert.deepEqual(
+      misplaced,
+      [],
+      `${misplaced.length} tool(s) listed under Hosted-Only Tools also ship in @wayd/mcp. ` +
+        `Move them to the matching section of Available Tools:\n  ${misplaced.join('\n  ')}`,
     );
   });
 

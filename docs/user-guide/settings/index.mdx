@@ -9,6 +9,20 @@ audience: [user, agent]
 
 The Administration area provides tools for configuring Wayd, managing users, controlling feature visibility, and connecting to external systems.
 
+**Settings** lists its pages in a side menu, in groups:
+
+| Group | Pages |
+|---|---|
+| **Access** | Users, Roles, Identity Providers |
+| **Organization** | Holiday Calendars, Team Member Roles |
+| **Planning** | Estimation Scales (with the `planning-poker` flag) |
+| **Product Management** | Product Tags (with the `product-management` flag) |
+| **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
+| **Work Management** | Work Types, Work Statuses, Work Processes |
+| **System** | Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
+
+The menu shows only the pages your permissions open, and hides a group with none; the filter box above it narrows the list. Opening **Settings** takes you to the first page you can use.
+
 ## Deployment configuration
 
 Everything below this section is managed from the Wayd UI. A few things are set **outside** the app — in configuration files or environment variables — and are the responsibility of whoever runs the deployment:
@@ -22,7 +36,7 @@ Everything below this section is managed from the Wayd UI. A few things are set 
 | [Data Protection key](../../contributing/configuration.mdx#data-protection-at-rest-secret-encryption) | Encrypts connector credentials at rest. **Losing this key makes every stored PAT and API key unrecoverable** — back it up outside the deployment system. |
 | [Database](../../contributing/configuration.mdx#database) | Connection string and provider settings. |
 
-:::note These pages live in the developer documentation
+:::note[These pages live in the developer documentation]
 They are shared with contributors, so they include implementation detail alongside the operational guidance. Each section above links to the part you need.
 :::
 
@@ -32,19 +46,22 @@ They are shared with contributors, so they include implementation detail alongsi
 
 User accounts control access to Wayd. Each user has:
 - **Display Name** and **Email**
-- **Login Provider** — How the user authenticates (set at creation, immutable):
-  - **Microsoft Entra ID** — Single sign-on via Azure Active Directory
-  - **Wayd (Local)** — Username/password authentication with JWT tokens
+- **Login Provider** — How the user authenticates (set at creation; changed only through the identity-provider actions below):
+  - **Microsoft Entra ID** — Single sign-on via Microsoft Entra ID
+  - **Wayd** — A local account: username/password authentication with JWT tokens
+  - Any other OIDC provider configured under [Identity Providers](#identity-providers), reached through **Change Identity Provider**
+- **Employee** — The employee record the account is linked to, if any. PPM and sprint changes are attributed to it, so an account without one cannot make them
 - **Roles** — Permission groups that control what the user can see and do
-- **Status** — Active, Inactive, or Locked
+- **Status** — Active or Inactive, and Locked while a lockout is in force
 
-**Account operations:**
-- **Activate** — Enable a user account
-- **Deactivate** — Disable a user account
-- **Unlock** — Unlock an account locked due to failed login attempts
-- **Reset Password** — Admin-initiated password reset (local auth only, forces change on next login)
-- **Change Identity Provider** — Stage a move to a different OIDC provider, or from a local account to an OIDC provider (see below)
+**Account operations** (the user's **Actions** menu; each needs `Permissions.Users.Update`, except **Manage Roles**, which needs `Permissions.UserRoles.Update`):
+- **Activate Account** — Enable a user account
+- **Deactivate Account** — Disable a user account
+- **Unlock Account** — Unlock an account locked due to failed login attempts
+- **Reset Password** — Admin-initiated password reset (local accounts only, forces change on next login)
+- **Change Identity Provider** — Stage a move to a different OIDC provider, or from a local account to an OIDC provider (see below). **Cancel Pending Provider Migration** withdraws a staged move
 - **Convert to Local Account** — Immediately switch an OIDC user to password-based login (see below)
+- **Manage Roles** — Choose the roles the user holds
 
 Local users created by an administrator have a **Must Change Password** flag that requires them to set a new password on first login.
 
@@ -52,7 +69,7 @@ A user's detail page carries an **Activity** section: the changes made to the ac
 
 #### Creating users
 
-Administrators create accounts from **Settings → User Management → Users → Create User**. This is the path for provisioning a user before their first sign-in — for example when a provider's auto-registration is off, or for local (Wayd) accounts.
+Administrators create accounts from **Settings → Access → Users → Create User**. This is the path for provisioning a user before their first sign-in — for example when a provider's auto-registration is off, or for local (Wayd) accounts.
 
 The form captures the user's details, their **Login Provider** (set here and immutable afterward), a password for local accounts, and their **Roles**.
 
@@ -67,7 +84,7 @@ The form captures the user's details, their **Login Provider** (set here and imm
 
 When your organization moves users from one Microsoft Entra ID tenant to another, you stage the migration **in bulk from the provider page**. The rebind completes automatically the next time each user signs in from the new tenant — they don't need to do anything special, and their `UserId`, permissions, and links to other records (work items, audit history, etc.) are all preserved.
 
-This lives on the provider's detail page (**Settings → Identity Providers → \[provider]**), and only appears for a Microsoft Entra ID provider configured with **two or more** allowed tenants (there must be tenants to move between).
+This lives on the provider's detail page (**Settings → Access → Identity Providers → \[provider]**), and only appears for a Microsoft Entra ID provider configured with **two or more** allowed tenants (there must be tenants to move between).
 
 **Workflow:**
 
@@ -83,7 +100,7 @@ This lives on the provider's detail page (**Settings → Identity Providers → 
 - **Stage before the user signs in from the new tenant.** A sign-in from the new tenant without a staged migration is refused — Wayd never links an account by email alone — so stage it and have them sign in again. Only a sign-in whose username matches no existing account creates a new one, which can't be merged back without manual database work.
 - Tenant migration is **Microsoft Entra ID only**. For moving a user between different OIDC providers, use **Change Identity Provider** instead.
 - The selectable list excludes users who already have a migration pending. To retarget such a user, cancel their pending migration first (below).
-- The **Active Migrations** section is read-only. To cancel a single user's pending migration, open that user's detail page (**Settings → User Management → Users → \[user]**) and pick **Cancel Pending Migration** from the **Actions** menu. There is no bulk-cancel.
+- The **Active Migrations** section is read-only. To cancel a single user's pending migration, open that user's detail page (**Settings → Access → Users → \[user]**) and pick **Cancel Pending Migration** from the **Actions** menu. There is no bulk-cancel.
 
 #### Change Identity Provider
 
@@ -124,7 +141,7 @@ Converts an OIDC user to a local (password-based) account **immediately** — no
 
 ### Identity Providers
 
-Single sign-on providers are configured in **Settings → Identity Providers** (available once the `IdentityProviders` feature flag is enabled). Beyond the connection details — issuer, client ID, audience, scopes, and (for Microsoft Entra ID) the allowed tenants — each provider carries a **registration policy** that controls whether and how new users are created when someone signs in for the first time.
+Single sign-on providers are configured in **Settings → Access → Identity Providers**, which needs `Permissions.OidcProviders.View` (and `.Create`, `.Update` or `.Delete` to change them). A provider is either **Microsoft Entra ID** or **Generic OIDC** (Google, Okta, Auth0, Keycloak and the like), chosen when it is created. Beyond the connection details — **Authority**, **Client ID**, **Audience**, **Scopes**, **Clock Skew (seconds)**, **Enabled**, and (for Microsoft Entra ID) the **Allowed Tenant IDs** — each provider carries a **registration policy** that controls whether and how new users are created when someone signs in for the first time.
 
 **Registration policy fields:**
 
@@ -143,10 +160,13 @@ Single sign-on providers are configured in **Settings → Identity Providers** (
 
 **Things to know:**
 
+- **The registration policy applies to Microsoft Entra ID providers.** A Generic OIDC provider never creates an account at sign-in: someone signing in through it must already have an account whose move to that provider was staged with **Change Identity Provider**, and is otherwise refused.
 - **The first user is special.** The very first person to sign in to a brand-new deployment always becomes an administrator, regardless of policy — this can't lock you out of an empty system.
 - **An existing account is never adopted automatically.** Someone whose email matches an account already in Wayd is refused rather than linked to it, whatever the policy says, because an email alone doesn't prove who they are. Link them deliberately with **Set Sign-in Tenant**, **Change Identity Provider**, or tenant migration, depending on the account.
 - **Upgrades are secure by default.** Existing providers have auto-registration turned **off** after upgrading to this version; re-enable it deliberately per provider.
 - **A role in use can't be deleted.** If a role is set as a provider's default, attempting to delete it is blocked with a clear message until you repoint the provider to a different role.
+
+**Test**, in the provider list and in the **Discovery** card on the provider's page, fetches the provider's OIDC discovery document from its authority and reports whether it was reached. A disabled provider is not offered at sign-in and its sign-ins are refused; its page says it is disabled.
 
 A provider's detail page carries an **Activity** section: the provider added, its login label edited, its configuration (issuer, client, audience, scopes, allowed tenants or clock skew) changed, its registration policy changed, enabled, disabled or deleted — each entry with the values before and after. A provider stores no secret, so none is ever recorded.
 
@@ -154,19 +174,26 @@ A provider's detail page carries an **Activity** section: the provider added, it
 
 Roles define permission groups. Users are assigned to roles to control access to features, pages, and actions throughout the application.
 
-Permissions follow a hierarchical pattern:
-- `Permissions.\{Domain\}.View` — View entities
-- `Permissions.\{Domain\}.Create` — Create new entities
-- `Permissions.\{Domain\}.Update` — Modify existing entities
-- `Permissions.\{Domain\}.Delete` — Remove entities
+Permissions are named `Permissions.\{Resource\}.\{Action\}` — for example `Permissions.Projects.Update`. See [Permissions](./permissions.mdx#permission-catalogue) for every permission and what it gates.
 
-:::note PPM requires more than a permission
+Managing roles, from **Settings → Access → Roles**:
+1. **Create Role** gives a role a **Name** and **Description**; **Copy Permissions From** starts it with another role's permissions
+2. A role's page has two sections. **Permissions** lists what the role holds, grouped by category and resource; **Manage Permissions** switches it to editing, with a switch per permission, **Toggle All** per resource and **Select All**, saved with **Save Permissions**. **Users** lists the role's members; **Manage Users** changes them
+3. **Edit** changes the name and description; **Delete** removes the role
+
+**Things to know:**
+
+- **The seeded Admin role holds every permission and cannot be edited, deleted, or have its permissions changed.** A permission added to Wayd is granted to it automatically on startup.
+- **A role in use can't be deleted** — not while users hold it, and not while it is an identity provider's default role.
+- Viewing roles needs `Permissions.Roles.View`; creating, editing and deleting them need `Permissions.Roles.Create`, `.Update` and `.Delete`. Changing who holds a role needs `Permissions.UserRoles.Update`.
+
+:::note[PPM requires more than a permission]
 In [Project Portfolio Management](../ppm/index.mdx), a permission claim alone is not enough to change a project, program, or portfolio — you must also lead the record as an Owner or Manager. See [Permissions](./permissions.mdx) for the full rule.
 :::
 
 ### Personal Access Tokens
 
-Users can generate **Personal Access Tokens (PATs)** for API access. These are managed from the user's profile page. Every change to a token is recorded in the owning user's [Activity](#users), which administrators read from the user's detail page.
+Users can generate **Personal Access Tokens (PATs)** for API access. Each user manages their own on the **PATs** tab of their **Account** page: a token has a name (up to 100 characters) and an expiration date between one day and two years away (one year by default), is shown once at creation, and can be edited, revoked or deleted afterward. A token acts with the permissions of the user who owns it. See [Your Profile](../../getting-started/your-profile.mdx#personal-access-tokens). Every change to a token is recorded in the owning user's [Activity](#users), which administrators read from the user's detail page.
 
 ## Feature Management
 
@@ -175,15 +202,29 @@ Wayd uses **feature flags** to control the visibility of features across the app
 ### How Feature Flags Work
 
 1. Flags are **defined in code** by developers
-2. On application startup, new flags are **automatically seeded** into the database — usually disabled, though some (such as replacement UIs being rolled out) are seeded enabled. Seeding only sets a flag's **initial** state; your enable/disable choices are preserved across updates
+2. On application startup, new flags are **automatically seeded** into the database, disabled unless the flag is defined to start enabled. Seeding only sets a flag's **initial** state; your enable/disable choices are preserved across updates
 3. Administrators **enable or disable** flags through the Settings UI
 4. The application checks flag state to **show or hide** features
 
 ### Managing Feature Flags
 
-1. Navigate to **Settings > Feature Management > Feature Flags**
-2. View all available feature flags with their current state
-3. Toggle flags on or off as needed
+1. Navigate to **Settings > System > Feature Flags**
+2. View all available feature flags with their **Name**, **Display Name**, **Type** and whether each is **Enabled**; select a flag to see its description
+3. From a flag's row menu, **Enable** or **Disable** it, or **Edit** its display name and description
+4. **Archive** removes a flag you no longer need, and disables it. It is offered only for **User** flags — **System** flags are defined by Wayd and cannot be archived. **Include Archived** shows archived flags again
+
+Viewing flags needs `Permissions.FeatureFlags.View`; enabling, disabling and editing need `Permissions.FeatureFlags.Update`, and archiving needs `Permissions.FeatureFlags.Delete`.
+
+The flags Wayd defines:
+
+| Flag | Name | What it controls |
+|---|---|---|
+| Planning Poker | `planning-poker` | The Planning Poker feature, including **Settings → Planning → Estimation Scales** |
+| Story Maps | `story-maps` | The Story Maps feature |
+| Product Management | `product-management` | The Product Management module, including **Settings → Product Management** |
+| Delivery Forecasting | `delivery-forecasting` | Monte Carlo delivery forecasts |
+| MCP Server | `mcp-server` | The hosted MCP endpoint (`/mcp`) that exposes the API as agent tools |
+| Team Capacity Management | `team-capacity-management` | Employee allocation to teams and team capacity planning |
 
 Feature flags gate both backend API endpoints and frontend UI elements. When a flag is disabled:
 - API endpoints return 404 or are unavailable
@@ -262,7 +303,7 @@ Managing roles:
 
 ### Work Statuses
 
-**Work Statuses** represent the states within a workflow (e.g., New, Active, Resolved, Closed). Each status belongs to a **Work Status Category** that normalizes statuses across workflows:
+**Work Statuses** represent the states within a workflow (e.g., New, Active, Resolved, Closed). Each workflow places each of its statuses in a **Work Status Category**, which normalizes statuses across workflows, so the same status can sit in different categories in different workflows:
 
 | Category | Purpose |
 |----------|---------|
@@ -326,15 +367,15 @@ Tags themselves carry no order — they display alphabetically wherever they app
 
 ## Scoring Models
 
-**Scoring Models** define formula-driven ways to score and rank work consistently — for example, prioritizing a backlog or portfolio projects by WSJF. Each model combines rated **criteria** with named **output formulas**, designating one as the primary score, and includes a **Test** report for previewing results without saving. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring). See [Scoring Models](./scoring-models.mdx) for the full guide. Configured in **Settings → Scoring → Scoring Models**.
+**Scoring Models** define formula-driven ways to score and rank work consistently — for example, prioritizing a backlog or portfolio projects by WSJF. Each model combines rated **criteria** with named **output formulas**, designating one as the primary score, and includes a **Test** report for previewing results without saving. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring). See [Scoring Models](./scoring-models.mdx) for the full guide. Configured in **Settings → PPM → Scoring Models**.
 
 ## Status Workflows
 
-**Status Workflows** define the statuses each kind of record moves through — products, releases, release packages and deployments. A status carries a **category** for rollups and an optional **alias** giving it a well-known meaning, so Wayd's own logic keeps working whatever your organization calls each stage. Published workflows are immutable: change one by cloning it, editing the draft, publishing, and reassigning the record type — which brings every existing record across through a reviewed mapping. See [Status Workflows](./status-workflows.mdx) for the full guide. Configured in **Settings → Status Workflows**.
+**Status Workflows** define the statuses each kind of record moves through — products, releases, release packages and deployments. A status carries a **category** for rollups and an optional **alias** giving it a well-known meaning, so Wayd's own logic keeps working whatever your organization calls each stage. Published workflows are immutable: change one by cloning it, editing the draft, publishing, and reassigning the record type — which brings every existing record across through a reviewed mapping. See [Status Workflows](./status-workflows.mdx) for the full guide. Configured in **Settings → System → Status Workflows**.
 
 ## Imports
 
-**Imports** is where CSV files are imported from the app — choose the kind of import, check its columns, download a template, and submit the file — and it shows every CSV import file that has been submitted, what became of each row, and what you can still do about a run that did not finish — stop one that is going, resume one that stopped partway, or retry the rows it rejected once the underlying problem is fixed. Every file is applied by a background worker; submitting waits a few seconds for it, so a small file comes back finished while a large one comes back still running, and each run has its own page here where it is followed. Files submitted together — a `wayd-data` seed, an export split to fit the row cap — show as one batch with summed counts. You see the import types you are allowed to submit, and **View Imports** additionally grants read-only oversight of every type. See [Imports](./imports.mdx) for the full guide. Found in **Settings → Imports**.
+**Imports** is where CSV files are imported from the app — choose the kind of import, check its columns, download a template, and submit the file — and it shows every CSV import file that has been submitted, what became of each row, and what you can still do about a run that did not finish — stop one that is going, resume one that stopped partway, or retry the rows it rejected once the underlying problem is fixed. Every file is applied by a background worker; submitting waits a few seconds for it, so a small file comes back finished while a large one comes back still running, and each run has its own page here where it is followed. Files submitted together — a `wayd-data` seed, an export split to fit the row cap — show as one batch with summed counts. You see the import types you are allowed to submit, and **View Imports** additionally grants read-only oversight of every type. See [Imports](./imports.mdx) for the full guide. Found in **Settings → System → Imports**.
 
 ## Integrations
 
@@ -342,10 +383,12 @@ Wayd integrates with external systems to synchronize data. Integrations are conf
 
 ### Ownership Model
 
-When data is synchronized from an external system, the objects created in Wayd have a **Managed** ownership. This distinguishes them from objects created directly in Wayd:
+When data is synchronized from an external system, the objects created in Wayd have a **Managed** ownership. This distinguishes them from objects owned by Wayd:
 
-- **Owned** — The object is created and managed within Wayd. Users can edit it freely.
+- **Owned** — The object is managed within Wayd.
 - **Managed** — The object is owned by an external system and is **read-only** in Wayd. Changes must be made in the source system and will be reflected in Wayd on the next sync.
+
+Workspaces, work processes, workflows and work items are only ever created by a sync, so in practice they are managed.
 
 Managed objects can still be associated or linked to owned items. For example, a [work item](../work-management/work-items.mdx#work-items) synced from Azure DevOps (managed in Wayd) can be linked to a team [objective](../planning/planning-intervals.mdx#objectives) owned by Wayd.
 
@@ -353,22 +396,32 @@ The ownership model applies to [workspaces](../work-management/work-items.mdx#wo
 
 ### Connections
 
-A **Connection** represents a configured integration with an external application via a Wayd **Connector**. Each connection includes authentication and endpoint configuration needed to establish the link.
+A **Connection** represents a configured integration with an external application via a Wayd **Connector**. Each connection includes authentication and endpoint configuration needed to establish the link. Connections are managed in **Settings → System → Connections**; **Create Connection** starts one, and **Include Disabled** lists inactive ones too.
 
-A **Connector** is a configurable integration type that lets a specific external service plug into Wayd. Each connector belongs to a **Category** (Work Sync, People Sync, AI Provider) that determines how Wayd uses it. Multiple connections for the same connector type can be configured — for example, when an organization has multiple Azure DevOps instances, or multiple Entra tenants after an acquisition.
+A **Connector** is a configurable integration type that lets a specific external service plug into Wayd. What a connector can do is its **capability**, grouped under **Work Management** (work items), **People** (employees) or **AI Provider**, and it decides how Wayd uses the connection. Multiple connections for the same connector type can be configured — for example, when an organization has multiple Azure DevOps instances, or multiple Entra tenants after an acquisition.
 
 **Common actions on a connection:**
 
-- **Edit** — Update name, description, or credentials. The masked secret can be left as-is to keep the existing value.
-- **Activate / Deactivate** — Toggle whether the connection participates in sync runs. Inactive connections are excluded from every runner (work-sync, people-sync) and from "Sync Now" — the API rejects sync attempts on an inactive connection.
-- **Sync Now** — Triggers a manual sync for that connection only. Available on Work Sync and People Sync connectors. Routes to the right runner based on the connector's category.
-- **Sync History** — A section on the connection detail page showing past runs with their status, duration, and per-run details (workspaces, work items and work item revisions for Work Sync; employees fetched and upserted for People Sync).
+- **Edit** — Update name, description, settings or credentials. A secret field starts empty, marked **Unchanged**: leave it empty to keep the stored value, or type a new one to replace it. A stored secret is never shown again.
+- **Activate / Deactivate** — Toggle whether the connection participates in sync runs. A new connection starts active. Inactive connections are excluded from every scheduled and manual sync — the API rejects sync attempts on an inactive connection.
 - **Delete** — Removes the connection. Past sync history rows are preserved by design.
-- **Activity** — A section on the connection detail page recording the connection created, its name or description edited, its settings changed (each entry lists the settings before and after), its credentials replaced, activated, deactivated or deleted, and by whom. A credential change records *which* credential was replaced — the personal access token, API key, client secret or password — and never its value, not even hashed. Syncing workspaces, processes and teams from Azure DevOps and probing a Workday configuration are not recorded here; the Sync History section covers them.
+
+**Sections of a connection's page:** **Overview** (its settings, with secrets masked), then what its connector adds — **Organization Configuration** and **People** for Azure DevOps — then **Sync History** for a connector that syncs, and **Activity**.
+
+- **Sync History** — Past runs with their status, duration and per-run details (workspaces, work items and work item revisions for work sync; employees fetched, upserted and excluded, and any per-record errors, for people sync), over the last 24 hours, 7 days or 30 days. Its **Diff Sync** and **Full Sync** buttons run a sync of this connection alone; they are disabled while the connection is inactive.
+- **Activity** — Records the connection created, its name or description edited, its settings changed (each entry lists the settings before and after), its credentials replaced, activated, deactivated or deleted, and by whom. A credential change records *which* credential was replaced — the personal access token, API key, client secret or password — and never its value, not even hashed. Syncing workspaces, processes and teams from Azure DevOps and probing a Workday configuration are not recorded here; the Sync History section covers them.
+
+**Only one people connection may be active at a time.** Several Entra or Workday connections can exist — stage one, configure it, and activate it at cutover — but activating one while another is active is refused, and a people sync fails while two are active.
+
+**Nothing syncs on a schedule until you create one.** Create a recurring **Work** or **People** sync job under [Background Jobs](#background-jobs).
+
+Viewing connections needs `Permissions.Connections.View`; creating, changing and deleting them need `Permissions.Connections.Create`, `.Update` and `.Delete`.
+
+The [integrations reference](../../reference/integrations/index.mdx) covers each connector in depth.
 
 ### Azure DevOps Boards
 
-The Azure DevOps Boards connector enables one-way synchronization of work data from Azure DevOps into Wayd. **Category:** Work Sync.
+The Azure DevOps Boards connector enables one-way synchronization of work data from Azure DevOps into Wayd. **Capability:** Work Items. See [Azure DevOps](../../reference/integrations/azure-devops.mdx).
 
 **Data mapping:**
 
@@ -383,23 +436,25 @@ The Azure DevOps Boards connector enables one-way synchronization of work data f
 
 **Configuration requirements:**
 - **Organization** — The Azure DevOps organization name
-- **Personal Access Token** — A PAT with Work Items Read scope
+- **Personal Access Token** — A PAT with **Work Items (Read)** and **Project and Team (Read)** scopes
+
+**Setting it up:** after creating the connection, **Sync Organization Configuration** reads the organization's processes, projects and teams into the **Organization Configuration** section. Initialize a work process first, then set up each workspace's integration, then map its teams. Every sync also refreshes the organization configuration before it runs.
 
 **Business rules:**
 - Each Azure DevOps organization can only be linked by one connection
 - Synchronized items have **Managed** ownership and are read-only in Wayd
 - Sync is controlled by workspace-level integration state (active/inactive)
-- Background jobs (Hangfire) perform synchronization on a recurring schedule
+- The **People** section matches Azure DevOps identities to Wayd employees
 
 ### Entra (Microsoft Entra ID)
 
-The Entra connector synchronizes people (employees and contingent workers) from Microsoft Entra ID into Wayd's `Employee` records via Microsoft Graph. **Category:** People Sync.
+The Entra connector synchronizes people from Microsoft Entra ID into Wayd's `Employee` records via Microsoft Graph. **Capability:** People. See [Entra](../../reference/integrations/entra.mdx).
 
 **Capabilities:**
-- Pull users from a single Entra tenant
+- Pull member users from a single Entra tenant; guest accounts are not synced
 - Optionally scope to a single Entra group (transitive members)
 - Optionally include disabled accounts
-- Upsert into Wayd `Employee` records, preserving the manager hierarchy
+- Upsert into Wayd `Employee` records, with each user's manager
 - Deactivate Wayd employees no longer present in the latest payload
 
 **Configuration requirements:**
@@ -407,32 +462,51 @@ The Entra connector synchronizes people (employees and contingent workers) from 
 - **Client ID** — Application (client) ID of the Entra app registration used to authenticate
 - **Client Secret** — Application client secret (encrypted at rest, masked on display)
 - **All Users Group Object ID** — *optional.* When set, only users transitively in this group are synced. Leave blank to sync all member users in the tenant.
+- **Match Employees By** — **Email** (default) or **Employee Number**: the employee field a synced user is matched on.
 - **Include Disabled Users** — *optional, default off.* When on, disabled accounts are included.
+- **Normalize Name Casing** — *default on.* Names that arrive in all capitals are title-cased; mixed-case names are kept as they are.
 
-The Entra app registration needs the `User.Read.All` Microsoft Graph application permission (plus `GroupMember.Read.All` if you scope to a group). Both require admin consent.
+The Entra app registration needs the `User.Read.All` Microsoft Graph application permission (plus `GroupMember.Read.All` if you scope to a group). Both require admin consent. The credentials are not tested when the connection is saved; the first sync is what shows they work.
 
 **Business rules:**
-- Multiple Entra connections are allowed — useful when integrating from more than one Entra tenant (for example, after an acquisition before tenant consolidation).
-- People sync is always full — every run fetches the complete user set and reconciles against `Employee`.
+- Entra cannot fetch only what changed, so every run — differential or full — fetches the complete user set and reconciles against `Employee`.
 - Employees not in the latest payload are automatically deactivated.
 - Manager hierarchy is built from each user's Entra `manager` reference.
 
+### Workday
+
+The Workday connector synchronizes workers (employees and contingent workers) from a Workday tenant into Wayd's `Employee` records through Workday's Staffing web service. **Capability:** People. See [Workday](../../reference/integrations/workday.mdx).
+
+**Configuration:**
+- **WSDL URL** — The tenant's Staffing web service address
+- **ISU Username** and **ISU Password** — The integration system user Wayd signs in as (the password is encrypted at rest)
+- **Worker Key** — Which Workday identifier becomes the employee number (default Employee ID)
+- **Match Employees By** — **Email** (default) or **Employee Number**
+- **Include Inactive Workers** — *default off*
+- **Use User_ID as Email Fallback** — *default off.* Uses the worker's Workday user id as their email when they have no work email
+- **Use Preferred Name** — *default off.* Uses the worker's preferred name instead of their legal name
+- **Normalize Name Casing** — *default on*
+- **Department Source** — The Workday organization type an employee's department is read from (default supervisory organization)
+- **Worker exclusions** — Set when editing the connection: workers in the chosen organizations are left out of the sync
+
+Saving or editing the connection, and **Test Connection** on its page, probe the tenant with the given credentials and report what they can read. Workday supports differential sync, which fetches only workers changed since the last run.
+
 ### AI Providers
 
-AI provider connectors (Azure OpenAI, OpenAI) are outbound LLM clients. They don't sync data into Wayd — features that need AI access pick up the active connection at request time. **Category:** AI Provider.
+The **Azure OpenAI** connector stores the details of an Azure OpenAI deployment. It doesn't sync data into Wayd, and no Wayd feature uses it yet. **Capability:** AI Provider. See [Azure OpenAI](../../reference/integrations/azure-openai.mdx).
 
 ## Background Jobs
 
-Wayd runs recurring and on-demand work — syncs, replication, maintenance — as background jobs. **Settings → Background Jobs** is where you watch and control them.
+Wayd runs recurring and on-demand work — syncs, replication, maintenance — as background jobs. **Settings → System → Background Jobs** is where you watch and control them.
 
 ### What the page shows
 
 Counts are split into two rows, because they answer different questions:
 
-- **Current** — jobs that exist right now. Each tile agrees with the matching tab: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers.
+- **Current** — jobs that exist right now. Each tile agrees with the matching tab: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers. **Retries** (jobs waiting out a retry delay, also counted under Scheduled) and **Awaiting** (continuations held until the job they depend on finishes) appear when the scheduler reports them.
 - **All time** — running totals of everything that has ever succeeded or been deleted. These keep climbing after the job records themselves are purged, so they are normally far higher than the Current figures.
 
-:::note Succeeded appears in both rows, with different meanings
+:::note[Succeeded appears in both rows, with different meanings]
 Succeeded jobs are retained only briefly before being purged. **Current → Succeeded** counts the ones still on record — often a handful, or none. **All time → Succeeded** counts every job that has ever completed. A large gap between them is expected, not a fault.
 :::
 
@@ -452,16 +526,18 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 
 ### Running and scheduling jobs
 
-**Actions** offers every job type for an immediate run. The job types are:
+**Actions** offers every job type for an immediate run, grouped as Integration Jobs, Data Replication Jobs and Maintenance Jobs. The job types are:
 
-- **Work Sync** — Synchronizes work data from all active Work Sync connectors (Azure DevOps today). Differential and Full variants are available.
-- **People Sync** — Synchronizes people data from all active People Sync connectors (Entra today).
-- **Projects, Teams, Iterations, and Strategic Themes Sync** — Replicate their respective records across domains.
+- **Work Full Sync** and **Work Differential Sync** — Synchronize work data from every active work-management connection (Azure DevOps). Differential fetches only items changed since the last sync. A failed run is retried up to three times.
+- **People Full Sync** and **People Differential Sync** — Synchronize people from the active people connection (Entra or Workday). A connector that cannot fetch only changes, such as Entra, runs a differential sync as a full one. A failed run is not retried: fix the cause and run it again. The run fails when more than one people connection is active.
+- **Projects Sync, Teams Sync, Iterations Sync, and Strategic Themes Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
 - **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).
 - **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window. Scheduled nightly by default as `import-retention-sweep`; like the stall sweep, the schedule can be changed and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#limits-and-rules).
 
-**Create Recurring Job** schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule.
+**Create Recurring Job** schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule. No sync is scheduled out of the box: to sync connections on a timetable, create a recurring **Work** or **People** sync job here.
+
+With `Permissions.Hangfire.View`, **Actions** also links to the **Hangfire Dashboard**, the scheduler's own console.
 
 ### Permissions
 
@@ -470,6 +546,36 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 | Open the page and browse jobs | `Permissions.BackgroundJobs.View` |
 | Run a job, create a schedule, requeue a job | `Permissions.BackgroundJobs.Run` |
 | Delete a job or remove a recurring schedule | `Permissions.BackgroundJobs.Delete` |
+| Open the Hangfire Dashboard | `Permissions.Hangfire.View` |
+
+## Messaging
+
+Wayd hands much of its internal work — keeping one area's records in step with another's, applying imports — to messages that are delivered and processed in the background. **Settings → System → Messaging** shows the state of that delivery and holds the messages that could not be processed.
+
+### What the page shows
+
+| Tile | What it counts |
+|---|---|
+| **Incoming** | Messages saved and waiting to be processed. It rises only when delivery backs up — a burst of messages, database latency, or messages recovered after an unclean shutdown. Zero is the healthy state. |
+| **Scheduled** | Messages due at a later time — mostly failed messages waiting out a retry delay (1, 5 and 15 seconds between attempts) before they either succeed or become dead letters. |
+| **Outbox** | Outgoing messages saved with a change but not yet sent. Zero is the healthy state. |
+| **Dead Letters** | Messages that failed every retry. These stay until you replay or discard them — this is the tile to watch. |
+| **Handled** | Processed messages kept for five minutes to detect duplicates, then removed. Usually zero; it is not a history of past work. |
+
+Below the tiles, the dead letter grid lists each failed message with its **Message Type**, **Exception Type**, **Exception Message**, **Sent At**, **Attempts**, whether it is **Queued for Replay**, and its **Queue**. Select a message type to open its details, including where it came from, its correlation id and the message body. The grid shows up to 500 messages and says how many more there are.
+
+### Replaying and discarding
+
+From a message's row menu:
+
+- **Replay** queues the message to be processed again. It returns to the incoming queue on the next pass, so it can take a moment to leave the list. Replay once the cause of the failure is fixed.
+- **Discard** permanently deletes the message, after confirmation. Whatever it would have done is never done.
+
+| To do this | You need |
+|---|---|
+| Open the page | `Permissions.Messaging.View` |
+| Replay a dead letter | `Permissions.Messaging.Run` |
+| Discard a dead letter | `Permissions.Messaging.Delete` |
 
 ## Estimation Scales
 

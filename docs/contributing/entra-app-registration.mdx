@@ -39,7 +39,7 @@ This is the backend. It defines what "being authenticated to Wayd's API" means.
 4. **Redirect URI**: leave blank. The API never receives redirects.
 5. Click **Register**.
 
-:::note Why both Entra-side and Wayd-side tenant restriction?
+:::note[Why both Entra-side and Wayd-side tenant restriction?]
 When you pick **Multiple Entra ID tenants**, Entra offers an **Allow only certain tenants (Preview)** sub-option that restricts which tenants it will even issue tokens for. Use it, and *also* keep Wayd's `AllowedTenantIds` allowlist populated — defense in depth.
 
 **Why restrict at Entra.** With *Allow all tenants*, a user in any Entra tenant can successfully acquire a valid, signed Entra access token with `aud` = Wayd's API client ID. Wayd rejects it at `/api/auth/exchange` (401, `tid` not in allowlist), so they can't use it — but they *got issued a real signed credential naming your resource*. Narrow exposure, but non-zero, and easy to close: set Entra to refuse the token in the first place.
@@ -48,7 +48,7 @@ When you pick **Multiple Entra ID tenants**, Entra offers an **Allow only certai
 
 **Trade-offs to accept.**
 
-- **Two places to update.** Onboarding a new tenant means an Azure portal trip *and* editing the provider's `AllowedTenantIds` in **Settings → Identity Providers**. Put both in your onboarding runbook so they can't drift.
+- **Two places to update.** Onboarding a new tenant means an Azure portal trip *and* editing the provider's `AllowedTenantIds` in **Settings → Access → Identity Providers**. Put both in your onboarding runbook so they can't drift.
 - **Preview dependency.** *Allow only certain tenants* is still marked Preview. If Microsoft changes or removes it, you fall back to `AllowedTenantIds` as the sole gate — recoverable, not catastrophic.
 :::
 
@@ -79,7 +79,7 @@ By default, new app registrations issue **v1** access tokens. Wayd expects **v2*
    ```
 4. **Save**.
 
-:::warning Field name
+:::warning[Field name]
 The field is `api.requestedAccessTokenVersion` in the current Microsoft manifest schema. Older tutorials and blog posts reference `accessTokenAcceptedVersion` at the root of the manifest — that name belongs to a deprecated schema and will not take effect on current app registrations. See the [Microsoft app manifest reference](https://learn.microsoft.com/en-us/entra/identity-platform/reference-app-manifest).
 :::
 
@@ -99,13 +99,13 @@ The client app needs a named scope to request access to. Create one:
    - **State**: *Enabled*
    - **Add scope**
 
-The full scope string is `api://{api-client-id}/access_as_user`. Copy it — you'll need it as the `Scopes` value when you create the identity provider in **Settings → Identity Providers** (see [Step 3](#step-3--create-the-provider-in-wayd)).
+The full scope string is `api://{api-client-id}/access_as_user`. Copy it — you'll need it as the `Scopes` value when you create the identity provider in **Settings → Access → Identity Providers** (see [Step 3](#step-3--create-the-provider-in-wayd)).
 
 ### Create a client secret (only if you want the Entra people-sync connector)
 
 Wayd's **token-exchange auth flow does not need a client secret** — it validates incoming user tokens against Entra's public JWKS, which is public-key-only. Sign-in works without a secret.
 
-A secret is only needed for the **Microsoft Graph people-sync connector** (Wayd calling Graph via the client-credentials flow). The secret lives on the Entra connection row in the database — an admin enters it when creating the connection in **Settings → Connections**. It is never read from configuration or environment variables.
+A secret is only needed for the **Microsoft Graph people-sync connector** (Wayd calling Graph via the client-credentials flow). The secret lives on the Entra connection row in the database — an admin enters it when creating the connection in **Settings → System → Connections**. It is never read from configuration or environment variables.
 
 To create the secret:
 
@@ -115,7 +115,7 @@ To create the secret:
 4. **Add**.
 5. **Copy the secret `Value` immediately** — the portal shows it once and never again. If you lose it you'll have to delete this credential and create a new one.
 
-Then create the Entra connection in **Settings → Connections**, pasting the secret into the connection's credentials (it's encrypted at rest). To rotate later, edit the connection row and re-enter the new secret.
+Then create the Entra connection in **Settings → System → Connections**, pasting the secret into the connection's credentials (it's encrypted at rest). To rotate later, edit the connection row and re-enter the new secret.
 
 ### Grant Microsoft Graph permissions (only if you want the Entra people-sync connector)
 
@@ -167,7 +167,7 @@ Skip this if everything stays in one Entra tenant; it's only relevant if clients
 
 ## Step 3 — Create the provider in Wayd
 
-You now have two GUIDs. Identity providers are managed entirely in the database — there is no config-file or environment-variable setup. As an admin, go to **Settings → Identity Providers**, choose **Add provider → Microsoft Entra ID**, and enter the values below.
+You now have two GUIDs. Identity providers are managed entirely in the database — there is no config-file or environment-variable setup. As an admin, go to **Settings → Access → Identity Providers**, choose **Create Identity Provider**, pick **Microsoft Entra ID** as the provider type, and enter the values below.
 
 | UI field | Value | Purpose |
 |---|---|---|
@@ -185,7 +185,7 @@ Five things to note:
 - **`Authority`**: use the tenant-specific URL (`https://login.microsoftonline.com/{your-tenant-id}/v2.0`) for single-tenant deployments. Use `/common/v2.0` only for true multi-tenant deployments; the `AllowedTenantIds` allowlist still controls which tenants are accepted at runtime.
 - **`AllowedTenantIds`**: must be non-empty. The provider can't be saved with an empty list — that's a deliberate fail-safe default.
 
-Use the **Test connection** button to verify the `Authority` resolves a valid `.well-known/openid-configuration` document before saving. The database is the source of truth from creation onward; to onboard additional tenants or change scopes later, edit the row in the same UI.
+Once saved, use **Test** in the provider list (or **Test discovery** on the provider's page) to verify the `Authority` resolves a valid `.well-known/openid-configuration` document before anyone signs in. The database is the source of truth from creation onward; to onboard additional tenants or change scopes later, edit the row in the same UI.
 
 ## Step 4 — Verify
 
@@ -197,7 +197,7 @@ Sign in to the frontend. Then:
    - `iss` = `https://login.microsoftonline.com/{your tenant ID}/v2.0`
    - `ver` = `"2.0"`
    - `tid` = `{your tenant ID}`
-3. The exchange should return a Wayd JWT; the app should load without a "Loading Permissions" screen.
+3. The exchange should return a Wayd JWT, and the app should load.
 
 ## Troubleshooting
 
@@ -217,7 +217,7 @@ If `aud` has `api://` in it but the provider's `Audience` is a bare GUID, the AP
 
 **Microsoft Entra ID row missing `AllowedTenantIds`.** The `OidcProvider.Create` entity invariant requires at least one tenant ID for `MicrosoftEntraId` rows; the validator and admin form both enforce it, so the provider can't be saved without a tenant list.
 
-**User signs in, immediately redirects back to `/login`.** Usually means the exchange succeeded but the login page's storage write raced a redirect. Check browser console for the precise error; most commonly it's a CORS failure or a mismatched `API_BASE_URL`.
+**User signs in, immediately redirects back to `/login`.** Usually means the exchange succeeded but the login page's storage write raced a redirect. Check browser console for the precise error; most commonly it's a CORS failure (see [Configuration → CORS](./configuration.mdx#cors)) or a mismatched `NEXT_PUBLIC_API_BASE_URL`.
 
 **User from a new Entra tenant gets rejected.** Add their tenant ID to `AllowedTenantIds`. The tenant's admin also needs to admin-consent the `access_as_user` permission (see Step 2) — otherwise users see Microsoft's consent prompt on first sign-in, and individual users may not be allowed to consent depending on the tenant's policies.
 
@@ -225,7 +225,7 @@ If `aud` has `api://` in it but the provider's `Audience` is a bare GUID, the AP
 
 **`403 Registration is restricted to users with an employee record`.** Auto-registration is on, but the provider's `RequireEmployeeRecord` is on and no `Employee` matches the user's email. Add a matching employee (e.g. via People Sync), turn off the employee-record requirement on the provider, or pre-create the user.
 
-**People sync / Graph calls fail with 401.** The Entra connection's client secret has expired, was never set, or is wrong. Edit the connection in **Settings → Connections** and re-enter the secret. This is independent of the token-exchange flow — login still works, only Graph-backed people sync breaks. See [Create a client secret](#create-a-client-secret-only-if-you-want-the-entra-people-sync-connector).
+**People sync / Graph calls fail with 401.** The Entra connection's client secret has expired, was never set, or is wrong. Edit the connection in **Settings → System → Connections** and re-enter the secret. This is independent of the token-exchange flow — login still works, only Graph-backed people sync breaks. See [Create a client secret](#create-a-client-secret-only-if-you-want-the-entra-people-sync-connector).
 
 ## References
 

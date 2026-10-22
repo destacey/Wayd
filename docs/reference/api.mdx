@@ -47,21 +47,23 @@ Include the Wayd JWT in subsequent requests:
 Authorization: Bearer {token}
 ```
 
-### Microsoft Entra ID (token exchange)
+### OIDC providers (token exchange)
 
-For users authenticating via Microsoft Entra ID, the frontend obtains an access token from the OIDC provider (via `oidc-client-ts`) for the API scope and exchanges it for a Wayd JWT:
+For users who sign in through an OIDC identity provider (Microsoft Entra ID or another OIDC provider registered under **Settings → Access → Identity Providers**), the frontend obtains an access token from the provider (via `oidc-client-ts`) for the API scope and exchanges it for a Wayd JWT:
 
 ```
 POST /api/auth/exchange
 {
-  "provider": "MicrosoftEntraId",
-  "subjectToken": "<entra-access-token-from-oidc-client>"
+  "provider": "<provider-name>",
+  "subjectToken": "<access-token-from-the-provider>"
 }
 ```
 
-The response shape is identical to `/login`. The provider token is only used during the exchange — all subsequent API calls use the Wayd JWT.
+`provider` is the provider's `name` as `GET /api/auth/providers` lists it. The response shape is identical to `/login`. The provider token is only used during the exchange — all subsequent API calls use the Wayd JWT.
 
-Deployments can disable Entra exchange (e.g., local-only customers); the endpoint returns HTTP 503 when disabled. Use `GET /api/auth/providers` (anonymous) to discover which providers are enabled.
+An unknown or disabled provider, or a token that fails validation, returns HTTP 401. A Microsoft Entra ID sign-in creates the Wayd account on first use; any other provider signs in only a user who already has an account linked to it, and returns 401 otherwise.
+
+`GET /api/auth/providers` (anonymous) lists what a client can sign in with: `local` (always `true`) and, under `oidc`, each enabled provider's `name`, `displayName`, `providerType`, `authority`, `clientId` and `scopes`.
 
 ### Refreshing tokens
 
@@ -75,7 +77,7 @@ POST /api/auth/refresh-token
 }
 ```
 
-Same response shape. Refresh works uniformly for both login providers — the refresh flow doesn't need to know how the user originally authenticated.
+Same response shape. Refresh works the same way for every login provider — the refresh flow doesn't need to know how the user originally authenticated.
 
 Refresh tokens **rotate**: each refresh returns a new one and invalidates the one you presented. Store the new value and discard the old.
 
@@ -140,8 +142,8 @@ x-api-key: your-personal-access-token
 
 **Managing PATs:**
 - Navigate to your [Profile](../getting-started/your-profile.mdx#personal-access-tokens) page
-- Click **Personal Access Tokens**
-- **Create** a new token with a name and optional expiration date
+- Open the **PATs** tab
+- **Create** a new token with a name and an expiration date (at most two years away); each user can hold up to 10 active tokens
 - Copy the token immediately — it cannot be retrieved after creation
 - **Revoke** tokens that are no longer needed
 
@@ -151,14 +153,22 @@ PATs inherit the permissions of the user who created them. See [Your Profile](..
 
 | Area | Base Route | Description |
 |------|-----------|-------------|
-| Work Management | `/api/work-management/` | Work items, workspaces, work processes |
-| Organization | `/api/organization/` | Teams, employees |
-| Planning | `/api/planning/` | Planning intervals, iterations |
-| Project Portfolio Management | `/api/ppm/` | Portfolios, programs, projects, ranking, strategic initiatives |
-| Settings | `/api/settings/` | Configuration, feature flags |
-| Auth | `/api/auth/` | Login, refresh, exchange, providers |
-| User Management | `/api/user-management/` | Profile, roles, permissions, PATs |
-| Admin | `/api/admin/` | Background jobs, messaging, feature flags, scoring models |
+| Work Management | `/api/work/` | Workspaces and their work items, sprints, work processes, work types, statuses |
+| Organization | `/api/organization/` | Teams, teams of teams, employees, holiday calendars |
+| Planning | `/api/planning/` | Planning intervals, risks, roadmaps, story maps, poker sessions, estimation scales |
+| Project Portfolio Management | `/api/ppm/` | Portfolios, programs, projects, tasks, ranking, lifecycles, strategic initiatives |
+| Strategic Management | `/api/strategic-management/` | Strategic themes, visions, strategies |
+| Product Management | `/api/product-management/` | Products, product types, tag categories, versions, releases, release packages, deployments, environments, delivery metrics |
+| App Integrations | `/api/app-integrations/` | Connections (Azure DevOps, Azure OpenAI) |
+| Imports | `/api/imports/` | CSV import runs and their rows |
+| Scoring Models | `/api/scoring-models/` | Scoring models |
+| Status Workflows | `/api/status-workflows/`, `/api/workflow-assignments/` | Status workflows and where they apply |
+| Search | `/api/search/` | Global search |
+| Auth | `/api/auth/` | Login, refresh, exchange, providers, sessions, first-run setup |
+| User Management | `/api/user-management/` | Users, profiles, roles, permissions, PATs, identity providers |
+| Admin | `/api/admin/` | Background jobs, messaging, feature flags, system settings |
+
+`POST /api/auth/setup` creates the first administrator with the one-time bootstrap token, and answers 409 once any user exists; see [First-Run Setup](../contributing/first-run-setup.mdx).
 
 ## OpenAPI Specification
 
@@ -179,7 +189,7 @@ GET {record route}/{idOrKey}/activities?page=1&pageSize=50
 
 `page` is 1-based and `pageSize` is clamped to 1–100. The response is a `PagedResponse<ActivityLogDto>`, newest first. Reading a record's activity requires the same **View** permission as reading the record itself, and the handler resolves the record before reading its history — an unknown id or key returns 404 rather than an empty page.
 
-It is available on `teams`, `teams-of-teams`, `planning-intervals`, `sprints`, `risks`, `portfolios`, `programs`, `projects`, `strategic-initiatives`, `strategic-themes`, `products`, `versions`, `releases`, `release-packages`, `deployments`, `scoring-models`, `status-workflows` and `work-processes`. See [Activity Log](../user-guide/activity-log.mdx) for what the corresponding UI does.
+It is available on `teams`, `teams-of-teams`, `holiday-calendars`, `planning-intervals`, `sprints`, `risks`, `portfolios`, `programs`, `projects`, `strategic-initiatives`, `strategic-themes`, `products`, `versions`, `releases`, `release-packages`, `deployments`, `scoring-models`, `status-workflows` and `work-processes`. See [Activity Log](../user-guide/activity-log.mdx) for what the corresponding UI does.
 
 A planning interval objective is reached through the interval that holds it, so its history hangs off that route rather than a top-level one:
 
@@ -195,6 +205,13 @@ Three administration records take an id rather than an id or key, and live under
 GET user-management/users/{id}/activities?page=1&pageSize=50
 GET user-management/oidc-providers/{id}/activities?page=1&pageSize=50
 GET app-integrations/connections/{id}/activities?page=1&pageSize=50
+```
+
+Two system settings sections keep a history of their own, with the same paging:
+
+```
+GET admin/settings/scheduling/activities?page=1&pageSize=50
+GET admin/settings/sprint-metrics/activities?page=1&pageSize=50
 ```
 
 A user's history includes the history of the personal access tokens they own; those entries come back with `isRelated` set and `raisedOn` naming the token, or null once the token has been deleted.

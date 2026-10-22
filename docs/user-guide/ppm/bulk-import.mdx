@@ -11,8 +11,8 @@ Wayd can load PPM data in bulk from CSV files through a set of **import endpoint
 standing up an environment, migrating from another tool, or seeding realistic data. Each import is a single
 `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a permission.
 
-:::info Screen or API
-Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
+:::info[Screen or API]
+Every import described here can be run from [Settings → System → Imports](../settings/imports.mdx#importing-a-file),
 which lists each file's columns and hands over a template. Calls can also be made directly to the
 endpoints below (for example with `curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
 which generates these exact CSVs and posts them for you). Exact request/response shapes are also in the
@@ -32,9 +32,9 @@ A few rules apply to every import:
   background worker, and the post waits a few seconds for it: a small file comes back finished
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run, and its page under
-  [Settings → Imports](../settings/imports.mdx) shows what became of each row.
+  [Settings → System → Imports](../settings/imports.mdx) shows what became of each row.
 - **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
-  **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
+  **Check File** in [Settings → System → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
   through the import's own checks without anything being created: each comes back passed or rejected with
   its reason, and a row kept out only because another row in its group was rejected is reported the same way
   the real run would. It is advice, not a promise — the data can change before you import — and a
@@ -42,7 +42,7 @@ A few rules apply to every import:
 - **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
   query parameter — any GUID you choose — and records it on the run, so a set of files posted under one
   value (a whole portfolio's worth, say) shows as one batch in
-  [Settings → Imports](../settings/imports.mdx#what-you-see), with summed counts and each run's page
+  [Settings → System → Imports](../settings/imports.mdx#what-you-see), with summed counts and each run's page
   linking to the others. The group is a label, not a link: a program still names its portfolio by the id the portfolio
   run reported, so the files are posted in order and each run waited for exactly as before. Leave it out
   to submit a file on its own. An empty GUID is rejected rather than treated as a group.
@@ -51,9 +51,15 @@ A few rules apply to every import:
   case-insensitively. Row outcomes are reported against it, rows reference each other by it (a KPI names
   its initiative's `ImportId`, a task its parent's), and leaving it blank uses the row's position instead.
   It is never written onto the records the import creates.
-- **Group by group.** A rejected row — a reference that does not exist, a duplicate within the file, or a
+- **Group by group.** A rejected row — a reference that does not exist, a record that already exists, or a
   transition the domain refuses — keeps out its own group and nothing else, and the run names the row and
   the reason. What a group is differs by import; see [Limits](#limits).
+- **A malformed file is refused whole.** The checks in the column tables below — a required cell left
+  blank, a value too long, a status or type that is not one of those listed, a date a row's status does not
+  allow — and the checks across the file — a name or key repeated within the file, a parent cycle among
+  tasks, a KPI naming an initiative the file does not contain — are made before anything is queued. A file
+  failing any of them returns `422` naming the problem, and no run is created; a cell that cannot be read
+  at all (text in a date or id column) returns `400`. Fix the file and post it again.
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
   needs a value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
@@ -69,13 +75,14 @@ A few rules apply to every import:
   which of the other two a row may carry depends on its status, and **a date for a status the record never
   reached is rejected** rather than ignored. They must also run forwards:
   `CreatedOn` ≤ `ActivatedOn` ≤ `ClosedOn`.
-- **Status columns are case-insensitive** and use the same status names shown in the app (for example
-  `Active`, `Completed`).
+- **Status columns are case-insensitive** and use the status names without spaces (for example
+  `Active`, `OnHold`, `NotStarted`). Status, state, type, priority and direction cells are required: a
+  blank one fails the file, so write the value out even where it is the usual one.
 - **A missing file returns 422**, not 400 — the file is a validation failure like any other.
 
 Imports create records **through the normal domain rules**, exactly as if you had used the app — so the same
-constraints apply (a program can only be created inside an active portfolio, a project needs a lifecycle
-before approval, and so on).
+constraints apply (a program can only be created inside an active or on-hold portfolio, a project needs a
+lifecycle before approval, and so on).
 
 ## Import order
 
@@ -148,7 +155,7 @@ never inside a project. Post the parts one at a time, waiting for each run; one 
 them keeps the runs findable as one import.
 
 The rules every file shares — request size, `ImportId` length, how long the post waits, retries, stalls
-and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
+and retention — are in [Settings → System → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
 
 ---
 
@@ -163,7 +170,7 @@ Only **active** themes can be attached to programs and projects.
 |---|---|---|
 | `Name` | Yes | Unique within the file and against existing themes. Max 64 chars. |
 | `Description` | Yes | Max 1024 chars. |
-| `State` | No | `Proposed`, `Active`, or `Archived`. Defaults to `Active`. |
+| `State` | Yes | `Proposed`, `Active`, or `Archived`. Set directly on the new theme. |
 
 ## Portfolios import
 
@@ -178,14 +185,14 @@ in the note below.
 |---|---|---|
 | `Name` | Yes | Unique within the file and against existing portfolios. Max 128 chars. |
 | `Description` | Yes | Max 1024 chars. |
-| `Status` | No | `Proposed`, `Active`, `OnHold`, `Closed`, or `Archived`. Defaults to `Active`. A row naming `Closed` or `Archived` is imported **active** — see below. |
+| `Status` | Yes | `Proposed`, `Active`, `OnHold`, `Closed`, or `Archived`. A row naming `Closed` or `Archived` is imported **active** — see below. |
 | `CreatedOn` | Yes | The date the portfolio was proposed. |
 | `ActivatedOn` | Conditional | Required unless `Proposed`; not allowed on a `Proposed` row. The date the portfolio was activated, which becomes the start of its date range. |
 | `Sponsors` | No | Semicolon-separated employee numbers. |
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
 
-:::note Closed and archived portfolios
+:::note[Closed and archived portfolios]
 A portfolio destined to be `Closed` or `Archived` is imported **active** here (with its start date) and
 closed by the [finalize import](#finalize-import) after its programs and projects have been loaded — because
 a portfolio cannot close until its contents are closed.
@@ -204,7 +211,7 @@ reason in the note below.
 | `Name` | Yes | Unique within the file and against existing programs. Max 128 chars. |
 | `Description` | Yes | Max 2048 chars. |
 | `PortfolioId` | Yes | The owning portfolio, by id. |
-| `Status` | No | `Proposed`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. A row naming `Completed` or `Canceled` is imported **active** — see below. |
+| `Status` | Yes | `Proposed`, `Active`, `Completed`, or `Canceled`. A row naming `Completed` or `Canceled` is imported **active** — see below. |
 | `Start` | Conditional | The planned timeline. Start and End must both be empty or both set. Required for any program that was activated. |
 | `End` | Conditional | Must be on or after `Start`. |
 | `CreatedOn` | Yes | The date the program was proposed. |
@@ -214,7 +221,7 @@ reason in the note below.
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
 
-:::note Completed and canceled programs
+:::note[Completed and canceled programs]
 Like portfolios, a program that should end up `Completed` or `Canceled` is imported **active** and closed by
 the [finalize import](#finalize-import), since a program can only be closed once all its projects are closed.
 :::
@@ -234,7 +241,7 @@ referenced by id.
 | `Key` | Yes | 2–20 uppercase letters/numbers. Unique across all projects. |
 | `PortfolioId` | Yes | The owning portfolio, by id. |
 | `ExpenditureCategoryId` | Yes | An [expenditure category](../settings/index.mdx#expenditure-categories), by id. Create in Settings first. |
-| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. |
+| `Status` | Yes | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. |
 | `ProgramId` | No | A program **in the same portfolio**, by id. Empty means portfolio-direct. |
 | `ProjectLifecycleId` | Conditional | A [lifecycle](./projects.mdx#project-lifecycles), by id. Required for `Approved` projects and for any project that will have tasks. |
 | `BusinessCase` | No | Max 4096 chars. |
@@ -263,17 +270,17 @@ parent cycle is rejected.
 | Column | Required | Notes |
 |---|---|---|
 | `ProjectKey` | Yes | The project this task belongs to, by key. |
-| `Name` | Yes | Unique within the project. Max 128 chars. |
+| `Name` | Yes | Unique among the file's rows for the same project. Max 128 chars. |
 | `Description` | No | Max 2048 chars. |
 | `StageName` | Yes | A project stage, by name — created from a stage of the project's assigned lifecycle, so the name is unique within the project. |
 | `ParentImportId` | No | The `ImportId` of the row this task nests under. Empty makes this a root task of its stage. |
 | `ParentTaskId` | No | An **existing** task to nest under, by id. Cannot be combined with `ParentImportId`. |
-| `Type` | No | `Task` or `Milestone`. Defaults to `Task`. |
-| `Status` | No | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. Defaults to `NotStarted`. |
-| `Priority` | No | `Low`, `Medium`, `High`, or `Critical`. Defaults to `Medium`. |
+| `Type` | Yes | `Task` or `Milestone`. |
+| `Status` | Yes | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. A milestone cannot be `InProgress`. |
+| `Priority` | Yes | `Low`, `Medium`, `High`, or `Critical`. |
 | `Progress` | Conditional | Percent complete (0–100). Required for **tasks**; not allowed for **milestones**. |
-| `PlannedStart` · `PlannedEnd` | Conditional | For **tasks**: both empty or both set; `PlannedEnd` on or after `PlannedStart`. Not used for milestones. |
-| `PlannedDate` | Conditional | For **milestones** only: the milestone's date. |
+| `PlannedStart` · `PlannedEnd` | Conditional | For **tasks**: both empty or both set; `PlannedEnd` on or after `PlannedStart`. Not allowed for milestones. |
+| `PlannedDate` | Conditional | Required for **milestones**: the milestone's date. Not allowed for tasks. |
 | `EstimatedEffortHours` | No | Greater than 0 when present. |
 | `Assignees` | No | Semicolon-separated employee numbers. |
 
@@ -290,7 +297,7 @@ project's assigned lifecycle and start as *Not Started*; this import sets each o
 | `StageName` | Yes | A project stage, by name — created from a stage of the project's lifecycle. |
 | `Status` | Yes | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. |
 
-:::note Applied exactly as given
+:::note[Applied exactly as given]
 This import sets stage status to **exactly** the value supplied — it does **not** derive a stage's status
 from its tasks. Whatever produces the file decides what each stage's status should be, so you keep full
 control. (The [data-generation tool](../../contributing/tools/data-generation.mdx) rolls each stage's status
@@ -313,7 +320,7 @@ accepts neither new projects nor new KPIs).
 | `Name` | Yes | Unique within the file and against existing initiatives. Max 128 chars. |
 | `Description` | Yes | Max 2048 chars. |
 | `PortfolioId` | Yes | The owning portfolio, by id. |
-| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. (`OnHold` is not supported by import.) |
+| `Status` | Yes | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. (`OnHold` is not supported by import: a row naming it is rejected.) |
 | `Start` | Yes | Initiative start date. |
 | `End` | Yes | On or after `Start`. |
 | `ProjectKeys` | No | Semicolon-separated project **keys** the initiative delivers through. |
@@ -324,13 +331,15 @@ accepts neither new projects nor new KPIs).
 | Column | Required | Notes |
 |---|---|---|
 | `StrategicInitiativeImportId` | Yes | The `ImportId` of the initiative row this KPI belongs to (must be in the same import). Where that row left the column blank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs should supply `ImportId`, since inserting a row silently re-parents every KPI below it. |
-| `Name` | Yes | Max 64 chars. |
+| `Name` | Yes | Unique within its initiative. Max 64 chars. |
 | `Description` | No | Max 512 chars. |
 | `TargetValue` | Yes | The target value that defines success. |
-| `StartingValue` | No | The baseline value. |
+| `StartingValue` | No | The baseline value. Below `TargetValue` for `Increase`, above it for `Decrease`. |
 | `Prefix` | No | Symbol shown before the value (e.g. `$`). Max 8 chars. |
 | `Suffix` | No | Symbol shown after the value (e.g. `%`). Max 8 chars. |
-| `TargetDirection` | No | `Increase` or `Decrease`. Defaults to `Increase`. |
+| `TargetDirection` | Yes | `Increase` or `Decrease`. |
+
+The KPIs file has no `ImportId` column of its own.
 
 ## Finalize import
 

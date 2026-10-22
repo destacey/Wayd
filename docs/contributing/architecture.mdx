@@ -40,34 +40,62 @@ graph TB
 ### Dependency Rules
 
 - **Domain** (innermost) - Zero external dependencies. Contains entities, value objects, domain events, and interfaces.
-- **Application** - Depends on Domain only. Contains commands, queries, handlers, DTOs, and validators.
+- **Application** - Depends on its own Domain and the Common projects only. Contains commands, queries, handlers, DTOs, and validators.
 - **Infrastructure** - Depends on Application and Domain. Contains EF Core, authentication, background jobs, and external integrations.
 - **Web API** - Depends on all layers. Thin controllers that delegate to handlers via `IDispatcher` (Wolverine).
 
-These rules are enforced by automated architecture tests in `Wayd.ArchitectureTests`.
+Services are isolated from each other as well: a service's Domain depends on no other service's Domain, and
+its Application depends on its own Domain and the `Wayd.Common*` projects, never on another service's Domain
+or Application. Application projects may reference `Wayd.Integrations.Abstractions` but no concrete
+integration, and the `Wayd.Integrations.*` projects depend only on the `Wayd.Common*` projects. A module
+that needs another module's data asks through a request in `Common.Application/Requests` (see
+[Reading another domain at query time](#reading-another-domain-at-query-time)).
+
+### Architecture tests
+
+`Wayd.ArchitectureTests` enforces these rules with NetArchTest and reflection, so breaking one fails the
+build's test run rather than a review. Run it after changing a project reference.
+
+| Test class | What it holds |
+|---|---|
+| `CrossProjectDependencyTests` | The layer and service-isolation rules above |
+| `DatabaseContextTests` | Domain projects never reference EF Core or a context; Application projects use the `IXxxDbContext` interfaces, never `WaydDbContext`; contexts and entity configurations live in Infrastructure |
+| `CqrsPatternTests` | Commands and queries are public sealed records named `*Command` / `*Query`; handlers are public and named `*Handler`; each command or query has exactly one handler (Wolverine silently combines duplicates); handlers never inject another handler; command handlers return `Result`; only the dispatch seams touch Wolverine's `IMessageBus`, and only the `SaveChanges` drain touches `IEventPublisher` |
+| `ServiceLayeringTests` | The service and saga tiers in [Services and sagas](#services-and-sagas) |
+| `TransactionScopeTests` | Only the context opens a transaction, and nothing turns on a retrying execution strategy — see [What a save commits](./domain-events.mdx#what-a-save-commits) |
+| `EventCoverageTests` | An evented aggregate changes only through events — see [Domain Events](./domain-events.mdx#an-evented-aggregate-changes-only-through-events) |
+| `FileStructureTests`, `TestProjectTests` | Projects sit in `src/` and `tests/` folders, test projects are named after the project they test, reference it, and use xUnit |
 
 ## Solution Structure
 
 ```
 Wayd/
   Wayd.Common/           # Shared libraries and base abstractions
-    Wayd.Common          # Utilities, extensions, helpers
-    Wayd.Common.Domain   # Base entities, value objects, interfaces
-    Wayd.Common.Application  # Base behaviors, validators, interfaces
-    Wayd.Tests.Shared    # Shared test utilities and fakers
+    src/
+      Wayd.Common              # Utilities, extensions, helpers
+      Wayd.Common.Domain       # Base entities, domain events, the shared Employee, interfaces
+      Wayd.Common.Application  # Dispatch interfaces, cross-module requests, persistence interfaces
+    tests/
+      Wayd.Tests.Shared        # Shared test utilities, traits and cross-cutting fakers
+      Wayd.TestData.Core       # PrivateConstructorFaker<T>
+      Wayd.Tests.Containers    # The shared SQL Server Testcontainers image
 
   Wayd.Services/         # Vertical slice domain services
     Wayd.Work/           # Work items, sprints and the work sync
     Wayd.Organization/   # Teams and employees
     Wayd.Planning/       # Planning intervals, PI iterations and sprint mappings
-    Wayd.AppIntegration/ # Integration configuration
+    Wayd.ProductManagement/  # Product catalog, versions, releases, deployments
+    Wayd.ProjectPortfolioManagement/  # Portfolios, programs, projects, tasks
+    Wayd.StrategicManagement/   # Visions, strategies, strategic themes
+    Wayd.AppIntegration/ # Integration configuration and the sync runners
     Wayd.Links/          # Cross-entity relationships
-    Wayd.StrategicManagement/   # Strategic planning
-    Wayd.ProjectPortfolioManagement/  # Project portfolios
 
-  Wayd.Infrastructure/   # Cross-cutting concerns
-  Wayd.Integrations/     # External system integrations
-  Wayd.Web/              # Presentation layer
+  Wayd.Infrastructure/   # EF Core, migrations, auth, messaging, jobs
+  Wayd.Integrations/     # External system clients (Azure DevOps, Microsoft Graph, Workday)
+  Wayd.Web/              # Presentation layer: Wayd.Web.Api, wayd.web.reactclient, Wayd.Mcp
+  Wayd.Tools/            # Developer tools (data generation)
+  Wayd.AppHost/          # .NET Aspire host for local development
+  Wayd.ArchitectureTests/  # Architecture rules, at the root with no src/ or tests/ folder
 ```
 
 ## Key Patterns
@@ -88,19 +116,45 @@ public sealed record GetWorkItemQuery(Guid Id) : IQuery<WorkItemDto>;
 
 ### Result Pattern
 
-Handlers return `Result&lt;T&gt;` from CSharpFunctionalExtensions instead of throwing exceptions:
+Command handlers return `Result` or `Result<T>` from CSharpFunctionalExtensions instead of throwing exceptions:
 
 ```csharp
 public async Task<Result<Guid>> Handle(CreateWorkItemCommand request, CancellationToken ct)
 {
-    var workspace = await _context.Workspaces.FindAsync(request.WorkspaceId);
+    var workspace = await _workDbContext.Workspaces.FindAsync([request.WorkspaceId], ct);
     if (workspace is null)
         return Result.Failure<Guid>("Workspace not found.");
 
     var workItem = workspace.CreateWorkItem(request.Title);
+    await _workDbContext.SaveChangesAsync(ct);
+
     return Result.Success(workItem.Id);
 }
 ```
+
+Every command handler's `Handle` returns `Task<Result>` or `Task<Result<T>>`: under Wolverine, a value a
+published handler returns is cascaded as a new message, and a `Result` never is. Query handlers return
+`Task<TResponse>`, because they are only ever invoked: usually a DTO that is `null` when nothing matched, and
+a `Result<TDto>` only when the query can fail for another reason.
+
+### Services and sagas
+
+Below and above the handlers sit two more tiers, and dependencies flow one way through them:
+
+```text
+saga  →  handlers  →  service  →  DbContext / domain
+```
+
+- A **service** (a class implementing `IScopedService` or `ITransientService`, which also registers it) does
+  one job against the database and the domain. It may take framework primitives — `IDateTimeProvider`,
+  `ICurrentUser`, `IUserService` — but never another service and never `IDispatcher`, so the graph below a
+  handler stays a tree.
+- A **saga** (`ISaga`) coordinates several handlers to complete one piece of work, so unlike a service it
+  may hold `IDispatcher`. The sync runners (`IWorkSyncRunner`, `IPeopleSyncRunner`) and
+  `IAzureDevOpsInitManager` are sagas.
+- A handler never injects another handler; it dispatches through `IDispatcher` instead.
+
+`ServiceLayeringTests` enforces the service rules, with an exact list of the violations that predate it.
 
 ### Identity vs Principal
 
@@ -123,7 +177,7 @@ Most of the application authorizes on the permission claim alone: a `[MustHavePe
 
 Every mutating method on those three aggregates takes a `PpmActor`; there is no ungated public overload, so the compiler will not let a new handler forget. Paths with no human actor (importers, creation) pass `PpmActor.System` — grep for it to audit every membership bypass in the codebase.
 
-:::warning Forgetting an `.Include` fails silently
+:::warning[Forgetting an `.Include` fails silently]
 `AncestryRoles()` reads `project.Portfolio?.Roles ?? []`. If the handler's query omits the ancestor includes, the navigation is null, ancestry comes back empty, and a legitimately authorized portfolio Owner is **denied** — with no error to trace. Unit tests using in-memory fakes cannot catch this, because `.Include` is a no-op there and the test populates the navigation directly.
 :::
 
@@ -131,7 +185,7 @@ The read side mirrors the same rule as `canManageProject` / `canManageProgram` /
 
 `ProjectDetailsDto.BackwardStatusTargets` follows the same principle for [reverting a project's status](../user-guide/ppm/projects.mdx#reverting-a-project-status): rather than the UI re-deriving which earlier statuses are reachable, the server answers from `ProjectStatusLifecycle` — the same table and entry requirements `Project.RevertStatus` enforces. Adding a status requirement in one place without the other is what makes the dropdown offer a transition that then fails.
 
-:::warning Not every derived field can be computed in the projection
+:::warning[Not every derived field can be computed in the projection]
 `GetProjectQuery` builds its DTO with `ProjectToType`, so every mapping clause must translate to SQL. `BackwardStatusTargets` cannot — building it calls a static factory inside a `Select` over a collection — so the mapping `.Ignore`s it and `ResolveBackwardStatusTargets()` fills it after materialisation. A clause that fails to translate throws only under a real provider; in-memory fakes run the projection as LINQ-to-Objects and evaluate anything, so changes to this mapping need a test in `Wayd.ProjectPortfolioManagement.IntegrationTests`.
 :::
 
@@ -155,7 +209,10 @@ Wayd.Services/Wayd.\{ServiceName\}/
   tests/
     Wayd.\{ServiceName\}.Domain.Tests/
     Wayd.\{ServiceName\}.Application.Tests/
+    Wayd.\{ServiceName\}.IntegrationTests/   # where the service has Testcontainers tests
 ```
+
+`Wayd.Links` is the one service without the split: it is a single `Wayd.Links` project.
 
 ### Feature Folders
 
@@ -181,7 +238,7 @@ another domain, kept aligned two ways:
 1. **Event replication (copy).** The owning domain raises a domain event; consuming domains have
    public handlers with a `Handle(TEvent, CancellationToken)` method that create a local projection carrying the **same Id**.
    For example, `Organization.Team` is the source of truth; `PpmTeam`, `PlanningTeam`, and `WorkTeam` are
-   read-model copies written by handlers for `TeamCreated`/`Updated`/`Activated`/`Deactivated`/`Deleted`.
+   read-model copies written by handlers for `TeamCreated`/`DetailsUpdated`/`Activated`/`Deactivated`.
    Delivery is durable, so events arrive late, twice and out of order: each copy keeps a watermark per group
    of fields and skips a change older than one it already holds, and a missing copy is built from the owner's
    current state. See [Consuming an event](./domain-events.mdx#consuming-an-event).
@@ -192,7 +249,7 @@ another domain, kept aligned two ways:
 
 | Source domain | Aggregate | Event(s) | Consumers (projection written) |
 |---|---|---|---|
-| Organization | `Team` / `TeamOfTeams` | `TeamCreated/DetailsUpdated/Activated/Deactivated/Deleted` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
+| Organization | `Team` / `TeamOfTeams` | `TeamCreated/DetailsUpdated/Activated/Deactivated` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
 | PPM | `Project` | `ProjectCreated/DetailsUpdated/KeyChangedV2/Deleted` | Work `WorkProject` |
 | StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/DetailsUpdated/Activated/Archived/Deleted` | PPM `PpmStrategicThemes` |
 | Work | `Iteration` (sprints) | `IterationCreatedV3/DetailsUpdated/DateRangeChangedV2/TeamChanged/Deleted` | Planning `PlanningSprint` |
@@ -263,7 +320,7 @@ conventions for naming, payloads, versioning and consumption in every module. Se
 
 ## Connector framework
 
-Customer-configured integrations (Azure DevOps, Entra, Azure OpenAI, future Jira / GitHub / Workday connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.
+Customer-configured integrations (Azure DevOps, Entra, Workday, Azure OpenAI, future Jira / GitHub connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.
 
 Every connector declares its `ConnectorCapability` values (`WorkItems`, `People`, `AiProvider`) — a multi-surface connector can support several through one connection. The capability — not the specific connector type — determines which background runner picks the connection up and which Sync History view the detail page shows. Each capability carries a display category via `Display(GroupName)` that groups the connector picker UI.
 
@@ -341,4 +398,4 @@ The generic edit / delete / list flows handle every connector automatically. Onl
 
 ### Why a registry instead of a plugin system
 
-There are few connectors (today 3, plausibly 10-20 long-term) and the team owns them all. A static registry catches misregistration at compile time, keeps the bundle predictable, and is trivial to refactor. If Wayd ever opens connectors to third-party authors, revisit then.
+There are few connectors (four today — Azure DevOps, Azure OpenAI, Entra and Workday — plausibly 10-20 long-term) and the team owns them all. A static registry catches misregistration at compile time, keeps the bundle predictable, and is trivial to refactor. If Wayd ever opens connectors to third-party authors, revisit then.

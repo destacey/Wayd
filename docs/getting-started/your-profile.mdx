@@ -1,6 +1,6 @@
 ---
 title: Your Profile
-description: Managing your Wayd user profile, password, and personal access tokens.
+description: Managing your Wayd account - profile, password, preferences, sessions, and personal access tokens.
 sidebar_position: 2
 audience: [user]
 ---
@@ -11,25 +11,32 @@ After logging in, you can manage your profile and account settings.
 
 ## Viewing Your Profile
 
-Navigate to your profile by clicking your avatar or name in the top-right corner of the application.
+Click your avatar in the top-right corner of the application and choose **Account**. The **Account** page has five tabs: **Profile**, **Preferences**, **Sessions**, **PATs**, and **Claims**.
 
-## Profile Settings
+## Profile
 
-- **Display Name** — Your name as shown throughout the application
-- **Email** — Your email address
-- **Login Provider** — How you authenticate (Microsoft Entra ID or Local). This is set when your account is created and cannot be changed.
+The **Profile** tab shows your **First Name**, **Last Name**, and **Email**. They are read-only here.
 
 ## Changing Your Password
 
-> Only available for users with the **Wayd (Local)** login provider. Microsoft Entra ID users manage their passwords through their organization's Azure AD.
+> Only available if you sign in with an email and password. If you sign in with an organizational account, such as Microsoft Entra ID, you manage your password through your organization's identity provider, and the button is not shown.
 
 1. Navigate to your profile
-2. Click **Change Password**
-3. Enter your current password
-4. Enter and confirm your new password
-5. Click **Save**
+2. Click **Change Password** at the top of the page
+3. Enter your **Current Password**
+4. Enter your **New Password** and repeat it in **Confirm New Password**. It must be at least 8 characters and contain an uppercase letter, a lowercase letter, and a digit.
+5. Click **Change Password**
 
-If this is your first login and you see a **Must Change Password** prompt, you'll need to set a new password before continuing.
+You are signed out afterwards; sign in again with your new password.
+
+If this is your first login and you are asked to change your password before continuing, the same form opens before anything else. Choose **Sign Out** to leave without changing it.
+
+## Preferences
+
+The **Preferences** tab holds settings that apply to this browser only:
+
+- **Remember column layouts** — saves each grid's column sizing, visibility, pinning, and order, and restores them on your next visit. Turning it off keeps the saved layouts; they apply again when you turn it back on.
+- **Reset all grid layouts** — **Reset All** deletes every saved column layout on this device, and grids return to their default columns.
 
 ## Sessions
 
@@ -64,12 +71,14 @@ Signing out revokes a device's ability to stay signed in. That device can keep w
 ### Creating a Token
 
 1. Navigate to your profile
-2. Click **Personal Access Tokens**
-3. Click **Create Token**
-4. Enter a **Name** for the token (to help you remember what it's used for)
-5. Optionally set an **Expiration Date**
+2. Open the **PATs** tab
+3. Click **Create New Token**
+4. Enter a **Token Name** (to help you remember what it's used for)
+5. Set an **Expiration Date** — required, one year from now by default, and at most two years from now
 6. Click **Create**
-7. **Copy the token immediately** — it will not be shown again
+7. **Copy the token immediately** with **Copy Token** — it will not be shown again
+
+You can have up to 10 active tokens at once.
 
 ### Using a Token
 
@@ -82,10 +91,15 @@ See the [API Reference](../reference/api.mdx#personal-access-tokens-pats) for fu
 
 ### Managing Tokens
 
-- View all your active tokens on the Personal Access Tokens page
+- The **PATs** tab lists your tokens with their **Status** (Active, Revoked, or Expired), when they expire, and when they were last used
+- **Edit** an active token to change its name or expiration date
 - **Revoke** a token when it's no longer needed — this immediately invalidates it
-- Expired tokens are automatically invalid and can be cleaned up
+- **Delete** a token to remove it from the list permanently; expired and revoked tokens can be deleted to clean up
 
 PATs inherit your permissions — they can do anything you can do in the API. Treat them like passwords and don't share them.
+
+## Claims
+
+The **Claims** tab lists the claims in your current sign-in, by **Type** and **Value** — among them the permissions your roles grant. It is mostly useful when working out with an administrator why you can or cannot do something.
 
 Creating, renaming, changing the expiration of, revoking and deleting a token are recorded in your account's activity, which administrators can see. The record names the token, never its value.

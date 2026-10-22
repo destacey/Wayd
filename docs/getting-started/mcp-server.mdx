@@ -13,34 +13,76 @@ Wayd provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io)
 
 ## What Can It Do?
 
-The MCP server exposes 150+ tools across Wayd's core modules:
+The MCP server exposes more than 250 tools across Wayd's core modules:
 
 | Module                                                                             | Capabilities                                                                                                                                                                                                                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[PPM](../user-guide/ppm/index.mdx)**                                             | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, status history, and activity history. Get critical path. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
+| **[PPM](../user-guide/ppm/index.mdx)**                                             | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, status history, and activity history. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
 | **[Strategic Initiatives](../user-guide/ppm/strategic-initiatives.mdx)**           | List/view initiatives, their statuses, activity history, and the projects delivering them. Review KPIs, checkpoints, and the checkpoint plan with health and trend. Record and remove KPI measurements. Change initiative status.                                                                                                                                                                         |
 | **[Planning](../user-guide/planning/index.mdx)**                                   | List/view planning intervals, iterations, objectives, risks, and the activity history of intervals and objectives. Get PI predictability and health reports. Review and log objective health checks. View calendars.                                                                                                                                                                                      |
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)**                                | List/view roadmaps and their items (activities, milestones, timeboxes).                                                                                                                                                                                                                                                                                                                                   |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)**                            | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links.                                                                                                                          |
-| **[Organizations](../user-guide/organizations/index.mdx)**                         | List/view teams and users. Review a team's activity history. Grade a team's backlog health.                                                                                                                                                                                                                                                                                                               |
+| **[Organizations](../user-guide/organizations/index.mdx)**                         | List/view teams, teams of teams, and users. Review a team's activity history. Grade a team's backlog health. Read team sprint metrics, cadence velocity, and work distribution reports. |
+| **[Product Catalog](../user-guide/product-management/products.mdx)**              | List/view products and their status and activity history. Create, retype, reparent, tag, and delete products. Record and end dependencies between products. Manage product types and tag categories. |
+| **[Product Delivery](../user-guide/product-management/delivery.mdx)**             | Plan, cut, release, and withdraw versions, releases, and release packages. Record deployments and how they ended. Manage deployment environments. Read the rollout, delivery metrics, and delivery overview. |
 | **[Delivery Forecasting](../user-guide/work-management/delivery-forecasting.mdx)** | Forecast when a work item, PI objective, or project will be done, and how many backlog work items a team finishes by a date.                                                                                                                                                                                                                                                                              |
 | **[Imports](../user-guide/settings/imports.mdx)**                                  | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run.                                                                                                                                                                                                                                                       |
 
 ## Prerequisites
 
-1. A running Wayd instance with API access
-2. A **[Personal Access Token (PAT)](./your-profile.mdx#personal-access-tokens)** — create one from your profile page
-3. **Node.js 22+** installed on your machine
+There are two ways to connect: the [hosted endpoint](#hosted-endpoint-preview), which the Wayd API serves itself, and the [npm package](#setup), which runs on your machine.
+
+- **Hosted endpoint:** a Wayd instance with the **MCP Server** feature flag on, and an assistant that connects to remote MCP servers over HTTP. You can [sign in](#connecting-with-sign-in) with your Wayd account, so no token is needed, or [use a Personal Access Token](#connecting-with-a-personal-access-token).
+- **npm package:** a running Wayd instance, a **[Personal Access Token (PAT)](./your-profile.mdx#personal-access-tokens)** created from your profile page, and **Node.js 22+** installed on your machine.
 
 ## Hosted Endpoint (Preview)
 
 The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers a few tools the package lacks: partial updates that change only the fields you name, and single-call evidence reads for health checks. Each of the [agent skills](#agent-skills) is served there without installing it, two ways: as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …) that you can pick in a client that lists prompts, and through a skills tool, which the assistant calls on its own. Every tool's description names the skill for its area, so an assistant connected to the hosted endpoint is pointed to that guidance whichever toolsets you chose; whether it reads it is up to the assistant. The npm package will be retired a few weeks after the hosted endpoint is generally available.
 
-An administrator turns it on with the **MCP Server** feature flag (**Settings > Feature Management > Feature Flags**); while the flag is off, `/mcp` answers 404. Authenticate with your [Personal Access Token](./your-profile.mdx#personal-access-tokens) in the `x-api-key` header, or [connect by signing in](#connecting-with-sign-in).
+An administrator turns it on with the **MCP Server** feature flag (**Settings > System > Feature Flags**); while the flag is off, `/mcp` answers 404. Connect in one of two ways:
+
+- **[Sign in](#connecting-with-sign-in)** with your Wayd account and approve the assistant. Nothing to create, copy or store, and you can disconnect it from your profile at any time. Use this whenever your assistant supports it.
+- **[A Personal Access Token](#connecting-with-a-personal-access-token)** in the `x-api-key` header, for an assistant that cannot sign in or a script that runs unattended.
 
 ### Connecting with Sign-In
 
-Hosted connectors such as claude.ai and ChatGPT cannot send a personal access token; they connect by sending you to Wayd to sign in and approve them. Give the connector the `/mcp` address, and when it opens Wayd:
+Give your assistant the `/mcp` address and nothing else: no token and no headers. On its first call Wayd answers that you need to sign in, and the assistant opens Wayd in your browser.
+
+Claude Code — add the server, then authenticate from a session:
+
+```bash
+claude mcp add --transport http wayd https://your-wayd-api.com/mcp
+```
+
+In Claude Code, run `/mcp`, choose **wayd**, and choose **Authenticate**. Or put it in `.mcp.json` without a `headers` block:
+
+```json
+{
+    "mcpServers": {
+        "wayd": {
+            "type": "http",
+            "url": "https://your-wayd-api.com/mcp"
+        }
+    }
+}
+```
+
+VS Code (`.vscode/mcp.json`):
+
+```json
+{
+    "servers": {
+        "wayd": {
+            "type": "http",
+            "url": "https://your-wayd-api.com/mcp"
+        }
+    }
+}
+```
+
+claude.ai, ChatGPT and other hosted assistants: add a custom connector and give it the `/mcp` address. They cannot send a personal access token, so signing in is the only way they connect.
+
+When Wayd opens:
 
 1. Sign in, if you are not already. You come back to the request afterwards.
 2. Read the **connection request**. It names the site the application belongs to — that is what identifies it — and the name the application gives itself, which is only its own claim. It also says where you will be sent afterwards, and warns you if that is a different site from the application's.
@@ -49,6 +91,14 @@ Hosted connectors such as claude.ai and ChatGPT cannot send a personal access to
 An approved application can do anything your account can, with all of your permissions. It appears as a [connected application](./your-profile.mdx#connected-applications) on the **Sessions** tab of your profile, where you can disconnect it at any time. A request you leave unanswered expires after ten minutes; start again from the application.
 
 A change an application makes through Wayd's tools is recorded as yours, and the [Activity](../user-guide/activity-log.mdx) of the record it changed names the application it was made through.
+
+The assistant keeps you signed in and renews its access by itself. If it stops working, sign in again from the assistant (in Claude Code, `/mcp` again).
+
+An assistant can sign in only if it identifies itself the way current MCP clients do, with a Client ID Metadata Document: a public web address describing the assistant. Wayd does not support the older dynamic client registration. If an assistant cannot complete sign-in, connect it with a personal access token instead.
+
+### Connecting with a Personal Access Token
+
+Send a [Personal Access Token](./your-profile.mdx#personal-access-tokens) in the `x-api-key` header. The assistant then skips sign-in and acts with the token's access until you revoke it.
 
 Claude Code (`.mcp.json`):
 
@@ -118,20 +168,39 @@ The query parameter wins when both are sent. An unknown toolset name is refused 
     "mcpServers": {
         "wayd-planning": {
             "type": "http",
-            "url": "https://your-wayd-api.com/mcp?toolsets=planning,teams&readonly=true",
-            "headers": {
-                "x-api-key": "your-personal-access-token"
-            }
+            "url": "https://your-wayd-api.com/mcp?toolsets=planning,teams&readonly=true"
         }
     }
 }
 ```
 
-Read-only mode limits which tools are offered, not what your token may do. For a guarantee, also use a token whose account has view permissions only.
+Hosted assistants that sign in cannot send headers, so give them the selection on the URL. With a personal access token, add its `headers` block as usual.
+
+Read-only mode limits which tools are offered, not what your account may do. For a guarantee, also connect as an account that has view permissions only.
+
+The skills tool, `Skills_Get`, and the skill prompts are offered on every connection, whatever toolsets or read-only mode you chose.
 
 ### Large Results
 
 A tool's answer is capped at about 20,000 tokens, so one call over a large project cannot fill the conversation. A list longer than that keeps its first items and says which ones it is showing, such as items 1–74 of 843. Tools whose answer is a list take an `offset` argument, and the note gives the value that continues it, so the assistant can read the rest a part at a time. A tool whose answer is one record holding a list, such as a summary with its work items, takes no `offset`; the assistant narrows it with the tool's filters (a status, a portfolio, a team) instead.
+
+### Hosted-Only Tools
+
+Besides every tool in the [tables below](#available-tools), the hosted endpoint offers these:
+
+| Tool | Toolset | Description |
+| --- | --- | --- |
+| `Skills_Get` | (every connection) | Read one of the [agent skills](#agent-skills), or one of its reference files |
+| `Projects_GetHealthCheckEvidence` | `ppm` | Everything needed to recommend a project health check, in one read: the plan summary, overdue tasks, stages past their end, the forecast, the latest check, and activity since it |
+| `PlanningIntervals_GetObjectiveHealthCheckEvidence` | `planning` | Everything needed to recommend a PI objective health check, in one read: schedule, work items and metrics, the forecast, past checks, activity since the last one, and the team's risks |
+| `Portfolios_Patch` / `Programs_Patch` / `Projects_Patch` | `ppm` | Change some of a record's details, roles or strategic themes, leaving the rest as they are |
+| `Projects_PatchStage` / `Tasks_PatchProjectTask` | `ppm` | Change some of a project stage's or task's fields |
+| `Roadmaps_PatchItem` | `planning` | Change some of a roadmap item's fields |
+| `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` | `planning` | Tag or untag personas on a goal, step or task, keeping the tags it does not name |
+| `Releases_PatchContents` | `delivery` | Add or remove packages and directly carried versions on a release, leaving the rest of its contents |
+| `ReleasePackages_PatchManifest` | `delivery` | Add, change or drop lines in a package's manifest, keeping every line it does not name |
+
+The patch tools take a JSON Patch (RFC 6902) and leave alone anything it does not name, so they avoid the [whole-record overwrite](#changes-that-ask-first) of the matching update tools.
 
 ## Setup
 
@@ -323,7 +392,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `Tasks_GetProjectTasks`                                                    | List tasks with status/parent filters                        |
 | `Tasks_GetProjectTask`                                                     | Get task details                                             |
-| `Tasks_GetCriticalPath`                                                    | Get critical path task IDs                                   |
+| `Tasks_GetCriticalPath`                                                    | Get critical path task IDs. Not implemented yet: it always returns an empty list |
 | `Tasks_CreateProjectTask`                                                  | Create a new task or milestone                               |
 | `Tasks_UpdateProjectTask`                                                  | Update task fields                                           |
 | `Tasks_DeleteProjectTask`                                                  | Delete a task                                                |
@@ -362,7 +431,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | `Roadmaps_GetRoadmap`                                                                       | Get roadmap details                                                                                                                                            |
 | `Roadmaps_GetItems`                                                                         | Get all roadmap items                                                                                                                                          |
 | `Roadmaps_GetItem`                                                                          | Get roadmap item details                                                                                                                                       |
-| `Roadmaps_GetActivities`                                                                    | Get roadmap activities                                                                                                                                         |
+| `Roadmaps_GetActivities`                                                                    | List a roadmap's activities (the timed items on it, not its change history)                                                                                    |
 | `Roadmaps_GetVisibilityOptions`                                                             | Resolve roadmap visibility values                                                                                                                              |
 
 ### Story Maps
@@ -501,7 +570,7 @@ Environments are **retired rather than deleted**, because historical deployments
 
 ### Imports
 
-Every CSV file submitted to Wayd becomes a run with an outcome for each row — whether it was submitted from [Settings → Imports](../user-guide/settings/imports.mdx) or straight to the API — so these tools can follow and control either. You see the kinds of import you are allowed to submit.
+Every CSV file submitted to Wayd becomes a run with an outcome for each row — whether it was submitted from [Settings → System → Imports](../user-guide/settings/imports.mdx) or straight to the API — so these tools can follow and control either. You see the kinds of import you are allowed to submit.
 
 | Tool                                     | Description                                                                            |
 | ---------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -532,10 +601,9 @@ Deleting a portfolio, program, project, or strategic initiative isn't available 
 
 ## Security
 
-The MCP server authenticates using your [Personal Access Token](./your-profile.mdx#personal-access-tokens). The token inherits your permissions — the MCP server can only access what you can access.
+Whichever way you connect, the assistant acts as you, with your permissions — it can only access what you can access.
 
-- Store your API key securely — don't commit it to version control
-- Use environment variables rather than hardcoding in config files
-- Revoke tokens from your [profile page](./your-profile.mdx#personal-access-tokens) if compromised
+- **Signed in:** nothing is stored in your configuration. Disconnect an assistant from the **Sessions** tab of your [profile](./your-profile.mdx#connected-applications) and it loses access at once.
+- **Personal access token:** store it securely, never commit it to version control, and prefer environment variables or a client's password prompt over hardcoding it in config files. Revoke it from your [profile page](./your-profile.mdx#personal-access-tokens) if it is exposed.
 
-Changing a portfolio, program, or project additionally requires **delivery leadership** — being an Owner or Manager on the record or on one above it. Having permission to view or edit is not enough on its own, and sponsors and project members are excluded. If a change is refused even though your token has the right permission, this is usually why. See [Permissions](../user-guide/settings/permissions.mdx) for details.
+Changing a portfolio, program, or project additionally requires **delivery leadership** — being an Owner or Manager on the record or on one above it. Having permission to view or edit is not enough on its own, and sponsors and project members are excluded. If a change is refused even though you have the right permission, this is usually why. See [Permissions](../user-guide/settings/permissions.mdx) for details.

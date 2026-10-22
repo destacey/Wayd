@@ -7,32 +7,39 @@ audience: [developer, agent, admin]
 
 # Azure OpenAI
 
-`Wayd.Integrations.AzureOpenAI` is an outbound LLM client. It does **not** sync data into Wayd — Wayd features that need LLM access call out to the active Azure OpenAI connection on demand.
+The Azure OpenAI connector stores the endpoint, deployment, and API key for an Azure OpenAI model deployment. It does **not** sync data into Wayd, and no Wayd feature calls it yet.
 
 - **Category:** AI provider
 - **Status:** Preview
 - **Auth:** API key
-- **Sync direction:** None (request/response from Wayd → Azure OpenAI)
+- **Sync direction:** None
 
-## Capabilities
+## Current state
 
-- Provide an authenticated, deployment-scoped LLM endpoint to Wayd features that need it
-- Encrypted at-rest storage of API key
-- Per-connection configuration (resource base URL, deployment name, API key) — no shared/global state
+The connector is configuration only. What exists:
 
-There is no background sync, no `SyncRun` history, and no per-connection schedule. The connection just sits there until something asks for an LLM completion.
+- Create, edit, view, activate, deactivate, and delete a connection under **Settings → System → Connections**, with the API key encrypted at rest.
+- The `AiProvider` capability (`AzureOpenAIConnectorModule`), which registers nothing: there is no sync surface and no shared client.
+
+What does not exist yet:
+
+- **No client.** `Wayd.Integrations.AzureOpenAI` is an empty project, and `IWaydAIService` (`Wayd.AppIntegration.Application/Interfaces/IWaydAIService.cs`) has no implementation.
+- **No consumer.** The handler for `GetAIConnectionQuery`, the query meant to resolve the connection a feature should use, throws `NotImplementedException`.
+- **No real test.** `POST /api/app-integrations/connections/azure-openai/test` checks only that a base URL and API key were supplied; it does not contact Azure. Saving likewise marks the configuration valid without calling Azure.
+
+There is no background sync, no `SyncRun` history, and no per-connection schedule.
 
 ## Setup
 
 1. In the Azure portal, deploy an **Azure OpenAI resource** and create a **deployment** for the model you want to expose to Wayd (e.g. a `gpt-4` deployment).
 2. Note the resource's **endpoint URL** (e.g. `https://contoso-aoai.openai.azure.com/`) and the **deployment name** you chose.
 3. Under **Keys and Endpoint**, copy one of the two **API keys**.
-4. In Wayd, open **Settings → Connections** and click **Create Connection**. Pick **Azure OpenAI**.
+4. In Wayd, open **Settings → System → Connections** and click **Create Connection**. Pick **Azure OpenAI**.
 5. Fill in:
    - **Base URL** — the resource endpoint URL from step 2.
    - **API Key** — the key from step 3.
    - **Deployment Name** — the deployment name from step 2.
-6. Save. Activate the connection. Wayd AI features will pick it up automatically.
+6. Save. The connection is active once created. No Wayd feature uses it yet — see [Current state](#current-state).
 
 ## Required permissions
 
@@ -44,16 +51,25 @@ If you'd rather not store an API key, the standard alternatives are Azure AD aut
 
 | Option | Default | Notes |
 |---|---|---|
-| Base URL | — | Required. Resource endpoint (e.g. `https://contoso-aoai.openai.azure.com/`). |
-| API Key | — | Required. Encrypted at rest. |
-| Deployment Name | — | Required. Identifies which model deployment to call. |
+| Base URL | — | Required, at most 256 characters. Resource endpoint (e.g. `https://contoso-aoai.openai.azure.com/`). An edit does not change it: `AzureOpenAIConnection.Update` takes no base URL, so the value set at creation is kept. |
+| API Key | — | Required, at most 256 characters on create and 128 on edit. Encrypted at rest; on edit, leave blank to keep the stored key. |
+| Deployment Name | — | Required, at most 128 characters. Identifies which model deployment to call. |
+| Default Temperature | 0.1 | Not settable from the UI; shown on the detail page. |
+| Default Max Output Tokens | 400 | Not settable from the UI; shown on the detail page. |
+| JSON Mode Preferred | On | Not settable from the UI; shown on the detail page. |
+
+The create and update validators reject a connection when any existing Azure OpenAI connection has the same base URL **or** the same deployment name.
+
+:::warning[Editing a connection fails validation]
+The update validator (`UpdateAzureOpenAIConnectionCommandValidator.BeUniqueAzureAIDeployment`) compares against every Azure OpenAI connection, including the one being edited, so an edit that keeps the connection's own base URL or deployment name is rejected as a duplicate. To change a connection, delete it and create a new one.
+:::
 
 ## How it works
 
-1. An admin creates an **Azure OpenAI Connection** in Settings → Connections, supplying the resource base URL, deployment name, and API key (encrypted at rest).
-2. Wayd features that need LLM access resolve the **active** Azure OpenAI connection at request time and build a client from its credentials.
-3. There is no background job, no sync history, and no scheduled work — calls are made synchronously from feature code when an LLM completion is needed.
+1. An admin creates an **Azure OpenAI Connection** in Settings → System → Connections, supplying the resource base URL, deployment name, and API key (encrypted at rest).
+2. The connection is stored on the shared `Connections` table with the `AzureOpenAI` discriminator. Nothing reads it at request time yet.
+3. There is no background job, no sync history, and no scheduled work.
 
 ## Cross-cutting
 
-See [Integrations → Cross-cutting concerns](./index.mdx#cross-cutting-concerns) for credential encryption and activation. Sync-history and single-active rules don't apply (no background sync; multiple active AI providers are allowed and resolved by feature-specific logic).
+See [Integrations → Cross-cutting concerns](./index.mdx#cross-cutting-concerns) for credential encryption and activation. Sync-history and single-active rules don't apply: there is no background sync, and nothing limits how many AI provider connections are active.

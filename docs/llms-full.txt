@@ -22,12 +22,12 @@ Objects in Wayd have an ownership attribute:
 ### Teams
 
 Teams are the fundamental organizational unit. Properties:
-- Name (up to 128 chars), Code (2-10 uppercase alphanumeric, unique), Description
+- Name (up to 128 chars, unique across teams and teams of teams), Code (2-10 uppercase alphanumeric, unique), Description
 - Active Date, Inactive Date (optional)
 - Type: Team or TeamOfTeams
-- Operating Model: Methodology (Scrum/Kanban) + Sizing Method (Story Points/Effort/Size/Count — which work item estimate the team's metrics read; no fallback between estimates, and the work process plays no part) + Time Zone (IANA id) + Commitment Grace Days + optional Cadence (Kanban only: `ReportingCadence`, 1-8 weeks plus an anchor date; reporting periods computed when read, no lifecycle)
+- Operating Model: Methodology (Scrum/Kanban) + Sizing Method (Story Points/Effort/Size/Count — which work item estimate the team's metrics read; no fallback between estimates, and the work process plays no part) + Time Zone (IANA id) + Commitment Grace Days + Working Week + optional Holiday Calendar (the whole-team reading; see Time Away and Holiday Calendars) + optional Cadence (Kanban only: `ReportingCadence`, 1-8 weeks plus an anchor date; reporting periods computed when read, no lifecycle)
 
-Operating models have date ranges creating a history. New model auto-closes previous one (a move); editing a model in place is a correction of its whole period. A sprint takes its time zone and grace period from the model in effect on its planned start date (`GetTeamScheduleQuery`). Teams must always have at least one operating model.
+Operating models have date ranges creating a history. New model auto-closes previous one (a move); editing a model in place is a correction of its whole period. A sprint takes its time zone and grace period from the model in effect on its planned start date (`GetTeamScheduleQuery`). Teams must always have at least one operating model; a new team gets Kanban and Count, with the time zone, grace period and working days from the Scheduling settings.
 
 ### Teams of Teams
 
@@ -62,7 +62,7 @@ Sprint day weight: Work asks Organization through `GetTeamDayAvailabilityQuery` 
 
 ### Deactivation Rules
 
-Cannot deactivate a team if active memberships extend past the inactive date. Those memberships must end first.
+The inactive date must be after the team's active date, and on or after the end of its latest parent membership; a latest membership with no end date blocks deactivation until it is given one. A team of teams applies the same rule to its latest child membership too (`Team.Deactivate`, `TeamOfTeams.Deactivate`).
 Deactivating a team or team of teams ends allocations to it on the inactive date (see Allocations), whether or not `team-capacity-management` is on; the flag controls only the warning in the dialog. A past inactive date cuts allocations back to it, removing the time after it.
 
 ---
@@ -77,6 +77,8 @@ Fixed timeframe (typically 8-12 weeks) for coordinated delivery. Properties:
 
 States based on current date: Future, Active, Completed.
 
+Iterations are generated when the PI is created (`PlanningInterval.Create`), from an iteration length in weeks and an optional name prefix: back-to-back iterations from the PI's start named prefix + number, the last ending on the PI's end date however short and categorized Innovation and Planning (shown as **IP**). Afterwards they are edited, added and removed through Manage Dates (`ManageDates`).
+
 PI detail page section rail: Overview, Plan Review, Objectives, Risks, Backlog, and Objectives Health under Reports. Sections are addressable as `?section=`. Team setup is in the Actions menu rather than a section — Manage Teams and Team Sprints (sprint-to-iteration mapping). The record facts panel carries dates, length, predictability, objectives-locked, description, and links.
 
 #### PI Overview Page
@@ -88,9 +90,9 @@ Composed of four sections that adapt by PI state:
 - Teams count (delivery teams only, excludes Teams of Teams)
 - PI Predictability % with completed/regular/stretch breakdown (Active/Completed only, hidden when no objectives)
 - Avg Cycle Time across all team sprints (Active/Completed only, shown when data available)
-- Three charts when objectives exist: Team Predictability Radar Chart, Objective Status Chart (by status), Objective Health Chart (open objectives by health)
+- Three charts when objectives exist: Team Predictability (radar), Objectives By Status, Objectives By Health (open objectives — not Completed, Canceled or Missed — by health)
 
-**Iterations** — Clickable cards per iteration, sorted by start date. Active iteration shows current day/total days and a health flag (On Track/At Risk/Off Track based on completion progress vs. elapsed time). Cards are colour-coded: active = primary, Innovation and Planning = amber.
+**Iterations** — Clickable cards per iteration, sorted by start date. Active iteration shows current day/total days and a health flag (On Track/At Risk/Off Track; see Iterations below). Cards are colour-coded: active = primary, Innovation and Planning = amber.
 
 **Teams** — Grid of team performance cards (hidden for Future PIs). Each links to the team's Plan Review view and shows: Predictability with objective counts breakdown, Avg Cycle Time, Objective Status Chart, Objective Health Chart.
 
@@ -99,55 +101,58 @@ Composed of four sections that adapt by PI state:
 ### Iterations
 
 Time-boxed periods within a PI. Properties:
-- Name (unique within PI), Category (Development / Innovation and Planning), Date Range
+- Name (unique within PI), Category (Development / Innovation and Planning, shown as IP), Date Range
 - Dates must fall within PI range and not overlap
-- Can be auto-generated by week length via Initialize Iterations
+- Generated with the PI (see above), then managed through Manage Dates
 
-Iteration health (active iterations only): On Track (completion rate ≥ expected), At Risk (slightly behind), Off Track (significantly behind).
+Iteration health (active iterations only, client `calculateIterationHealth`): the work items still to finish in the mapped sprints against an even burn-down from the iteration's start to its end, as a share of the iteration's total — On Track at no more than 10 points behind (or ahead), At Risk above 10 up to 25, Off Track above 25. No flag while the iteration has no work items.
 
 PI Iteration detail pages aggregate metrics from all mapped team sprints (cross-team view).
 
 ### Sprint Mapping
 
-Each team's sprint maps to a PI iteration (one sprint per team per iteration, and at most one iteration per sprint across all PIs). Removing a team from PI removes its sprint mappings. The iteration's category decides a mapped sprint's sprint type unless the team set one (see Sprints).
+Each team's sprint maps to a PI iteration (one sprint per team per iteration, and at most one iteration per sprint across all PIs). Only sprints of type Sprint belonging to one of the PI's teams can be mapped; mapping a team's second sprint to an iteration replaces the first. Removing a team from PI removes its sprint mappings. The iteration's category decides a mapped sprint's sprint type unless the team set one (see Sprints).
 
-PI Iteration metrics: counts/points summed across mapped sprints, cycle time averaged (simple, not weighted).
+PI Iteration metrics (`PlanningIntervalIterationMetricsResponse`): rolled up from the mapped sprints and from the PI's Kanban teams with no mapped sprint, which are measured over the iteration's dates (`GetKanbanTeamsWindowMetricsQuery`). Kanban teams add to Completed, In Progress, Unestimated and cycle time but not to Total or Not Started, which are scoped to sprints. Estimates are summed only when everything shares one sizing method. Cycle time is pooled (total cycle days ÷ item count, `CycleTimeSummary.Combine`), never an average of averages.
 
 ### Planning Interval Objectives
 
 Team commitments within a PI. Properties:
-- Team, Type (Team/TeamOfTeams), Status (NotStarted/InProgress/Completed/Canceled/Missed)
+- Team, Type (Team/TeamOfTeams, from the kind of team that owns it), Status (NotStarted/InProgress/Completed/Canceled/Missed)
+- Start and Target dates (optional), Progress (0-100), Order, Closed date (stamped on moving to Completed/Canceled/Missed, cleared on moving back)
 - IsStretch flag, Health Check (optional: Healthy/AtRisk/Unhealthy with expiration)
 - Linked to work items that fulfill the objective
 
-Business rules: Can only create when ObjectivesLocked is false. When locked, stretch flag is immutable.
+Business rules: Objectives can be created or deleted only while ObjectivesLocked is false. While locked, an objective's name and stretch flag are frozen (an update keeps the existing values); description, status, progress and dates stay editable.
+
+Health checks (objectives and projects, `HealthReport`): the expiration must be in the future; recording a new check while the previous is current ends the previous at that moment, so at most one is current. After expiry the record has no health.
 
 ### Predictability
 
-Predictability = (Completed committed objectives / Total committed objectives) × 100
-Stretch objectives excluded. Only calculated for Active/Completed PIs.
+`PlanningInterval.CalculatePredictability`: (Completed objectives, stretch included / Committed non-stretch objectives) × 100, capped at 100. Stretch objectives stay out of the denominator, so completing one can make up for a missed committed one. Across the PI only Team objectives count (Team of Teams objectives are left out); per team, all that team's objectives count. Null for a Future PI or with no objectives; 0 when there are objectives but none committed.
 
 ### Risks
 
 Potential circumstances that could impact delivery. Properties:
-- Summary, Description, Team, Reported By/On, Status (Open/Closed)
+- Summary, Description, Team (set at creation, never changed), Reported By/On (the creator and the moment of creation), Status (Open/Closed)
 - Category (ROAM): Resolved, Owned, Accepted, Mitigated
 - Impact (Low/Medium/High), Likelihood (Low/Medium/High)
-- Exposure: Calculated from Impact + Likelihood (Low <4, Medium =4, High >4)
-- Assignee, Follow-Up Date, Response, Closed Date (auto-set on close)
+- Exposure: Impact + Likelihood, each Low=1/Medium=2/High=3 (Low <4, Medium =4, High >4)
+- Assignee, Follow-Up Date, Response, Closed Date (set on close, cleared on reopen)
 
 ### Roadmaps
 
 Visual timelines with hierarchical items. Properties:
-- Name, Description, Date Range, Visibility (Public/Private), Managers (min 1)
+- Name, Description, Date Range, Visibility (Public/Private), Managers (employees, min 1; the user creating or editing must be among them), State (Active/Archived — an archived roadmap rejects every change until activated again)
 - Date ranges are inclusive; start and end may be the same day.
+- Optional Color palette: named colors, one optional default, each value used once.
 
 Item types:
 - Activity: Date range, can contain children (other activities, milestones, timeboxes), ordered. Parent activities auto-expand to contain child dates; shrinking an activity behind its children is rejected; moving an activity without changing duration shifts the whole subtree.
-- Milestone: Single date point
+- Milestone: Single date point. Created through the API only; the UI shows, opens and drags existing ones
 - Timebox: Date range period
 
-All items have optional Color. Roadmaps can be copied (deep copy preserving hierarchy).
+All items have optional Color. Roadmaps can be copied: a new Active roadmap with its own name, managers and visibility, keeping the description, dates and the full item hierarchy with item colors, but not the color palette.
 
 ### Planning Poker
 
@@ -155,9 +160,9 @@ Behind `planning-poker` feature flag. Real-time estimation via SignalR.
 
 Estimation Scales: Named set of values (min 2). Configured in Settings.
 
-Poker Sessions: Facilitator-managed, uses one scale (locked after rounds begin), immediately Active on creation.
+Poker Sessions: Facilitator (the creator), uses one scale (locked after rounds begin), immediately Active on creation, then Completed. Rounds can be added, removed or relabelled and votes cast only while Active.
 
-Rounds: Voting → Revealed → Accepted. Can Reset (back to Voting). Votes only during Voting status.
+Rounds: Voting → Revealed → Accepted. Reset returns to Voting from Voting, Revealed or Accepted, clearing votes. Votes are submitted or withdrawn only during Voting.
 
 ### Story Maps
 
@@ -248,25 +253,25 @@ Sprint health (`calculateCommitmentHealth`, client) measures velocity as a share
 ### Workspaces
 
 Containers for work items. Properties:
-- Key (2-20 uppercase alphanumeric), Name, Description
+- Key (2-20 uppercase alphanumeric, starting with a letter), Name, Description
 - Work Process (defines available types/workflows), Ownership (Owned/Managed)
-- IsActive (inactive prevents adding/removing items)
+- IsActive (inactive prevents adding/removing items; a workspace is created and activated only with an active work process)
 
-Managed workspaces: Synced from external systems, have external URL templates.
+Managed workspaces: Synced from external systems, have external URL templates (the View Work Item URL, set in Wayd). Workspaces, work items, work processes and workflows come only from sync (`CreateExternal`); the API has no endpoint creating one. Work types and work statuses are synced too, though the API can also create them.
 
 ### Work Items
 
 Fundamental unit of work. Properties:
-- Key: {WorkspaceKey}-{Number} (e.g., PLAT-1234). Title (immutable after creation).
+- Key: {WorkspaceKey}-{Number} (e.g., PLAT-1234), the number being the item's id in the external system (its Azure DevOps work item id). Title, kept in step with the source on every sync. Tags.
 - Type (WorkType), Status (WorkStatus), StatusCategory (Proposed/Active/Done/Removed)
 - Priority, StackRank, Assignee, Team, Parent
 - Estimates, kept separately: StoryPoints (sprint-level relative estimate), Effort (level of effort; Scrum's sprint estimate, and Agile features/epics), Size (CMMI). Each syncs from its own AzDO field; an item can carry several.
 - Sprint/Iteration, Project (Portfolio tier only), ParentProject (inherited from parent)
-- ActivatedTimestamp, DoneTimestamp, Created, LastModified
+- ActivatedTimestamp, DoneTimestamp, Created, LastModified. An item that went straight to Done/Removed takes its done timestamp as its activated one, and an activated timestamp later than the done one is moved back to it; DoneTimestamp is set only while the category is Done or Removed.
 
 Supports: Parent/child hierarchy, dependencies, history, links, references.
 
-Managed workspace items are read-only in Wayd.
+Managed workspace items are read-only in Wayd, with one exception: a Portfolio tier item's project is set in Wayd (`UpdateWorkItemProjectCommand`, `Permissions.Projects.ManageProjectWorkItems`), and its descendants with no project of their own inherit it.
 
 ### Work Item Metrics (per item)
 
@@ -274,17 +279,17 @@ Managed workspace items are read-only in Wayd.
 - Cycle Time: Activated → Done (days). Formula: DoneTimestamp − ActivatedTimestamp
 - Lead Time: Created → Done (days)
 
-Portfolio tier items also show: Progress Pie Chart (child status distribution), Cumulative Flow Chart (daily status counts over time).
+Portfolio tier items also show: a Progress chart (every descendant below the Portfolio tier, at any depth, by status category, Removed left out) and a Cumulative Flow chart (daily counts of the same items by category).
 
 ### Work Item Dependencies
 
 Predecessor/successor relationships. Properties:
 - Source (predecessor), Target (successor), Comment
-- State: ToDo (source Proposed), InProgress (source Active), Done (source Done/Removed), Removed, Deleted
-- Health: Healthy (predecessor before successor or Done), AtRisk (unplanned), Unhealthy (predecessor after successor or target active while source not done)
-- Scope: IntraTeam or CrossTeam
+- State: ToDo (source Proposed), InProgress (source Active), Done (source Done), Removed (source Removed), Deleted (link removed in the source)
+- Health (`WorkItemDependency.CalculateHealth`), in order: Done → Healthy; Deleted → Unknown; Removed → Unhealthy; successor Active/Done/Removed while the predecessor is not done → Unhealthy; neither side planned → AtRisk; predecessor planned and successor not → Healthy; successor planned and predecessor not → Unhealthy; otherwise Healthy when the predecessor's planned date is on or before the successor's, else Unhealthy
+- Scope: IntraTeam or CrossTeam (a read-side classification in `DependencyDto`)
 
-Health calculated from sprint end dates (planned dates).
+An item's planned date is the last planned day of the sprint it is in; no sprint, or a date before today (UTC), counts as unplanned.
 
 ### Delivery Forecasting
 
@@ -301,9 +306,9 @@ Monte Carlo forecasts behind the `delivery-forecasting` feature flag. Read-only;
 ### Work Item Hierarchy Rules
 
 - Only Portfolio tier types can be parents
-- Parent must be higher level than child
+- A Portfolio tier child's parent must be a higher Portfolio level; Requirement and Task tier items can sit under any Portfolio level
 - No self-links
-- Portfolio tier items can be associated with PPM Projects; children inherit project
+- Portfolio tier items can be associated with PPM Projects; children inherit project, except Other tier items, which never take one
 
 ### Work Processes
 
@@ -311,32 +316,32 @@ Configuration linking work types to workflows. Properties:
 - Name, Description, Ownership, IsActive
 - Contains WorkProcessSchemes: WorkType ↔ Workflow mappings
 
-Rules: Min 1 work type, each type once, only active processes assignable to workspaces.
+Synced from the external system (an Azure DevOps process) with its work types and workflows; in Wayd a process is only activated or deactivated. Rules: each type once, only active processes assignable to workspaces, cannot be deactivated while an active workspace uses it.
 
 ### Work Types
 
-Categories of work items. Properties: Name (immutable), Description, Level, IsActive.
+Categories of work items. Properties: Name (immutable), Description, Level, IsActive. The tier comes from the level; editing a type changes only its description and level.
 
 Tiers:
 - Portfolio: Container types, multiple hierarchy levels (Epic, Feature)
 - Requirement: Base-level team work (User Story, Bug)
 - Task: Child types (Task, Sub-task)
-- Other: Non-standard, not in backlog views
+- Other: Non-standard, not in backlog views. Synced work types start here until placed on a level
 
 ### Work Type Levels
 
-Default system levels: Epics (Portfolio L1), Features (Portfolio L2), Stories (Requirement L1), Tasks (Task L1), Other (Other L1). Custom Portfolio levels can be added.
+Default system levels: Epics (Portfolio L1), Features (Portfolio L2), Stories (Requirement L1), Tasks (Task L1), Other (Other L1). Only the Portfolio tier takes custom levels, added at the bottom and reordered; level names are unique.
 
 ### Workflows
 
 Status progression definitions. Properties: Name, Description, Ownership, IsActive.
 Contains WorkflowSchemes: WorkStatus + WorkStatusCategory + Order.
 
-Owned workflow rules: Min 3 statuses, all 4 categories represented, each status once, categories grouped in order (Proposed → Active → Done → Removed).
+Created only by sync (`Workflow.CreateExternal`): each Azure DevOps work item type's states become a workflow, each state's category mapped to a work status category. Rule: each status appears once per workflow. A status's category is set per workflow (on the WorkflowScheme), so one status can sit in different categories in different workflows. No minimum count, category coverage or ordering rule exists. Not to be confused with a Status Workflow (below), the engine behind Product Management statuses.
 
 ### Work Statuses
 
-Individual status values (e.g., "New", "In Progress", "Done"). Name is immutable. Reusable across workflows.
+Individual status values (e.g., "New", "In Progress", "Done"). Name is immutable; no category of its own. Reusable across workflows.
 
 ### Work Status Categories
 
@@ -365,7 +370,7 @@ Top-level container. Properties:
 - Optional ScoringModelId: active scoring model assigned to enable project priority scoring
 - Owns project ranking: every project in the portfolio has a required fractional Rank sort key; the displayed Position is derived at read time per portfolio
 
-Status lifecycle: Proposed → Active (start date) → OnHold ↔ Active → Closed (all children closed, end date) → Archived (read-only).
+Status lifecycle: Proposed → Active → Closed (from Active or OnHold; all programs and projects completed or canceled) → Archived (read-only). Activate sets today as the start date and Close today as the end date (the import can backdate both). OnHold ↔ Active exists in the domain (`Pause`/`Resume`) but no endpoint calls it: a portfolio reaches OnHold only through the portfolios import. Programs, projects and strategic initiatives can be created only in an Active or OnHold portfolio. Only Proposed portfolios can be deleted.
 
 Roles: Sponsor, Owner, Manager. Owner/Manager confers delivery leadership over the portfolio and everything beneath it; Sponsor does not.
 
@@ -381,7 +386,7 @@ Groups related projects. Properties:
 - Name, Description, Status (Proposed/Active/Completed/Canceled), Date Range, Roles (Sponsor/Owner/Manager)
 - Strategic Theme Tags
 
-Rules: Only active programs accept projects. All projects must close before completing. Active requires date range. Only Proposed deletable.
+Lifecycle: Proposed → Active (requires start and end dates) → Completed or Canceled; Proposed → Canceled directly. Rules: Only active programs accept projects. Completing, or canceling an active program, needs every project completed or canceled. Active and Completed programs must keep a date range. Projects cannot be removed from a completed or canceled program. Only Proposed programs with no projects are deletable.
 
 ### Projects
 
@@ -392,7 +397,7 @@ Most feature-rich entity. Properties:
 - CurrentScore summary: latest project priority score value, scorer, timestamp, and scoring model name
 - Rank: required fractional sort key within the portfolio; Position is the derived 1-based display rank in project lists
 
-Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Canceled. Every transition requires delivery leadership (see the domain Permissions note above).
+Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires start and end dates) → Completed/Canceled. Approval is optional: `Project.Activate` accepts a Proposed project with dates, though the UI offers Activate on a Proposed project only once it also has a lifecycle. Cancel works from any open status. Only an active lifecycle can be assigned, and a closed project's lifecycle cannot be assigned or changed. Every transition requires delivery leadership (see the domain Permissions note above).
 
 Projects can also move backwards, which programs and portfolios cannot. Legal reverts: Completed/Canceled → Proposed, Approved, or Active; Active → Proposed or Approved; Approved → Proposed. Entry requirements apply whichever direction a status is reached from, so returning to Approved still needs a lifecycle and returning to Active still needs dates — a project cancelled straight from Proposed may therefore only return to Proposed. A revert additionally requires a written reason, recorded in the status history, and is rejected while the parent program or portfolio is closed.
 
@@ -432,15 +437,17 @@ Hierarchical work items within stages (WBS). Properties:
 - Progress (0-100 for tasks, 0 or 100 for milestones), Order, Dates, Effort (hours)
 - Dependencies (Finish-to-Start, soft-deleted), Roles (Assignee)
 
-Rules: Milestones cannot have children or be InProgress. Cannot delete tasks with children or active dependencies. No circular moves. Parent task date ranges automatically roll up from child dates (minimum start through maximum end). A parent task cannot be manually shrunk behind its children's dates, nor can its dates be cleared while children have dates. Shifting a parent task shifts its dated descendants.
+Rules: Milestones cannot have children or be InProgress. Cannot delete tasks with children or active dependencies. No circular moves (a task cannot move under itself or a descendant).
+
+Task dependencies are recorded, not enforced: a successor's status and dates can change whatever its predecessor's state. Both tasks must be in the same project, a task cannot depend on itself, and a pair has at most one active dependency; chains are not checked for cycles. They are managed through the API and MCP only — the Plan section neither shows nor edits them. `GetCriticalPathQuery` is a stub that returns an empty list. Parent task date ranges automatically roll up from child dates (minimum start through maximum end). A parent task cannot be manually shrunk behind its children's dates, nor can its dates be cleared while children have dates. Shifting a parent task shifts its dated descendants.
 
 ### Strategic Initiatives
 
 High-level strategic efforts within portfolios. Properties:
 - Name, Description, Status (Proposed/Approved/Active/OnHold/Completed/Canceled)
-- Date Range, Roles (Sponsor/Owner), KPIs, Projects
+- Date Range, Roles (Sponsor/Owner), KPIs, Projects. No strategic themes.
 
-Rules: Only created in Active/OnHold portfolios. Deletable in Proposed/Approved. Completed/Canceled = read-only.
+Lifecycle: Proposed → Approved → Active → Completed; Canceled from any open status. OnHold is defined, and Complete accepts it, but no method moves an initiative into or out of it and the import rejects it. Rules: Only created in Active/OnHold portfolios. Deletable in Proposed/Approved. Completed/Canceled = closed: no KPI or linked-project changes.
 
 ### KPIs
 
@@ -448,9 +455,9 @@ Measurable indicators on strategic initiatives. Properties:
 - Name, Description, StartingValue, TargetValue, ActualValue (from latest measurement)
 - Prefix, Suffix, Direction (Increase/Decrease)
 - Checkpoints: planned target values at specific dates with at-risk thresholds
-- Measurements: actual recorded values over time
+- Measurements: actual recorded values over time, with the employee who recorded them
 
-Checkpoint and measurement dates must be unique per KPI.
+Checkpoint and measurement dates must be unique per KPI. A measurement date cannot be in the future. A starting value must be below the target for Increase and above it for Decrease.
 
 ### Expenditure Categories
 
@@ -466,24 +473,28 @@ Project cost classification. Properties:
 ### Visions
 
 Organizational direction. Properties:
-- Description, State (Proposed/Active/Archived), Dates (start/end timestamps)
+- Description, State (Proposed/Active/Archived), Dates (start/end instants, stamped by the transitions)
 
-Rules: Only ONE Active vision at any time. Archived visions cannot overlap in dates. Archived = immutable.
+Rules: Only a Proposed vision can be activated, which stamps now as its start; only an Active one archived, which stamps now as its end. Only ONE Active vision at any time. Archived visions cannot overlap in dates, and a vision cannot be activated inside the most recently archived vision's range (`VisionAggregate`). Archived = immutable.
 
 ### Strategies
 
 Approach for achieving vision. Properties:
-- Name, Description, Status (Draft/Active/Completed/Archived), Date Range
+- Name, Description, Status (Draft/Active/Completed/Archived), Date Range (optional start, optional end)
 - Independent of visions.
+
+Status is set directly on create and update; no transition order or dates are enforced.
+
+Visions and strategies have no UI: they are managed through the API only. Strategic themes have screens.
 
 ### Strategic Themes
 
 High-level organizational priorities. Properties:
 - Name, Description, State (Proposed/Active/Archived)
 
-Rules: Only Proposed deletable. State changes publish domain events (PPM maintains synchronized copy).
+Rules: Proposed → Active → Archived, one step at a time (the import sets any state directly). Only Proposed deletable. State changes publish domain events (PPM maintains synchronized copy).
 
-Cross-domain usage: Tags on Projects, Programs, Strategic Initiatives for alignment tracking.
+Cross-domain usage: Tags on Projects and Programs for alignment tracking (creating a project or program, or importing one, accepts only active themes; the update commands do not check state). Strategic initiatives carry no themes. A project's effective themes are its own when it has any, otherwise its program's.
 
 ---
 
@@ -495,13 +506,17 @@ Cross-cutting. Any module whose records carry a status registers an owner type a
 
 Properties: Name, Description, OwnerType, State (Draft/Published/Archived), IsSystem, Key, Statuses (ordered).
 
-Rules: Statuses are editable only in Draft — records carry a denormalized category and alias, so moving one on a live workflow leaves every record disagreeing with the status it points at. System workflows cannot be modified, published by a user, or archived. Publish requires every alias the owner type declares required. Archive requires the workflow to be unassigned. Clone copies the statuses into a new Draft and is the only route by which a published or seeded workflow is changed.
+Rules: Statuses are added, removed or reclassified only in Draft — records carry a denormalized category and alias, so moving one on a live workflow leaves every record disagreeing with the status it points at. Renaming, re-describing and reordering statuses are allowed until the workflow is archived. System workflows cannot be modified, published by a user, or archived. Publish requires every alias the owner type declares required. Archive requires the workflow to be unassigned. Clone copies the statuses into a new Draft and is the only route by which a published or seeded workflow is changed.
 
 ### Workflow Statuses
 
 Properties: Name, Description, Category (Proposed/Active/Done/Removed), Alias (int, 0 = none), Order.
 
 Rules: Names and aliases are unique within a workflow. The category is the rollup; the alias is the well-known meaning platform logic reads instead of the name. ReclassifyStatus changes both, Draft only.
+
+### Workflow Transitions
+
+Transition Mode is AnyToAny (default) or Restricted, set in Draft only. Under Restricted, only the workflow's WorkflowTransitions (from → to, each with optional Transition Conditions: `RequiresReason`, and `RequiresPassedApproval`, reserved and not attachable until an evaluator exists) are allowed; `SetTransitions` replaces the whole set. A Restricted workflow publishes only for an owner type whose descriptor declares `SupportsRestrictedTransitions`, and must allow every required Workflow Move the owner type declares. Aggregates enforce it through `StatusRef.AllowedFrom` and `ConditionsFrom` in `StatusTrackedEntity.ApplyStatus`, without loading the workflow; a record's initial status and `SwitchWorkflow` are exempt. See the Domain Glossary for the full rules.
 
 ### Workflow Assignments
 
@@ -543,11 +558,11 @@ What the organization calls a kind of node. A table, not an enum, so phase-two a
 
 Seeded: Product Line, Platform, Module, Interface (not releasable); Product, Application, Service, Tool, Library (releasable).
 
-Rules: IsReleasable decides whether VERSIONS can be cut against a node. A product cannot be retyped onto a non-releasable type once versions exist. It does NOT gate Releases (announcements), which may sit under any node. Types are deactivated, never deleted, because existing products still resolve their type.
+Rules: IsReleasable decides whether VERSIONS can be cut against a node. A product cannot be retyped onto a non-releasable type once versions exist. It does NOT gate Releases (announcements), which may sit under any node. The seeded types are system types: they cannot be renamed, have their releasability changed or be deleted, only deactivated. Another type can be deleted only while no product carries it (`DeleteProductTypeCommand`); one in use is deactivated instead, because existing products still resolve their type. Product types have no screen: they are managed through the API (and MCP) with `Permissions.ProductTypes.*`.
 
 ### Product Tags
 
-Classification along an axis, grouped into categories (Platform, Tech Stack, Compliance). Properties:
+Classification along an axis, grouped into categories (Platform, Tech Stack, Compliance). Only Platform (allows many: web, ios, android, desktop, cli, server) is seeded, as a read-only system category; the rest are added by the organization. Properties:
 - Category (Name, Description, AllowsMany), Tag (Name, Description, IsActive)
 
 Rules: Grouped rather than flat so "what platform is this?" is a query rather than prior knowledge. Carries what does *not* change behaviour; the type system carries what does. An inactive tag a product already carries stays offered, so a save cannot silently remove it. A tag no product carries can be deleted (DELETE /product-tag-categories/{id}/tags/{tagId}, ProductTagCategories.Delete); one in use is deactivated instead, and tags on a system category can be neither.
@@ -555,15 +570,15 @@ Rules: Grouped rather than flat so "what platform is this?" is a query rather th
 ### Product Dependencies
 
 One product needing another over a period — Storefront Web depending on Identity Service since March. Properties:
-- Product (the one that has the dependency), DependsOnProduct, Strength (Hard or Soft), Description, Period (a FlexibleDateRange of days; the end day is included and null while it still holds)
+- Product (the one that has the dependency), DependsOnProduct, Strength (Hard or Soft), InteractionStyle (optional set: Synchronous, Asynchronous or both — a `[Flags]` enum in the domain, a list of names at every boundary; null means not recorded, never "neither"), Description, Period (a FlexibleDateRange of days; the end day is included and null while it still holds)
 
 Rules: Owned by the product that has the dependency; the product depended on only reads them. Any product can depend on any other except itself and anything above or below it in the tree, which is composition. Cycles between unrelated products are allowed. Record the most specific product known (the service, not its platform); parent views roll links up when read and nothing rolled up is stored — a link from a child to an outside product appears under the parent's Depends On, and a link with both ends inside a product's subtree appears in neither list.
 
 Strength is required with no default: Hard means the product stops working without the other, Soft that it degrades but keeps working. A later downtime view counts a provider's downtime against a consumer only through a Hard link, so defaulting either way would skew it.
 
-History: a dependency that stopped is ENDED (kept, still counts for the period it held); one recorded by mistake is REMOVED (deleted, reason required). Strength never changes on a link — changing it from day D ends the link on D-1 and opens a new one from D, raising Ended then Added; so it cannot change on the day the link started. Dated by day rather than instant because dependencies are entered by hand; periods include their end day, so a link may start and end on the same day and a later link on the same pair starts the day after the earlier one ended. The description can be edited on any link. A pair of products has at most one open link, and links on the same pair cannot overlap. Dates cannot be in the future. A product is refused deletion while any link, open or ended, names it on either end. A move is refused when it would put two products with an OPEN link between them above and below each other — checked across the moved subtree and the new parent's lineage, in both directions; an ended link does not block it.
+History: a dependency that stopped is ENDED (kept, still counts for the period it held); one recorded by mistake is REMOVED (deleted, reason required). Terms (strength and recorded interaction styles) never change on a link — Change Terms (`ChangeDependencyTerms`) from day D ends the link on D-1 and opens a new one from D carrying the description, raising Ended then Added; so terms cannot change on the day the link started, nor on an ended link, nor in the future. The exception is recording styles on a link that had none, with the strength unchanged: that fills them in place as a details update, since nothing about the dependency changed. A null style leaves recorded ones alone. Dated by day rather than instant because dependencies are entered by hand; periods include their end day, so a link may start and end on the same day and a later link on the same pair starts the day after the earlier one ended. The description can be edited on any link, ended ones included (`UpdateDependencyDetails`, which refuses to change styles already recorded). A pair of products has at most one open link, and links on the same pair cannot overlap. Dates cannot be in the future. A product is refused deletion while any link, open or ended, names it on either end. A move is refused when it would put two products with an OPEN link between them above and below each other — checked across the moved subtree and the new parent's lineage, in both directions; an ended link does not block it.
 
-Imported with POST /api/product-management/products/dependencies/import (Import Products permission; columns ImportId, ProductId, DependsOnProductId, Strength Hard|Soft required, Description, StartsOn default today, EndsOn): PerGroup by ProductId, so a product's rows apply together or not at all while other products are kept; a product's rows are applied in date order, a strength change is two rows on the pair, and a rerun is refused by the overlap rule rather than duplicated. 50,000-row cap. Events (ProductDependencyAdded/Ended/DetailsUpdated/Removed) are raised on the dependent product and name the product depended on as a related aggregate, so both products' Activity lists them.
+Imported with POST /api/product-management/products/dependencies/import (Import Products permission; columns ImportId, ProductId, DependsOnProductId, Strength Hard|Soft required, InteractionStyles optional (Synchronous;Asynchronous), Description, StartsOn default today, EndsOn): PerGroup by ProductId, so a product's rows apply together or not at all while other products are kept; a product's rows are applied in date order, a strength change is two rows on the pair, and a rerun is refused by the overlap rule rather than duplicated. 50,000-row cap. Events (ProductDependencyAdded/Ended/DetailsUpdated/Removed) are raised on the dependent product and name the product depended on as a related aggregate, so both products' Activity lists them.
 UI: the Dependencies section is a grid; the product's Overview also draws a one-hop map (React Flow) of open links only — used-by on the left, depends-on on the right. A link rolled up from a descendant is drawn from that descendant, never as an edge from the parent. Every product nests inside boxes for what contains it, on both sides and to any depth, from the ProductDependencyDto's ProductPath/DependsOnProductPath (full chains from each end's root); containment is never drawn as an edge. Nodes are keyed per column, so a product with links on both sides is drawn once in each. Nodes and boxes link to their product; the canvas has zoom, fit, fullscreen and save-as-image (PNG/SVG, rendered from the graph rather than screenshotted). An All / Hard only control on the canvas redraws the map from hard links alone (map only; the grid is not filtered): products and boxes left with no link are not drawn, the per-side cap applies after the filter and the overflow count is of hard links, and a product with only soft links keeps its card with an empty state. The choice is kept for the browser session (sessionStorage), and a saved image is not marked as filtered. A capped column ends in a "+N more" node that draws the rest in place; the card's corner link is always "View all". Any product off to one side can be expanded (+ on its outer edge) to draw its own links one column further out, outward only (a provider's providers, a consumer's consumers), with no depth limit. An expansion uses the per-product GET dependencies endpoint (no dedicated API) but keeps only links the expanded product holds itself — the endpoint's subtree rollup is discarded — and drops links touching the subject's subtree. A product is drawn once per side, in the column where it was first found; a link reaching it again is drawn as a backward edge (left side to right side) or a same-column curve, and each link is drawn once. Each expansion is capped with its own "+N more for X". Collapsing removes everything the expansion reached, nested expansions included. Expansions are kept per subject in sessionStorage. Renaming or moving a product invalidates every dependency list, because rows carry both ends' names and ancestry.
 
 ### External Id
@@ -687,21 +702,27 @@ Counts and totals accompany every average so windows and scopes combine without 
 
 ### Azure DevOps Boards Connector
 
-One-way sync (Azure DevOps → Wayd):
-- Azure DevOps Project → Wayd Workspace
+One-way sync (Azure DevOps → Wayd; synced records are Managed):
+- Azure DevOps Process → Wayd Work Process (initialized per process)
+- Azure DevOps Project → Wayd Workspace (initialized per project, once its process is)
 - Azure DevOps Work Item → Wayd Work Item
-- Azure DevOps Work Item Type → Wayd Work Type
-- Azure DevOps Area → Team ↔ Work Item association
-- Azure DevOps Iteration → Sprint / PI association
+- Azure DevOps Work Item Type → Wayd Work Type (new types land in the Other tier); its states → Work Statuses and a Workflow
+- Azure DevOps Team → Wayd Team, through the workspace's Team Mappings; a work item's team is the team that owns its iteration
+- Azure DevOps Iteration → Wayd Sprint: type Sprint when it has no child iterations and both dates, otherwise type Iteration. Mapping a sprint to a PI iteration is done in Wayd
+- Azure DevOps revisions → Work Item History
 - Azure DevOps identity → Employee, via ExternalIdentityMapping
 
-Requires PAT with Work Items Read scope. Each org linked by one connection. Background sync via Hangfire.
+Requires a PAT with Work Items (read) and Project and Team (read); Wayd never writes back. Each org linked by one connection. Background sync via Hangfire (differential and full).
 
 People on a work item (Assigned To / Created By / Changed By) resolve through `ExternalIdentityMapping`, keyed on the external system's stable identity id rather than an email address. Resolution is three-tier: an admin's mapping or ignore decision wins and is never revised by a sync; otherwise the reported address is auto-matched against every work email an employee has; otherwise the identity is recorded as Unmapped for review on the connection's People tab. Mapping or ignoring an identity repoints work items already synced, using the identity ids stored on WorkItemsExtended — so an item synced before those ids existed needs a full sync before a mapping can reach it.
 
-### Microsoft Graph
+### People Connectors
 
-Syncs employees/users from Azure AD into Organization domain.
+Entra (Microsoft Entra ID through Microsoft Graph) and Workday (the Staffing SOAP service) sync employees and contingent workers into the Organization domain's Employee records, with their work email addresses. At most one People connection can be active at a time, so one person never becomes two employees. Connectors declare capabilities (`ConnectorCapability`: WorkItems, People, AiProvider); the capability, not the connector, decides which sync runs. Azure OpenAI is an AI provider and syncs nothing.
+
+### MCP Server
+
+The API exposed as agent tools over the Model Context Protocol, two ways: the hosted endpoint `/mcp` on the API (Streamable HTTP, behind the `mcp-server` feature flag, 404 while it is off; sign-in or a Personal Access Token in `x-api-key`), and the `@wayd/mcp` npm package (a PAT, Node.js 22+). Both offer the same tools under the same names; the hosted endpoint also serves the product skills in `skills/` as prompts and through a skills tool. Tools act as the signed-in user, so permissions and delivery leadership apply as in the UI.
 
 ---
 
@@ -723,10 +744,10 @@ Not every job type can be scheduled. `SchedulableBackgroundJobTypes` is the sing
 ### Bulk Imports
 Every area with CSV import exposes one `POST .../import` endpoint per file kind (multipart, field `file`; strategic initiatives, release packages and releases take a second file whose lines nest under a row of the first). A post records the file as an ImportProcess (a "run"), queues it to a background worker, waits up to `Imports:ResponseWaitSeconds` (default 5) and answers with the run — 200 if finished, else 202 with a Location. Rows reference each other by `ImportId`, the caller's own per-file key (≤128 chars, case-insensitively unique, defaults to row position); it is never written onto created records — each applied row reports the id of the record it created, and the next file references those ids.
 
-Constraints: an ImportDefinition declares `Atomicity` (PerRow: rejected rows are reported and the rest kept; Atomic: one transaction, one bad row keeps all of it out; PerGroup: rows sharing a group key the definition derives from the row, or from the whole file where one row cannot say — stored as ImportProcessRow.GroupKey at submission — apply together or not at all, the rest kept. A PerGroup chunk never splits a group; when a row is rejected the runner detaches everything the attempt tracked and reruns the chunk without the rejected groups, marking their other rows "Not applied: another row for the same {noun} was rejected (import id X)". The registry refuses a PerGroup definition with more than one pass, since each pass saves before the next. Every PPM import is PerGroup: portfolios, programs, projects and strategic initiatives group by the record the row creates — a row is not per-row-safe because it creates and then transitions, so a rejection partway must discard what it staged, which only the PerGroup path does — while tasks and stages group by the project, because a child task names its parent's ImportId in the same file, the per-project task number advances as rows apply, and a project's stages are read against one another. The Product Management imports are PerGroup too, except deployments, which are PerRow (no natural key, and a row is added only after its whole walk succeeds): products group by the root of their tree, derived from the whole file because a child names its parent's ImportId in the same file; versions and dependencies by ProductId; packages, releases and environments by the record the row creates, a package's manifest and a release's contents riding on its row), `MaxRows` (50,000 PerRow — employees — and PerGroup product dependencies; 10,000 Atomic, and every PPM and other Product Management import, which applies PerGroup or PerRow but keeps the lower cap until a larger file is proven end to end), `PreflightMaxRows` (defaults to MaxRows; set to 10,000 by the employee import, because a preflight is one transaction rolled back at the end and cannot release locks chunk by chunk, so the file size is the lock time) and `ChunkSize` (500; PerRow and chunked PerGroup imports save and record progress per chunk, a stop takes effect at a chunk boundary). Over-cap and empty files are rejected before queuing. An optional `submissionGroupId` query parameter (any non-empty GUID) is recorded on the run so files posted as one operation can be found together; it is a label only and links nothing — a program still names its portfolio by the id the portfolio run reported. A run is claimed at most 3 times before it ends Failed; `import-stall-recovery` (every 5 min) republishes a run queued 15 min without a worker and fails one silent for 30 min; `import-retention-sweep` (nightly) clears stored row payloads 30 days after completion, after which rows cannot be retried. Both jobs are scheduled on first start. Runs are visible under Settings → Imports; seeing a run requires the permission that submits its kind, or the read-only View Imports oversight grant.
+Constraints: an ImportDefinition declares `Atomicity` (PerRow: rejected rows are reported and the rest kept; Atomic: one transaction, one bad row keeps all of it out; PerGroup: rows sharing a group key the definition derives from the row, or from the whole file where one row cannot say — stored as ImportProcessRow.GroupKey at submission — apply together or not at all, the rest kept. A PerGroup chunk never splits a group; when a row is rejected the runner detaches everything the attempt tracked and reruns the chunk without the rejected groups, marking their other rows "Not applied: another row for the same {noun} was rejected (import id X)". The registry refuses a PerGroup definition with more than one pass, since each pass saves before the next. Every PPM import is PerGroup: portfolios, programs, projects and strategic initiatives group by the record the row creates — a row is not per-row-safe because it creates and then transitions, so a rejection partway must discard what it staged, which only the PerGroup path does — while tasks and stages group by the project, because a child task names its parent's ImportId in the same file, the per-project task number advances as rows apply, and a project's stages are read against one another. The PPM finalization import, the last step, closes programs and portfolios once their contents are in (things can be added only to an open program or portfolio, but one closes only when everything inside is closed): PerGroup keyed on the record it closes, applied as a whole set with programs before portfolios. The planning interval, objective, risk, team, team membership, team member and strategic theme imports are Atomic. The Product Management imports are PerGroup too, except deployments, which are PerRow (no natural key, and a row is added only after its whole walk succeeds): products group by the root of their tree, derived from the whole file because a child names its parent's ImportId in the same file; versions and dependencies by ProductId; packages, releases and environments by the record the row creates, a package's manifest and a release's contents riding on its row), `MaxRows` (50,000 PerRow — employees — and PerGroup product dependencies; 10,000 Atomic, and every PPM and other Product Management import, which applies PerGroup or PerRow but keeps the lower cap until a larger file is proven end to end), `PreflightMaxRows` (defaults to MaxRows; set to 10,000 by the employee import, because a preflight is one transaction rolled back at the end and cannot release locks chunk by chunk, so the file size is the lock time) and `ChunkSize` (500; PerRow and chunked PerGroup imports save and record progress per chunk, a stop takes effect at a chunk boundary). Over-cap and empty files are rejected before queuing. An optional `submissionGroupId` query parameter (any non-empty GUID) is recorded on the run so files posted as one operation can be found together; it is a label only and links nothing — a program still names its portfolio by the id the portfolio run reported. A run is claimed at most 3 times before it ends Failed; `import-stall-recovery` (every 5 min) republishes a run queued 15 min without a worker and fails one silent for 30 min; `import-retention-sweep` (nightly) clears stored row payloads 30 days after completion, after which rows cannot be retried. Both jobs are scheduled on first start. Runs are visible under Settings → Imports; seeing a run requires the permission that submits its kind, or the read-only View Imports oversight grant.
 
 ### System Settings
-Organization-wide settings are typed sections in code, stored one JSON row per section in `App.SystemSettings`. A section is a record implementing `ISettingsSection<TSelf>` with a stable `Key`, whose property initializers are its defaults; a missing row or property reads as the default, so adding a setting needs no migration. Modules read a section through `ISettings<TSection>` (cached, 5-minute expiry across API instances) and never touch keys or JSON. Saves go through `ISystemSettingsStore.Save`, which validates with the section's FluentValidation validator, guards concurrent saves with a row version, and raises `SystemSettingsSectionValuesChangedEvent` carrying every value before and after, so each change is in the Activity log. Section keys and property names cannot be renamed once shipped. The first section is Scheduling (Settings → System → Scheduling): `DefaultTimeZone` (IANA id, default UTC) and `DefaultCommitmentGraceDays` (0–14, default 1), which pre-fill new team operating models and are never inherited when reading a team's own values. The Sprint Metrics section (Settings → System → Sprint Metrics, key `sprintMetrics`) holds `SprintWindow` (3–12, default 7): how many of a team's most recent completed standard sprints its velocity, predictability and say/do are averaged over, the same for every team. Permissions: `SystemSettings.View` and `.Update`.
+Organization-wide settings are typed sections in code, stored one JSON row per section in `App.SystemSettings`. A section is a record implementing `ISettingsSection<TSelf>` with a stable `Key`, whose property initializers are its defaults; a missing row or property reads as the default, so adding a setting needs no migration. Modules read a section through `ISettings<TSection>` (cached, 5-minute expiry across API instances) and never touch keys or JSON. Saves go through `ISystemSettingsStore.Save`, which validates with the section's FluentValidation validator, guards concurrent saves with a row version, and raises `SystemSettingsSectionValuesChangedEvent` carrying every value before and after, so each change is in the Activity log. Section keys and property names cannot be renamed once shipped. The first section is Scheduling (Settings → System → Scheduling, key `scheduling`): `DefaultTimeZone` (IANA id, default UTC), `DefaultCommitmentGraceDays` (0–14, default 1) and `DefaultWorkingDays` (default Monday–Friday), which pre-fill new team operating models and are never inherited when reading a team's own values; `DefaultHolidayCalendarId`, the holidays of anyone and any team with no calendar of their own; and `WorkingDayHours` (default 8), the length of a person-day. The Sprint Metrics section (Settings → System → Sprint Metrics, key `sprintMetrics`) holds `SprintWindow` (3–12, default 7): how many of a team's most recent completed standard sprints its velocity, predictability and say/do are averaged over, the same for every team. Permissions: `SystemSettings.View` and `.Update`.
 
 ### Result Pattern
 Handlers return Result<T> from CSharpFunctionalExtensions. No exceptions for business logic.
@@ -765,23 +786,32 @@ Planning
   Planning Interval → contains → Iteration
   Sprint → mapped to → Iteration (1 per team per iteration)
   Objective → linked to → Work Item
-  Predictability = completed committed objectives / total committed objectives
+  Predictability = completed objectives (stretch included) / committed objectives, capped at 100%
 
 Work Management
   Workspace → uses → Work Process → defines → Work Type ↔ Workflow
   Workspace → contains → Work Item
   Sprint → contains → Work Item
-  Work Item → has → Status → belongs to → Status Category
+  Work Item → has → Status → placed in → Status Category (by its type's workflow)
   Work Item → depends on → Work Item (predecessor/successor with health)
-  Work Item → parent of → Work Item (Portfolio tier only, higher level required)
+  Work Item → parent of → Work Item (parent Portfolio tier; a Portfolio child needs a higher-level parent)
 
 PPM
   Portfolio → contains → Program → groups → Project
   Portfolio → contains → Strategic Initiative → tracks → KPI
+  Strategic Initiative → links → Project
+  Employee → holds roles on → Portfolio, Program, Project, Strategic Initiative
   Project → has → Lifecycle → defines → Stage → copied to → Stage → contains → Task
-  Strategic Theme → tags → Project, Program, Strategic Initiative
+  Strategic Theme → tags → Project, Program
 
 Strategic Management
-  Vision (one Active) → guides → Strategy
+  Vision (one Active); Strategy (independent of visions)
   Strategic Theme → referenced by → PPM entities
+
+Product Management
+  Product → contains → Product (tree); Product → depends on → Product (not within its own tree)
+  Version → cut against → releasable Product
+  Release Package → manifest of → Versions
+  Release → carries → Versions and Release Packages
+  Deployment → of one → Version or Release Package → into → Deployment Environment
 ```

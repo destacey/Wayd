@@ -24,6 +24,17 @@ The switch between them is the pair of icons above the catalog — a hierarchy i
 
 Filtering in either view searches the whole catalog rather than the current branch.
 
+## The Product Page
+
+A product's page is divided into sections:
+
+- **Overview** — tiles counting its **Products** (direct children) and how many of those are **Releasable Products**, plus, on a releasable product, **Releases (90d)**: the versions that shipped in the last 90 days, counted on the day each shipped, beside the total. Below them sits the [dependency map](#the-map-on-overview).
+- **Products** — the products directly beneath it, with the count on the tab.
+- **Dependencies** — what it relies on and what relies on it; see [Dependencies](#dependencies).
+- **Releases** — the [releases](./delivery.mdx#releases) announced under it. A release spanning product lines names no product, so it is not listed here. Shown only with `Permissions.Releases.View`.
+- **Versions** — the [versions](./delivery.mdx#versions) cut against it. Shown only on a [releasable type](#product-types), where a version can exist.
+- **Status History** and **Activity** — see [Status History](#status-history) and [Activity](#activity).
+
 ## Product Types
 
 Every product carries a **type**, which is what the organization calls that kind of thing. Types are data rather than a fixed list, so the vocabulary can match how your organization already talks.
@@ -44,13 +55,15 @@ Wayd seeds a starting set:
 
 **Releasable** is the flag that carries real weight: it decides whether versions can be cut against a node. Grouping nodes like Product Line and Platform are not versioned in their own right — the versions are cut against the services beneath them.
 
-:::note Retyping is constrained by versions
+:::note[Retyping is constrained by versions]
 A type cannot be changed to a non-releasable one once versions exist against the product. Those versions would otherwise be left describing something that cannot be versioned.
 
 Releases do not constrain retyping. A release is an announcement and is deliberately not gated on this flag — it usually sits under a product line, which is normally not releasable.
 :::
 
 Types are deactivated rather than deleted, because products already using a type still need to resolve it. Deactivating one stops it being chosen for new products without disturbing existing ones.
+
+Types have no screen of their own: an organization adds or changes them through the product types API, with the `Permissions.ProductTypes.*` permissions. The seeded types are system types — they cannot be renamed, have their releasability changed, or be deleted, only deactivated — so an organization wanting different naming or releasability adds its own beside them. A type of its own can be deleted only while no product uses it.
 
 ## Product Status
 
@@ -143,11 +156,24 @@ Every dependency is either **Hard** or **Soft**, and there is no default:
 
 The choice matters beyond the label. When Wayd shows a provider's outage against the products that rely on it, only a hard dependency will count — so a guessed strength misstates impact in one direction or the other.
 
+### Interaction
+
+A dependency can also record **how** the two products talk — **Synchronous**, **Asynchronous**, or both:
+
+| Interaction | Meaning |
+| --- | --- |
+| **Synchronous** | The product waits for an answer, so the one it depends on has to be up at that moment. |
+| **Asynchronous** | The product sends or receives messages and carries on, so an outage becomes delay rather than failure. |
+
+Strength says whether a product breaks without the other; interaction says whether it breaks at the same moment. Both can be ticked, for a pair that calls for what it needs now and subscribes for what it needs eventually.
+
+Interaction is optional. Left empty, the **Interaction** column reads **Not recorded** — which is not the same as there being no interaction, so it is never shown as blank.
+
 ### Adding a dependency
 
 1. Open the product that **has** the dependency, and go to **Dependencies**
 2. Click **Add Dependency**
-3. Choose the product it **Depends On**, its **Strength**, and optionally what it is for
+3. Choose the product it **Depends On** and its **Strength**, and optionally its **Interaction** and a **Description** of what it is for
 4. Leave **Started** empty to start it today, or backdate it to the day the dependency actually began
 
 The picker hides the product's own children, and shows its parents without letting them be chosen, so the branches beneath them stay reachable.
@@ -158,8 +184,8 @@ A product can hold only one open dependency on another product. It can depend on
 
 Each dependency has its own actions:
 
-- **Edit** rewords its description. Allowed on an ended dependency too.
-- **Change Strength** records a new dependency with the new strength from the day you choose, and ends the current one the day before. The old one stays in the list under **Show ended**, because the time before the change is still judged by the strength that held then. A dependency that started today can change strength from tomorrow; if it was recorded with the wrong strength, remove it and add it again.
+- **Edit** rewords its description, and records its interaction where none was recorded — writing down what was always true changes nothing, so the dependency keeps one period. Allowed on an ended dependency too. Interaction already recorded cannot be changed here.
+- **Change Terms** changes its strength, its interaction, or both. It records a new dependency on the new terms from the **First Day** you choose, and ends the current one the day before. The old one stays in the list under **Show ended**, because the time before the change is still judged by the terms that held then. A dependency that started today can change terms from tomorrow; if it was recorded on the wrong terms, remove it and add it again. Recording an interaction on a dependency that had none, with the strength unchanged, is the exception: the dialog becomes **Record Interaction Styles** and fills it in place without starting a new dependency. An ended dependency cannot change terms.
 - **End** records the last day the dependency held. It stays in the list — turn on **Show ended** to see it — and still counts for the days it held.
 - **Remove** deletes a dependency that was **never true**, such as one recorded against the wrong product, and asks why. Do not use it for a dependency that has simply stopped: removing erases the record of when it held.
 
@@ -182,6 +208,8 @@ Tags carry the classifications that do not change how Wayd behaves — platform,
 Grouping matters: `ios`, `react-native` and `pci-scope` are different kinds of statement. In one flat list, "what platform is this?" requires you to already know which values are platforms. Grouped, it is just a question.
 
 A category may allow one value or several. Tags display as `Category | tag` — the category dimmed — so a bare `gold` reads unambiguously as a tier rather than a support level.
+
+Wayd seeds one category, **Platform** — what a product runs on or targets — which allows several values and holds `web`, `ios`, `android`, `desktop`, `cli` and `server`. Like the seeded types it is a system category and read-only; any other axis, such as tech stack or compliance scope, is added alongside it.
 
 Manage a product's tags from the tag icon in the page header, or from **Manage Tags** in the actions menu.
 
@@ -256,5 +284,6 @@ throughout. See [Can I delete any of this?](./delivery.mdx#can-i-delete-any-of-t
 | Add a product | `Permissions.Products.Create` |
 | Edit, retype, move, tag, change status, link externally, and add, change, end or remove dependencies | `Permissions.Products.Update` |
 | Delete a product | `Permissions.Products.Delete` |
-| [Bulk import](./bulk-import.mdx) products from CSV | `Permissions.Products.Import` |
+| [Bulk import](./bulk-import.mdx) products and their dependencies from CSV | `Permissions.Products.Import` |
 | Manage the type list | `Permissions.ProductTypes.*` |
+| Manage the tag categories and their tags | `Permissions.ProductTagCategories.*` |

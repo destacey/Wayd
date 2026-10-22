@@ -2,7 +2,8 @@
  * Keeps the snapshot the hosted MCP server (`/mcp` in Wayd.Web.Api) is tested against in step with this
  * package. Tool names are a contract with existing skills and prompts, and the hosted server must carry
  * each tool's title, annotations, arguments and the server instructions over unchanged, so the API's
- * integration tests compare its tool list with this snapshot.
+ * integration tests compare its tool list with this snapshot. The hosted server sends these instructions
+ * followed by how to fetch a skill with Skills_Get, a tool only it has.
  *
  * Run with UPDATE_PARITY_SNAPSHOT=1 to rewrite the snapshot after a deliberate change here.
  */

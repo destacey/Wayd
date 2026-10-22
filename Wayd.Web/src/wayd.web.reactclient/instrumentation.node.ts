@@ -1,21 +1,24 @@
-// OpenTelemetry initialization for Node.js runtime
-// This file is only imported when OTEL_EXPORTER_OTLP_ENDPOINT is configured
+// OpenTelemetry initialization for the Node.js server.
+// Imported only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+//
+// The exporter is chosen from OTEL_EXPORTER_OTLP_PROTOCOL. Aspire injects grpc for its dashboard.
+// Datadog's OTLP intake is http/protobuf, and a gRPC exporter pointed at that URL exports nothing.
 
 import { NodeSDK } from '@opentelemetry/sdk-node'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 
 const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-console.log(`Initializing OpenTelemetry with endpoint: ${otlpEndpoint}`)
+console.log(
+  `Initializing OpenTelemetry with endpoint: ${otlpEndpoint} protocol: ${process.env.OTEL_EXPORTER_OTLP_PROTOCOL ?? 'http/protobuf'}`,
+)
 
-// Configure metric export intervals via environment variables
-// This prevents timing validation errors in the SDK
+// Configure metric export intervals via environment variables.
+// The SDK rejects an interval that is not longer than the timeout.
 process.env.OTEL_METRIC_EXPORT_INTERVAL = '5000'
 process.env.OTEL_METRIC_EXPORT_TIMEOUT = '3000'
 
 const sdk = new NodeSDK({
   serviceName: process.env.OTEL_SERVICE_NAME || 'wayd-client',
-  traceExporter: new OTLPTraceExporter(),
   instrumentations: [
     getNodeAutoInstrumentations({
       // Disable fs instrumentation to reduce noise

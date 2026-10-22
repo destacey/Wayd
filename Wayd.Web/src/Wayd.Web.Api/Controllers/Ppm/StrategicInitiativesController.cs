@@ -18,7 +18,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/strategic-initiatives")]
 [ApiVersionNeutral]
 [ApiController]
-[McpTools(McpToolset.Ppm)]
+[McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class StrategicInitiativesController(ILogger<StrategicInitiativesController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<StrategicInitiativesController> _logger = logger;

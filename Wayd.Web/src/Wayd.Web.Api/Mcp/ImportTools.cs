@@ -18,6 +18,9 @@ namespace Wayd.Web.Api.Mcp;
 /// </remarks>
 public static class ImportTools
 {
+    /// <summary>The skill that guides the import tools.</summary>
+    public const string Skill = "wayd-imports";
+
     /// <summary>
     /// Both tools, described from <paramref name="formats"/>; a preflight answers in the shape of
     /// <paramref name="preflightOutput"/>, the response the import endpoints share.
@@ -48,7 +51,7 @@ public static class ImportTools
         {
             Name = "Imports_GetFileFormat",
             Title = "Get import file format",
-            Description = "Get what a kind of import's CSV files must contain, before writing one: each file it takes and whether it is required, and every column with its exact `header` spelling, whether a row must fill it, its type (text, id, date, timestamp, integer, number, boolean), and the only values it accepts where it names one of a fixed set. Every file needs the full header row even where a column is optional. Answered from the API's own description, without reading any data.",
+            Description = "Get what a kind of import's CSV files must contain, before writing one: each file it takes and whether it is required, and every column with its exact `header` spelling, whether a row must fill it, its type (text, id, date, timestamp, integer, number, boolean), and the only values it accepts where it names one of a fixed set. Every file needs the full header row even where a column is optional. Answered from the API's own description, without reading any data. " + SkillTools.Pointer(Skill),
             InputSchema = JsonSerializer.SerializeToElement(new JsonObject
             {
                 ["type"] = "object",
@@ -64,7 +67,7 @@ public static class ImportTools
         public override ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken = default)
         {
             if (ImportType(request, formats, out var format) is not { } importType)
-                return ValueTask.FromResult(ApiToolResult.Error("Invalid arguments for tool 'Imports_GetFileFormat': importType must be one of the listed import keys."));
+                return ValueTask.FromResult(ApiToolResult.InvalidArguments("Invalid arguments for tool 'Imports_GetFileFormat': importType must be one of the listed import keys.", Skill));
 
             var answer = new JsonObject
             {
@@ -203,7 +206,7 @@ public static class ImportTools
             {
                 Name = "Imports_Preflight",
                 Title = "Check an import file",
-                Description = "Check a CSV file against Wayd without importing it. Every row goes through the checks a real import runs, in the same order, against the data as it stands, and nothing is created. Answers with the preflight run once it has finished, or while still running if it takes longer than a few seconds — poll `Imports_GetById` until `isTerminal`. Then read `Imports_GetRows`: Succeeded rows would be imported, Failed rows carry the reason they would be refused, and every rejection is reported at once, even for an all-or-nothing import. To import the checked rows, call `Imports_Apply` with the preflight's id. A file with a column or cell problem is refused outright (400/422) and becomes no run. Call `Imports_GetFileFormat` first for the columns. A preflight holds at most `preflightMaxRows` rows (from `Imports_GetDefinitions`); split a larger file.",
+                Description = "Check a CSV file against Wayd without importing it. Every row goes through the checks a real import runs, in the same order, against the data as it stands, and nothing is created. Answers with the preflight run once it has finished, or while still running if it takes longer than a few seconds — poll `Imports_GetById` until `isTerminal`. Then read `Imports_GetRows`: Succeeded rows would be imported, Failed rows carry the reason they would be refused, and every rejection is reported at once, even for an all-or-nothing import. To import the checked rows, call `Imports_Apply` with the preflight's id. A file with a column or cell problem is refused outright (400/422) and becomes no run. Call `Imports_GetFileFormat` first for the columns. A preflight holds at most `preflightMaxRows` rows (from `Imports_GetDefinitions`); split a larger file. " + SkillTools.Pointer(Skill),
                 InputSchema = JsonSerializer.SerializeToElement(new JsonObject
                 {
                     ["type"] = "object",
@@ -223,11 +226,11 @@ public static class ImportTools
         public override async ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken = default)
         {
             if (ImportType(request, _formats, out var format) is null)
-                return ApiToolResult.Error("Invalid arguments for tool 'Imports_Preflight': importType must be one of the listed import keys.");
+                return ApiToolResult.InvalidArguments("Invalid arguments for tool 'Imports_Preflight': importType must be one of the listed import keys.", Skill);
 
             var arguments = request.Params!.Arguments!;
             if (!arguments.TryGetValue("file", out var main) || main.ValueKind != JsonValueKind.String)
-                return ApiToolResult.Error("Invalid arguments for tool 'Imports_Preflight': file is required.");
+                return ApiToolResult.InvalidArguments("Invalid arguments for tool 'Imports_Preflight': file is required.", Skill);
 
             using var content = new MultipartFormDataContent();
             foreach (var field in _extraFiles.Prepend("file"))
@@ -253,7 +256,7 @@ public static class ImportTools
 
             var response = await services.GetRequiredService<ApiPipeline>().Send(
                 ProtocolTool.Name, caller, "POST", format!.Path, query.ToQueryString(), null, (body, content.Headers.ContentType!.ToString()), cancellationToken);
-            return ApiToolResult.From(response, _output);
+            return ApiToolResult.From(response, _output, skill: Skill);
         }
     }
 }

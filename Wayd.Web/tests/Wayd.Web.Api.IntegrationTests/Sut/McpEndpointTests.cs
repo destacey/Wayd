@@ -296,15 +296,76 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
 
         // Assert
         Assert.NotNull(mcp.ServerCapabilities.Prompts);
-        Assert.Equal(SkillPrompts.All.Select(p => p.ProtocolPrompt.Name), prompts.Select(p => p.Name).Order(StringComparer.Ordinal));
+        Assert.Equal(SkillPrompt.All.Select(p => p.ProtocolPrompt.Name), prompts.Select(p => p.Name).Order(StringComparer.Ordinal));
         var listed = Assert.Single(prompts, p => p.Name == "wayd-ppm");
-        var expected = SkillPrompts.All.Single(p => p.ProtocolPrompt.Name == "wayd-ppm");
+        var expected = SkillPrompt.All.Single(p => p.ProtocolPrompt.Name == "wayd-ppm");
         Assert.Equal(expected.ProtocolPrompt.Title, listed.ProtocolPrompt.Title);
         Assert.Equal(expected.ProtocolPrompt.Description, listed.ProtocolPrompt.Description);
         Assert.Equal(
             expected.Result.Messages.Select(m => ((TextContentBlock)m.Content).Text),
             ppm.Messages.Select(m => Assert.IsType<TextContentBlock>(m.Content).Text));
         Assert.All(ppm.Messages, m => Assert.Equal(Role.User, m.Role));
+    }
+
+    [Fact]
+    public async Task SkillsGet_AnswersWithAnySkill_WhateverToolsetsTheConnectionChose()
+    {
+        // Arrange — a teams-only, read-only connection still reaches the PPM skill
+        await SetFlag(true);
+        var token = await CreateToken();
+        await using var mcp = await Connect(token, "?toolsets=teams&readonly=true");
+        var skill = Skills.All.Single(s => s.Name == "wayd-ppm");
+        var reference = skill.References[0];
+
+        // Act
+        var tools = await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var guide = await mcp.CallToolAsync(SkillTools.Name, new Dictionary<string, object?> { ["name"] = "wayd-ppm" }, cancellationToken: TestContext.Current.CancellationToken);
+        var file = await mcp.CallToolAsync(SkillTools.Name, new Dictionary<string, object?> { ["name"] = "wayd-ppm", ["file"] = reference.Path }, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains(tools, t => t.Name == SkillTools.Name);
+        Assert.NotEqual(true, guide.IsError);
+        Assert.Equal(skill.Body, Assert.IsType<TextContentBlock>(Assert.Single(guide.Content)).Text);
+        Assert.Equal(reference.Text, Assert.IsType<TextContentBlock>(Assert.Single(file.Content)).Text);
+    }
+
+    [Fact]
+    public async Task CallTool_PointsAToolsMissingArgumentToItsSkill()
+    {
+        // Arrange
+        await SetFlag(true);
+        var token = await CreateToken();
+        await using var mcp = await Connect(token);
+
+        // Act
+        var result = await mcp.CallToolAsync("Projects_GetProject", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError);
+        Assert.Equal("Invalid arguments for tool 'Projects_GetProject': idOrKey is required.", ErrorOf(result));
+        Assert.Equal(SkillTools.FailureNote("wayd-ppm"), Assert.IsType<TextContentBlock>(result.Content[^1]).Text);
+    }
+
+    [Fact]
+    public async Task CallTool_PointsARefusedPreflightToTheImportsSkill()
+    {
+        // Arrange — the caller may not import strategic themes, so the import endpoint refuses
+        await SetFlag(true);
+        var token = await CreateToken();
+        await using var mcp = await Connect(token);
+        var arguments = new Dictionary<string, object?>
+        {
+            ["importType"] = "strategic.themes",
+            ["file"] = $"ImportId,Name,Description,State\ns1,MCP {Guid.NewGuid():N},Checked through MCP.,Active\n",
+        };
+
+        // Act
+        var result = await mcp.CallToolAsync("Imports_Preflight", arguments, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError);
+        Assert.StartsWith("API Error: Status 403", ErrorOf(result));
+        Assert.Equal(SkillTools.FailureNote(ImportTools.Skill), Assert.IsType<TextContentBlock>(result.Content[^1]).Text);
     }
 
     [Fact]
@@ -488,7 +549,8 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.True(result.IsError);
         Assert.Equal(
             "Invalid arguments for tool 'Projects_GetStatuses': offset must be a whole number of 0 or more.",
-            result.Content.OfType<TextContentBlock>().Single().Text);
+            ErrorOf(result));
+        Assert.Equal(SkillTools.FailureNote("wayd-ppm"), Assert.IsType<TextContentBlock>(result.Content[^1]).Text);
     }
 
     [Fact]
@@ -630,7 +692,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task CallTool_IsRefused_WhenTheCallerLacksTheEndpointsPermission()
+    public async Task CallTool_IsRefused_WhenTheCallerLacksTheEndpointsPermission_PointingToTheToolsSkill()
     {
         // Arrange
         await SetFlag(true);
@@ -642,7 +704,8 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
 
         // Assert
         Assert.True(result.IsError);
-        Assert.StartsWith("API Error: Status 403", TextOf(result));
+        Assert.StartsWith("API Error: Status 403", ErrorOf(result));
+        Assert.Equal(SkillTools.FailureNote("wayd-ppm"), Assert.IsType<TextContentBlock>(result.Content[^1]).Text);
     }
 
     [Fact]
@@ -667,7 +730,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         // Assert
         Assert.False(direct.IsSuccessStatusCode, "the setup must be one the endpoint refuses");
         Assert.True(result.IsError);
-        Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
+        Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", ErrorOf(result));
     }
 
     [Fact]
@@ -695,7 +758,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.False(direct.IsSuccessStatusCode, "the setup must be one the endpoint refuses");
         Assert.NotEqual(HttpStatusCode.UnsupportedMediaType, direct.StatusCode);
         Assert.True(result.IsError);
-        Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", TextOf(result));
+        Assert.StartsWith($"API Error: Status {(int)direct.StatusCode}", ErrorOf(result));
     }
 
     [Fact]
@@ -741,6 +804,9 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
                 [new KeyValuePair<string, string?>("ApiSettings:PublicUrl", publicUrl)])));
 
     private static string TextOf(CallToolResult result) => Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text;
+
+    /// <summary>A failed result's reason, the block before any note pointing to the tool's skill.</summary>
+    private static string ErrorOf(CallToolResult result) => Assert.IsType<TextContentBlock>(result.Content[0]).Text;
 
     private static JsonObject StructuredContentOf(CallToolResult result) =>
         Assert.IsType<JsonObject>(JsonNode.Parse(Assert.NotNull(result.StructuredContent).GetRawText()));

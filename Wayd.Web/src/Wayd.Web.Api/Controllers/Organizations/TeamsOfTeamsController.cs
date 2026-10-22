@@ -28,7 +28,7 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/teams-of-teams")]
 [ApiVersionNeutral]
 [ApiController]
-[McpTools(McpToolset.Teams)]
+[McpTools(McpToolset.Teams, "wayd-teams")]
 public class TeamsOfTeamsController : ControllerBase
 {
     private readonly ILogger<TeamsOfTeamsController> _logger;

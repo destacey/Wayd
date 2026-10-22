@@ -9,7 +9,7 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 [Route("api/user-management/users")]
 [ApiVersionNeutral]
 [ApiController]
-[McpTools(McpToolset.Teams)]
+[McpTools(McpToolset.Teams, "wayd-users")]
 public class UsersController(IUserService userService, IDispatcher dispatcher) : ControllerBase
 {
     private readonly IUserService _userService = userService;

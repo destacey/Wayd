@@ -20,7 +20,7 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-[McpTools(McpToolset.Products)]
+[McpTools(McpToolset.Products, "wayd-products")]
 public class ProductTypesController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;

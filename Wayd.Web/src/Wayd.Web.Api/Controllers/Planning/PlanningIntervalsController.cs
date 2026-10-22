@@ -34,7 +34,7 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [Route("api/planning/planning-intervals")]
 [ApiVersionNeutral]
 [ApiController]
-[McpTools(McpToolset.Planning)]
+[McpTools(McpToolset.Planning, "wayd-pi")]
 public class PlanningIntervalsController : ControllerBase
 {
     private readonly ILogger<PlanningIntervalsController> _logger;

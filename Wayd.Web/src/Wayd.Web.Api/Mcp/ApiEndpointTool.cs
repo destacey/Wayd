@@ -15,7 +15,7 @@ namespace Wayd.Web.Api.Mcp;
 /// A <see cref="Paged"/> tool also takes <see cref="ResultBounds.OffsetArgument"/>, which the tool reads
 /// itself to slice the endpoint's answer and never sends.
 /// </remarks>
-public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string pathTemplate, IReadOnlyList<ToolArgument> arguments, ToolOutput? output, bool paged = false) : McpServerTool
+public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string pathTemplate, IReadOnlyList<ToolArgument> arguments, ToolOutput? output, bool paged = false, string? skill = null) : McpServerTool
 {
     /// <summary>The HTTP method the tool sends.</summary>
     public string HttpMethod { get; } = httpMethod;
@@ -28,6 +28,9 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
 
     /// <summary>Whether the tool answers with a list and takes an offset to page through it.</summary>
     public bool Paged { get; } = paged;
+
+    /// <summary>The skill that guides the tool, which a failed call's result points to; null names none.</summary>
+    public string? Skill { get; } = skill;
 
     /// <inheritdoc />
     public override Tool ProtocolTool { get; } = protocolTool;
@@ -52,7 +55,7 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
             && offsetValue.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
             && !TryReadOffset(offsetValue, out offset))
         {
-            return ApiToolResult.Error($"Invalid arguments for tool '{ProtocolTool.Name}': {ResultBounds.OffsetArgument} must be a whole number of 0 or more.");
+            return ApiToolResult.InvalidArguments($"Invalid arguments for tool '{ProtocolTool.Name}': {ResultBounds.OffsetArgument} must be a whole number of 0 or more.", Skill);
         }
 
         var path = new StringBuilder(PathTemplate);
@@ -69,7 +72,7 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
             {
                 case ArgumentLocation.Path:
                     if (!hasValue)
-                        return ApiToolResult.Error($"Invalid arguments for tool '{ProtocolTool.Name}': {argument.Name} is required.");
+                        return ApiToolResult.InvalidArguments($"Invalid arguments for tool '{ProtocolTool.Name}': {argument.Name} is required.", Skill);
                     path.Replace($"{{{argument.Name}}}", Uri.EscapeDataString(Scalar(value)));
                     break;
 
@@ -98,7 +101,7 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
 
         var response = await pipeline.Send(ProtocolTool.Name, caller, HttpMethod, path.ToString(), query.ToQueryString(), headers, body, cancellationToken);
         var filters = Arguments.Where(a => a.Location == ArgumentLocation.Query).Select(a => a.Name).ToList();
-        return ApiToolResult.From(response, output, new ResultBounds(filters, Paged, offset));
+        return ApiToolResult.From(response, output, new ResultBounds(filters, Paged, offset), Skill);
     }
 
     /// <summary>

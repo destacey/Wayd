@@ -145,6 +145,19 @@ public sealed class McpToolFilterTests
     }
 
     [Fact]
+    public void Allows_OffersAToolInNoToolset_WhateverToolsetsWereChosen()
+    {
+        // Arrange
+        var filter = new McpToolFilter(new HashSet<McpToolset> { McpToolset.Ppm }, true);
+
+        // Act
+        var allowed = (Read: filter.Allows(null, _read), Write: filter.Allows(null, _write));
+
+        // Assert — still bound by read-only mode
+        allowed.Should().Be((true, false));
+    }
+
+    [Fact]
     public void Allows_OffersOnlyToolsAnnotatedReadOnly_WhenReadOnly()
     {
         // Arrange

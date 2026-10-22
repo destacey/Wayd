@@ -39,9 +39,12 @@ public sealed record McpToolFilter(IReadOnlySet<McpToolset>? Toolsets, bool Read
     private static readonly FrozenDictionary<string, McpToolset> _byName =
         Enum.GetValues<McpToolset>().ToFrozenDictionary(Name, StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Whether a tool in <paramref name="toolset"/> with <paramref name="annotations"/> is offered.</summary>
-    public bool Allows(McpToolset toolset, ToolAnnotations? annotations) =>
-        (Toolsets is null || Toolsets.Contains(toolset))
+    /// <summary>
+    /// Whether a tool in <paramref name="toolset"/> with <paramref name="annotations"/> is offered; a tool in
+    /// no toolset is offered whatever toolsets were chosen.
+    /// </summary>
+    public bool Allows(McpToolset? toolset, ToolAnnotations? annotations) =>
+        (toolset is null || Toolsets is null || Toolsets.Contains(toolset.Value))
         && (!ReadOnly || annotations?.ReadOnlyHint == true);
 
     /// <summary>Reads the filter from <paramref name="request"/>, or why it cannot be read.</summary>

@@ -24,13 +24,13 @@ This file captures compact repo-specific lessons that future coding agents shoul
 
 - Application handlers use EF Core DbContext directly, not repositories.
 - New async methods should not use an `Async` suffix.
-- Use NodaTime (`Instant`, `LocalDate`) in application/domain code. Convert API `DateTime` inputs at the controller boundary.
+- Use NodaTime (`Instant`, `LocalDate`) in application/domain code and in API request/response models too; the generated client turns a `LocalDate` into a `"YYYY-MM-DD"` string and an `Instant` into a `Date`. Do not add `DateTime` to a new model.
 - Controllers should stay thin and delegate to commands/queries via `IDispatcher` (Wolverine). Handlers must be `public`.
 - Business validation should use `Result<T>` and FluentValidation where appropriate, not business exceptions.
 - Types in `Wayd.Web.Api/Models` are named `*Request` / `*Response`. "Dto" means a type defined in an Application project's `Dtos/` folder.
 - Do not add `AsNoTracking()` to a query that projects to DTOs, scalars, or anonymous types holding no entity instances (`Select`, `ProjectToType`): there is nothing to track. A projection that returns an entity instance is tracked, so it, like a query returning entities read but not saved, still takes `AsNoTracking()`.
 - With a primary constructor, assign each parameter to a `private readonly _field` and use the field in method bodies.
-- AI provider connectors (Azure OpenAI, OpenAI) are called on demand and have nothing to sync. Sync runners, sync buttons and sync dispatch gate on `ConnectorCategory.WorkSync` / `PeopleSync`; `RunSync` answers 400 for an AI provider.
+- AI provider connectors (Azure OpenAI) are called on demand and have nothing to sync. Sync runners, sync buttons and sync dispatch gate on `connector.HasCapability(ConnectorCapability.WorkItems)` / `People`; the connection sync endpoint answers 400 for a connector with neither.
 
 ## Local Environment
 
@@ -42,7 +42,7 @@ This file captures compact repo-specific lessons that future coding agents shoul
 
 - Use RTK Query for API data access and cache tags.
 - Optional/heavy reports and grids are commonly loaded with `next/dynamic` and `ssr: false`.
-- Existing details pages often open optional reports as closeable dynamic tabs from `PageActions`.
+- Detail pages use `RecordLayout`: sections in a rail, with reports as rail entries in a **Reports** group, never appended tabs; `PageActions` holds the record-level actions. See `docs/contributing/record-pages.mdx`.
 - Ant Design theme tokens and CSS variables are preferred. Do not hardcode visual colors.
 - The frontend lint script runs `eslint .` even when file paths are passed, so unrelated warnings may appear.
 
@@ -76,4 +76,4 @@ This file captures compact repo-specific lessons that future coding agents shoul
   - Query: `GetEmployeeWorkItemsQuery` in `Wayd.Work.Application/WorkItems/Queries`.
   - Endpoint: `GET /api/organization/employees/{id}/work-items`.
   - Frontend wrapper: `EmployeeCycleTimeReport` in `components/common/work/cycle-time-report.tsx`.
-  - Employee details page opens it from `Reports > Cycle Time Report`.
+  - Employee details page lists it as **Cycle Time** under **Reports** in the section rail.

@@ -101,7 +101,19 @@ Never use `DateTime.UtcNow`. Always inject `IDateTimeProvider` for the current t
 
 ### Result Pattern
 
-Return `Result&lt;T&gt;` or `Result` from command/query handlers. Never throw exceptions for business logic failures.
+Return `Result<T>` or `Result` from command handlers; `CqrsPatternTests` fails one that returns anything else. Query handlers return their response type: usually a nullable DTO, and a `Result<TDto>` when the query can fail for a reason other than finding nothing. Never throw exceptions for business logic failures.
+
+### Primary constructors
+
+With a primary constructor, assign each parameter to a `private readonly _field` and use the field in
+method bodies, as handlers and controllers do:
+
+```csharp
+public sealed class DeleteScoringModelCommandHandler(IWaydDbContext waydDbContext, /* … */)
+    : ICommandHandler<DeleteScoringModelCommand>
+{
+    private readonly IWaydDbContext _waydDbContext = waydDbContext;
+```
 
 ### Package Management
 
@@ -109,7 +121,7 @@ Uses **Central Package Management** via `Directory.Packages.props`. All package 
 
 ### Entity Configuration
 
-Use fluent API in separate configuration classes implementing `IEntityTypeConfiguration&lt;T&gt;`. Never use data annotations on entities.
+Use fluent API in separate configuration classes implementing `IEntityTypeConfiguration<T>`. Never use data annotations on entities.
 
 ## Frontend (React/Next.js)
 

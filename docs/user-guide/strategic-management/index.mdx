@@ -31,7 +31,6 @@ graph TD
     Strategy -.->|informed by| ST
     ST -->|tags| Proj
     ST -->|tags| Prog
-    ST -->|tags| SI
     PF -->|contains| SI
     SI -->|links to| Proj
 ```
@@ -39,6 +38,10 @@ graph TD
 - **[Projects](../ppm/projects.mdx)** and **[Programs](../ppm/portfolios-programs.mdx#programs)** are tagged with strategic themes to show alignment.
 - **[Strategic Initiatives](../ppm/strategic-initiatives.mdx)** within [portfolios](../ppm/portfolios-programs.mdx#portfolios) track [KPIs](../ppm/strategic-initiatives.mdx#kpis) that measure strategic progress.
 - Strategic themes appear in PPM navigation under **PPM > Strategic Themes**.
+
+:::note[Visions and strategies have no screens yet]
+Strategic themes are managed in the app. Visions and strategies are managed only through the API: there is no page or menu entry for them.
+:::
 
 ## Key Concepts
 
@@ -49,24 +52,25 @@ A **Vision** describes the desired future state of the organization. It provides
 Every vision has:
 - **Description** — The vision statement
 - **State** — Proposed, Active, or Archived
-- **Dates** — Start and optional end timestamps
+- **Dates** — Start and optional end timestamps, set by its transitions
 
 **Lifecycle:**
 
 ```mermaid
 stateDiagram-v2
     [*] --> Proposed
-    Proposed --> Active : Start date required
-    Active --> Archived : End date required
+    Proposed --> Active : Sets the start
+    Active --> Archived : Sets the end
 ```
 
 - **Proposed** — Being drafted
-- **Active** — The current organizational vision (requires start date)
-- **Archived** — A previous vision kept for historical reference (requires end date)
+- **Active** — The current organizational vision. Activating stamps the moment it happens as the start
+- **Archived** — A previous vision kept for historical reference. Archiving stamps the moment it happens as the end
 
 **Business rules:**
 - Only **one vision** can be Active at any time — activating a new vision requires archiving the current one first
-- Archived visions cannot have overlapping date ranges
+- Only a Proposed vision can be activated, and only an Active one archived
+- Archived visions cannot have overlapping date ranges, and a vision cannot be activated inside the most recently archived vision's range
 - Archived visions cannot be updated
 
 ### Strategies
@@ -76,16 +80,9 @@ A **Strategy** defines the approach for achieving the vision. Strategies are ind
 Every strategy has:
 - **Name** and optional **Description**
 - **Status** — Draft, Active, Completed, or Archived
-- **Date Range** — Optional start and end dates
+- **Date Range** — Optional start date, with an optional end date
 
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft --> Active
-    Active --> Completed
-    Active --> Archived
-    Completed --> Archived
-```
+A strategy's status is set directly when it is created or updated. Wayd enforces no order between Draft, Active, Completed, and Archived, and no dates for any of them.
 
 ### Strategic Themes
 
@@ -105,7 +102,7 @@ stateDiagram-v2
 **Business rules:**
 - Only Proposed themes can be deleted
 - State transitions publish domain events consumed by other domains (PPM maintains a synchronized copy)
-- Active themes can be used to tag projects, programs, and strategic initiatives
+- Active themes can be used to tag projects and programs
 
 A theme's detail page carries an **Activity** section holding its recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx).
 
@@ -115,7 +112,7 @@ Strategic themes are referenced across Wayd to ensure organizational alignment:
 
 - **[Projects](../ppm/projects.mdx)** can be tagged with strategic themes to show which priorities they support
 - **[Programs](../ppm/portfolios-programs.mdx#programs)** can be tagged with strategic themes for portfolio-level alignment
-- **[Strategic Initiatives](../ppm/strategic-initiatives.mdx)** within portfolios track [KPIs](../ppm/strategic-initiatives.mdx#kpis) to measure strategic progress
+- **[Strategic Initiatives](../ppm/strategic-initiatives.mdx)** within portfolios track [KPIs](../ppm/strategic-initiatives.mdx#kpis) to measure strategic progress. Initiatives carry no themes of their own
 
 This cross-domain tagging enables organizations to answer questions like:
 - "Which projects support our Digital Transformation theme?"
@@ -134,9 +131,11 @@ Where a project's work is attributed to themes, such as in the [Work Distributio
 
 ### Defining a Vision
 
+Through the API:
+
 1. Create a new vision with a description of the desired future state
 2. Review and refine the vision statement
-3. **Activate** the vision (requires start date; only one vision can be Active)
+3. **Activate** the vision (only one vision can be Active)
 4. When the vision evolves, **Archive** the current vision and create a new one
 
 ### Defining Strategic Themes
@@ -150,25 +149,27 @@ Where a project's work is attributed to themes, such as in the [Work Distributio
 ### Tagging Projects with Themes
 
 1. Navigate to a project's detail page
-2. Look for the **Strategic Themes** section
-3. Add one or more active strategic themes
+2. Choose **Edit** from the **Actions** menu
+3. Add one or more active strategic themes in **Strategic Themes**, and save
 4. The project is now aligned to those themes, visible in portfolio and program views
+
+Programs are tagged the same way, from **Edit** on the program's detail page. Themes can also be chosen when a project or program is created.
 
 ### Viewing Strategic Alignment
 
 Portfolio and program views aggregate strategic theme tags from their child projects. Use the following views to assess alignment:
 
-- **[Portfolio > Projects section](../ppm/portfolios-programs.mdx#portfolio-detail-page)** — Filter or group by strategic theme to see investment distribution
+- **[Portfolio > Overview](../ppm/portfolios-programs.mdx#portfolio-detail-page)** — The Programs and Projects tabs chart their collection by strategic theme
+- **[Portfolio > Projects section](../ppm/portfolios-programs.mdx#portfolio-detail-page)** — Filter the Strategic Themes column to see investment distribution
 - **[Portfolio > Programs section](../ppm/portfolios-programs.mdx#portfolio-detail-page)** — See which programs support which themes
-- **[Portfolio > Strategic Initiatives section](../ppm/portfolios-programs.mdx#portfolio-detail-page)** — Track [KPI](../ppm/strategic-initiatives.mdx#kpis) progress for theme-aligned initiatives
-- **[Program Detail](../ppm/portfolios-programs.mdx#program-detail-page)** — View strategic themes at the program level
+- **[Program Detail](../ppm/portfolios-programs.mdx#program-detail-page)** — View the program's own themes, and its Overview's chart of its projects by theme
 
 ## Business Rules Summary
 
 | Rule | Description |
 |------|-------------|
 | Single active vision | Only one vision can be Active at any time |
-| Vision dates | Active requires start date; Archived requires end date |
+| Vision dates | Activating sets the start; archiving sets the end |
 | No overlapping archives | Archived visions cannot have overlapping date ranges |
 | Archived immutability | Archived visions cannot be updated |
 | Theme deletion | Only Proposed themes can be deleted |

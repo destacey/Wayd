@@ -9,7 +9,7 @@ audience: [user, agent]
 
 A **scoring model** defines how items are scored and ranked — for example, prioritizing a backlog by [WSJF](#worked-example-wsjf) (Weighted Shortest Job First). Each model is a set of **rated criteria** combined by one or more **output formulas**, with one formula designated as the primary **score**.
 
-Scoring models are managed under **Settings → Scoring → Scoring Models** and require the `Permissions.ScoringModels.*` permissions to view and manage. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring) so projects in that portfolio can be scored consistently.
+Scoring models are managed under **Settings → PPM → Scoring Models** and require the `Permissions.ScoringModels.*` permissions to view and manage. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring) so projects in that portfolio can be scored consistently.
 
 ## How a model is built
 
@@ -20,7 +20,7 @@ A scoring model is assembled from four kinds of building blocks. Criteria, ratin
 **Criteria** are the inputs a person rates. Each criterion has:
 
 - **Name** — what is being assessed (e.g. *Business Value*).
-- **Token** — a short symbol (e.g. `BV`) used to reference the criterion in formulas. Tokens must be unique within the model.
+- **Token** — a short symbol (e.g. `BV`) used to reference the criterion in formulas. A token starts with a letter or underscore, contains only letters, digits, and underscores, and is at most 32 characters. Tokens are case-sensitive and must be unique within the model across criteria and outputs together.
 - **Description** — optional guidance for whoever does the rating.
 - **Rating scale** — *optional*. When a criterion references a [scale](#rating-scales), raters pick from that scale's defined levels. With no scale, the criterion accepts free numeric entry.
 - **Weight** — *optional*. A weight can be recorded for reference and is used by the [Weighted Sum helper](#the-weighted-sum-helper), but it is **not authoritative**: the formulas are the single source of truth for how the score is calculated.
@@ -33,6 +33,8 @@ For example, a "Relative (Fibonacci)" scale might define the levels `1, 2, 3, 5,
 
 Scales are reusable across criteria and optional per criterion — use them where standardizing input matters, and leave a criterion scale-free where a raw number is more natural (e.g. *Job Size* in raw points).
 
+Scale names must be unique within the model. A scale cannot be removed while a criterion uses it; reassign those criteria first.
+
 ### Outputs (formulas)
 
 **Outputs** are the named formulas that turn rated inputs into results. Each output has:
@@ -40,21 +42,21 @@ Scales are reusable across criteria and optional per criterion — use them wher
 - **Name** — a human-readable label (e.g. *Cost of Delay*).
 - **Token** — referenced by later formulas (e.g. `CoD`).
 - **Formula** — an arithmetic expression over criterion tokens and **earlier** output tokens.
-- **Is Primary** — exactly one output is the primary one; its value is *the* score for the model.
+- **Is Primary** — exactly one output is the primary one; its value is *the* score for the model. The first output added becomes primary, and marking another output primary moves the role to it.
 
 Outputs are evaluated **in order**, so a later formula can build on an earlier one. This lets you express multi-step models — for example, summing several criteria into an intermediate value and then dividing by another criterion.
 
-Formulas support standard arithmetic (`+`, `-`, `*`, `/`, parentheses) over decimal values. A formula that divides by zero, references an unknown token, or is otherwise malformed produces an error rather than a score.
+Formulas support standard arithmetic (`+`, `-`, `*`, `/`, parentheses) over decimal values. Function calls are not allowed, a formula is at most 1,000 characters, and parentheses nest at most 32 levels deep. A formula that references an unknown token or a later output, or is otherwise malformed, is refused when it is saved, and so is a reorder that would leave a formula referencing a later output. Removing a criterion or output, or changing its token, does not check the formulas that use it; activation does, and refuses the model until they are fixed. A formula that divides by zero produces an error rather than a score.
 
 ### The Weighted Sum helper
 
-"Weighted sum" is **not** a separate model type — it is a convenience for getting started. The helper generates a single primary output whose formula is the **normalized** weighted sum of your criteria, using the weights you entered:
+"Weighted sum" is **not** a separate model type — it is a convenience for getting started. On a Proposed model where at least two criteria have a weight above zero, the **Outputs** section offers **Generate Weighted Formula**. It opens the add-output form pre-filled with a primary output named *Weighted Score* (token `Score`) whose formula is the **normalized** weighted sum of the weighted criteria:
 
 ```
-(BV*w1 + TC*w2 + ...) / (w1 + w2 + ...)
+(BV * w1 + TC * w2 + ...) / (w1 + w2 + ...)
 ```
 
-Because the formula divides by the actual sum of the weights, the weights only need to be *relative* — weights of `30 / 30 / 40` rank identically to `3 / 3 / 4`. The UI shows a running **Total: X%** for guidance but never blocks you on it. After generating the formula you can edit it freely like any other output.
+The form writes the sum of the weights as a single number, so `BV` at 30 and `TC` at 70 give `(BV * 30 + TC * 70) / 100`. Because the formula divides by the sum of the weights, the weights only need to be *relative* — weights of `30 / 30 / 40` rank identically to `3 / 3 / 4`. The **Criteria** section shows a running **Total weight: X%**, with a tip when it is not 100%, but never blocks you on it. You can edit the generated formula before saving it, and afterward like any other output. A weight changed later does not update a formula already generated.
 
 ## Worked example: WSJF
 
@@ -93,13 +95,13 @@ A scoring model moves through a simple lifecycle:
 
 | State | Editable? | Meaning |
 |-------|-----------|---------|
-| **Proposed** | Yes | Being designed. Criteria, scales, and outputs can be added, edited, reordered, and removed. |
-| **Active** | No | Published and locked. The definition is frozen so that scores and rankings stay stable. |
-| **Archived** | No | Retired from use. |
+| **Proposed** | Yes | Being designed. The name and description can be edited, and criteria, scales, and outputs can be added, edited, reordered, and removed. |
+| **Active** | No | Published and locked. The definition, name, and description are frozen so that scores and rankings stay stable. |
+| **Archived** | No | Retired from use: it can no longer be assigned to a portfolio. A portfolio already using it keeps it, and its projects can still be scored with it. |
 
 **State actions** are available from the **Actions** menu on the model detail page:
 
-- **Activate** — move a Proposed model to Active. Once active, the model is locked: its criteria, scales, and outputs can no longer be changed (this protects the stability of any rankings built on it).
+- **Activate** — move a Proposed model to Active. Once active, the model is locked: its criteria, scales, and outputs can no longer be changed (this protects the stability of any rankings built on it). Activation is refused unless the model has at least one criterion, every scale a criterion uses has at least two levels, there is at least one output with exactly one primary, and every formula is valid.
 - **Archive** — retire an Active model.
 - **Delete** — only available while a model is Proposed.
 
@@ -111,6 +113,6 @@ A model's detail page carries an **Activity** section holding its recorded histo
 
 ## Using models in PPM
 
-Only **Active** scoring models can be assigned to portfolios. Once a model is assigned, users with project update rights and project/portfolio/program management access can record scores on projects in that portfolio.
+Only **Active** scoring models can be assigned to portfolios, from **Actions → Set Scoring Model** on the portfolio page. Once a model is assigned, users with project update rights and project/portfolio/program management access can record scores on projects in that portfolio. See [Portfolio Project Scoring](../ppm/portfolios-programs.mdx#portfolio-project-scoring) and [Project Priority Scores](../ppm/projects.mdx#project-priority-scores).
 
 Recorded project scores are snapshots: Wayd stores the model name, criterion ratings, calculated outputs, scorer, and timestamp with each score. This means old scores remain interpretable if the model is later archived or the portfolio is assigned a different model.

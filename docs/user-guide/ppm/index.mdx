@@ -31,12 +31,11 @@ graph LR
         WI["Work Items"]
     end
     subgraph "Organization"
-        Team["Teams"]
+        Emp["Employees"]
     end
 
     ST -->|tags| Proj
     ST -->|tags| Prog
-    ST -->|tags| SI
     PF -->|contains| Prog
     PF -->|contains| Proj
     PF -->|contains| SI
@@ -47,12 +46,12 @@ graph LR
     SI -->|tracks| KPI
     SI -->|links to| Proj
     WI -->|associated with| Proj
-    Team -->|assigned roles on| Proj
+    Emp -->|hold roles on| Proj
 ```
 
-- **[Strategic Themes](../strategic-management/index.mdx#strategic-themes)** tag projects, programs, and initiatives for alignment. See [how themes connect to PPM](../strategic-management/index.mdx#how-strategic-themes-connect-to-other-domains).
+- **[Strategic Themes](../strategic-management/index.mdx#strategic-themes)** tag projects and programs for alignment. Strategic initiatives carry no themes. See [how themes connect to PPM](../strategic-management/index.mdx#how-strategic-themes-connect-to-other-domains).
 - **[Work Items](../work-management/work-items.mdx#work-items)** from [workspaces](../work-management/work-items.mdx#workspaces) can be associated with projects in the [Project Work Items section](./projects.mdx#project-detail-page).
-- **[Teams](../organizations/index.mdx#teams)** are assigned roles on projects (Sponsor, Owner, Manager, Member).
+- **People** — employees — hold roles on portfolios, programs, projects, and initiatives (Sponsor, Owner, Manager, and on projects Member), and are assigned to stages and tasks.
 - **[Scoring Models](../settings/scoring-models.mdx)** can be assigned to portfolios so their projects can be scored and compared with the same criteria.
 - **Portfolio Ranking** gives each project a human-managed stack rank within its portfolio, independent of the computed priority score.
 
@@ -70,15 +69,15 @@ graph LR
 |------|-------------|
 | Delivery leadership | Changing a portfolio, program, or project requires the relevant `Update` permission **and** Owner/Manager standing on the record or something above it. Sponsors and project Members are excluded. See [Permissions](../settings/permissions.mdx#delivery-leadership-in-ppm) |
 | Portfolio close | All [programs](./portfolios-programs.mdx#programs)/[projects](./projects.mdx) must be closed first |
-| Program close | All [projects](./projects.mdx) must be completed/canceled first |
+| Program close | All [projects](./projects.mdx) must be completed/canceled before an active program is completed or canceled |
 | Project approval | [Lifecycle](./projects.mdx#project-lifecycles) must be assigned before approval |
-| Project activation | Date range required before activation |
-| Project deletion | Only Proposed projects can be deleted |
+| Project activation | Start and end date required before activation |
+| Project deletion | Only projects that have never left Proposed can be deleted |
 | Portfolio scoring | Only Active scoring models can be assigned; project score history is retained when assignments change |
 | Portfolio ranking | Every project is ranked within its portfolio from creation; portfolio Owners/Managers (and [PPM administrators](../settings/permissions.mdx#ppm-administrator)) can reorder non-closed projects in the Ranking section |
 | Task hierarchy | Milestones cannot have children |
 | Task deletion | Cannot delete tasks with children or active dependencies |
-| Dependencies | Cannot create circular task dependencies |
+| Dependencies | A task cannot depend on itself, and both tasks must be in the same project |
 | Lifecycle lock | Stages cannot be modified after lifecycle activation |
 | Financial freeze | [Expenditure category](../settings/index.mdx#expenditure-categories) settings frozen after activation |
-| Initiative read-only | Completed/Canceled [initiatives](./strategic-initiatives.mdx) cannot be modified |
+| Initiative read-only | Completed/Canceled [initiatives](./strategic-initiatives.mdx) take no KPI or linked-project changes, and their page offers no edits |

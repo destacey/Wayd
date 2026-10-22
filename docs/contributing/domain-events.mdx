@@ -202,11 +202,9 @@ payload property that looks like personal data (`Email`, `FirstName`, `DisplayNa
 A save commits the rows **and** everything that records them — audit trails, activity log entries and
 outbox envelopes — in one transaction, then delivers what those rows raised once it has committed. That is
 what makes a durable event worth anything: an envelope that commits separately from the row it describes
-can be lost while the row survives, which is the one failure an outbox exists to prevent.
-
-It used to work the other way, and the cost was invisible: the entities committed, and anything that threw
-afterwards left them in place with every event they raised discarded — no activity entry, no envelope, no
-dead letter, and a caller that still saw success.
+can be lost while the row survives, which is the one failure an outbox exists to prevent. If anything in the
+save throws — an audit trail, an envelope — the rows roll back with it, so a caller never sees success for a
+change whose events were discarded.
 
 **Spanning several saves goes through `BaseDbContext.BeginUnitOfWork`**, whose `CommitAsync` commits and
 dispatches together:
@@ -231,7 +229,7 @@ break every save in the application.
 Durable events go through the outbox to durable local queues, one per message type. Delivery is **at least
 once**, the queues run handlers in parallel, and nothing orders one queue against another, so a consumer
 sees events late, twice, and out of order. `DurableEventFailurePolicy` retries any exception at 1s, 5s and
-15s, then dead-letters it to Settings → Messaging.
+15s, then dead-letters it to Settings → System → Messaging.
 
 A handler must be correct under all of that. For a consumer that reacts to a change ("tell the new Owner"),
 that means being idempotent on its own or deduplicating on `EventId`. A module keeping a **copy** of another
@@ -301,12 +299,11 @@ twice, and after a delete.
 event survives — two calls that each changed something are two facts, and the aggregate does not try to
 work out that only the last one "really" counts.
 
-It once had a second method that dropped any pending event of the same type, so that replacing a project's
-role list twice in one request recorded a single net change. That was wrong for a reason worth
-remembering: **the aggregate cannot see the save boundary.** Events are drained and cleared by
-`SaveChanges`, so the same two domain calls recorded one entry or two depending on where the handler
-happened to put its save — a persistence detail deciding what the business record says. And "the earlier
-state was never committed" is a persistence claim about a state the aggregate genuinely held.
+Never add a method that drops a pending event of the same type so that, say, replacing a project's role
+list twice in one request records a single net change. **The aggregate cannot see the save boundary.**
+Events are drained and cleared by `SaveChanges`, so the same two domain calls would record one entry or two
+depending on where the handler put its save — a persistence detail deciding what the business record says.
+And "the earlier state was never committed" is a persistence claim about a state the aggregate genuinely held.
 
 What keeps the log clean is not collapsing events after the fact but not raising them in the first place —
 see [The aggregate decides whether anything changed](#the-aggregate-decides-whether-anything-changed).
@@ -617,10 +614,9 @@ partial history ahead of an unknown starting state and could never be replayed, 
 at its baseline. The status transitions it removed are still in `ProjectStatusHistory` for projects and in
 `StatusWorkflows.StatusTransitions` for workflow-driven records such as products.
 
-It writes each payload by hand in T-SQL, frozen at the shape its baseline type had when it shipped.
-`BackfillBaselineActivityMigrationTests` proves every aggregate's row matches the entry `ActivityLogEntryFactory`
-builds for the same event: payload, computed properties, envelope and derived id. It also proves a second run writes
-nothing.
+It writes each payload by hand in T-SQL, frozen at the shape its baseline type had when it shipped, with the
+derived id from `BaselineEventId.For`. It selects only records with neither a creation nor a baseline entry, so a
+second run writes nothing.
 
 **Baselining an aggregate that gains events later** is a new migration of the same shape. Add its
 `{Aggregate}BaselinedEvent`, select the records with neither its creation nor its baseline entry, clear their

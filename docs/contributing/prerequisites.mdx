@@ -55,13 +55,14 @@ Both keys are needed - Hangfire reads its own connection string, separate from
 
 The base `database.json` / `hangfire.json` deliberately hold an **empty** connection string, so the
 credential exists only in the Development-scoped files. Any non-Development host that is not
-configured fails fast with `DB ConnectionString is not configured.` rather than silently connecting
+configured fails fast — with `Hangfire Storage Provider ConnectionString is not configured.`, or
+`DB ConnectionString is not configured.` once Hangfire's is set — rather than silently connecting
 with a credential that is public in git history.
 
 :::note[LocalDB is Windows-only]
 
-`(localdb)\mssqllocaldb` was the previous default. It throws `PlatformNotSupportedException` when the
-connection string is parsed on Linux or macOS, so it cannot be used there. Windows developers who
+`(localdb)\mssqllocaldb` throws `PlatformNotSupportedException` when the connection string is parsed
+on Linux or macOS, so it cannot be used there. Windows developers who
 prefer LocalDB should set it through user secrets as above.
 
 :::
@@ -94,8 +95,8 @@ certificate imported separately.
 
 | Software | Version | Purpose |
 |----------|---------|---------|
-| Docker Desktop | Latest | Containerized development |
-| .NET Aspire | Latest | Local orchestration and telemetry |
+| Docker Desktop | Latest | The default `mssql` database, `docker compose`, and the Testcontainers integration suites |
+| Aspire CLI | Latest | Optional `aspire run`; the AppHost itself needs nothing beyond the .NET SDK (`Aspire.AppHost.Sdk` comes from NuGet) |
 | Visual Studio Code | Latest | Recommended IDE |
 | Visual Studio | 2022+ | Alternative IDE for .NET |
 

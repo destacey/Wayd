@@ -17,30 +17,77 @@ Entity configurations are organized by domain area in:
 Wayd.Infrastructure/src/Wayd.Infrastructure/Persistence/Configuration/
 ```
 
+Each area's tables sit in their own SQL schema (`Work`, `Organization`, `Planning`, `Ppm`, `ProductManagement`,
+…), named in `SchemaNames`.
+
+### One context, many interfaces
+
+Application code never sees `WaydDbContext` — `DatabaseContextTests` fails an Application project that
+references it. Each module reads and writes through its own interface (`IWorkDbContext`,
+`IOrganizationDbContext`, `IProjectPortfolioManagementDbContext`, …), and shared concerns have theirs
+(`IImportDbContext`, `IStatusWorkflowDbContext`, `IActivityLogDbContext`, `IFeatureManagementDbContext`). Twelve
+such interfaces sit beside `IWaydDbContext`, which exposes the shared tables (employees, users, scoring
+models) and which most module interfaces extend.
+
+They are **views over one context, not separate contexts**: a handler that takes two of them gets one change
+tracker and one save. Keeping that true takes two things, and either alone breaks it:
+
+1. `AddDomainDbContexts` registers each interface as a factory over the scoped `WaydDbContext`
+   (`sp => sp.GetRequiredService<WaydDbContext>()`). `AddScoped<IFoo, WaydDbContext>()` would register a
+   separate context per interface.
+2. Each is on the `AlwaysUseServiceLocationFor<T>()` allow-list in `WolverineConfiguration`; without it,
+   Wolverine's codegen constructs its own context for that interface.
+
+`DbContextScopeSharingTests` checks the result against the booted container. Unit-test fakes pass one object
+for every role, so they cannot detect a break here.
+
 ## Entity Framework Core
 
 ### Direct DbContext Usage
 
-Wayd does **not** use the Repository pattern. Application handlers access `WaydDbContext` directly:
+Wayd does **not** use the Repository pattern. Application handlers use their module's context interface
+directly:
 
 ```csharp
-public class GetWorkItemQueryHandler : IQueryHandler<GetWorkItemQuery, WorkItemDto>
+public sealed class GetWorkItemQueryHandler(IWorkDbContext workDbContext)
+    : IQueryHandler<GetWorkItemQuery, WorkItemDto?>
 {
-    private readonly WaydDbContext _context;
+    private readonly IWorkDbContext _workDbContext = workDbContext;
 
-    public async Task<Result<WorkItemDto>> Handle(GetWorkItemQuery request, CancellationToken ct)
+    public async Task<WorkItemDto?> Handle(GetWorkItemQuery request, CancellationToken cancellationToken)
     {
-        var workItem = await _context.WorkItems
+        return await _workDbContext.WorkItems
             .Where(w => w.Id == request.Id)
             .ProjectToType<WorkItemDto>()
-            .FirstOrDefaultAsync(ct);
-
-        return workItem is null
-            ? Result.Failure<WorkItemDto>("Work item not found.")
-            : Result.Success(workItem);
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }
 ```
+
+A query that projects to DTOs, scalars or anonymous types holding no entity instance (`Select`,
+`ProjectToType`) takes no `AsNoTracking()`: there is nothing to track. A query that returns entities it only
+reads still takes `AsNoTracking()`.
+
+### What a save commits
+
+`SaveChangesAsync` commits the tracked rows together with their audit trail, activity log entries and outbox
+envelopes in one transaction, then delivers the events they raised. Span several saves with
+`BeginUnitOfWork` (exposed to Application code on `IWorkDbContext`), never with
+`Database.BeginTransactionAsync`; `TransactionScopeTests` fails the build on the latter. Because the save owns
+its transaction, `EnableRetryOnFailure` cannot be turned on. See
+[What a save commits](./domain-events.mdx#what-a-save-commits).
+
+### Isolation and timeouts
+
+Wayd expects the database to have `READ_COMMITTED_SNAPSHOT` on, as Azure SQL Database has by default: a save's
+transaction covers its audit and outbox rows, and without row versioning readers block behind it. SQL Server
+defaults it off, so startup turns it on in Development and logs a warning with the `ALTER DATABASE` to run
+everywhere else (`DatabaseInitializer`).
+
+The command timeout is the context's, `DatabaseSettings:CommandTimeoutSeconds` (default 30). An operation that
+legitimately runs longer raises it for its own scope with `WithCommandTimeout`, which never lowers it; the
+migration run uses it to allow 180 seconds. Never raise the timeout globally. See
+[Configuration](./configuration.mdx#database).
 
 ### Entity Configuration
 
@@ -60,7 +107,19 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
 
 ## Soft Deletes
 
-Wayd uses soft deletes throughout — records are never permanently removed from the database. Instead, they are marked as deleted via the `ISoftDelete` interface.
+An entity that implements `ISoftDelete` is never physically removed: deleting it marks it as deleted. Soft
+delete is opt-in per entity — most entities derive from `BaseAuditableEntity` or `BaseEntity` and are deleted
+outright.
+
+### Base entity types
+
+| Base type | Gives the entity |
+|---|---|
+| `BaseEntity` | A version 7 Guid `Id` and the domain-event and post-persistence-action lists |
+| `BaseAuditableEntity` | The above plus `ISystemAuditable`: `SystemCreated`, `SystemCreatedBy`, `SystemLastModified` and `SystemLastModifiedBy` shadow properties stamped on save, and an audit trail row per change |
+| `BaseSoftDeletableEntity` | The above plus `ISoftDelete` |
+
+Each has a generic form (`BaseEntity<TId>`, …) for a non-Guid key.
 
 ### BaseSoftDeletableEntity
 
@@ -75,7 +134,7 @@ public abstract class BaseSoftDeletableEntity<TId> : BaseAuditableEntity<TId>, I
 }
 ```
 
-When `SaveChangesAsync` is called, `BaseDbContext` intercepts any `EntityState.Deleted` entry that implements `ISoftDelete`, sets `IsDeleted = true`, and changes the state back to `Modified` — so nothing is ever physically deleted.
+When `SaveChangesAsync` is called, `BaseDbContext` intercepts any `EntityState.Deleted` entry that implements `ISoftDelete`, sets `IsDeleted = true` and stamps `Deleted` and `DeletedBy`, and changes the state back to `Modified` — so the row stays in the table.
 
 ### Global Query Filter
 
@@ -125,6 +184,17 @@ dotnet ef database update \
 
 Migrations also run automatically on application startup via `app.Services.InitializeDatabases()`.
 
+A change to an entity configuration needs a migration in the same change. A data-fix migration must not write
+an evented aggregate's table set-based (`UPDATE`, `DELETE`, `INSERT`, `MERGE`): `EventCoverageTests` fails it,
+because such a write raises no event — see
+[An evented aggregate changes only through events](./domain-events.mdx#an-evented-aggregate-changes-only-through-events).
+
+:::warning[Resetting a database]
+Reset a local database only through Aspire: start `Wayd.AppHost`, then run **Reset Database** from the
+`wayd-api` resource's commands in the dashboard, which resets the database the API is configured with. Never
+drop or recreate a Wayd database with `dotnet ef database drop`, `sqlcmd` or a script.
+:::
+
 ### Timestamps in Raw SQL
 
 Migrations cannot inject `IDateTimeProvider`, so they are the one place `DateTime.UtcNow` is
@@ -142,8 +212,17 @@ error 241 on every non-Windows host, and month/day-ordered formats depend on the
 
 ## Database Initialization
 
-On startup, the application:
+On startup, `app.Services.InitializeDatabases()` runs `DatabaseInitializer`, which:
 
-1. Applies pending migrations
-2. Seeds feature flags from code definitions
-3. Runs any data initialization logic
+1. Applies pending migrations, with the command timeout raised to 180 seconds for the run
+2. Ensures `READ_COMMITTED_SNAPSHOT` (turned on in Development, a warning elsewhere)
+3. Seeds the built-in roles and their permissions, then runs every `ICustomSeeder` — feature flags,
+   estimation scales, product types, scoring models, the Product Management status workflows, the workflow
+   alias-name lookup, and the work type level scheme
+4. Re-saves any connection whose secrets are still plaintext so they are encrypted (`ConnectionSecretBackfill`)
+
+None of this runs when `HostIntrospection.SkipsDatabaseInitialization` is true — EF tooling, and the Debug
+build that reads the OpenAPI document (see [API Development](./api.mdx#openapi)). Seeders run before
+Wolverine can route messages, so a seeder that creates an evented aggregate writes its creation events
+straight into the activity log rather than through `SaveChanges`; see
+[Backfilling baselines](./domain-events.mdx#backfilling-baselines).

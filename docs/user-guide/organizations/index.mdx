@@ -54,6 +54,7 @@ A **Team** is the fundamental organizational unit in Wayd. It represents a colle
 Every team has:
 - **Name** — A descriptive name (up to 128 characters)
 - **Code** — A unique 2-10 character uppercase alphanumeric identifier (e.g., `PLATFORM`, `MOBILE`)
+- **Description** — Optional, up to 1024 characters, written in Markdown
 - **Active Date** — When the team was formed
 - **Inactive Date** — When the team was dissolved (if applicable)
 - **Operating Model** — How the team works (methodology and sizing)
@@ -87,7 +88,7 @@ A Team of Teams shares the same core properties as a Team (name, code, dates) bu
 - It can also be a member of a parent Team of Teams
 - It provides rollup visibility across its descendant teams
 
-**Team of Teams** have a simplified detail page focused on hierarchy and risk management. They do not have backlogs or sprints — those belong to the leaf-level delivery teams — but their [Work Distribution](#work-distribution-report) report rolls up the completed work of every team beneath them. They have their own [operating model](#team-of-teams-operating-model), holding the time zone for their own rollups.
+**Team of Teams** have a simplified detail page focused on hierarchy, members and risk management. They do not have backlogs, sprints or dependencies — those belong to the leaf-level delivery teams — but their [Work Distribution](#work-distribution-report) report rolls up the completed work of every team beneath them. They have their own [operating model](#team-of-teams-operating-model), holding the time zone for their own rollups.
 
 ### Operating Model
 
@@ -124,7 +125,7 @@ A Team of Teams has its own operating model with a single setting, its **Time Zo
 It follows the same rules as a team's operating model: setting a new model from a date closes the previous one the day before, correcting a model changes its whole period, and there is always at least one.
 
 The operating model affects what the team sees in the UI:
-- **Scrum teams** see a **Sprints** section and an **Active Sprint** indicator on their detail page
+- **Scrum teams** see a **Current Sprint** card on their Overview. A team that has ever used Scrum keeps its **Sprints** section and **Sprint Metrics** report after moving to Kanban
 - **Kanban teams** do not see sprint-related UI; a Kanban team with a cadence sees a [Velocity report](#velocity-report) and an Overview card instead
 - The **Sizing Method** determines how work is measured in backlog views and metrics
 
@@ -147,7 +148,7 @@ Key rules:
 ### Allocations
 
 :::note
-Allocations are part of **Team Capacity Management**, which an administrator turns on under **Settings > Feature Management**.
+Allocations are part of **Team Capacity Management**, which an administrator turns on under **Settings > System > Feature Flags**.
 :::
 
 An **allocation** is the share of a person's time a team has over a stretch of days. It is separate from membership: membership says who belongs to a team and in what role, and an allocation says whose time the team has and when.
@@ -173,7 +174,7 @@ Who can change a team's allocations is covered under [Allocations: team membersh
 ### Time Away and Holiday Calendars
 
 :::note
-Time away, the holiday calendar a person follows and their working day are part of **Team Capacity Management**, which an administrator turns on under **Settings > Feature Management**.
+Time away, the holiday calendar a person follows and their working day are part of **Team Capacity Management**, which an administrator turns on under **Settings > System > Feature Flags**.
 :::
 
 :::warning[Before turning on Team Capacity Management]
@@ -243,32 +244,37 @@ The team's **code** appears in the key chip beside the name, since that is what 
 
 The details panel shows the team's core properties:
 - Type and Key
-- Current Methodology and Sizing Method (from the operating model)
-- Active and Inactive dates
+- Current Methodology and Sizing Method (from the operating model), and its Cadence when it has one
+- Active date, and the Inactive date for an inactive team
 - Description (rendered as Markdown)
-- **Relationships** — Parent Team of Teams and, for a Team of Teams, its child teams
+- **Relationships** — **Parent Team** (the current parent Team of Teams, or None) and, for a Team of Teams, **Teams**: the child teams whose membership has no end date
+- **Links** — Web links kept on the team
 
 Toggle it from the button at the right of the identity bar; below tablet width it moves into the page content.
 
 ### Overview
 
 The **Overview** section summarises the team at a glance:
-- Metric tiles for **Members**, **Backlog**, **Dependencies**, and **Open Risks**, each linking to the section it counts
-- **Active Team Sprint** — For Scrum teams, shows the current sprint with timeline progress, completion rate, velocity, in progress count, and average cycle time
+- Metric tiles for **Members**, **Backlog**, **Dependencies**, and **Open Risks**, each linking to the section it counts. Backlog, Dependencies and Open Risks are left out when they would read zero
+- **Current Sprint** — For Scrum teams, shows the current sprint with timeline progress, completion rate, velocity, in progress count, and average cycle time
 - **Sprint Metrics** — For teams that have used Scrum, the team's average velocity, predictability and say/do over its most recent completed standard sprints, each with its range. Select a card to open the [Sprint Metrics report](#sprint-metrics-report)
 - **Velocity** — For a Kanban team with a [cadence](#operating-model), its average velocity over its most recent cadence periods, with its range. Select the card to open the [Velocity report](#velocity-report)
-- **Members** — A card for each team member showing their name (links to their employee page) and roles. Cards are clickable and navigate to the employee's detail page.
+- **Members** — A card for each team member showing their name, job title and roles. Clicking a card opens the employee's detail page.
+
+A Team of Teams' Overview has tiles for **Teams** (its child teams whose membership has no end date), **Members** and, when there are any, **Open Risks**, then a **Teams** grid of those child teams with their Code, Type and current Methodology, and the member cards.
 
 ### Members
 
 The **Members** section shows all current members of the team in a grid with columns:
 - Name (links to the employee's detail page)
-- Email
 - Title (job title)
+- Email
 - Roles (the roles the employee holds on this team, shown as tags)
 
-Members are managed from the **Actions menu → Team Management**:
-- **Add Member** — Select an employee and one or more roles. Employees already on the team are excluded from the selection.
+A Team of Teams has the same section, for the people who are members of the team of teams itself.
+
+Members are managed with `Permissions.Teams.Update`:
+- **Add Member** (**Actions menu → Team Management**, on an active team) — Select an employee and one or more roles. Employees already on the team are excluded from the selection.
 - **Edit** (row menu) — Update the roles assigned to a member.
 - **Remove** (row menu) — Remove the employee from the team entirely (all role assignments).
 
@@ -326,7 +332,7 @@ The backlog is displayed as a grid with sortable and filterable columns. It pull
 
 > Only visible for teams that have ever used the Scrum methodology.
 
-The **Sprints** section shows all sprints owned by the team — past, active, and future. Each sprint displays its name, date range, state (Future, Active, Completed), and type.
+The **Sprints** section shows all sprints owned by the team — past, active, and future. Each sprint displays its key, name, state (Future, Active, Completed), type, planned start and end, and when it was started and completed. When some of the team's sprints have overlapping planned dates in Azure DevOps, a warning above the grid names them: unless it is completed earlier, each overlapping sprint ends when the next one starts, not on its planned end.
 
 Sprints are the time-boxed delivery cadence for Scrum teams. They are synced from your work management system (such as Azure DevOps) along with the team's work items, and mapped to [PI iterations](../planning/planning-intervals.mdx#iterations-within-a-pi). See [Sprints](../work-management/sprints.mdx) for details on how sprints work and [Sprint Metrics](../work-management/sprints.mdx#sprint-metrics) for the metrics tracked per sprint.
 
@@ -339,13 +345,15 @@ The dependency grid is organized into three column groups:
 | Group | Columns |
 |-------|---------|
 | **Dependency Info** | State (To Do, In Progress, Done), Health (Healthy, At Risk, Unhealthy), Scope (Intra-Team, Cross-Team) |
-| **Predecessor** | Work Item Key, Title, Type, Status, Team, Sprint |
-| **Successor** | Work Item Key, Title, Type, Status, Team, Sprint |
+| **Predecessor Info** | Key, Title, Type, Status, Team, Sprint |
+| **Successor Info** | Key, Title, Type, Status, Team, Sprint |
 
 Dependencies are color-coded by health:
-- **Healthy** — The predecessor is planned to finish before the successor needs to start
-- **At Risk** — One or both items are unplanned
-- **Unhealthy** — The predecessor is planned after the successor, creating a scheduling conflict
+- **Healthy** — The dependency is done, or the predecessor is planned on or before the successor, or the predecessor is planned and the successor is not
+- **At Risk** — Neither item is planned
+- **Unhealthy** — The predecessor is planned after the successor, the successor is planned and the predecessor is not, or the successor has already started while the predecessor is not done
+
+A planned date that has already passed counts as unplanned.
 
 See [Work Item Dependencies](../work-management/work-items.mdx#work-item-dependencies) for details on how dependency health is calculated.
 
@@ -355,8 +363,8 @@ The **Risks** section shows risks associated with the team. Risks represent pote
 
 The risk grid supports:
 - Viewing all open risks for the team
-- Toggling **Include closed risks** to see historical risks
-- Creating new risks directly from the section
+- Toggling **Include Closed** to see historical risks
+- Creating new risks directly from the section with **Create Risk**
 
 Each risk includes summary, status (Open/Closed), category (Resolved, Owned, Accepted, Mitigated), impact, likelihood, exposure, assignee, and follow-up date. See [Risks](../planning/risks.mdx) for details on the risk model.
 
@@ -368,10 +376,10 @@ The **Team Memberships** section shows the team's position in the organizational
 
 Each membership displays:
 - Child Team and Parent Team (with links)
-- Membership State (Past, Active, Future)
+- State (Past, Active, Future)
 - Start and End dates
 
-Memberships can be edited or deleted from this section (with appropriate permissions).
+With `Permissions.Teams.ManageTeamMemberships`, a membership's dates are changed with **Edit Team Membership** in its row menu, and it is removed with **Delete Team Membership**. Only the record's own parent memberships have these; a child team's membership is changed from that team's page.
 
 ### Activity
 
@@ -385,6 +393,7 @@ Listed under **Reports** at the bottom of the section rail, this shows the full 
 - Sizing Method (Story Points, Effort, Size or Count)
 - Time Zone and Grace Days
 - Working Days and Holiday Calendar
+- Cadence
 - Status (Current or Historical)
 
 Only the current operating model can be edited or deleted (and deletion is only possible if there are multiple models — a team must always have at least one).
@@ -395,7 +404,7 @@ A Team of Teams has the same report, showing the Start and End dates, Time Zone 
 
 > Only visible for teams that have ever used the Scrum methodology.
 
-Available from the **Reports** menu, the **Sprint Metrics** report shows the team's velocity, predictability and say/do over its most recent completed standard sprints: the average and range of each, every sprint's own values, and the sprints left out with the reason. Non-standard sprints, sprints with incomplete history and sprints with nothing committed are left out.
+Listed under **Reports** in the section rail, the **Sprint Metrics** report shows the team's velocity, predictability and say/do over its most recent completed standard sprints: the average and range of each, every sprint's own values, and the sprints left out with the reason. Non-standard sprints, sprints with incomplete history and sprints with nothing committed are left out.
 
 See [Team Sprint Metrics](../work-management/sprints.mdx#team-sprint-metrics) for which sprints count, how the averages are worked out, and what happens when a team changes its sizing method.
 
@@ -403,7 +412,7 @@ See [Team Sprint Metrics](../work-management/sprints.mdx#team-sprint-metrics) fo
 
 > Only visible for teams whose current operating model has a cadence.
 
-Available from the **Reports** menu, the **Velocity** report shows a Kanban team's velocity over its [cadence](#operating-model): the work it completed in each recent period, as a chart and a table, and the average and range across them. Velocity is the requirement-level work that reached a done status in the period, by its done date, counted in the team's time zone; work closed as removed is not counted. A cadence is for reporting only, so there is no commitment and no predictability or say/do.
+Listed under **Reports** in the section rail, the **Velocity** report shows a Kanban team's velocity over its [cadence](#operating-model): the work it completed in each recent period, as a chart and a table, and the average and range across them. Velocity is the requirement-level work that reached a done status in the period, by its done date, counted in the team's time zone; work closed as removed is not counted. A cadence is for reporting only, so there is no commitment and no predictability or say/do.
 
 - **Periods** — The current period comes first, then the ended ones, most recent first. Each period follows the cadence of the operating model it falls in, and stops where the cadence, time zone or sizing method changes.
 - **What is averaged** — Only ended, whole periods. The current period is marked **In progress**, and a period cut short where the cadence, time zone or sizing method changed inside it is marked **Partial**; both are shown but not averaged.
@@ -414,27 +423,33 @@ A team of teams has no cadence. A [planning interval](../planning/planning-inter
 
 ### Cycle Time Report (Report)
 
-Available from the **Reports** menu, the **Cycle Time Report** analyzes how long it takes the team's work items to complete. It uses the same report available on employee detail pages, but scoped to work items owned by the team.
+Listed as **Cycle Time** under **Reports** in the section rail, the **Cycle Time Report** analyzes how long it takes the team's work items to complete. It uses the same report available on employee detail pages, but scoped to work items owned by the team.
 
 See [Cycle Time Report](../work-management/cycle-time-report.mdx) for calculation rules, report controls, chart behavior, and usage guidance.
 
 ### Backlog Health (Report)
 
-Available from the **Reports** menu, the **Backlog Health** report grades the team's open backlog — runway, net flow, WIP load, stale and aging work, readiness gaps near the top of the backlog, carry-over, and work ranked above what it depends on — and lists the work items behind each problem.
+Listed under **Reports** in the section rail, the **Backlog Health** report grades the team's open backlog — runway, net flow, WIP load, stale and aging work, readiness gaps near the top of the backlog, carry-over, and work ranked above what it depends on — and lists the work items behind each problem.
 
 See [Backlog Health Report](../work-management/backlog-health-report.mdx) for each check, how it is graded, and how to change the thresholds.
 
 ### Work Distribution (Report)
 
-Available from the **Reports** menu on both teams and teams of teams, the **Work Distribution** report shows where completed work went over a date range — by portfolio, program, project, strategic theme or work type — and how much of it was linked to no project. On a team of teams it covers every team beneath it, each counted toward the parent it had on the day the work was done.
+Listed under **Reports** in the section rail on both teams and teams of teams, the **Work Distribution** report shows where completed work went over a date range — by portfolio, program, project, strategic theme or work type — and how much of it was linked to no project. On a team of teams it covers every team beneath it, each counted toward the parent it had on the day the work was done.
 
 See [Work Distribution Report](../work-management/work-distribution-report.mdx) for what it counts, each measure, and how themes and unestimated work are handled.
+
+### Throughput Forecast (Report)
+
+> Only visible on teams, with **Delivery Forecasting** turned on under **Settings > System > Feature Flags**.
+
+Listed under **Reports** in the section rail, the **Throughput Forecast** forecasts how many of the team's backlog work items it finishes by a date you choose. See [Delivery Forecasting](../work-management/delivery-forecasting.mdx) for the options and how to read the results.
 
 ### Capacity Report (Report)
 
 > Only visible with **Team Capacity Management** turned on.
 
-Available from the **Reports** menu on both teams and teams of teams, the **Capacity Report** looks back and across: whose time a team had over any date range, what holidays and time away took from it, and what was left. Like the [Capacity](#capacity) section it stores nothing, and works everything out from people's [allocations](#allocations), their [holidays and time away](#time-away-and-holiday-calendars) and the team memberships.
+Listed under **Reports** in the section rail on both teams and teams of teams, the **Capacity Report** looks back and across: whose time a team had over any date range, what holidays and time away took from it, and what was left. Like the [Capacity](#capacity) section it stores nothing, and works everything out from people's [allocations](#allocations), their [holidays and time away](#time-away-and-holiday-calendars) and the team memberships.
 
 - **Date range** — Any range of up to two years. The report opens on the current month. The picker's shortcuts are **This month**, **Last month**, **This quarter** and **Last quarter**, and **This period** for a Kanban team with a [cadence](#operating-model). **Sprint** (on a team that has run Scrum) and **Planning interval** set the range to a sprint's or planning interval's dates; once a planning interval is picked, **Iteration** narrows it to one of its iterations
 - **Group by** — **Team** shows the team with its people beneath it. On a team of teams, each team beneath it is an expandable row, and the team of teams' own people sit together under **Allocated directly**, apart from its teams. **Person** shows each person with every team in the report they have time on beneath them
@@ -455,7 +470,7 @@ Picking a range any other way clears the **Planning interval** shortcut.
 
 ## Functional Organization Chart
 
-Wayd renders a **Functional Organization Chart** that visualizes the complete team hierarchy as of a specific date. Navigate to **Organizations > Functional Org Chart** to see how teams are structured across the organization.
+Wayd renders a **Functional Organization Chart** that visualizes the complete team hierarchy as of a specific date. Navigate to **Organizations > Functional Org Chart** to see how teams are structured across the organization. It opens as of today; pick another date in the **As of date** picker to see the hierarchy on that day.
 
 ## Common Tasks
 
@@ -464,7 +479,7 @@ Wayd renders a **Functional Organization Chart** that visualizes the complete te
 1. Navigate to the team's detail page
 2. From the **Actions menu**, click **Team Management > Add Member**
 3. Select an **Employee** (only employees not already on the team are shown)
-4. Select one or more **Roles**
+4. Select one or more **Role(s)**
 5. Click **Add**
 
 ### Editing a Team Member's Roles
@@ -478,34 +493,41 @@ Wayd renders a **Functional Organization Chart** that visualizes the complete te
 
 1. Navigate to the team's **Members** section
 2. Open the row menu for the member and click **Remove**
-3. Confirm the removal — all role assignments for that employee are removed
+3. Click **Remove** to confirm — all role assignments for that employee are removed
 
 Removing a member does not change their [allocation](#allocations) on its own. When the person has time allocated to the team that you can change, the confirmation offers **Also end their allocation to this team from today**, which is on by default. The allocation is ended first, so if that fails the member is not removed.
 
 ### Creating a Team
 
 1. Navigate to **Organizations > Teams**
-2. Click **Create Team**
-3. Enter a **Name**, **Code**, and **Active Date**
-4. Optionally add a **Description** (supports Markdown)
-5. The team is created with a default operating model (Kanban and Count, with the time zone, grace period and working days from the scheduling settings)
+2. Click **Create Team** (needs `Permissions.Teams.Create`)
+3. Set **Team Type** to **Team**
+4. Enter a **Name**, **Code**, and **Active Date**
+5. Optionally add a **Description** (supports Markdown)
+6. Click **Create**. The team is created with a default operating model (Kanban and Count, with the time zone, grace period and working days from the scheduling settings)
 
 ### Creating a Team of Teams
 
 1. Navigate to **Organizations > Teams** (Team of Teams are listed alongside teams)
-2. Click **Create Team of Teams**
-3. Enter a **Name**, **Code**, and **Active Date**
-4. Optionally add a **Description**
-5. The team of teams is created with an operating model in the scheduling settings' time zone
+2. Click **Create Team**
+3. Set **Team Type** to **Team of Teams**
+4. Enter a **Name**, **Code**, and **Active Date**, and optionally a **Description**
+5. Click **Create**. The team of teams is created with an operating model in the scheduling settings' time zone
+
+### Editing a Team
+
+1. Navigate to the team's or team of teams' detail page
+2. From the page actions menu, click **Edit** (needs `Permissions.Teams.Update`)
+3. Change the **Name**, **Code** or **Description**, and click **Save**
 
 ### Managing Team Hierarchy
 
 To add a team to a Team of Teams:
 1. Navigate to the team's detail page
 2. Go to the **Team Memberships** section
-3. From the **Actions menu**, click **Team Management > Add Team Membership**
-4. Select the parent Team of Teams
-5. Set the start date (required) and end date (optional for ongoing membership)
+3. From the **Actions menu**, click **Team Management > Add Team Membership** (needs `Permissions.Teams.ManageTeamMemberships`)
+4. Select the **Parent Team**
+5. Set the **Start** date (required) and **End** date (optional for ongoing membership), and click **Create**
 
 ### Changing a Team's Operating Model
 
@@ -534,7 +556,7 @@ To correct the current model instead, open **Operating Model History** from the 
 2. From the page actions menu, click **Deactivate**
 3. Set the **Inactive Date**
 
-> A team cannot be deactivated if it has active parent memberships that extend past the deactivation date. Those memberships must be ended first.
+> The inactive date must be after the team's active date, and on or after the end of its latest parent membership; a membership with no end date blocks deactivation until it is given one. For a team of teams, the same applies to its latest child team membership.
 
 Deactivating a team or team of teams also ends people's [allocations](#allocations) to it on the inactive date. With **Team Capacity Management** turned on, the dialog says so. This happens a moment after the team is deactivated. Each person's change is recorded in the [activity log](../activity-log.mdx) against whoever deactivated the team.
 
@@ -543,20 +565,27 @@ Deactivating a team or team of teams also ends people's [allocations](#allocatio
 ### Viewing Team Metrics
 
 1. Navigate to the team's detail page
-2. From the page actions menu, open **Reports > Cycle Time Report**
+2. Under **Reports** in the section rail, open **Cycle Time**
 3. Configure the date range and filters to analyze delivery performance
 
 ### Viewing Employee Cycle Time
 
 1. Navigate to the employee's detail page
-2. From the page actions menu, open **Reports > Cycle Time Report**
+2. Under **Reports** in the section rail, open **Cycle Time**
 3. Configure the date range and filters to analyze completed work assigned to that employee
 
 ## Employee Detail Page
 
-Each employee's detail page includes a **Teams** section showing all teams the employee is currently a member of, with columns for Team name, Team type, and Roles. Team names link to their respective detail pages.
+Each employee's detail page has a section rail like a team's, and a details panel with the person's Email, Additional Emails, Employee Number, Employee Type, Hire Date (with their tenure) and Office Location, and under **Relationships** their **Manager** and **Direct Reports**. Their job title and department appear beneath the name.
 
-The employee detail page also includes a **Reports > Cycle Time Report** action. This opens the same [Cycle Time Report](../work-management/cycle-time-report.mdx) used on team pages, scoped to Requirement-tier work items assigned to the employee.
+- **Overview** — Tiles for **Teams**, **Assigned Work Items**, their average **Cycle Time** over the last 90 days and **Direct Reports**, each left out when it would read zero except Teams, then a list of their teams with their roles and a list of their direct reports
+- **Teams** — Every team the employee is a member of, with columns for Team, Type and Roles, and with **Team Capacity Management** turned on an **Allocation** column with the share of their time that team has today. Team names link to their respective detail pages
+- **Capacity** — Their [allocations and time away](#capacity-1), with **Team Capacity Management** turned on
+- **Assigned Work Items** — The open work items assigned to them: those not yet done or removed
+
+Listed as **Cycle Time** under **Reports** in the section rail, the same [Cycle Time Report](../work-management/cycle-time-report.mdx) used on team pages, scoped to Requirement-tier work items assigned to the employee.
+
+With `Permissions.Employees.Delete`, the page actions menu offers **Delete**, which removes the employee after a confirmation.
 
 ### Capacity
 
@@ -587,12 +616,20 @@ If you are the person, someone they report up to, or a time away administrator, 
 ## Teams List Page
 
 The **Teams** page (**Organizations > Teams**) shows all teams in a grid with columns:
-- Key, Name, Code, Type, Team of Teams (parent), Is Active
+- Key, Name, Code, Type, Team of Teams (parent), Active
 
 Features:
-- Sortable columns
-- **Include Inactive** toggle to show/hide inactive teams
+- Sortable and filterable columns, and export to CSV
+- **Include Inactive**, in the grid's control menu, to show/hide inactive teams
 - Click a team name to navigate to its detail page
+- **Create Team**, with `Permissions.Teams.Create`, creates a team or a team of teams
+
+## Employees List Page
+
+The **Employees** page (**Organizations > Employees**) shows every active employee in a grid with columns:
+- Key, Name, Email, Employee Number, Employee Type, Job Title, Department, Manager, Office Location, Active
+
+Turn on **Include Inactive** in the grid's control menu to list former employees too. Click a name, or a manager, to open that employee's detail page. The grid sorts, filters and exports to CSV like the teams list.
 
 ## Business Rules
 
@@ -604,7 +641,7 @@ Features:
 | Single parent | A team can only have one active parent membership at a time |
 | No circular refs | A team cannot be a member of itself or create circular hierarchies |
 | Active required | Both teams must be active to create a membership |
-| Deactivation check | Cannot deactivate a team with active memberships extending past the inactive date |
+| Deactivation check | The inactive date must be after the active date, and a team cannot be deactivated before the end of its latest membership (for a team of teams, parent or child), or while that membership has no end |
 | Operating model history | A team must always have at least one operating model |
 | Operating model dates | New operating model start date must be after the current model's start date |
 | Member role uniqueness | An employee cannot hold the same role twice on the same team |
@@ -625,4 +662,4 @@ Features:
 
 ## Related
 
-- **[Bulk Import](./bulk-import.mdx)** — Loading employees, teams, the team hierarchy, and team staffing from CSV via the import API.
+- **[Bulk Import](./bulk-import.mdx)** — Loading employees, teams, the team hierarchy, and team staffing from CSV, in **Settings → System → Imports** or through the import API.

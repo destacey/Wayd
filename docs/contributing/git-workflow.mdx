@@ -12,6 +12,11 @@ One convention for every contributor and every coding agent. Once the hooks are 
 convention, and `commit-msg` **warns** about a message that does but keeps the commit. The checks live in
 `.github/scripts/branch-name-check.sh` and `.github/scripts/commit-message-check.sh`.
 
+`pre-push` also refuses a branch that changes what `@wayd/mcp` publishes without adding a changeset — the
+check CI runs on the pull request (see [MCP Server](./mcp-server.mdx)); it is skipped until `npm ci` has run in
+`Wayd.Web/src/Wayd.Mcp`. `pre-commit` warns, without blocking, when a commit touching an `AGENTS.md` leaves a
+directory's combined `AGENTS.md` text larger than Codex reads.
+
 ## Branches
 
 ```text

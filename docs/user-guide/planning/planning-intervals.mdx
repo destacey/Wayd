@@ -15,7 +15,7 @@ Every planning interval has:
 - **Teams** — The [teams](../organizations/index.mdx#teams) and [teams of teams](../organizations/index.mdx#teams-of-teams) participating
 - **Iterations** — Time-boxed periods within the PI (typically 2-week sprints)
 - **[Objectives](#objectives)** — Team commitments for the PI
-- **Objectives Locked** — Flag to prevent changes to objectives after PI planning
+- **Objectives Locked** — Flag that freezes the set of objectives after PI planning: no objectives can be added or deleted, and each objective's name and stretch flag stay as they are. Set it with **Edit** on the PI (**Objectives Locked?**)
 
 A PI has a state based on the current date:
 - **Future** — Start date hasn't arrived yet
@@ -54,20 +54,21 @@ A summary card showing the PI's current health at a single glance:
 
 - **Timeline progress bar** — Visual bar showing how much of the PI's date range has elapsed
 - **Teams** — Number of delivery teams participating (Teams of Teams excluded)
-- **PI Predictability** — Percentage of committed (non-stretch) objectives completed, with a breakdown of completed / regular / stretch counts. Hidden for Future PIs and when no objectives exist.
-- **Avg Cycle Time** — Average cycle time across all work items completed in the PI. Only shown for Active and Completed PIs when cycle time data is available.
+- **Objectives** — For Future PIs only: the number of objectives, with a breakdown of regular (non-stretch) / stretch counts
+- **PI Predictability** — The PI's [predictability](#predictability), with a breakdown of completed / regular / stretch counts. Hidden for Future PIs and when no objectives exist.
+- **Avg Cycle Time** — Average cycle time of the completed (Done) work items across all team sprints in every iteration of the PI. Only shown for Active and Completed PIs when cycle time data is available.
 
 When objectives exist (Active and Completed PIs only), three charts are shown beneath the metrics:
 
-- **Team Predictability Radar Chart** — Multi-axis radar showing each team's predictability score
-- **Objective Status Chart** — Pie chart grouping all PI objectives by status (Not Started, In Progress, Completed, Missed, Canceled)
-- **Objective Health Chart** — Pie chart grouping open objectives by health check status (Healthy, At Risk, Unhealthy, Unknown)
+- **Team Predictability** — Radar chart showing each team's predictability score
+- **Objectives By Status** — Pie chart grouping all PI objectives by status (Not Started, In Progress, Completed, Missed, Canceled)
+- **Objectives By Health** — Pie chart grouping open objectives (not Completed, Canceled or Missed) by health check status (Healthy, At Risk, Unhealthy, Unknown)
 
 #### Iterations
 
 A row of clickable cards — one per iteration — sorted chronologically. Each card shows:
 
-- Iteration name and category (Development or Innovation and Planning)
+- Iteration name and category (Development, or IP for Innovation and Planning)
 - Date range
 - For the **active** iteration: current day and total days (e.g. "Day 4/10") and a **health flag** (green = On Track, orange = At Risk, red = Off Track) calculated from sprint completion progress
 - Cards are highlighted: active iterations use the primary colour, Innovation and Planning iterations use a warning/amber tint
@@ -80,7 +81,7 @@ A responsive grid of team performance cards, one per participating team. Each ca
 
 - **Predictability** for the PI with a breakdown of completed / regular (non-stretch) / stretch objective counts
 - **Avg Cycle Time** for the team's sprints
-- **Objective Status Chart** and **Objective Health Chart** for the team's objectives (shown when the team has objectives)
+- **Objectives By Status** and **Objectives By Health** charts for the team's objectives (shown when the team has objectives)
 
 This section is hidden for Future PIs.
 
@@ -101,15 +102,17 @@ Each PI contains **Iterations** that define the sprint schedule. Iterations have
   - **Innovation and Planning** — Time for planning, innovation, and technical debt
 - **Date Range** — Must fall within the PI's date range
 
-Iterations can be auto-generated using **Initialize Iterations** which creates evenly spaced iterations by week length, or added individually.
+Iterations are generated when the PI is created, from **Iteration Weeks** (1 to 10) and an optional **Iteration Prefix**: iterations of that many weeks run back to back from the PI's start, named the prefix followed by the iteration number (`Sprint 1`, `Sprint 2`, …). The last one ends on the PI's end date, however short that leaves it, and is categorized IP. Change names, categories and dates afterwards, add iterations with **Add Iteration** or remove them, with **Manage Dates** in the PI's **Actions** menu.
 
 #### Iteration Health
 
-The active iteration's card on the Overview page shows a colour-coded health flag calculated from sprint completion progress relative to elapsed time:
+The active iteration's card on the Overview page shows a colour-coded health flag. It compares the work items still to finish in the iteration's mapped sprints with an even burn-down from the iteration's start to its end, and measures the difference as a share of the iteration's total work items:
 
-- **On Track** (green) — Completion rate is at or ahead of where it should be for the current day
-- **At Risk** (orange) — Slightly behind pace
-- **Off Track** (red) — Significantly behind pace
+- **On Track** (green) — No more than 10% behind the even burn-down, or ahead of it
+- **At Risk** (orange) — More than 10% and up to 25% behind
+- **Off Track** (red) — More than 25% behind
+
+No flag shows while the iteration has no work items.
 
 ### PI Iteration Detail Page
 
@@ -118,11 +121,11 @@ A PI iteration groups all matching [sprints](../work-management/sprints.mdx) fro
 **Overview:**
 - **Timeline progress bar** — Visual indicator of time elapsed from start to end date
 - **Teams** — Number of teams measured in this iteration: teams with sprints mapped to it, and the PI's Kanban teams
-- **Sprint Count** — Total number of sprints included in the aggregation
+- **Total** — Work items across all team sprints in the iteration; Kanban teams are not included
 - **Aggregate Metrics** (for Active/Completed iterations, see [Sprint Metrics](../work-management/sprints.mdx#sprint-metrics) for definitions):
-  - Total/Completed/Remaining work items
   - Completion Rate percentage, from the sprints alone
   - Velocity, including what Kanban teams completed
+  - In Progress and Not Started work items
   - Average Cycle Time across all teams' sprints and Kanban teams
 - **Team sprint cards** show each team's sprint in its own [sizing method](../organizations/index.mdx#operating-model), labelled with the unit, or switch to counting work items with the **Team Sizing / Count** selector. Teams that size in different units are never added together
 - Each started sprint's card shows the same figures as the team's sprint card on Home: **Predictability**, **Velocity**, **In Progress** (with what's not started) — or **Carried Over** once the sprint has ended — and **Say/Do**, from the sprint's [scope](../work-management/sprints.mdx#sprint-scope), and its health tag [measures delivery against the commitment](../work-management/sprints.mdx#the-sprint-overview). Until a sprint has a commitment, Completion Rate and Avg Cycle Time stand in. A future sprint shows its planned total
@@ -131,7 +134,7 @@ A PI iteration groups all matching [sprints](../work-management/sprints.mdx) fro
 
 **Backlog:**
 - Combined sprint backlog grid showing [work items](../work-management/work-items.mdx#work-items) from all mapped sprints
-- Columns: Rank, Key, Type, Title, the teams' estimate ([Story Points, Effort or Size](../work-management/work-items.mdx#estimate-columns)), Status, Status Category, Team
+- Columns: Rank, Key, Type, Title, the teams' estimate ([Story Points, Effort or Size](../work-management/work-items.mdx#estimate-columns)), Status, Status Category, Team, Sprint, Parent Key, Parent, Assigned To, Project, Tags
 
 > **Tip:** Click on an iteration card on the Overview section to navigate directly to its detail page.
 
@@ -196,72 +199,83 @@ Objectives bridge the gap between strategic intent and execution. A team commits
 
 Each objective has:
 - **Team** — The [team](../organizations/index.mdx#teams) committing to the objective
-- **Type** — Team objective or Team of Teams objective
-- **Status**:
+- **Type** — Team or Team of Teams, from the kind of team that owns it. **Create Objective** offers only the PI's teams, not its teams of teams, so a Team of Teams objective comes from the [objectives import](./bulk-import.mdx#planning-interval-objectives-import)
+- **Start** and **Target** dates — Optional, and within the PI's dates; the start must be before the target
+- **Progress** — Percent complete, 0–100
+- **Status** — A new objective starts Not Started; change it with **Edit**. Moving an objective to Completed, Canceled or Missed records its **Closed** date, and moving it back to Not Started or In Progress clears it:
   - **Not Started** — Work hasn't begun
   - **In Progress** — Actively being worked on
   - **Completed** — Successfully delivered
   - **Canceled** — Removed from scope
   - **Missed** — Not delivered by PI end
 - **Is Stretch** — Whether this is a stretch goal (aspirational) vs. a committed objective
-- **Health Check** — Optional health indicator (Healthy, At Risk, Unhealthy) with expiration
+- **Health Check** — Optional health indicator (Healthy, At Risk, Unhealthy) with expiration. See [Health checks](#health-checks)
+- **Order** — Position among the team's objectives; drag objectives on [Plan Review](#plan-review) to reorder them
 
 **Business rules:**
-- Objectives can only be created when the PI's `ObjectivesLocked` flag is false
-- When objectives are locked, the stretch flag cannot be changed
+- Objectives can only be created or deleted while the PI's objectives are not locked
+- While objectives are locked, an objective's name and stretch flag cannot be changed; its description, status, progress and dates still can
+- Creating, editing and deleting objectives, and recording health checks, needs the **Create, update, and delete Planning Interval Objectives** permission. A health check also needs your account to be linked to an employee, since it records who reported it
 
-### Objectives Page
+### Health checks
 
-The objectives page for a PI offers two views:
+A health check records how an objective is tracking: a **Status** (Healthy, At Risk or Unhealthy), an optional **Note**, and an **Expiration** date and time, which must be in the future. Create one with **Create Health Check** on the objective or from the objective grid's row menu. An objective shows its latest health check until it expires, and then has no health (shown as Unknown in the charts). Recording a new check while the previous one is still current ends the previous one at that moment, so an objective has at most one current check.
 
-**List View** — Data grid with columns: Key, Name, Is Stretch, Status, Team, Health, Progress (bar), Start Date, Target Date, Order
+### Objectives Section
 
-**Timeline View** — Visual timeline grouped by team, showing objectives as bars across the PI timeline. Only shows delivery teams (not Teams of Teams).
+The **Objectives** section offers two views, switched with the selector in the grid's toolbar:
+
+**List View** — Data grid with columns: Key, Name, Stretch, Status, Team, Health, Progress (bar), Start Date, Target Date, Order. Each row's menu offers **Edit Objective**, **Create Health Check** and **Health Report**.
+
+**Timeline View** — Visual timeline grouped by team, showing objectives as bars across the PI timeline, with the iterations behind them. Only shows delivery teams (not Teams of Teams), and leaves out Canceled objectives. Click an objective to open its details drawer.
+
+**Create Objective** appears in the section's header while the PI has at least one team (not a team of teams) and its objectives are not locked.
 
 ### Objective Detail Page
 
-Each objective has its own detail page showing:
-- Progress bar (colored red for Canceled/Missed objectives)
-- PI link, Team link, Status, Is Stretch flag, Start/Target/Closed dates, Type
-- Description (Markdown)
-- **Health Report Chart** — Historical health check status over time
-- **Work Items Card** — Grid of linked [work items](../work-management/work-items.mdx#work-items) with ability to link/unlink
-- **Links Card** — Cross-entity associations
+Each objective has its own detail page. Its sections are:
+- **Overview** — Progress bar (colored red for Canceled/Missed objectives), the linked [work items](../work-management/work-items.mdx#work-items) with the ability to link and unlink them, and a chart of the objective's health checks over time
+- **Work Items** — The linked work items
 - **Activity** — The objective's recorded history: edits, status and progress changes, stretch and date changes, reordering, and health checks. See [Activity Log](../activity-log.mdx).
+
+Under **Reports**:
+- **Health Report** — Every health check recorded on the objective, with Health, Note, Reported By, Reported On and Expiration
+- **Forecast** — With Delivery Forecasting turned on, when the linked work items will be done. See [Delivery Forecasting](../work-management/delivery-forecasting.mdx)
+
+The details panel shows Status, Type, Stretch, Start, Target and Closed dates, Description, the planning interval and team, and links.
 
 Actions: Edit, Delete, Create Health Check
 
 ### Objectives Health Report
 
-The health report page (**Reports > Health Report**) shows all PI objectives in a grid with Key, Name, Is Stretch, Status, Team, Progress, Health Status, Note, Reported On, and Expiration. This provides a single view of objective health across all teams.
+The **Objectives Health** report (under **Reports** on the PI) shows all PI objectives in a grid with Key, Name, Stretch, Status, Team, Progress, Health, Note, Reported On, and Expiration. This provides a single view of objective health across all teams.
 
 ### Predictability
 
-Wayd calculates **Predictability** for each PI — the percentage of committed (non-stretch) objectives that were completed.
+Wayd calculates **Predictability** for each PI and each of its teams — how much of what the teams committed to they delivered:
 
 ```
-Predictability = (Completed committed objectives / Total committed objectives) × 100
+Predictability = (Completed objectives / Committed (non-stretch) objectives) × 100, capped at 100
 ```
 
-> **Stretch objectives are excluded** from the predictability calculation. Only committed (non-stretch) objectives count. This ensures predictability measures reliable delivery, not aspirational targets.
+- **Only committed objectives set the target.** Stretch objectives are left out of the denominator, so missing one does not lower predictability.
+- **Completed stretch objectives still count toward the numerator**, so delivering stretch objectives can make up for a missed committed one. The result never goes above 100%.
+- **Across the PI**, only Team objectives count; Team of Teams objectives are left out. **Per team**, all of that team's objectives count.
+- With objectives but none of them committed, predictability is 0%. With no objectives at all, there is none.
 
-Predictability can be calculated:
-- **Per-team** — How well did this team deliver on their commitments?
-- **Across the PI** — How well did all teams collectively deliver?
-
-Predictability is only calculated for Active or Completed PIs (not Future). It is shown on the Overview section as a metric with a completed / regular / stretch breakdown, and visualized per-team in the **Team Predictability Radar Chart** and on each team's card in the Teams section.
+Predictability is only calculated for Active or Completed PIs (not Future). It is shown on the Overview section as a metric with a completed / regular / stretch breakdown, in the PI's details panel, visualized per-team in the **Team Predictability** radar chart, on each team's card in the Teams section, and next to the team's name on [Plan Review](#plan-review).
 
 ## Plan Review
 
 The **Plan Review** section provides a team-by-team view of the PI, with one tab per participating team. This is designed for PI planning ceremonies and plan review sessions.
 
-Each team tab shows:
-- **Team Predictability** metric (if available from prior PIs)
+Each team tab, labelled with the team's code, shows:
+- The team's [predictability](#predictability) for this PI, next to its name, once it has objectives
 - Two view modes:
-  - **List View** — Objective cards and [risk](./risks.mdx) cards for the team
+  - **List View** — An **Objectives** card and a **Risks** card for the team. Drag objectives to change their order. The **+** on each card creates an objective (while objectives are not locked) or a [risk](./risks.mdx) for the team. The risks are the team's open risks reported before the PI ended
   - **Timeline View** — Objectives displayed on a timeline
 
-The plan review only shows delivery teams (not Teams of Teams). The selected team is held in the URL as `?team=` (the team code, lowercased), alongside `?section=plan-review` — so a link can point directly at one team's plan.
+Click an objective to open its details drawer. The plan review only shows delivery teams (not Teams of Teams). The selected team is held in the URL as `?team=` (the team code, lowercased), alongside `?section=plan-review` — so a link can point directly at one team's plan.
 
 ## Capacity
 
@@ -282,17 +296,17 @@ Capacity is worked out each time it is read; nothing is stored for the PI.
 
 1. Navigate to **Planning > Planning Intervals**
 2. Click **Create Planning Interval**
-3. Enter **Name**, **Date Range**, and optional **Description**
-4. Use **Manage Dates > Initialize Iterations** to auto-generate sprints by week length, or add them individually
-5. Use **Manage Teams** to add participating teams
+3. Enter **Name**, **Date Range**, **Iteration Weeks**, and optional **Description** and **Iteration Prefix** — the iterations are generated from them
+4. Use **Manage Dates** in the **Actions** menu to adjust the generated iterations, or add and remove them
+5. Use **Manage Teams** in the **Actions** menu to add participating teams
 
 ### Managing Team Objectives
 
 1. Navigate to the PI detail page
-2. Click **Objectives** in the horizontal nav
-3. Click **Create Objective** for a team
-4. Set whether it is a **Stretch** goal
-5. Update status as the PI progresses
+2. Click **Objectives** in the section rail
+3. Click **Create Objective** and choose the team
+4. Set whether it is a stretch objective with **Is Stretch?**
+5. Update status and progress with **Edit** as the PI progresses
 6. Add **Health Checks** to track objective health over time
 
 ### Reviewing PI Health at a Glance
@@ -306,6 +320,6 @@ Capacity is worked out each time it is read; nothing is stored for the PI.
 ### Reviewing the PI Plan
 
 1. Navigate to the PI detail page
-2. Click **Plan Review** in the horizontal nav
+2. Click **Plan Review** in the section rail
 3. Review each team's objectives and [risks](./risks.mdx), team by team
 4. Switch between List and Timeline views for different perspectives

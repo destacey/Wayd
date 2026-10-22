@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Work Management
 
-The Work Management domain is the core of Wayd, providing capabilities to manage work items across teams with configurable work processes, workflows, and work types. It supports both internally created work and work synchronized from external systems like Azure DevOps.
+The Work Management domain is the core of Wayd, providing capabilities to manage work items across teams with configurable work processes, workflows, and work types. Work items, workspaces, work processes and workflows are synchronized from external systems like Azure DevOps.
 
 ## How Work Management Connects Across Wayd
 
@@ -55,15 +55,13 @@ graph LR
 
 | Rule | Description |
 |------|-------------|
-| Work process requires types | At least one [work type](./work-configuration.mdx#work-types) must be configured |
-| Unique types per process | A work type can only appear once in a [work process](./work-configuration.mdx#work-processes) |
-| Workflow minimum | Owned [workflows](./work-configuration.mdx#workflows) require at least three statuses |
-| Category coverage | All four [status categories](./work-configuration.mdx#work-status-categories) must be represented in a workflow |
-| Category ordering | Status categories must be grouped (Proposed > Active > Done > Removed) |
-| Status immutability | [Work status](./work-configuration.mdx#work-statuses) names cannot be changed |
+| Unique types per process | A [work type](./work-configuration.mdx#work-types) can only appear once in a [work process](./work-configuration.mdx#work-processes) |
+| Process in use | A work process cannot be deactivated while an active [workspace](./work-items.mdx#workspaces) uses it |
+| Unique statuses per workflow | A [work status](./work-configuration.mdx#work-statuses) can only appear once in a [workflow](./work-configuration.mdx#workflows), which sets its [status category](./work-configuration.mdx#work-status-categories) |
+| Name immutability | [Work status](./work-configuration.mdx#work-statuses) and [work type](./work-configuration.mdx#work-types) names cannot be changed |
 | Managed read-only | [Work items](./work-items.mdx#work-items) in managed [workspaces](./work-items.mdx#workspaces) cannot be edited in Wayd |
 | Parent tier | Only [Portfolio tier](./work-configuration.mdx#work-type-tiers) work items can be parents |
-| Parent level | Parent must be a higher [level](./work-configuration.mdx#work-type-levels) than the child |
+| Parent level | A Portfolio tier parent must be a higher [level](./work-configuration.mdx#work-type-levels) than its Portfolio tier child |
 | No self-links | Work items cannot be linked to themselves |
 | [Dependency health](./work-items.mdx#work-item-dependencies) | Automatically calculated from predecessor/successor planned dates |
-| Project inheritance | Child work items inherit [project](../ppm/projects.mdx) assignment from parent |
+| Project inheritance | Child work items inherit [project](../ppm/projects.mdx) assignment from parent, except Other tier items |

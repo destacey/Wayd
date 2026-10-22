@@ -13,16 +13,18 @@ Wayd provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io)
 
 ## What Can It Do?
 
-The MCP server exposes 150+ tools across Wayd's core modules:
+The MCP server exposes more than 250 tools across Wayd's core modules:
 
 | Module                                                                             | Capabilities                                                                                                                                                                                                                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[PPM](../user-guide/ppm/index.mdx)**                                             | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, status history, and activity history. Get critical path. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
+| **[PPM](../user-guide/ppm/index.mdx)**                                             | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, status history, and activity history. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
 | **[Strategic Initiatives](../user-guide/ppm/strategic-initiatives.mdx)**           | List/view initiatives, their statuses, activity history, and the projects delivering them. Review KPIs, checkpoints, and the checkpoint plan with health and trend. Record and remove KPI measurements. Change initiative status.                                                                                                                                                                         |
 | **[Planning](../user-guide/planning/index.mdx)**                                   | List/view planning intervals, iterations, objectives, risks, and the activity history of intervals and objectives. Get PI predictability and health reports. Review and log objective health checks. View calendars.                                                                                                                                                                                      |
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)**                                | List/view roadmaps and their items (activities, milestones, timeboxes).                                                                                                                                                                                                                                                                                                                                   |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)**                            | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links.                                                                                                                          |
-| **[Organizations](../user-guide/organizations/index.mdx)**                         | List/view teams and users. Review a team's activity history. Grade a team's backlog health.                                                                                                                                                                                                                                                                                                               |
+| **[Organizations](../user-guide/organizations/index.mdx)**                         | List/view teams, teams of teams, and users. Review a team's activity history. Grade a team's backlog health. Read team sprint metrics, cadence velocity, and work distribution reports. |
+| **[Product Catalog](../user-guide/product-management/products.mdx)**              | List/view products and their status and activity history. Create, retype, reparent, tag, and delete products. Record and end dependencies between products. Manage product types and tag categories. |
+| **[Product Delivery](../user-guide/product-management/delivery.mdx)**             | Plan, cut, release, and withdraw versions, releases, and release packages. Record deployments and how they ended. Manage deployment environments. Read the rollout, delivery metrics, and delivery overview. |
 | **[Delivery Forecasting](../user-guide/work-management/delivery-forecasting.mdx)** | Forecast when a work item, PI objective, or project will be done, and how many backlog work items a team finishes by a date.                                                                                                                                                                                                                                                                              |
 | **[Imports](../user-guide/settings/imports.mdx)**                                  | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run.                                                                                                                                                                                                                                                       |
 
@@ -37,7 +39,7 @@ There are two ways to connect: the [hosted endpoint](#hosted-endpoint-preview), 
 
 The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers a few tools the package lacks: partial updates that change only the fields you name, and single-call evidence reads for health checks. Each of the [agent skills](#agent-skills) is served there without installing it, two ways: as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …) that you can pick in a client that lists prompts, and through a skills tool, which the assistant calls on its own. Every tool's description names the skill for its area, so an assistant connected to the hosted endpoint is pointed to that guidance whichever toolsets you chose; whether it reads it is up to the assistant. The npm package will be retired a few weeks after the hosted endpoint is generally available.
 
-An administrator turns it on with the **MCP Server** feature flag (**Settings > Feature Management > Feature Flags**); while the flag is off, `/mcp` answers 404. Connect in one of two ways:
+An administrator turns it on with the **MCP Server** feature flag (**Settings > System > Feature Flags**); while the flag is off, `/mcp` answers 404. Connect in one of two ways:
 
 - **[Sign in](#connecting-with-sign-in)** with your Wayd account and approve the assistant. Nothing to create, copy or store, and you can disconnect it from your profile at any time. Use this whenever your assistant supports it.
 - **[A Personal Access Token](#connecting-with-a-personal-access-token)** in the `x-api-key` header, for an assistant that cannot sign in or a script that runs unattended.
@@ -176,9 +178,29 @@ Hosted assistants that sign in cannot send headers, so give them the selection o
 
 Read-only mode limits which tools are offered, not what your account may do. For a guarantee, also connect as an account that has view permissions only.
 
+The skills tool, `Skills_Get`, and the skill prompts are offered on every connection, whatever toolsets or read-only mode you chose.
+
 ### Large Results
 
 A tool's answer is capped at about 20,000 tokens, so one call over a large project cannot fill the conversation. A list longer than that keeps its first items and says which ones it is showing, such as items 1–74 of 843. Tools whose answer is a list take an `offset` argument, and the note gives the value that continues it, so the assistant can read the rest a part at a time. A tool whose answer is one record holding a list, such as a summary with its work items, takes no `offset`; the assistant narrows it with the tool's filters (a status, a portfolio, a team) instead.
+
+### Hosted-Only Tools
+
+Besides every tool in the [tables below](#available-tools), the hosted endpoint offers these:
+
+| Tool | Toolset | Description |
+| --- | --- | --- |
+| `Skills_Get` | (every connection) | Read one of the [agent skills](#agent-skills), or one of its reference files |
+| `Projects_GetHealthCheckEvidence` | `ppm` | Everything needed to recommend a project health check, in one read: the plan summary, overdue tasks, stages past their end, the forecast, the latest check, and activity since it |
+| `PlanningIntervals_GetObjectiveHealthCheckEvidence` | `planning` | Everything needed to recommend a PI objective health check, in one read: schedule, work items and metrics, the forecast, past checks, activity since the last one, and the team's risks |
+| `Portfolios_Patch` / `Programs_Patch` / `Projects_Patch` | `ppm` | Change some of a record's details, roles or strategic themes, leaving the rest as they are |
+| `Projects_PatchStage` / `Tasks_PatchProjectTask` | `ppm` | Change some of a project stage's or task's fields |
+| `Roadmaps_PatchItem` | `planning` | Change some of a roadmap item's fields |
+| `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` | `planning` | Tag or untag personas on a goal, step or task, keeping the tags it does not name |
+| `Releases_PatchContents` | `delivery` | Add or remove packages and directly carried versions on a release, leaving the rest of its contents |
+| `ReleasePackages_PatchManifest` | `delivery` | Add, change or drop lines in a package's manifest, keeping every line it does not name |
+
+The patch tools take a JSON Patch (RFC 6902) and leave alone anything it does not name, so they avoid the [whole-record overwrite](#changes-that-ask-first) of the matching update tools.
 
 ## Setup
 
@@ -370,7 +392,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `Tasks_GetProjectTasks`                                                    | List tasks with status/parent filters                        |
 | `Tasks_GetProjectTask`                                                     | Get task details                                             |
-| `Tasks_GetCriticalPath`                                                    | Get critical path task IDs                                   |
+| `Tasks_GetCriticalPath`                                                    | Get critical path task IDs. Not implemented yet: it always returns an empty list |
 | `Tasks_CreateProjectTask`                                                  | Create a new task or milestone                               |
 | `Tasks_UpdateProjectTask`                                                  | Update task fields                                           |
 | `Tasks_DeleteProjectTask`                                                  | Delete a task                                                |
@@ -409,7 +431,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | `Roadmaps_GetRoadmap`                                                                       | Get roadmap details                                                                                                                                            |
 | `Roadmaps_GetItems`                                                                         | Get all roadmap items                                                                                                                                          |
 | `Roadmaps_GetItem`                                                                          | Get roadmap item details                                                                                                                                       |
-| `Roadmaps_GetActivities`                                                                    | Get roadmap activities                                                                                                                                         |
+| `Roadmaps_GetActivities`                                                                    | List a roadmap's activities (the timed items on it, not its change history)                                                                                    |
 | `Roadmaps_GetVisibilityOptions`                                                             | Resolve roadmap visibility values                                                                                                                              |
 
 ### Story Maps
@@ -548,7 +570,7 @@ Environments are **retired rather than deleted**, because historical deployments
 
 ### Imports
 
-Every CSV file submitted to Wayd becomes a run with an outcome for each row — whether it was submitted from [Settings → Imports](../user-guide/settings/imports.mdx) or straight to the API — so these tools can follow and control either. You see the kinds of import you are allowed to submit.
+Every CSV file submitted to Wayd becomes a run with an outcome for each row — whether it was submitted from [Settings → System → Imports](../user-guide/settings/imports.mdx) or straight to the API — so these tools can follow and control either. You see the kinds of import you are allowed to submit.
 
 | Tool                                     | Description                                                                            |
 | ---------------------------------------- | -------------------------------------------------------------------------------------- |

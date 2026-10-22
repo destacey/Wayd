@@ -23,8 +23,9 @@ dotnet run
 
 The dashboard opens in your browser once the host is up, already signed in. Aspire itself only prints
 the link — Visual Studio is what opens it on Windows, so `dotnet run` and `aspire run` on Linux and
-macOS would otherwise leave you to click it. The AppHost now opens it on every platform, and stands
-down when Visual Studio is launching one so Windows doesn't get two tabs.
+macOS would otherwise leave you to click it. The AppHost opens it on every platform, and stands
+down when Visual Studio is launching one so Windows doesn't get two tabs. It is at
+`https://localhost:17153` (`http://localhost:15206` with the `http` launch profile).
 
 Set `WAYD_NO_LAUNCH_BROWSER=true` to keep it from opening. On Linux it honours `$BROWSER` when your
 desktop sets one, falling back to `xdg-open`.
@@ -48,6 +49,25 @@ console full of CORS errors, which reads like a code fault and is not one.
 A stale `NEXT_PUBLIC_API_BASE_URL` in `.env.local` produces the same symptom for a different reason,
 and is worth ruling out second rather than first: `NEXT_PUBLIC_*` values are **inlined at build
 time**, so removing one does nothing until `.next` is cleared and the client rebuilt.
+
+### Startup gate and dashboard commands
+
+Before the API starts, the AppHost runs it once as `resources setup`, which provisions the Wolverine
+outbox tables in the `wolverine` schema; the API waits for that run to finish. The `wayd-api` resource's
+**Actions → Commands** add the read-only JasperFx verbs (`check-env`, `describe`, `codegen` preview)
+and **Reset Database**.
+
+### Resetting the database
+
+**Reset Database** is the only supported way to reset a local database. It asks for confirmation,
+stops the API, drops and recreates the database, and starts the API again, which re-applies
+migrations and reference data and prints a new [first-run](./first-run-setup.mdx) token. Every row
+is lost.
+
+The AppHost reads its target from `DatabaseSettings:ConnectionString` in `database.json` and the
+API's user secrets — not from `database.Development.json` — so set the connection string in user
+secrets (see [Prerequisites → Database](./prerequisites.mdx#database)), or the command fails
+with no database to reset. Don't drop a Wayd database any other way.
 
 ## Common Tasks
 
@@ -93,6 +113,8 @@ These tests enforce Clean Architecture dependency rules across the solution.
 
 - **Compound: Launch Wayd on Host** - Runs API and client natively
 - **Compound: Launch Wayd with Compose** - Full stack via Docker Compose
+- **Debug Wayd API on Host**, **Docker: Attach to API in Docker** - The API alone
+- **Next.js: debug server-side / client-side / full stack**, **Browser: Launch Wayd React Client in Chrome** - The client alone
 
 ## Debugging
 

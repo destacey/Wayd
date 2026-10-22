@@ -1,31 +1,32 @@
 ---
 title: Logging In
-description: How to log in to Wayd using Microsoft Entra ID, local authentication, or personal access tokens.
+description: How to log in to Wayd with your organizational account, an email and password, or a personal access token.
 sidebar_position: 1
 audience: [user]
 ---
 
 # Logging In
 
-Wayd supports two interactive authentication methods. Your administrator will tell you which one to use. Deployments that have Microsoft Entra ID disabled show only the **Email & Password** form — you won't see the Microsoft option on those.
+Wayd supports two interactive authentication methods: signing in through your organization's identity provider, and signing in with an email and password. Your administrator will tell you which one to use. When your organization has an identity provider set up, the sign-in page shows two tabs, **Sign in** and **Email & Password**; otherwise it shows only the email and password form.
 
-## Microsoft Entra ID (Azure AD)
+## Organizational Account
 
-If your organization uses Microsoft Entra ID:
+If your organization signs in through an identity provider such as Microsoft Entra ID:
 
 1. Navigate to your Wayd instance URL
-2. Click **Sign in with Microsoft**
+2. On the **Sign in** tab, click the button for your organization's provider (for Microsoft Entra ID, the button carries the Microsoft logo)
 3. Enter your organizational credentials
 4. You'll be redirected to Wayd after successful authentication
 
-## Local Authentication
+## Email & Password
 
 If your instance uses local authentication:
 
 1. Navigate to your Wayd instance URL
-2. Select **Email & Password**
-3. Enter your **username** and **password**
-4. Click **Sign In**
+2. Select **Email & Password**, if the tab is shown
+3. Enter your **Email** and **Password**
+4. Leave **Remember me** checked to stay signed in after you close the browser, or clear it to be signed out when the browser closes
+5. Click **Sign in**
 
 If this is your first login, you may be prompted to change your password before continuing.
 
@@ -37,7 +38,7 @@ PATs are created from your [Profile](./your-profile.mdx#personal-access-tokens) 
 
 ## Troubleshooting
 
-- **Account locked?** — Contact your administrator to unlock your account. Accounts are locked after multiple failed login attempts.
+- **Account locked?** — After five failed sign-in attempts in a row, an email and password account is locked for 15 minutes. Wait and try again, or ask your administrator to unlock it.
 - **Forgot password?** — Contact your administrator for a password reset (local authentication only). You'll be required to set a new password on next login.
 - **Can't access?** — Verify you have an active account with your administrator.
-- **Must change password?** — Local users created by an administrator are required to set a new password on first login. This is a one-time prompt.
+- **Must change password?** — Local users created by an administrator are required to set a new password on first login. Wayd shows the **Change Password** form before anything else; after you change it you are signed out, and you sign in again with the new password. **Sign Out** leaves without changing it.

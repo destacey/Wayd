@@ -16,14 +16,14 @@ audience: [developer, agent, admin]
 
 ## Capabilities
 
-- Pull users from a single Entra tenant via Microsoft Graph
+- Pull member users (`userType eq 'Member'`; guests are never synced) from a single Entra tenant via Microsoft Graph
 - Optionally scope to a single Entra group (transitive members) instead of all member users
 - Optionally include disabled accounts
 - Admin-selectable "Normalize Name Casing" — title-cases names that come back from Entra in all-caps, handling Mc/Mac, apostrophes (O', D'), and hyphenated names correctly. Mixed-case input is preserved. Default on
-- Upsert into Wayd `Employee` records, preserving manager hierarchy
+- Upsert into Wayd `Employee` records, with the manager hierarchy from each user's `manager` (see [Field mapping](#field-mapping) for when it resolves)
 - Deactivate Wayd employees not present in the latest payload. The deactivation pass treats absence from the sync result as "no longer employed"; this is safe because the [single-active People Sync rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time) guarantees exactly one source of truth at a time
 
-The Entra source is **full-snapshot only**; differential sync isn't supported because Microsoft Graph doesn't expose a watermark Wayd can rely on for the user collection. When the admin requests a Differential People Sync, the runner transparently falls back to a Full snapshot for Entra connections.
+The Entra source is **full-snapshot only**: `EntraEmployeeSource.SupportsIncremental` is `false`, so every run reads the whole user set. When the admin requests a Differential People Sync, the runner transparently falls back to a Full snapshot for Entra connections.
 
 ## Setup
 
@@ -31,7 +31,7 @@ The Entra source is **full-snapshot only**; differential sync isn't supported be
 2. Under **Certificates & secrets**, create a **client secret**. Copy the value immediately — Entra only shows it once.
 3. Grant the **Application permissions** listed in [Required permissions](#required-permissions) below. Admin-consent them after granting.
 4. *(Optional)* If you want to sync only a subset of users, create or pick an Entra **group** containing those users and copy its **Object ID**.
-5. In Wayd, open **Settings → Connections** and click **Create Connection**. Pick **Entra**.
+5. In Wayd, open **Settings → System → Connections** and click **Create Connection**. Pick **Entra**.
 6. Fill in:
    - **Tenant ID** — the directory tenant ID.
    - **Client ID** — the app registration's application ID.
@@ -40,7 +40,8 @@ The Entra source is **full-snapshot only**; differential sync isn't supported be
    - **Match Employees By** — `Email` (default; cross-source stable) or `Employee Number`.
    - **Include Disabled Users** — default off.
    - **Normalize Name Casing** — default on.
-7. Save. Activate the connection. The first sync runs on the next scheduled `PeopleFullSync` / `PeopleDiffSync` Hangfire job, or click **Sync Now** from the detail page.
+7. Save. The connection is active once created — if another People Sync connection is already active, deactivate one of them (see the [single-active rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time)). Wayd does not test the credentials on save; a wrong tenant, client ID, or secret shows up as a failed sync run.
+8. Click **Full Sync** (or **Diff Sync**, which runs as Full for Entra) in the detail page's **Sync History** section, or have an admin schedule **People Full Sync** / **People Differential Sync** under [Settings → System → Background Jobs](../../user-guide/settings/index.mdx#background-jobs) — no sync is scheduled by default.
 
 ## Required permissions
 
@@ -61,26 +62,43 @@ Wayd does not write back to Entra. There is no `User.ReadWrite` or similar eleva
 |---|---|---|
 | Tenant ID | — | Required. Directory tenant GUID. |
 | Client ID | — | Required. App registration's application ID. |
-| Client Secret | — | Required. Encrypted at rest. |
+| Client Secret | — | Required. Encrypted at rest; on edit, leave blank to keep the stored secret. |
 | All Users Group Object ID | (blank) | Optional. Scope sync to transitive members of this group. |
 | Match Employees By | Email | The *preferred* key for the `BulkUpsertEmployeesCommand` matcher; it falls back to the other candidate key when the preferred one misses, so an upstream email or employee-number change never creates a duplicate row. Email is cross-source stable; switch to Employee Number only if both your connectors emit the same stable identifier. |
 | Include Disabled Users | Off | When on, accounts with `accountEnabled=false` are also imported. |
 | Normalize Name Casing | On | Title-cases all-caps names; preserves mixed-case input. |
 
+## Field mapping
+
+`EntraEmployee` projects each Graph `user` onto the employee record:
+
+| Wayd employee | Microsoft Graph `user` | Notes |
+|---|---|---|
+| Employee Number | `employeeId`, else `id` (object id) | |
+| First / last name | `givenName` / `surname` | No middle name. Users missing either are dropped. Title-cased when **Normalize Name Casing** is on. |
+| Email | `mail`, else `userPrincipalName` | |
+| Work emails | `proxyAddresses` | See step 4 below. The email above is always included. |
+| Hire date | `hireDate`, else `employeeHireDate` | |
+| Job title, department, office location | `jobTitle`, `department`, `officeLocation` | |
+| Employee type | `employeeType` | Passed through as entered in the tenant. |
+| Active | `accountEnabled` | |
+| Manager | `manager` (its object `id`) | Matched against Employee Number, so it resolves only for a manager whose Employee Number is their object id — one with no `employeeId`. |
+
 ## How it works
 
-1. An admin creates an **Entra Connection** in Settings → Connections, supplying tenant ID, client ID, client secret (encrypted at rest), and optionally a group object ID.
+1. An admin creates an **Entra Connection** in Settings → System → Connections, supplying tenant ID, client ID, client secret (encrypted at rest), and optionally a group object ID.
 2. The `PeopleSyncRunner` reads all active connections with the `ConnectorCapability.People` capability and resolves each connector's `IEmployeeSource` via keyed DI — for Entra that's the `EntraEmployeeSource` adapter, which builds a per-connection `GraphServiceClient` from the stored credentials. There is no shared app-wide Graph client for sync.
-3. The `MicrosoftGraphService` source pulls users (paginated through Graph's `$skiptoken` cursor), filters out accounts missing `givenName`/`surname`, optionally applies the group-membership scope, optionally filters out disabled accounts, and returns `EntraEmployee` records.
+3. The `MicrosoftGraphService` source pulls member users — from `/users`, or from the group's `transitiveMembers` when a group is set — filtered server-side on `userType eq 'Member'` and, unless disabled users are included, `accountEnabled eq true`. It pages through Graph's next-link cursor, 100 users per page, drops users missing `givenName`/`surname`, and returns `EntraEmployee` records. If no users come back, the run fails with "No employees found in Entra via Microsoft Graph".
 4. Each user's `proxyAddresses` become that employee's **work email** collection. Exchange demotes a previous primary to a secondary rather than deleting it, so this is where an address someone used before a tenant or domain move survives — which is what lets Wayd match them against systems still referencing it (an Azure DevOps work item, for instance). Only `SMTP:`/`smtp:` entries are kept: other protocols (`X500:`, `SIP:`, `EUM:`) are not email addresses, and the auto-generated `*.onmicrosoft.com` / `*.microsoftonline.com` routing addresses are discarded as noise. `otherMails` is deliberately **not** read — it holds personal recovery addresses.
 5. The connector-agnostic `BulkUpsertEmployeesCommand` reconciles those records against the `Employee` table. Any active employee row not matched against the payload is deactivated — safe because the [single-active People Sync rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time) guarantees one source of truth at a time. (The runner additionally aborts loudly if more than one active People Sync connection ever slips through, as a defense-in-depth check.) The work-email collection is reconciled the same way: Entra owns it, so an address it stops reporting is removed.
-6. Each run is captured as a `SyncRun` row; per-run details (`employeesFetched`, `employeesUpserted`, `employeesSkipped`, `errors[]`) are stored as JSON and rendered in the Sync History tab.
+6. Each run is captured as a `SyncRun` row; per-run details (`employeesFetched`, `employeesUpserted`, `employeesSkipped`, `errors[]`) are stored as JSON and rendered in the **Sync History** section.
 
 ## Troubleshooting
 
-- **Sync run fails with `Authorization_RequestDenied`** — admin consent wasn't granted on User.Read.All. Have a tenant admin click **Grant admin consent** in the app registration.
-- **"No users returned"** — verify the app registration is enabled and the client secret isn't expired. If using the group filter, confirm the group has direct or transitive member users (not just service principals).
-- **Some users skipped** — Wayd skips Entra users missing `givenName` or `surname` to avoid blank `PersonName` records. Check the Sync History detail row for the count.
+- **Sync run fails with "Error getting employees from Entra tenant … via Microsoft Graph"** — Graph rejected or failed the request; the run records only this message, and the Graph error itself (for example `Authorization_RequestDenied` when admin consent wasn't granted on User.Read.All, or an expired client secret) is in the API's error log. For missing consent, have a tenant admin click **Grant admin consent** in the app registration.
+- **Sync run fails with "No employees found in Entra via Microsoft Graph"** — the query returned no member users. Verify the app registration is enabled and the client secret isn't expired. If using the group filter, confirm the group has direct or transitive member users (not just service principals or guests).
+- **Some users missing** — Wayd drops Entra users missing `givenName` or `surname` to avoid blank `PersonName` records. They are dropped before the upsert, so they are not in the run's fetched or skipped counts; only the API log's "Found … members" / "Returning … employees" pair shows the difference.
+- **Managers not linked** — when users carry an `employeeId`, the manager reference (an object id) does not match their Employee Number; see [Field mapping](#field-mapping).
 - **Names look ALL CAPS in Wayd** — turn on **Normalize Name Casing** in the connection config; default is on, but if you disabled it the source casing wins.
 
 ## Cross-cutting

@@ -26,11 +26,79 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Delete` | Remove entities |
 | `Import` | Bulk-load entities from a file |
 | `Run` | Trigger an operation — for example running or requeuing a [background job](./index.mdx#background-jobs) |
+| `Manage` | Create, update and delete in one permission — used for planning interval objectives |
+| `Search` / `Export` | Search or export users |
 | `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator)) |
 
-Some resources add specific actions — for example `Permissions.Projects.ManageProjectWorkItems`.
+Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems` and `Permissions.Teams.ManageTeamMemberships`.
 
-Permissions travel as claims inside the Wayd JWT. A permission change takes effect on the user's next token refresh.
+The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
+
+## Permission catalogue
+
+Every permission Wayd defines, as **Settings → Access → Roles** groups them. The seeded **Admin** role holds all of them.
+
+| Category | Resource | Permissions |
+|---|---|---|
+| Application | `ScoringModels` | `View`, `Create`, `Update`, `Delete` |
+| Application | `StatusWorkflows` | `View`, `Create`, `Update`, `Delete` |
+| Application | `FeatureFlags` | `View`, `Create`, `Update`, `Delete` |
+| Application | `SystemSettings` | `View`, `Update` |
+| Background Jobs | `Hangfire` | `View` — the Hangfire Dashboard |
+| Background Jobs | `BackgroundJobs` | `View`, `Create`, `Run`, `Delete` |
+| Messaging | `Messaging` | `View`, `Run` (replay dead letters), `Delete` (discard dead letters) |
+| Imports | `Imports` | `View` — every import, read-only (see [Imports](./imports.mdx#who-sees-what)) |
+| Identity | `Users` | `View`, `Search`, `Create`, `Update`, `Delete`, `Export` |
+| Identity | `UserRoles` | `View`, `Update` |
+| Identity | `Roles` | `View`, `Create`, `Update`, `Delete` |
+| Identity | `RoleClaims` | `View`, `Update` |
+| Identity | `Permissions` | `View` |
+| Identity | `OidcProviders` | `View`, `Create`, `Update`, `Delete` |
+| Integrations | `Connections` | `View`, `Create`, `Update`, `Delete` |
+| Integrations | `Connectors` | `View` |
+| Health | `HealthChecks` | `View`, `Create`, `Update` |
+| Links | `Links` | `View`, `Create`, `Update`, `Delete` |
+| Organization | `Employees` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Organization | `EmployeeTimeAway` | `Administer` (see [Time away](#time-away-the-person-and-their-managers)) |
+| Organization | `Teams` | `View`, `Create`, `Update`, `Administer`, `ManageTeamMemberships`, `Delete`, `Import` |
+| Organization | `TeamMemberRoles` | `View`, `Create`, `Update`, `Delete` |
+| Organization | `HolidayCalendars` | `View`, `Create`, `Update`, `Delete` |
+| Planning | `PlanningIntervals` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Planning | `PlanningIntervalObjectives` | `View`, `Manage`, `Import` |
+| Planning | `Risks` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Planning | `Roadmaps` | `View`, `Create`, `Update`, `Delete` |
+| Planning | `PokerSessions` | `View`, `Create`, `Update`, `Delete` |
+| Planning | `StoryMaps` | `View`, `Create`, `Update`, `Delete` |
+| Planning | `EstimationScales` | `View`, `Create`, `Update`, `Delete` |
+| Project Portfolio Management | `ProjectPortfolioManagement` | `Administer` (see [PPM Administrator](#ppm-administrator)) |
+| Project Portfolio Management | `ExpenditureCategories` | `View`, `Create`, `Update`, `Delete` |
+| Project Portfolio Management | `PpmStrategicThemes` | `View` |
+| Project Portfolio Management | `ProjectPortfolios` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Project Portfolio Management | `Programs` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Project Portfolio Management | `Projects` | `View`, `Create`, `Update`, `Delete`, `Import`, `ManageProjectWorkItems` |
+| Project Portfolio Management | `StrategicInitiatives` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Project Portfolio Management | `ProjectLifecycles` | `View`, `Create`, `Update`, `Delete` |
+| Strategic Management | `StrategicThemes` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Strategic Management | `Strategies` | `View`, `Create`, `Update`, `Delete` |
+| Strategic Management | `Visions` | `View`, `Create`, `Update`, `Delete` |
+| Work Management | `WorkTypeTiers` | `View` |
+| Work Management | `WorkTypeLevels` | `View`, `Create`, `Update`, `Delete` |
+| Work Management | `Workspaces` | `View`, `Create`, `Update`, `Delete` |
+| Work Management | `Iterations` | `View`, `Update`, `Administer` (see [Sprint lifecycle](#sprint-lifecycle-team-membership)) |
+| Work Management | `WorkItems` | `View`, `Create`, `Update`, `Delete` |
+| Work Management | `WorkProcesses` | `View`, `Create`, `Update`, `Delete` |
+| Work Management | `WorkStatusCategories` | `View` |
+| Work Management | `WorkStatuses` | `View`, `Create`, `Update`, `Delete` |
+| Work Management | `WorkTypes` | `View`, `Create`, `Update`, `Delete` |
+| Product Management | `Products` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Product Management | `ProductTypes` | `View`, `Create`, `Update`, `Delete` |
+| Product Management | `ProductTagCategories` | `View`, `Create`, `Update`, `Delete` |
+| Delivery | `Delivery` | `View`, `Create`, `Update`, `Delete`, `Import` — versions, release packages and deployments |
+| Delivery | `Releases` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Delivery | `DeploymentEnvironments` | `View`, `Create`, `Update`, `Delete`, `Import` |
+| Delivery | `DeliveryMetrics` | `View` |
+
+Each permission is the resource and action joined — the `Update` action on `Projects` is `Permissions.Projects.Update`. Changing a product needs only its permission; there is no membership rule in Product Management.
 
 ## Delivery leadership in PPM
 
@@ -54,12 +122,14 @@ Sponsors fund and oversee work; they don't run delivery. A Sponsor — at any le
 
 Every operation that changes a project, program, or portfolio:
 
-- **Status transitions** — Approve, Activate, Complete, Cancel, Close, Archive
+- **Status transitions** — Approve, Activate, Pause, Resume, Complete, Cancel, Close, Archive
 - **Editing details** — name, description, business case, expected benefits, expenditure category
 - **Editing the timeline** — start and end dates
 - **Assigning roles** — adding, removing, or replacing role assignments
 - **Project structure** — changing a project's key, program, or lifecycle
-- **Delivery signals** — recording health checks and priority scores
+- **Strategic themes** — changing the themes a project or program supports
+- **Delivery signals** — recording health checks and scores
+- **Scoring** — assigning or clearing a portfolio's scoring model
 - **[Ranking](../ppm/portfolios-programs.mdx#portfolio-project-ranking)** — reordering a portfolio's projects
 
 Role assignment is included for a reason: it is the path by which leadership itself is granted. If it were not gated, anyone holding the `Update` permission could make themselves an Owner and then do everything else.
@@ -121,7 +191,7 @@ When a PPM or sprint action is missing from a menu or rejected on submit, it is 
 
 | Cause | What to do |
 |---|---|
-| Missing the permission claim | Ask an administrator to grant it via **Settings → Roles** |
+| Missing the permission claim | Ask an administrator to grant it via **Settings → Access → Roles** |
 | Not leading the record | Ask an Owner or Manager of the record — or of its program or portfolio — to assign you a role, or to perform the action |
 | Not on the sprint's team | Ask to be added to the team or its team of teams, or ask a member to perform the action |
 | Not the person or one of their managers | A person's time away is recorded by them or by someone they report up to. Ask one of them, or a time away administrator |

@@ -11,10 +11,10 @@ A **Risk** is the potential that a circumstance could arise that alters the outc
 
 Every risk has:
 - **Summary** and optional **Description**
-- **Team** — Associated [team](../organizations/index.mdx#teams) (optional)
-- **Reported By** — The employee who identified the risk
-- **Reported On** — When the risk was identified
-- **Status** — Open or Closed
+- **Team** — The [team](../organizations/index.mdx#teams) the risk belongs to, chosen when the risk is created; it cannot be changed afterwards
+- **Reported By** — The employee who identified the risk: you, when you create it
+- **Reported On** — When the risk was identified: the moment it was created
+- **Status** — Open or Closed. A new risk is Open; change it with **Edit**
 - **Category** (ROAM) — How the risk is being handled:
   - **Resolved** — The risk has been eliminated; no further action needed
   - **Owned** — Someone is actively managing the risk
@@ -33,15 +33,25 @@ Every risk has:
 - **Assignee** — Person responsible for managing the risk
 - **Follow-Up Date** — When to review the risk next
 - **Response** — Planned mitigation actions
-- **Closed Date** — Automatically set when status changes to Closed
+- **Closed Date** — Automatically set when status changes to Closed, and cleared when the risk is reopened
 
 ## Where Risks Appear
 
 Risks are visible in multiple places:
 
-- **[PI Risks section](./planning-intervals.mdx#pi-detail-page)** — All risks associated with the PI's teams, with an **Include Closed Risks** toggle. Grid columns: Key, Summary, Team, Status, Category, Exposure, Follow-up Date, Assignee, Reported On.
+- **[PI Risks section](./planning-intervals.mdx#pi-detail-page)** — The risks of the PI's teams that were reported before the PI ended and not closed before it started. Open risks only, unless **Include Closed** is switched on. Grid columns: Key, Summary, Team, Category, Exposure, Follow Up Date, Assignee, Reported On, and Status while closed risks are included. **Hide Team** removes the Team column.
 - **[Team Risks section](../organizations/index.mdx#risks)** — Risks for a specific team, with the same toggle and create capability.
 - **[Plan Review](./planning-intervals.mdx#plan-review)** — Within each team's view during PI planning ceremonies.
+- **Home** — **My Assigned Risks** lists the open risks assigned to you, with their follow-up dates. It shows only when you have some.
+
+## Risk Detail Page
+
+Each risk has its own page, with two sections:
+
+- **Risk** — The ROAM category, highlighted among the four; the **Description** and **Response**; and an **Evaluation** matrix placing the risk by impact and likelihood
+- **Activity** — The risk's recorded history
+
+The risk's exposure shows as a tag beside its name. The details panel shows the **Assignee**, the **Follow-Up Date** — with how many days remain, or how many days it is overdue, while the risk is open — **Reported By**, **Reported On**, **Closed**, and the team. **Edit** changes everything but the team.
 
 ## Common Tasks
 
@@ -49,13 +59,15 @@ Risks are visible in multiple places:
 
 1. Navigate to a PI's Risks section, or a team's Risks section
 2. Click **Create Risk**
-3. Enter **Summary**, **Impact**, **Likelihood**, and **Category**
-4. Optionally assign to a person and set a follow-up date
+3. Choose the **Team** and enter **Summary**, **Category**, **Impact**, and **Likelihood**
+4. Optionally add a **Description**, an **Assignee**, a **Follow Up** date, and a **Response**
+
+Creating a risk needs the **Create Risks** permission and your account to be linked to an employee, since the risk records who reported it. Changing one needs **Update Risks**.
 
 ### Managing Risks
 
 - Update **Category** as risk handling evolves (e.g., from Owned to Mitigated)
 - Update **Status** to Closed when the risk is resolved — the Closed Date is set automatically
 - Use the **Follow-Up Date** to schedule periodic reviews
-- Use the **Include Closed Risks** toggle to review historical risks
+- Use the **Include Closed** toggle to review historical risks
 - Open a risk's **Activity** section to see how it was handled over time: edits, ROAM category changes, reassessments, reassignments, follow-up dates, and when it was closed or reopened. See [Activity Log](../activity-log.mdx).

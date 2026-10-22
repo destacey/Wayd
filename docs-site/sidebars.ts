@@ -24,9 +24,12 @@ const sidebars: SidebarsConfig = {
       link: {type: 'doc', id: 'user-guide/index'},
       items: [
         {
-          type: 'doc',
-          id: 'user-guide/organizations/index',
+          type: 'category',
           label: 'Organizations',
+          link: {type: 'doc', id: 'user-guide/organizations/index'},
+          items: [
+            'user-guide/organizations/bulk-import',
+          ],
         },
         {
           type: 'category',
@@ -38,6 +41,7 @@ const sidebars: SidebarsConfig = {
             'user-guide/planning/roadmaps',
             'user-guide/planning/planning-poker',
             'user-guide/planning/story-maps',
+            'user-guide/planning/bulk-import',
           ],
         },
         {
@@ -49,6 +53,9 @@ const sidebars: SidebarsConfig = {
             'user-guide/work-management/sprints',
             'user-guide/work-management/work-configuration',
             'user-guide/work-management/cycle-time-report',
+            'user-guide/work-management/backlog-health-report',
+            'user-guide/work-management/work-distribution-report',
+            'user-guide/work-management/delivery-forecasting',
           ],
         },
         {
@@ -60,6 +67,7 @@ const sidebars: SidebarsConfig = {
             'user-guide/ppm/projects',
             'user-guide/ppm/strategic-initiatives',
             'user-guide/ppm/my-projects',
+            'user-guide/ppm/bulk-import',
           ],
         },
         {
@@ -74,12 +82,20 @@ const sidebars: SidebarsConfig = {
           items: [
             'user-guide/product-management/products',
             'user-guide/product-management/delivery',
+            'user-guide/product-management/bulk-import',
           ],
         },
         {
-          type: 'doc',
-          id: 'user-guide/settings/index',
+          type: 'category',
           label: 'Administration',
+          link: {type: 'doc', id: 'user-guide/settings/index'},
+          items: [
+            'user-guide/settings/permissions',
+            'user-guide/settings/imports',
+            'user-guide/settings/status-workflows',
+            'user-guide/settings/scoring-models',
+            'user-guide/settings/appearance',
+          ],
         },
         {
           type: 'doc',
@@ -103,6 +119,8 @@ const sidebars: SidebarsConfig = {
             'contributing/prerequisites',
             'contributing/installation',
             'contributing/configuration',
+            'contributing/first-run-setup',
+            'contributing/entra-app-registration',
             'contributing/local-development',
           ],
         },
@@ -118,9 +136,18 @@ const sidebars: SidebarsConfig = {
             'contributing/adding-a-feature',
             'contributing/database',
             'contributing/frontend',
+            'contributing/record-pages',
             'contributing/wayd-grid',
             'contributing/api',
             'contributing/mcp-server',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Tools',
+          link: {type: 'doc', id: 'contributing/tools/index'},
+          items: [
+            'contributing/tools/data-generation',
           ],
         },
         {

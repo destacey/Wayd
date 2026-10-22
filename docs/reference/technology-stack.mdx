@@ -27,8 +27,12 @@ audience: [developer, agent]
 | Scalar | API reference |
 | Microsoft.FeatureManagement | Feature flags |
 | ASP.NET Core Identity | User management |
-| Azure AD / Local JWT | Authentication |
+| OIDC identity providers / local JWT | Authentication |
 | OpenTelemetry | Observability |
+| ModelContextProtocol.AspNetCore | Hosted MCP endpoint (`/mcp`) |
+| NCalc | Scoring model formulas |
+| CsvHelper | CSV imports |
+| Microsoft Graph SDK | Microsoft Entra ID people sync |
 
 ## Frontend (Next.js)
 
@@ -46,16 +50,28 @@ audience: [developer, agent]
 | @dnd-kit | Drag and drop |
 | SignalR | Real-time communication |
 | Serwist | PWA service worker tooling |
+| Ant Design Charts | Charts |
+| React Flow (`@xyflow/react`) | Dependency maps and workflow diagrams |
+| Mermaid | Diagrams in the in-app docs |
+
+## MCP Server (`@wayd/mcp`)
+
+| Technology | Purpose |
+|-----------|---------|
+| Node.js 22+ | Runtime |
+| MCP TypeScript SDK (`@modelcontextprotocol/sdk`) | MCP protocol (stdio) |
+| Zod | Tool input validation |
 
 ## Testing
 
 | Technology | Purpose |
 |-----------|---------|
-| xUnit | .NET test framework |
+| xUnit v3 on Microsoft.Testing.Platform | .NET test framework |
 | FluentAssertions | .NET assertion library |
 | Moq + Moq.AutoMock | .NET mocking |
 | Bogus | Fake data generation |
 | NetArchTest.Rules | Architecture rule validation |
+| Testcontainers (SQL Server) | .NET integration tests against a real database |
 | Jest | JavaScript test framework |
 | React Testing Library | React component testing |
 

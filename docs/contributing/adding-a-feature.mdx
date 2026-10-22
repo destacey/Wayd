@@ -15,35 +15,41 @@ Start with the domain model:
 
 1. Define or update entities in `Wayd.\{Service\}.Domain/Models/`
 2. Add value objects if needed
-3. Define domain events for significant state changes
-4. Write domain tests
+3. Define domain events for significant state changes, following [Domain Events](./domain-events.mdx#designing-an-event). An aggregate that raises events must raise one from every public method that changes its state
+4. Write domain tests, with fakers in the domain test project's `Data/` folder
 
 ## 2. Application Layer
 
 Add commands, queries, and handlers:
 
-1. Create the **command/query** record in `\{Feature\}/Commands/` or `\{Feature\}/Queries/`
-2. Create the **handler** (a `public sealed class` — Wolverine's generated code cannot invoke internal handlers) implementing `ICommandHandler&lt;T&gt;` or `IQueryHandler&lt;T&gt;`. Handler dependencies are constructor-inlined by codegen; if you inject a service whose implementation class is `internal`, add it to the `AlwaysUseServiceLocationFor&lt;T&gt;()` allow-list in `WolverineConfiguration` (if you forget, CI's `codegen write` step, or the handler's first local dispatch, fails with an `InvalidServiceLocationException` naming the type)
+1. Create the **command/query** as a `public sealed record` named `*Command` or `*Query` in `\{Feature\}/Commands/` or `\{Feature\}/Queries/`, implementing `ICommand`, `ICommand<TResponse>` or `IQuery<TResponse>`
+2. Create the **handler** (a `public sealed class` named `*Handler` — Wolverine's generated code cannot invoke internal handlers) implementing `ICommandHandler<TCommand>`, `ICommandHandler<TCommand, TResponse>` or `IQueryHandler<TQuery, TResponse>`. A command handler returns `Result` or `Result<T>`, and each message has exactly one handler. Inject the module's `IXxxDbContext`, never `WaydDbContext`. Handler dependencies are constructor-inlined by codegen; if you inject a service whose implementation class is `internal`, add it to the `AlwaysUseServiceLocationFor<T>()` allow-list in `WolverineConfiguration` (if you forget, CI's `codegen write` step, or the handler's first local dispatch, fails with an `InvalidServiceLocationException` naming the type)
 3. Create the **validator** using FluentValidation
-4. Create **DTOs** for data transfer
-5. Add Mapster mapping configuration if needed
-6. Write application tests
+4. Create **DTOs** for data transfer in `\{Feature\}/Dtos/`
+5. Implement Mapster's `IMapFrom<TSource>` on the DTO, implementing `ConfigureMapping(TypeAdapterConfig)` where the mapping is not by name
+6. Write application tests against the module's fake DbContext — see [Testing](./testing.mdx#fake-dbcontext)
+
+`Wayd.ArchitectureTests` checks the naming, visibility, handler and layering rules above; see
+[Architecture tests](./architecture.mdx#architecture-tests).
 
 ## 3. Infrastructure Layer
 
 If the feature requires database changes:
 
 1. Add entity configuration in `Wayd.Infrastructure/Persistence/Configuration/`
-2. Create a database migration
-3. Update seed data if necessary
+2. Expose the new `DbSet` on the module's `IXxxDbContext` and its fake
+3. Create a database migration — see [Database & Migrations](./database.mdx#creating-a-migration)
+4. Update seed data if necessary
 
 ## 4. API Layer
 
 Expose the feature through the API:
 
-1. Add controller actions in `Wayd.Web.Api/Controllers/`
+1. Add controller actions in `Wayd.Web.Api/Controllers/\{DomainArea\}/`
 2. Controllers should be thin - delegate to handlers via `IDispatcher` (Wolverine)
-3. Return appropriate HTTP status codes
+3. Give each action `[MustHavePermission]`, `[EndpointSummary]` (and `[EndpointDescription]` where it helps), and its response types — see [API Development](./api.mdx#controller-pattern)
+4. Return appropriate HTTP status codes
+5. Rebuild `Wayd.Web.Api` in Debug to regenerate `specification.json` and `wayd-api.ts`, and commit both
 
 ## 5. Frontend
 
@@ -62,3 +68,10 @@ If the feature should be gradually rolled out:
 2. Gate the controller with `[FeatureGate]`. Where a flag changes behaviour inside an endpoint that exists either way, inject `IFeatureFlags` into the handler that owns the behaviour instead
 3. Gate the UI with `useFeatureFlag` or `requireFeatureFlag`
 4. See [Feature Flags](../reference/feature-flags.mdx) for details
+
+## 7. Before You Finish
+
+1. Build the projects you touched and run each affected test project; run `Wayd.ArchitectureTests` after changing a project reference — see [Running Tests](./testing.mdx#running-tests)
+2. In the client, run `npm run typecheck`, `npm run lint` and `npm test`
+3. A changed CSV import also needs `npm run generate:import-templates` — see [CSV import endpoints](./api.mdx#csv-import-endpoints)
+4. A change users can see updates its page in `docs/user-guide/`

@@ -212,14 +212,14 @@ The Moda → Wayd transition shipped across three PRs:
 - Docusaurus config (title, baseUrl, project URLs)
 - All internal GitHub / Pages URL references
 - **Infrastructure** (in the follow-up PR): new `wayd` Terraform Cloud organization + `wayd-dev` workspace; Azure resources renamed (`rg-wayd-dev`, `sql-wayd-dev`, `sqldb-wayd-dev`, `cae-wayd-dev`, `la-wayd-dev`, `sigr-wayd-dev`, container apps `wayd-api-dev` / `wayd-client-dev`); SQL admin login renamed to `waydadmin`; the unused Azure Static Web App was removed
-- **JWT Issuer / Audience** (in the infrastructure PR): `Moda` / `ModaApi` → `Wayd` / `WaydApi` across `security.json`, Terraform env vars, and C# fallback defaults
+- **JWT Issuer / Audience**: `https://wayd.dev` / `https://api.wayd.dev` in `security.json` and the `LocalJwtSettings` defaults; Terraform does not set them per environment
+- **Login provider**: `LoginProviders.Moda` → `LoginProviders.Wayd`; the `Rename-Moda-LoginProvider-To-Wayd` migration rewrites `LoginProvider = 'Moda'` on existing users, so it runs on the next API start
+- **Local storage keys**: `ReleaseCleanup` (`src/components/release-cleanup.tsx`) moves `modaTheme` and `modaMenuCollapsed` to `appTheme` and `appMenuCollapsed` once per browser and deletes the old `moda.local.*` sign-in keys, so everyone signs in again once
 
 ### What intentionally stayed as "moda"
 
-These are deferred because they live outside the repo or depend on data compatibility:
-
-- `LoginProviders.Moda = "Moda"` constant and matching frontend `loginProvider === 'Moda'` checks — user rows in the database have `LoginProvider = "Moda"`; renaming requires a coordinated data migration
 - `docs/_legacy/*.drawio.svg` — embedded text inside legacy architecture diagrams (art assets)
+- `scripts/rename-db.sh`, `scripts/rename-localdb.ps1` and `scripts/rename-localdb.sql` — they exist to rename the `moda` database
 
 ## Troubleshooting
 

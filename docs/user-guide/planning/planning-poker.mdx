@@ -18,37 +18,44 @@ An **Estimation Scale** defines the set of values available for voting (e.g., Fi
 ## Poker Sessions
 
 A **Poker Session** is a real-time estimation event:
-- Created by a **Facilitator** who manages the session
+- Created by a **Facilitator** — the person who created it, shown in the sessions list
 - Uses a specific **Estimation Scale** (cannot be changed after rounds begin)
-- Contains **Rounds** — each round represents one item being estimated
-- Sessions are immediately **Active** on creation
+- Contains **Rounds** — each round represents one item being estimated, with an optional label such as a work item ID
+- Sessions are immediately **Active** on creation, and stay Active until completed
+
+The **Planning Poker** page lists sessions with Name, Status, Facilitator and Rounds. Completed sessions are hidden until **Include Completed** is switched on. A session's row menu offers **Edit** and **Complete** while it is active, and **Delete**.
 
 ## Poker Session Detail Page
 
 The session page has a real-time, multi-column layout:
 
 **Center Column** — Changes based on round status:
-- **Lobby** (no active round) — Session name, status, and participant list
-- **Voting** — Card deck for selecting estimates, participant cards showing vote status (hidden until reveal)
-- **Revealed** — All votes shown simultaneously, results summary
-- **Accepted** — Consensus value displayed
+- **Lobby** (no rounds yet) — **Ready to estimate**, with a box for the first round's label and **Start**. Those who cannot run the session see **Waiting for the facilitator to start a round.**
+- **Voting** — Participant cards showing who has voted (values hidden until reveal), **Reveal Cards**, and **Your Estimate**: the card deck for choosing your vote. Choose a card again to withdraw it
+- **Revealed** — All votes shown, with **Average**, **Mode**, **Low** and **High**, and a **Consensus** tag when the votes agree or **Spread — discuss** when they do not. Votes agree when the numeric votes are no more than 3 apart, or, on a scale without numbers, when everyone chose the same card. **Re-vote** clears the votes; **Accept** takes the mode, and its dropdown accepts any other value on the scale
+- **Accepted** — The accepted estimate, marked **Estimated**, with **Reset & Re-vote**
 
-**Right Sidebar** — Participant avatars, round list, and Complete Session button
+After an estimate is accepted, a new round starts automatically unless another round is already waiting for votes.
+
+**Right Sidebar** — The **Timeline** of rounds, where you can select a round, add a round by label, or remove one, and the **Complete Session** button. Before the first round it lists the participants connected to the session instead. On a phone, the timeline opens from **Session Timeline**.
+
+The header offers **Edit** (the session's name and, until rounds have started, its scale) and **Copy Invite Link** while the session is active.
 
 ### Round Workflow
 
 ```mermaid
 stateDiagram-v2
     [*] --> Voting : Add Round
-    Voting --> Revealed : Reveal Votes
-    Revealed --> Voting : Reset (re-vote)
-    Revealed --> Accepted : Set Consensus
+    Voting --> Revealed : Reveal Cards
+    Revealed --> Voting : Re-vote
+    Revealed --> Accepted : Accept
+    Accepted --> Voting : Reset & Re-vote
 ```
 
-- **Voting** — Participants submit estimates from the card deck
-- **Reveal** — Facilitator reveals all votes simultaneously
-- **Reset** — Clear votes and return to voting (for re-estimation)
-- **Consensus** — Facilitator sets the agreed estimate value
+- **Voting** — Participants submit estimates from the card deck, and can change or withdraw them until the votes are revealed
+- **Reveal** — All votes are revealed simultaneously
+- **Re-vote** — Clear votes and any accepted estimate, and return to voting (for re-estimation)
+- **Accept** — Set the agreed estimate value
 
 ### Real-time Features
 
@@ -59,9 +66,10 @@ stateDiagram-v2
 ### Business Rules
 
 - Sessions are immediately activated on creation
-- Rounds can only be added to active sessions
+- Rounds can only be added, changed or removed, and votes cast, while the session is active
 - The estimation scale cannot change after rounds begin
 - Only active sessions can be completed
+- Running a session — starting, revealing, re-voting and accepting rounds, and completing it — needs the **Update Poker Sessions** permission, and so does voting. It is not limited to the facilitator
 
 ## Common Tasks
 
@@ -69,9 +77,9 @@ stateDiagram-v2
 
 1. Navigate to **Planning > Planning Poker**
 2. Click **Create Session**
-3. Select an **Estimation Scale** and enter a session **Name**
-4. Share the invite link with participants
-5. **Add Rounds** for each item to estimate
-6. **Reveal** votes when all participants have voted
-7. **Set Consensus** or **Reset** to re-vote
-8. **Complete** the session when estimation is done
+3. Enter a session **Name** and select an **Estimation Scale**
+4. Share the link with participants using **Copy Invite Link**
+5. Enter the first item's label and click **Start**; add further rounds from the timeline
+6. **Reveal Cards** when all participants have voted
+7. **Accept** an estimate or **Re-vote**
+8. **Complete Session** when estimation is done

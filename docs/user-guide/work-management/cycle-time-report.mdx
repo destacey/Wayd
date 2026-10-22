@@ -29,7 +29,7 @@ To contribute to the report, a work item must:
 - Be a Requirement-tier work item
 - Have a Done status category
 - Have both an Activated timestamp and a Done timestamp
-- Have a Done timestamp after the Activated timestamp
+- Have a Done timestamp different from the Activated timestamp
 - Fall within the selected Done date range
 
 Items that moved directly to Done without being activated, or items that were Removed instead of completed, are excluded.
@@ -66,13 +66,13 @@ Filters work items completed on or after the selected date.
 
 Controls what percentage of work items to include after removing outliers.
 
-- `100%` includes all eligible items
+- Default: `100%`, which includes all eligible items
 - Lower values remove extreme cycle times that can skew averages
 - `0%` excludes all items
 
-### Outlier Method
+### Method
 
-Determines how outliers are removed when percentile is below `100%`.
+Determines how outliers are removed when percentile is below `100%`. The default is **Balanced**.
 
 | Method | How It Works | Best For |
 |--------|--------------|----------|
@@ -92,6 +92,8 @@ The **Cycle Time Analysis Chart** groups completed work items by story points an
 - **Y-axis** — Average cycle time in days
 - **Overall** — Average cycle time across all included work items
 
+Hover a bar to see its average cycle time and how many work items it holds. The chart always groups by story points, whatever the team's sizing method.
+
 Use the chart to answer questions like:
 
 - Do similarly sized items have similar cycle times?
@@ -100,7 +102,7 @@ Use the chart to answer questions like:
 
 ## Work Items Grid
 
-Below the chart, a sortable and filterable grid shows the included work items with columns for Key, Title, Type, Status, Story Points, Team, Sprint, Assigned To, Activated date, Done date, and Cycle Time.
+Below the chart, a sortable and filterable grid shows the included work items with columns for Key, Title, Type, Status, Status Category, Story Points, Team, Sprint, Parent Key, Parent, Assigned To, Project, Tags, Activated, Done, and Cycle Time (Days), sorted by most recently done. Effort and Size are available from **Choose Columns**.
 
 Applying grid filters dynamically updates the chart. This lets you drill into cycle time by work type, sprint, assignee, team, or other dimensions.
 
@@ -119,11 +121,11 @@ Use the report to:
 ### Team Cycle Time
 
 1. Navigate to the team's detail page
-2. Open **Reports > Cycle Time Report**
+2. Open **Reports > Cycle Time**
 3. Configure the date range and filters
 
 ### Employee Cycle Time
 
 1. Navigate to the employee's detail page
-2. Open **Reports > Cycle Time Report**
+2. Open **Reports > Cycle Time**
 3. Configure the date range and filters

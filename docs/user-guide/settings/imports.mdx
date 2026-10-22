@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Imports
 
-**Settings → Imports** shows every import file that has been submitted, what became of it, and what you
+**Settings → System → Imports** shows every import file that has been submitted, what became of it, and what you
 can still do about it.
 
 It is also where files are submitted from the app. What each file must contain is described in the bulk
@@ -173,7 +173,7 @@ row twice.
 - **If the worker disappears entirely**, a maintenance job ends the run once it has gone quiet for 30
   minutes, and republishes any run that has sat queued for 15. **Resume** carries an ended run on from
   where it stopped. That job is scheduled to run every five
-  minutes by default; it appears in [Settings → Background Jobs](./index.mdx#background-jobs) as
+  minutes by default; it appears in [Settings → System → Background Jobs](./index.mdx#background-jobs) as
   `import-stall-recovery`, where its schedule can be changed. If it is deleted, it is scheduled again the
   next time the server starts.
 
@@ -182,7 +182,7 @@ Retrying re-applies the data you submitted, which is held for 30 days after a ru
 discarded — it is a copy of your file, and keeping it forever would mean holding that data forever.
 After that the run's history remains, but its rows can no longer be retried and the file must be
 submitted again. The job that discards them runs once a night by default; it appears in
-[Settings → Background Jobs](./index.mdx#background-jobs) as `import-retention-sweep`, and like the
+[Settings → System → Background Jobs](./index.mdx#background-jobs) as `import-retention-sweep`, and like the
 recovery job above it is scheduled again on the next start if it is deleted.
 :::
 
@@ -237,4 +237,4 @@ Two scheduled maintenance jobs act on runs listed here. **Import Stall Recovery*
 will finish — re-queueing one whose message never arrived, and failing one that stopped reporting progress
 so its remaining rows can be resumed. **Import Retention Sweep** discards submitted row data once a run is
 more than 30 days old, keeping the run and its per-row outcomes. Both are scheduled by default — every
-five minutes and nightly — and both are configured under **Settings → Background Jobs**.
+five minutes and nightly — and both are configured under **Settings → System → Background Jobs**.

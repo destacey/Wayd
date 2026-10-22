@@ -26,7 +26,10 @@ Non-maintainers will need to fork the repository before making changes. Pull req
    ```
 
 #### Set Up Your Environment
-Follow the setup instructions in the `README.md` file to get the project running locally.
+Follow the [Quick Start](README.md#-quick-start) in the README, or the full [Prerequisites](docs/contributing/prerequisites.mdx) and [Installation](docs/contributing/installation.mdx) guides, to get the project running locally. Enable the repository's git hooks once per clone:
+```bash
+git config core.hooksPath .githooks
+```
 
 #### Create a Branch
 Create a new branch for your changes:
@@ -41,10 +44,18 @@ Make your changes to the codebase. Ensure that:
 - You write tests for any new functionality.
 
 #### Run Tests
-Run the test suite to ensure your changes don’t break anything:
+Run the checks that cover your change to ensure it doesn’t break anything. The full list is under "Before You Finish" in [AGENTS.md](AGENTS.md#before-you-finish); the usual ones are:
 ```bash
+# Backend - the integration suites start SQL Server containers, so Docker must be running
+dotnet test Wayd.slnx
+
+# Client
+cd Wayd.Web/src/wayd.web.reactclient
+npm run typecheck
+npm run lint
 npm test
 ```
+A change to the `@wayd/mcp` package (`Wayd.Web/src/Wayd.Mcp`) also needs `npm test` there and a changeset — see [MCP Server](docs/contributing/mcp-server.mdx).
 
 #### Commit Your Changes
 Commit your changes with a meaningful commit message:
@@ -57,7 +68,7 @@ Follow the `type(scope): summary (#issue)` format in [Branches and Commits](docs
 #### Push Your Changes
 Push your branch to your fork:
 ```bash
-git push origin feature/your-feature-name
+git push origin feat/123-short-summary
 ```
 
 #### Create a Pull Request

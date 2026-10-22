@@ -30,9 +30,10 @@ out-of-band operation (an Aspire dashboard command), not part of this tool.
 
 ## Quick start
 
-The tool has three verbs: **`generate`** (write CSVs to disk to inspect), **`seed`** (generate and push
-through the API), and **`ui`** (build, preview and seed a recipe in a browser). `generate` and `seed` share
-the same generation options.
+The tool has four verbs: **`generate`** (write CSVs to disk to inspect), **`seed`** (generate and push
+through the API), **`ui`** (build, preview and seed a recipe in a browser), and **`recipes`** (list the
+built-in recipes; `recipes show <name>` prints one resolved and `recipes schema` prints the recipe schema).
+`generate` and `seed` share the same generation options.
 
 If you would rather not start from a command line, [`wayd-data ui`](#the-ui) opens a page that builds the
 recipe for you, seeds it, and shows the command it corresponds to.
@@ -59,6 +60,16 @@ dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli
 
 The API base URL is shown in the Aspire dashboard when you run the stack
 (`cd Wayd.AppHost && dotnet run`).
+
+`generate` writes one file per import, named for it: `employees.csv`, `teams.csv`, `team-memberships.csv`
+and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`, `programs.csv`,
+`projects.csv`, `project-tasks.csv`, `project-stages.csv`, `strategic-initiatives.csv`,
+`strategic-initiative-kpis.csv` and `ppm-finalizations.csv` for PPM; `deployment-environments.csv`,
+`products.csv`, `product-dependencies.csv`, `versions.csv`, `release-packages.csv`,
+`release-package-components.csv`, `releases.csv`, `release-contents.csv` and `deployments.csv` for Product
+Management; and `planning-intervals.csv`, `planning-interval-objectives.csv` and `risks.csv` for Planning.
+An area that is switched off writes none of its files. Roles and accounts are created through the API at
+seed time and have no file.
 
 ## Authentication
 
@@ -114,14 +125,19 @@ you name rather than a line of flags you remember. Six ship with the tool:
 
 ```
 $ wayd-data recipes
+Built-in recipes:
 
-  default        A small tech company with a full four-year delivery window.
-  demo           A fixed dataset for demos and screenshots.
-  enterprise     A large non-delivery-led business.
-  large-tech     A scaled product organization, with a microservice catalog of a few hundred products.
+  default        A small tech company with a full four-year delivery window. What a run uses when no recipe is named.
+  demo           A fixed dataset for demos and screenshots. The only built-in that pins asOf, so it reproduces byte-for-byte when paired with --random-seed.
+  enterprise     A large non-delivery-led business, where most of the headcount sits outside the delivery structure.
+  large-tech     A scaled product organization: several value streams, many teams, a dense portfolio, and a microservice catalog of a few hundred products with the dependencies between them.
   org-only       The organization on its own, with no PPM, Product Management or Planning dataset over it.
-  startup        A young company: one product line, a handful of teams with no ART over them.
+  startup        A young company: one product line, a handful of teams with no ART over them, and little history behind it.
 ```
+
+The built-ins are embedded JSON under `Recipes/BuiltIn/` in the CLI project, read through the same parser
+as a file of your own. A built-in name is tried before a file path, so a file named `startup` in the
+working directory never shadows the built-in.
 
 Use one with `--recipe <name>`, or point `--recipe` at a file of your own.
 
@@ -144,7 +160,7 @@ Values resolve bottom-up, and the top one that states a value wins:
 3. **The flags you passed** — beats both.
 
 So `--recipe startup --teams 9` gives you the startup shape with nine teams. That last layer is why no
-option has a default value any more: an option carrying one reads back as "the user typed this" whether
+generation option has a default value: an option carrying one reads back as "the user typed this" whether
 they did or not, which makes "an explicit flag wins" impossible to implement.
 
 ### Writing your own
@@ -176,8 +192,13 @@ does not recognise**:
 
 ```
 Recipe error: Recipe 'my-company.json' could not be read: The JSON property 'teemz'
-could not be mapped to any .NET member contained in type 'OrganizationRecipe'.
+could not be mapped to any .NET member contained in type
+'Wayd.Tools.DataGeneration.Cli.Recipes.OrganizationRecipe'.
 ```
+
+A number outside the range the schema states for it is rejected the same way, naming the field
+(`'organization.teams' is 0, and the smallest it may be is 1.`), rather than being clamped into range by a
+generator. So is an `extends` cycle, or an `extends` that names neither a built-in nor an existing file.
 
 That strictness is deliberate. A misspelled key that parses cleanly and does nothing is the worst thing
 this format could do — the run succeeds and quietly ignores what you asked for.
@@ -201,9 +222,10 @@ and projects are scoped to a team — so a run without it produces nothing at al
 
 ### Sign-ins and roles
 
-A seeded environment used to have hundreds of employees and one account linked to none of them, which made
-every PPM rule unreachable: the account you signed in with either administered everything or led nothing.
-The seed now creates roles and gives accounts to the people whose authorization actually differs.
+Without accounts of its own, a seeded environment has hundreds of employees and one account linked to none
+of them, which makes every PPM rule unreachable: the account you sign in with either administers everything
+or leads nothing. So the seed creates roles and gives accounts to the people whose authorization actually
+differs.
 
 Six roles are created, chosen to sit on real seams in the authorization model rather than on job titles:
 
@@ -232,17 +254,30 @@ Every account is created with the same password, which the recipe states:
 }
 ```
 
+The password must satisfy Wayd's password rules — at least 8 characters, with an uppercase letter, a
+lowercase letter and a digit; the schema states the 8-character minimum.
+
 One password for all of them is deliberate — switching between people to check a rule is the point. Wayd
 prompts each account to change it at first sign-in; that is a client-side prompt rather than something the
 API enforces, so the account works immediately either way.
 
 `--skip-users` turns the area off, and `--user-password` overrides the password for one run.
 
+Roles are created or updated by name, so seeding onto an environment that already has them resets their
+permissions to the ones above. Accounts are created one request at a time, signing in through the local
+`Wayd` provider and linked to their employee; an account the API refuses — most often an email address the
+environment already holds — is logged as skipped and the rest carry on.
+
 :::note[Which employees get an account]
-The people holding a PPM role — sponsors, owners and managers — plus the executives, which is a few dozen
-rather than the whole company. An account that leads nothing behaves like every other account that leads
-nothing, so there is little to learn from hundreds of them. The executives are included so an
-organization-only run still leaves you a way in.
+The people holding a PPM role — sponsors (`Read Only`), project owners and managers (`Project Manager`),
+and portfolio and program owners and managers (`Delivery Manager`) — plus a sample of five project members
+(`Team Member`) and the executives, which is a few dozen rather than the whole company. Someone holding
+several of these gets the strongest. An account that leads nothing behaves like every other account that
+leads nothing, so there is little to learn from hundreds of them.
+
+The executives are included so an organization-only run still leaves you a way in: the CEO gets the shipped
+`Admin` role, the CPO `Product Manager`, and the CTO `PPM Administrator`, the only account that holds it.
+Only people still employed get an account.
 :::
 
 ### The timeline block
@@ -309,8 +344,8 @@ environment, then streams the seed's log as it runs and reports how it ended.
 ### How it is reached
 
 Bound to a loopback address on a port the operating system picks, and gated by a token generated per run
-and carried in the launch URL — the same shape the [Aspire dashboard](../../getting-started/) is opened
-with. The page takes the token out of the address bar as soon as it loads and sends it as a header, so it
+and carried in the launch URL — the same shape the
+[Aspire dashboard](../local-development.mdx#running-with-aspire-recommended) is opened with. The page takes the token out of the address bar as soon as it loads and sends it as a header, so it
 stops appearing in history or in a screenshot. A request without it gets a 404 rather than a 401, which
 tells something that merely found the port as little as possible.
 
@@ -360,7 +395,7 @@ anything you can compose in the page, you can also say on a command line.
 | `--objectives-per-team` | `4` | Average objectives (1..10) a team commits to per planning interval, stretch objectives included |
 | `--risks-per-team` | `1.5` | Average risks (0..5) a team raises per planning interval |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (every area) |
-| `--as-of` | today | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
+| `--as-of` | today (UTC) | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
 | `--out`, `-o` | `./seed` | (`generate` and `ui`) output directory |
 | `--no-browser` | off | (`ui` only) print the URL instead of opening a browser |
 | `--api`, `-a` | — | API base URL — required for `seed`; for `ui`, fills in the seed form |
@@ -421,8 +456,9 @@ Operations) has its own management chains and **no team memberships**.
 
 - **Worker type** — most people are regular `Employee`s; a minority of non-manager ICs are `Contractor`,
   `Contingent Worker`, `Intern`, or `Part-Time`. Every manager is a regular employee.
-- **Timeline** — the company is modeled as ~5 years old (hire dates span up to five years back); the current
-  team structure is ~2 years old (team active dates within two years).
+- **Timeline** — at the defaults the company is modeled as ~5 years old (`companyAgeYears`; hire dates span
+  up to five years back) and the current team structure as ~2 years old (`teamStructureAgeYears`; team
+  active dates within two years).
 - **Former employees** — people who held a position and left it; see [Attrition](#attrition).
 
 ### Attrition
@@ -475,7 +511,7 @@ delivery teams:
   and Product Owner (sponsor) and decides the program placement — and the project's members are the **union**
   of everyone across the participating teams. Each project gets the shared **Standard Delivery** lifecycle
   and an expenditure category. Volume is set by `--concurrent-projects-per-art` (how many an ART runs at
-  once); the total is derived from the four-year window and typical 2–9-month durations, so an ART
+  once); the total is derived from the window and typical 2–9-month durations, so an ART
   accumulates a deep history and a full runway rather than a handful of projects. Most ART projects are
   named after a component the owning team builds ("Migrate Loyalty Gateway"), so they read against the
   [product catalog](#the-product-management-dataset); a component retired before a project starts is never
@@ -489,7 +525,8 @@ delivery teams:
 - **Strategic initiatives + KPIs** — one per portfolio, linking a few of its projects, each with a couple
   of KPIs.
 
-**The four-year timeline.** Work spans two years of history and a two-year runway from today, and each
+**The four-year timeline.** At the defaults, work spans two years of history (`--history-years`) and a
+two-year runway (`--runway-years`) from today, and each
 item's status follows its position on that window: finished in the past (**Completed**, a few
 **Canceled**), in flight around today (**Active**), and not-yet-started in the future (**Proposed** /
 **Approved**). Task progress and status track the same timeline.
@@ -632,7 +669,9 @@ Every run resolves a concrete seed (random when `--random-seed` is omitted) and 
 Using seed 193051458 as of 2026-06-15 (pass --random-seed 193051458 --as-of 2026-06-15 to reproduce this data).
 ```
 
-Re-run with **both** of those to reproduce byte-identical data, for a given build of the tool. The seed pins
+When a recipe was named, the line includes its `--recipe` too, since the data depends on it as well.
+
+Re-run with **both** the seed and the date to reproduce byte-identical data, for a given build of the tool. The seed pins
 the randomness, not the algorithm: if the generator changes, the same seed produces different data.
 
 Both are needed because they pin different things, and either alone reproduces nothing. `--random-seed` fixes
@@ -675,13 +714,16 @@ once its projects are closed. Stating the dependency keeps it from drifting away
 areas are added — and adding one means declaring what it needs, not finding the right line to insert a
 call at.
 
-Today's areas resolve to:
+The areas, and what each one waits on:
 
 ```
-employees → teams → team hierarchy → roles (created as needed) → team staffing
-  → expenditure categories + lifecycle (settings bootstrap)
-  → strategic themes → portfolios → programs → projects → project tasks → project stage statuses
-  → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
+teams → team hierarchy
+employees + teams + team member roles (created as needed) → team staffing
+
+employees → portfolios → programs (+ strategic themes)
+  → projects (+ expenditure categories and lifecycle, the settings bootstrap)
+      → project tasks → project stage statuses
+      → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 
 product-management feature flag → deployment environments
                                 → products → product dependencies
@@ -690,7 +732,14 @@ product-management feature flag → deployment environments
 
 team staffing → planning intervals (+ rosters) → planning interval objectives
               → risks
+
+application roles → user accounts (after employees)
 ```
+
+Areas the graph leaves unordered run in the order they are registered in `SeedRunner.Areas`, so a run is
+reproducible and reads top-down; independent areas interleave, so the settings bootstrap and the strategic
+themes, for instance, post before team staffing does. An area that has nothing to do — one whose dataset was
+switched off, or that generated no rows — is skipped.
 
 Product Management depends on nothing in the organization or PPM areas — it references no employees — so
 it only needs its own order. Versions come before packages because a manifest line links to a version only
@@ -704,11 +753,11 @@ several imports later and leaves the copy time to catch up.
 
 ### One area can be more than one file
 
-An import rejects a file past its row cap outright, and the atomic ones — the Planning imports — cap at
-10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a run that
+An import rejects a file past its row cap outright, and the atomic ones — the team, team-hierarchy,
+staffing, strategic-theme and Planning imports — cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a run that
 is applied as one transaction; it is the server's guard against an arbitrary client, and the seed is a
 client like any other. The PPM and Product Management imports apply group by group (deployments row by row)
-and save chunk by chunk, so the cap no longer bounds a run there, but it stays at 10,000 until a larger file
+and save chunk by chunk, so the cap does not bound a run there, but it stays at 10,000 until a larger file
 has been proven end to end.
 
 The seed does not keep its own copy of those caps. Before posting anything it reads each import's `maxRows`
@@ -750,7 +799,8 @@ near the cap at the built-in sizes.
 An import answers with its **run**, having waited a few seconds for it: a small file comes back finished,
 a large one still queued or running — taken, not applied. Each area therefore polls that run to
 completion and reads its row outcomes back before the next area writes anything, because those outcomes
-are where the created ids are.
+are where the created ids are. It polls every half second and gives up after ten minutes, saying the import
+runner may not be processing the queue.
 
 Each row is submitted under an `ImportId` set to the generator's own handle for that record — a
 portfolio's name, a project's key — so the ids come back keyed the way the next file already refers to
@@ -758,7 +808,7 @@ them, with no second mapping to keep in step.
 
 Every file in a seed is also posted under the same **submission group** — a GUID the seed draws once per
 run and prints at the start (`Submitting every file under import group …`). Each run the API answers with
-carries it as `submissionGroupId`, so the fifteen or so runs one seed produces can be found together
+carries it as `submissionGroupId`, so the twenty or more runs one seed produces can be found together
 afterwards rather than picked out of everything else the environment has imported.
 
 Each import applies as its definition says — the employee and deployment files row by row, the PPM and
@@ -769,6 +819,33 @@ generator bug rather than something to carry on from: the next stage resolves id
 outcomes, so a missing record would surface far from its cause. References resolve by natural key where a record has one — employee
 number, team code, project key — and by id otherwise. Pass `--skip-ppm` to stop after the organization;
 nothing in the organization depends on a resolved id, so that path is unaffected by any of this.
+
+## Extending the tool
+
+Paths below are relative to `Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli`. The tests in
+`Wayd.Tools/DataGeneration/tests/Wayd.Tools.DataGeneration.Cli.Tests` fail until every step is done.
+
+**Adding a knob** touches the format, its defaults and its flag together:
+
+1. Add the property to its area's record in `Recipes/Recipe.cs`, nullable, so a layer can leave it
+   unstated, and layer it in `Recipes/RecipeLayering.cs`, which merges field by field.
+2. Describe it in `Recipes/recipe.schema.json` with its range and an `x-cli-flag` naming the flag — or
+   `x-cli-no-flag` with the reason there is none. `RecipeBounds` enforces the range from here, and the
+   [UI](#the-ui) builds its field and its printed command from here.
+3. Copy the schema to `docs-site/static/schemas/wayd-data/recipe.schema.json`, the URL every recipe's
+   `$schema` points at. `RecipeLibraryTests` fails while the two differ.
+4. Give it a value in `Recipes/BuiltIn/default.json`, unless leaving it unstated means something (as
+   `platformServices` does). A required knob the defaults do not settle fails the run, and
+   `RecipeLibraryTests` with it.
+5. Add the option to `GenerationOptions` — declared with no default, listed in `All`, and carried into the
+   recipe in `Compose`. `GenerationOptionsTests` pairs every flag with the schema's `x-cli-flag`s.
+6. Settle it into the generator's options in `Recipes/ResolvedRecipe.cs`, and add its row to
+   [Options](#options) on this page.
+
+**Adding an area** means subclassing `SeedArea` (under `Seeding/Areas/`) with a stable `area.thing` name
+and the names of the areas it depends on, and registering it in `SeedRunner.Areas`. An area that may need
+more than one file overrides `BatchedImport` with its import's key and splits its rows with `Batch`, so the
+row cap is read from the server and checked against the token up front.
 
 ## Data conventions
 

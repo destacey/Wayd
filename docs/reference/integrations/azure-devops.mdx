@@ -19,18 +19,20 @@ audience: [developer, agent, admin]
 - Sync work items from Azure DevOps projects into Wayd workspaces
 - Map Azure DevOps work item types to Wayd work types
 - Maintain ownership tracking — Managed items cannot be edited from the Wayd UI
-- Background synchronization via Hangfire jobs (`WorkFullSync` / `WorkDiffSync`)
+- Sync iterations, parent and dependency links, deletions, and work item history
+- Background synchronization via Hangfire jobs (**Work Full Sync** / **Work Differential Sync**), or on demand per connection
 
 ## Setup
 
 1. In Azure DevOps, create a **Personal Access Token** with the scopes listed in [Required permissions](#required-permissions) below. Pick an expiry that matches your operational policy; you'll need to rotate the PAT before it expires.
-2. In Wayd, open **Settings → Connections** and click **Create Connection**. Pick **Azure DevOps**.
+2. In Wayd, open **Settings → System → Connections** and click **Create Connection**. Pick **Azure DevOps**.
 3. Fill in:
    - **Organization** — the AzDO organization slug (the value between `dev.azure.com/` and the next `/` in your AzDO URL, e.g. `contoso` for `https://dev.azure.com/contoso`).
    - **Personal Access Token** — paste the PAT.
-4. Click **Test Configuration** to verify Wayd can authenticate against AzDO before saving. Save.
-5. From the connection detail page, initialize each AzDO project as a Wayd **Workspace** and each work process as a Wayd **Work Process**.
-6. Trigger a manual sync from the detail page, or let the recurring Hangfire job pick it up on schedule.
+4. Click **Test Configuration** to verify Wayd can authenticate against AzDO before saving. Save. Wayd also checks the PAT on save; if the check fails, the connection is still saved but marked as having an invalid configuration, and it will not sync until an edit with a working PAT succeeds.
+5. On the connection detail page, run **Sync Organization Configuration** from the actions menu to load the organization's work processes and projects.
+6. In the **Organization Configuration** section, **Initialize** each work process you want as a Wayd **Work Process**, then use **Setup Workspace Integration** on each of its projects to initialize it as a Wayd **Workspace** (workspace key, name, and an optional view-work-item URL template). A project's workspace can only be initialized once its process is. **Team Mappings** on an initialized workspace maps its Azure DevOps teams to Wayd teams.
+7. Click **Diff Sync** or **Full Sync** in the **Sync History** section, or have an admin schedule **Work Full Sync** / **Work Differential Sync** under [Settings → System → Background Jobs](../../user-guide/settings/index.mdx#background-jobs) — no sync is scheduled by default.
 
 ## Required permissions
 
@@ -41,7 +43,7 @@ The PAT must have the following Azure DevOps scopes:
 | **Work Items (read)** | List, query, and read work items from each synced project |
 | **Project and Team (read)** | Enumerate projects + teams to initialize workspaces; read process templates |
 
-Both scopes are read-only. Wayd never writes back to Azure DevOps in v1.
+Both scopes are read-only. Wayd never writes back to Azure DevOps; its only `POST` requests are WIQL queries (`_apis/wit/wiql`) and batch reads (`_apis/wit/workitemsbatch`).
 
 If the PAT is later rotated or revoked in AzDO, sync runs will fail with `401 Unauthorized`; edit the connection in Wayd and paste the new PAT.
 
@@ -49,22 +51,22 @@ If the PAT is later rotated or revoked in AzDO, sync runs will fail with `401 Un
 
 | Option | Default | Notes |
 |---|---|---|
-| Organization | — | Required. AzDO organization slug. |
-| Personal Access Token | — | Required. Encrypted at rest. |
+| Organization | — | Required, at most 128 characters. AzDO organization slug; the connection calls `https://dev.azure.com/{organization}`. Each organization can be linked by only one connection. |
+| Personal Access Token | — | Required, at most 128 characters. Encrypted at rest; on edit, leave blank to keep the stored token. |
 
-There are no admin toggles for filtering or projection. Sync cadence is set by the job's recurring schedule, managed under [Settings → Background Jobs](../../user-guide/settings/index.mdx#background-jobs).
+There are no admin toggles for filtering or projection beyond which work processes and workspaces have an active integration. Sync cadence is set by the job's recurring schedule, managed under [Settings → System → Background Jobs](../../user-guide/settings/index.mdx#background-jobs).
 
 ## How it works
 
-1. An admin creates an **Azure DevOps Connection** in Settings → Connections, supplying organization name and a PAT.
-2. Wayd validates the PAT against the AzDO REST API, persists the connection (PAT encrypted at rest), and fetches the org's work processes and projects.
+1. An admin creates an **Azure DevOps Connection** in Settings → System → Connections, supplying organization name and a PAT.
+2. Wayd validates the PAT against the AzDO REST API (`_apis/connectionData`, which also yields the organization's system id) and persists the connection (PAT encrypted at rest). **Sync Organization Configuration** fetches the org's work processes, projects, and teams.
 3. Each Azure DevOps project is initialized into a Wayd **Workspace**; each work process into a Wayd **Work Process**.
-4. The `WorkSyncRunner` (Hangfire job `WorkFullSync` or `WorkDiffSync`) iterates all active AzDO connections and dispatches work item fetches through the keyed `IWorkItemSource` registered for `Connector.AzureDevOps`.
-5. Synced items have **Managed** ownership and are read-only in Wayd. Differential syncs only re-fetch items changed since the last successful run; full syncs re-pull everything and reconcile deletions.
+4. The `WorkSyncRunner` (Hangfire job **Work Full Sync** or **Work Differential Sync**) iterates all active AzDO connections that can sync and dispatches through the keyed `IWorkItemSource` registered for `Connector.AzureDevOps`. Each run first refreshes the organization configuration, then, for each workspace with an active integration, syncs its iterations, its work items, and its work item history; after every workspace, it processes dependency links across the connection.
+5. Synced items have **Managed** ownership and are read-only in Wayd. A differential sync fetches items changed since the most recent change already stored for the workspace, and applies parent link changes since then; a full sync re-reads every item. Both apply dependency link changes and delete items found in the project's Azure DevOps recycle bin.
 6. A work item's three estimates are read from the standard scheduling fields — `Microsoft.VSTS.Scheduling.StoryPoints`, `Microsoft.VSTS.Scheduling.Effort` and `Microsoft.VSTS.Scheduling.Size` — on every sync, whatever the process. Each process fills a different one (Agile Story Points, Scrum Effort, CMMI Size), Agile features and epics often carry Effort, and a project that changes process keeps its old values. A field a work item type doesn't have stays empty; a negative value is stored as 0.
 7. A work item's **Assigned To**, **Created By**, and **Changed By** are resolved to Wayd employees through [identity mapping](#people-matching). Every identity a sync sees is recorded, whether or not it resolved.
 8. After the work items, each sync reads the project's **work item history** from the reporting revisions API (`_apis/wit/reporting/workitemrevisions`), one call per page for the whole project rather than one per item. It requests only the tracked fields (state, work type, iteration, assignee and the three estimates) for the workspace's synced work types. A differential sync resumes from the continuation token the last sync stored, so it reads only new revisions; a full sync reads every revision from the start and fills any gaps without changing history already stored, which is how an existing workspace backfills. A work item's team over time follows from its iteration, as it does for the item itself. Azure DevOps files each revision under the project the item was in at the time, so an item that moved between projects, or changed from an inactive work type, has revisions the project's stream doesn't hold; Wayd spots the missing revision numbers and reads them from the item itself (`_apis/wit/workItems/{id}/revisions`), up to 500 items per sync. Items of a newly activated work type get their history the same way, 500 per sync; a full sync reads it all at once. The first sync after upgrading reads every revision from the start, so it takes longer than usual: on a project of about 27,500 work items and one million revisions it took about 28 minutes. The first time a sync reads a workspace's history through to its last page, the workspace is marked as having complete history (`WorkItemHistoryBackfilledOn`); until then, [sprint scope](../../user-guide/work-management/sprints.mdx#sprint-scope) for sprints holding its work shows as incomplete. A work item deleted in Azure DevOps, or changed to an inactive type, is deleted from Wayd with its history. The Work Items (read) scope covers it.
-9. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the Sync History tab on the connection detail page.
+9. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the **Sync History** section on the connection detail page. A failure in one step of a workspace after its items (links, deletions, history) leaves the items synced: the run still succeeds, with the failure counted as an error and shown on the workspace's row.
 
 ## People matching
 
@@ -74,7 +76,7 @@ project's history is full of addresses nobody uses any more.
 
 Wayd keys people on the Azure DevOps **identity id** — a GUID that survives address, display name, and
 domain changes — rather than on the address itself. Each identity a sync encounters gets a row in the
-connection's **People** tab, mapping it to a Wayd employee.
+connection's **People** section, mapping it to a Wayd employee.
 
 ### How an identity resolves
 
@@ -87,18 +89,18 @@ Each sync resolves every referenced identity in three tiers:
    whose address changed still resolves on their historical work items. A match is recorded as
    *Auto-matched* and may be revised by a later sync.
 3. **Recorded as unmapped.** No match leaves the work item's attribution empty, and the identity
-   appears in the People tab awaiting a decision.
+   appears in the People section awaiting a decision.
 
 Not every Azure DevOps account is a person. Build service accounts and Entra groups report a
 non-address value, which Wayd never matches against an employee; they show under their account handle
 for you to **Ignore**.
 
-### The People tab
+### The People section
 
-On a connection's detail page, the **People** tab lists every identity its syncs have seen, unmapped
-first. Click the **Employee** cell to map one. The row menu offers **Ignore** for accounts that will
+On a connection's detail page, the **People** section lists every identity its syncs have seen, unmapped
+first, with a filter to show only the unmapped ones. Click the **Employee** cell to map one. The row menu offers **Ignore** for accounts that will
 never have an employee — service accounts, bots, ex-contractors — which keeps them out of the review
-queue permanently.
+queue permanently, and **Clear decision** to undo a mapping or an ignore.
 
 Mapping or ignoring an identity also repoints work items already synced, so the decision repairs
 history rather than only affecting future syncs.
@@ -108,7 +110,7 @@ A work item can only be repointed if its sync recorded an identity id, which rel
 feature did not do. **Run a full sync on the connection before mapping people**, otherwise a mapping
 will not reach existing work items.
 
-Wayd seeds the People tab with the attributions that already resolved, so the tab is not empty on
+Wayd seeds the People section with the attributions that already resolved, so it is not empty on
 first use. Identities that never resolved cannot be recovered this way — nothing was recorded about
 them — so they appear after the first sync.
 :::

@@ -153,7 +153,7 @@ See [Wayd.Web/src/Wayd.Mcp/AGENTS.md](Wayd.Web/src/Wayd.Mcp/AGENTS.md).
 cd Wayd.AppHost && dotnet run
 ```
 
-- Aspire Dashboard: <http://localhost:15888>
+- Aspire Dashboard: <https://localhost:17153> (`http` profile: port 15206)
 - Client: <http://localhost:3000>
 - API: Dynamic HTTPS port (shown in Aspire dashboard)
 
@@ -240,14 +240,14 @@ Every comment must be valuable, never narrative. Full rules and examples:
 - **Theming**: Ant Design theme tokens only — never hardcode colors. Prefer CSS variables (`var(--ant-color-primary)`) in CSS modules over `theme.useToken()` in JS. Only use `theme.useToken()` when values are needed in JS logic.
 - **Dates**: a `LocalDate` is generated as `string` (`"YYYY-MM-DD"`), an `Instant` as `Date`. Handle calendar dates only through `src/utils/calendar-date.ts` — never `new Date(x)` or `dayjs.utc(x)`, which shift the day west of UTC. See [Dates and instants](docs/contributing/frontend.mdx#dates-and-instants).
 - **State**: Redux Toolkit + RTK Query for API data. React Context for auth/theme. `useState` for local UI state.
-- **PWA**: Installable via Serwist (`@serwist/turbopack`). See [Frontend Development docs](docs/contributing/frontend.mdx#pwa-progressive-web-app) for details.
+- **PWA**: Serwist builds the service worker, but nothing registers it. See [frontend.mdx](docs/contributing/frontend.mdx#pwa-progressive-web-app).
 - **Ant Design reference**: For component APIs, usage examples, and design tokens, fetch the machine-readable docs — per-component `https://ant.design/components/<name>.md` (e.g. `Table.md`), the full index at <https://ant.design/llms-full.txt>, and the design-token spec at <https://ant.design/design.md>. See <https://ant.design/docs/react/for-agents> for the full agent toolset (CLI + MCP server).
 
 ## Development Notes
 
 ### Authentication
 
-OIDC identity providers (database-managed, created only through **Settings → Identity Providers**) or local JWT. One active `UserIdentity` row links each user to a login provider. Details: [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md#authentication).
+OIDC identity providers (database-managed, created only through **Settings → Access → Identity Providers**) or local JWT. One active `UserIdentity` row links each user to a login provider. Details: [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md#authentication).
 
 ### Authorization
 
@@ -313,12 +313,12 @@ The handler tree under `Wayd.Web.Api/Internal/Generated/WolverineHandlers/` is g
 
 ### Database
 
-One shared `WaydDbContext`; the twelve `IXxxDbContext` interfaces are views over it, not separate contexts. Span several saves with `BaseDbContext.BeginUnitOfWork`, never a bare `Database.BeginTransactionAsync`. Details: [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md#database).
+One shared `WaydDbContext`; the thirteen `IXxxDbContext` interfaces are views over it, not separate contexts. Span several saves with `BaseDbContext.BeginUnitOfWork`, never a bare `Database.BeginTransactionAsync`. Details: [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md#database).
 
 ### Testing
 
 - Test naming: `{ProjectName}.Tests`
-- Domain fakers live in the domain test project they belong to (each `{ServiceName}.Domain.Tests/Data/` folder) — only the `PrivateConstructorFaker<T>` base lives centrally, in `Wayd.TestData.Core` (reached transitively via `Wayd.Tests.Shared`). Two deliberate exceptions: cross-cutting fakers (`FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`) live in `Wayd.Tests.Shared/Data/`, and Organization publishes its fakers from `Wayd.Organization.TestData`. Reuse those rather than duplicating them. Use per-property `With{Property}` builder extensions.
+- Domain fakers live in the domain test project they belong to (each `{ServiceName}.Domain.Tests/Data/` folder) — only the `PrivateConstructorFaker<T>` base lives centrally, in `Wayd.TestData.Core` (reached transitively via `Wayd.Tests.Shared`). Two deliberate exceptions: cross-cutting fakers (`FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`, `UserFaker`) live in `Wayd.Tests.Shared/Data/`, and Organization publishes its fakers from `Wayd.Organization.TestData`. Reuse those rather than duplicating them. Use per-property `With{Property}` builder extensions.
 - One test class per system-under-test, named after its file; mark every test with `// Arrange` / `// Act` / `// Assert`
 - Pass `TestContext.Current.CancellationToken` to every cancellable call (handler `Handle(...)` and EF queries) — not `CancellationToken.None`
 - Fake DbContext implementations for each application area (e.g. `FakeWaydDbContext`); assert on `SaveChangesCallCount`

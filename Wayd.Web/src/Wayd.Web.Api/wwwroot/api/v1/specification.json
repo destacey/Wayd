@@ -53,6 +53,197 @@
         ]
       }
     },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get who you are: your user account and the employee it is linked to.",
+        "description": "Call this first whenever a request is about the person asking (\"my\", \"me\", \"I\"): never list users or employees to find yourself, which needs permissions most people do not hold. Wayd records people as employees, so `employee.id` is the UUID that employeeId, role and assignee parameters take for you, and `userId` is only for parameters that say they take a user id. `employee` is null when your account is not linked to an employee. For your teams, allocations and work items use Me_GetTeamMemberships, Me_GetAllocations and Me_GetWorkItems; for projects where you hold a role, Projects_GetProjects with `role` and no `employeeId`.",
+        "operationId": "Me_GetProfile",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/team-memberships": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "List the teams and teams of teams you are a member of.",
+        "description": "Returns one entry per team or team of teams your employee belongs to, sorted by team name, each with the member roles you hold on it. Needs no View Employees permission. Membership is not allocation: Me_GetAllocations says how much of your time each team has. Returns 404 when your account is not linked to an employee.",
+        "operationId": "Me_GetTeamMemberships",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamMemberDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/allocations": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get how your time is allocated to teams over time.",
+        "description": "Returns every allocation of your employee across all teams in date order: the team, the role the time is spent in when one was chosen, the date range (`end` is null when it has no end) and the `percent` of your time. Needs no View Employees permission. Requires the team-capacity-management feature flag; returns 404 when it is off or your account is not linked to an employee.",
+        "operationId": "Me_GetAllocations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeAllocationDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/work-items": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get the work items assigned to you.",
+        "description": "Your tickets: the backlog-level (Requirement tier) work items assigned to your employee across every workspace; epics, features and tasks are left out. `statusCategories` narrows them to any of the codes `Proposed`, `Active`, `Done` and `Removed` — pass `Proposed` and `Active` for open work. `doneFrom` and `doneTo` keep only work items finished in that window, so either one leaves out work not yet done; a time without a zone is read as UTC. Needs the Work Items view permission. Returns 404 when your account is not linked to an employee.",
+        "operationId": "Me_GetWorkItems",
+        "parameters": [
+          {
+            "name": "statusCategories",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/WorkStatusCategory"
+              },
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "doneFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "doneTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkItemListDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/search": {
       "get": {
         "tags": [
@@ -17257,7 +17448,7 @@
           "Projects"
         ],
         "summary": "Get a list of projects.",
-        "description": "A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.",
+        "description": "A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in. For the caller's own projects (\"where am I the project manager?\"), pass the role and leave employeeId out: there is no need to look yourself up first.",
         "operationId": "Projects_GetProjects",
         "parameters": [
           {
@@ -53061,6 +53252,57 @@
         "additionalProperties": false,
         "description": "Records that a version shipped."
       },
+      "MeResponse": {
+        "required": [
+          "userId",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The caller's user account id. Pass it only where a parameter's description says it takes a user\nid; role, assignee and employeeId parameters take NavigationDto? MeResponse.Employee's id instead."
+          },
+          "userName": {
+            "type": "string",
+            "description": "The account's user name, usually the sign-in email.",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "The account's first name.",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "The account's last name.",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "description": "The account's email address.",
+            "nullable": true
+          },
+          "employee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee the account is linked to: its UUID `id` is what employeeId, role and assignee\nparameters take for the caller. Null when the account has no linked employee, in which case\nnothing in Wayd is recorded against the caller as a person.",
+            "nullable": true
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The names of the roles that grant the caller's permissions."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Who the caller is: their sign-in account and, more often what matters, the employee that account is\nlinked to. Wayd records people as employees, so roles, assignees, team memberships and allocations\nall name the employee, not the account."
+      },
       "MessagingCountsResponse": {
         "required": [
           "incoming",
@@ -72088,6 +72330,9 @@
   "tags": [
     {
       "name": "FeatureFlags"
+    },
+    {
+      "name": "Me"
     },
     {
       "name": "Search"

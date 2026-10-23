@@ -46,6 +46,25 @@ public static class ProblemDetailsExtensions
         return problemDetails;
     }
 
+    /// <summary>A 404 body that says why nothing was found, for when the reason is not simply an unknown id.</summary>
+    public static ProblemDetails ForNotFound(string error, HttpContext context)
+    {
+        Activity? activity = context.Features.Get<IHttpActivityFeature>()?.Activity;
+        return new ProblemDetails
+        {
+            Type = "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+            Title = "Not Found",
+            Status = (int)HttpStatusCode.NotFound,
+            Detail = error,
+            Instance = $"{context.Request.Method} {context.Request.Path}",
+            Extensions =
+                {
+                    ["requestId"] = context.TraceIdentifier,
+                    ["traceId"] = activity?.Id
+                }
+        };
+    }
+
     public static ProblemDetails ForConflict(string error, HttpContext context)
     {
         Activity? activity = context.Features.Get<IHttpActivityFeature>()?.Activity;

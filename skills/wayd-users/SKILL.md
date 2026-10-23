@@ -1,6 +1,6 @@
 ---
 name: wayd-users
-description: Read before calling the Wayd MCP tools named Users_*, and before putting a person into any role or assignee field. Guides agents working with Wayd users via the Wayd MCP server, and resolving a person's name to the employee id that role and assignee fields require. Use when looking up a user, or when a project, program, or portfolio role list (sponsorIds, ownerIds, managerIds, memberIds), a task's assigneeIds, or an activity-history payload needs a person matched to an id.
+description: Read before calling the Wayd MCP tools named Users_* or Me_*, and before putting a person into any role or assignee field. Guides agents working with Wayd users via the Wayd MCP server, finding out who the person asking is, and resolving a person's name to the employee id that role and assignee fields require. Use when a request is about the person asking (my tickets, my teams, projects I manage, my allocations), when looking up a user, or when a project, program, or portfolio role list (sponsorIds, ownerIds, managerIds, memberIds), a task's assigneeIds, or an activity-history payload needs a person matched to an id.
 ---
 
 # Wayd Users
@@ -27,6 +27,24 @@ For anything about the employee record beyond resolving a name to its id — rep
 To give someone a role on the hosted server, append their employee id with a patch tool — `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) with `[{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }]`, or `Tasks_PatchProjectTask` with `/assigneeIds/-` — which keeps everyone already in the role. Without a patch tool, follow wayd-ppm's update checklist.
 
 The exception is a story map's owner: `StoryMaps_ChangeStoryMapOwner` takes the user `id`.
+
+## Questions about yourself
+
+When the request is about the person asking — "show me my tickets", "which teams am I on", "where am I the project manager" — never list users or employees to find them. Those lists need the Users or Employees view permission, which most people do not hold, and nobody needs it to see their own records.
+
+On the hosted endpoint, the `Me_*` tools act for the caller and take no id:
+
+| Question | Tool |
+| --- | --- |
+| Who am I, and which employee am I? | `Me_GetProfile` — `employee.id` is the id employeeId, role and assignee parameters take for you; `userId` is for parameters that say they take a user id |
+| Which teams am I on? | `Me_GetTeamMemberships` — membership and the member roles you hold |
+| How is my time split across teams? | `Me_GetAllocations` (team-capacity-management flag) |
+| What are my tickets? | `Me_GetWorkItems` — pass `statusCategories` `Proposed` and `Active` for open work |
+| Where am I the project manager (or sponsor, owner, member)? | `Projects_GetProjects` with `role` and no `employeeId`: a role filter defaults to the caller |
+| My projects at a glance, my project tasks | `Projects_GetMyProjectsSummary`, `Projects_GetMyProjectsTaskMetrics` |
+| Risks assigned to me | `Risks_GetMyRisks` |
+
+For anything else about yourself, take `employee.id` from `Me_GetProfile` and pass it to the tool's `employeeId` (or role) parameter. If `employee` is null, the account is not linked to an employee, so nothing in Wayd is recorded against the caller as a person: say so rather than substituting the user id. Without the `Me_*` tools (the npm package), use the tools above that default to the caller.
 
 ## Resolving a name to an employee id
 

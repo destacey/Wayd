@@ -7,6 +7,8 @@ description: Read before calling the Wayd MCP tools named Employees_*. Guides ag
 
 The `Employees_*` tools are offered by the hosted MCP endpoint (`/mcp`) only, in its `organization` toolset.
 
+For the person asking ("my teams", "my tickets", "my allocations"), use the `Me_*` tools in the `wayd-users` skill instead: they take no id, and reading your own teams and allocations needs no View Employees permission, which the matching `Employees_*` reads do.
+
 ## Before any change
 
 Confirm every change with the user before you make it. Before a call that creates, updates, records, sets, moves, removes or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.

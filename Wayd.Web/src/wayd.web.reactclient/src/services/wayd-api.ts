@@ -452,6 +452,265 @@ export class FeatureFlagsClient {
     }
 }
 
+export class MeClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get who you are: your user account and the employee it is linked to.
+     * @return OK
+     */
+    getProfile( cancelToken?: CancelToken): Promise<MeResponse> {
+        let url_ = this.baseUrl + "/api/me";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetProfile(_response);
+        });
+    }
+
+    protected processGetProfile(response: AxiosResponse): Promise<MeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<MeResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = resultData401;
+            return throwException("Unauthorized", status, _responseText, _headers, result401);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MeResponse>(null as any);
+    }
+
+    /**
+     * List the teams and teams of teams you are a member of.
+     * @return OK
+     */
+    getTeamMemberships( cancelToken?: CancelToken): Promise<TeamMemberDto[]> {
+        let url_ = this.baseUrl + "/api/me/team-memberships";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeamMemberships(_response);
+        });
+    }
+
+    protected processGetTeamMemberships(response: AxiosResponse): Promise<TeamMemberDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamMemberDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamMemberDto[]>(null as any);
+    }
+
+    /**
+     * Get how your time is allocated to teams over time.
+     * @return OK
+     */
+    getAllocations( cancelToken?: CancelToken): Promise<EmployeeAllocationDto[]> {
+        let url_ = this.baseUrl + "/api/me/allocations";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAllocations(_response);
+        });
+    }
+
+    protected processGetAllocations(response: AxiosResponse): Promise<EmployeeAllocationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeAllocationDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeAllocationDto[]>(null as any);
+    }
+
+    /**
+     * Get the work items assigned to you.
+     * @param statusCategories (optional) 
+     * @param doneFrom (optional) 
+     * @param doneTo (optional) 
+     * @return OK
+     */
+    getWorkItems(statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+        let url_ = this.baseUrl + "/api/me/work-items?";
+        if (statusCategories !== undefined && statusCategories !== null)
+            statusCategories && statusCategories.forEach(item => { url_ += "statusCategories=" + encodeURIComponent("" + item) + "&"; });
+        if (doneFrom !== undefined && doneFrom !== null)
+            url_ += "doneFrom=" + encodeURIComponent(doneFrom ? "" + doneFrom.toISOString() : "") + "&";
+        if (doneTo !== undefined && doneTo !== null)
+            url_ += "doneTo=" + encodeURIComponent(doneTo ? "" + doneTo.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItems(_response);
+        });
+    }
+
+    protected processGetWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemListDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemListDto[]>(null as any);
+    }
+}
+
 export class SearchClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -53281,6 +53540,27 @@ taken from the clock. Required unless the deprecated `ReleasedDate` is sent inst
     releasedAt?: Date | undefined;
     /** The day it shipped, read as 12:00 in the organization's default time zone. */
     releasedDate?: string | undefined;
+}
+
+/** Who the caller is: their sign-in account and, more often what matters, the employee that account is linked to. Wayd records people as employees, so roles, assignees, team memberships and allocations all name the employee, not the account. */
+export interface MeResponse {
+    /** The caller's user account id. Pass it only where a parameter's description says it takes a user
+id; role, assignee and employeeId parameters take NavigationDto? MeResponse.Employee's id instead. */
+    userId: string;
+    /** The account's user name, usually the sign-in email. */
+    userName?: string | undefined;
+    /** The account's first name. */
+    firstName?: string | undefined;
+    /** The account's last name. */
+    lastName?: string | undefined;
+    /** The account's email address. */
+    email?: string | undefined;
+    /** The employee the account is linked to: its UUID `id` is what employeeId, role and assignee
+parameters take for the caller. Null when the account has no linked employee, in which case
+nothing in Wayd is recorded against the caller as a person. */
+    employee?: NavigationDto | undefined;
+    /** The names of the roles that grant the caller's permissions. */
+    roles: string[];
 }
 
 /** Snapshot of the Wolverine durable message store: how many envelopes are currently persisted in each lifecycle bucket. In a healthy system incoming/outgoing hover near zero — envelopes only linger during backlog, scheduled delivery, or after an unclean shutdown. */

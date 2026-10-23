@@ -437,23 +437,6 @@ public class EmployeesController(
         [FromQuery] DateTime? doneTo,
         CancellationToken cancellationToken)
     {
-        Instant? doneFromInstant = null;
-        Instant? doneToInstant = null;
-
-        if (doneFrom.HasValue)
-        {
-            var df = doneFrom.Value;
-            df = df.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(df, DateTimeKind.Utc) : df.ToUniversalTime();
-            doneFromInstant = Instant.FromDateTimeUtc(df);
-        }
-
-        if (doneTo.HasValue)
-        {
-            var dt = doneTo.Value;
-            dt = dt.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(dt, DateTimeKind.Utc) : dt.ToUniversalTime();
-            doneToInstant = Instant.FromDateTimeUtc(dt);
-        }
-
-        return Ok(await _dispatcher.Send(new GetEmployeeWorkItemsQuery(id, statusCategories, doneFromInstant, doneToInstant), cancellationToken));
+        return Ok(await _dispatcher.Send(new GetEmployeeWorkItemsQuery(id, statusCategories, UtcQueryTime.ToInstant(doneFrom), UtcQueryTime.ToInstant(doneTo)), cancellationToken));
     }
 }

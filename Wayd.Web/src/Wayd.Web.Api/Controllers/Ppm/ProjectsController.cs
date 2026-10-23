@@ -41,7 +41,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [EndpointSummary("Get a list of projects.")]
     [EndpointDescription(
-        "A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.")]
+        "A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in. For the caller's own projects (\"where am I the project manager?\"), pass the role and leave employeeId out: there is no need to look yourself up first.")]
     [McpTool("Projects_GetProjects", "List projects")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

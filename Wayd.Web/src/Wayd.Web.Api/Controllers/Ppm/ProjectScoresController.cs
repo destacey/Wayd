@@ -65,7 +65,10 @@ public class ProjectScoresController(ILogger<ProjectScoresController> logger, ID
 
     [HttpPost("{id}/scores")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [EndpointSummary("Record a score for a project.")]
+    [EndpointSummary("Record a score for a project against its portfolio's scoring model, returning the new score's id.")]
+    [EndpointDescription(
+        "Read Projects_GetScoringContext first: it gives the model's criteria and scales, and a null model means the portfolio has none and the project cannot be scored. Rate **every** criterion in the model — one entry in `ratings` per criterion, by `criterionId`. A criterion with a scale is rated by `ratingLevelId`, one of that scale's levels; any other criterion by a numeric `value`. Each call adds a new score to the project's history and makes it the current score; earlier scores are kept, so to correct a score record a new one. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Confirm the ratings with the user before calling. Takes the project's UUID only, not a key.")]
+    [McpTool("Projects_RecordScore", "Record a project score", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

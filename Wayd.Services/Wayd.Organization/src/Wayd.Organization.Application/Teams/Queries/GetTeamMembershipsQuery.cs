@@ -2,7 +2,10 @@
 
 namespace Wayd.Organization.Application.Teams.Queries;
 
-public sealed record GetTeamMembershipsQuery : IQuery<IReadOnlyList<TeamMembershipDto>>
+/// <summary>
+/// A team's memberships in teams of teams, past, current and future; null when no team has the id or key.
+/// </summary>
+public sealed record GetTeamMembershipsQuery : IQuery<IReadOnlyList<TeamMembershipDto>?>
 {
     public GetTeamMembershipsQuery(Guid teamId)
     {
@@ -18,7 +21,7 @@ public sealed record GetTeamMembershipsQuery : IQuery<IReadOnlyList<TeamMembersh
     public int? TeamKey { get; }
 }
 
-public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMembershipsQuery, IReadOnlyList<TeamMembershipDto>>
+public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMembershipsQuery, IReadOnlyList<TeamMembershipDto>?>
 {
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly ILogger<GetTeamMembershipsQueryHandler> _logger;
@@ -31,7 +34,7 @@ public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMember
         _dateTimeProvider = dateTimeProvider;
     }
 
-    public async Task<IReadOnlyList<TeamMembershipDto>> Handle(GetTeamMembershipsQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<TeamMembershipDto>?> Handle(GetTeamMembershipsQuery request, CancellationToken cancellationToken)
     {
         var query = _organizationDbContext.Teams
             .Include(t => t.ParentMemberships)
@@ -56,7 +59,9 @@ public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMember
         }
 
         var team = await query
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
+        if (team is null)
+            return null;
 
         return team.ParentMemberships.Select(m => TeamMembershipDto.Create(m, _dateTimeProvider)).ToList();
     }

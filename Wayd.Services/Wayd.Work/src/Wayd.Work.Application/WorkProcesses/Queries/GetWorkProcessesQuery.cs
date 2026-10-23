@@ -17,6 +17,10 @@ public sealed class GetWorkProcessesQueryHandler(IWorkDbContext workDbContext, I
         if (!request.IncludeInactive)
             query = query.Where(e => e.IsActive);
 
-        return await query.ProjectToType<WorkProcessListDto>().ToListAsync(cancellationToken);
+        return await query
+            .OrderBy(e => e.Name)
+            .ThenBy(e => e.Key)
+            .ProjectToType<WorkProcessListDto>()
+            .ToListAsync(cancellationToken);
     }
 }

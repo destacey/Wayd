@@ -243,7 +243,7 @@ export const roadmapApi = apiSlice.injectEndpoints({
       ],
     }),
     createRoadmapItem: builder.mutation<
-      ObjectIdAndKey,
+      string,
       | CreateRoadmapActivityRequest
       | CreateRoadmapMilestoneRequest
       | CreateRoadmapTimeboxRequest

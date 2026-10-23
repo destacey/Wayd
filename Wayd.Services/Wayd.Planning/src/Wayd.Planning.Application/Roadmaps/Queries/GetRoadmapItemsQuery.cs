@@ -49,6 +49,7 @@ public sealed class GetRoadmapItemsQueryHandler(IPlanningDbContext planningDbCon
     {
         var orderedItems = items
             .OrderBy(r => r is RoadmapActivityListDto activity ? activity.Order : int.MaxValue)
+            .ThenBy(r => r.Id)
             .ToList();
 
         foreach (var item in orderedItems.OfType<RoadmapActivityListDto>())

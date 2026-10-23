@@ -1,6 +1,11 @@
 ﻿namespace Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
 
+/// <summary>
+/// Removes a health check from a planning interval objective, refused when the objective is not in the given
+/// planning interval.
+/// </summary>
 public sealed record DeletePlanningIntervalObjectiveHealthCheckCommand(
+    Guid PlanningIntervalId,
     Guid PlanningIntervalObjectiveId,
     Guid HealthCheckId) : ICommand;
 
@@ -35,12 +40,13 @@ public sealed class DeletePlanningIntervalObjectiveHealthCheckCommandHandler(
     {
         var objective = await _planningDbContext.PlanningIntervalObjectives
             .Include(o => o.HealthChecks)
-            .FirstOrDefaultAsync(o => o.Id == request.PlanningIntervalObjectiveId, cancellationToken);
+            .FirstOrDefaultAsync(o => o.Id == request.PlanningIntervalObjectiveId
+                && o.PlanningIntervalId == request.PlanningIntervalId, cancellationToken);
 
         if (objective is null)
         {
-            _logger.LogWarning("Planning Interval Objective {ObjectiveId} not found.", request.PlanningIntervalObjectiveId);
-            return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
+            _logger.LogWarning("Planning Interval Objective {ObjectiveId} not found in Planning Interval {PlanningIntervalId}.", request.PlanningIntervalObjectiveId, request.PlanningIntervalId);
+            return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found in Planning Interval {request.PlanningIntervalId}.");
         }
 
         var removeResult = objective.RemoveHealthCheck(request.HealthCheckId,

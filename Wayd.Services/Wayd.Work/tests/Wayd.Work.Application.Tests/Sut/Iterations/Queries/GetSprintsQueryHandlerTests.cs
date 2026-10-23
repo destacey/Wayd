@@ -161,6 +161,24 @@ public class GetSprintsQueryHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_OrdersSprintsByStartThenKey()
+    {
+        // Arrange — two sprints share a start, so only the key separates them
+        var teamId = Guid.NewGuid();
+        var latest = NewSprint(teamId, 1, new LocalDate(2026, 10, 12));
+        var sameStartHigherKey = NewSprint(teamId, 7, new LocalDate(2026, 9, 28));
+        var earliest = NewSprint(teamId, 9, new LocalDate(2026, 9, 14));
+        var sameStartLowerKey = NewSprint(teamId, 3, new LocalDate(2026, 9, 28));
+        _dbContext.AddIterations([latest, sameStartHigherKey, earliest, sameStartLowerKey]);
+
+        // Act
+        var result = await _handler.Handle(new GetSprintsQuery(teamId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(s => s.Id).Should().Equal(earliest.Id, sameStartLowerKey.Id, sameStartHigherKey.Id, latest.Id);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsEmpty_WhenNoSprintsExist()
     {
         // Act

@@ -79,8 +79,8 @@ public class UpdateProjectCommandHandlerTests : IDisposable
         return project;
     }
 
-    private UpdateProjectCommand CommandFor(Project project, List<Guid>? ownerIds = null) =>
-        new(project.Id, "Renamed", "New description", null, null, 1, null, null, ownerIds, null, null, null);
+    private UpdateProjectCommand CommandFor(Project project, List<Guid>? ownerIds = null, int? expenditureCategoryId = null) =>
+        new(project.Id, "Renamed", "New description", null, null, expenditureCategoryId ?? project.ExpenditureCategoryId, null, null, ownerIds, null, null, null);
 
     [Fact]
     public async Task Handle_ShouldUpdateProject_WhenActorIsProjectOwner()
@@ -220,6 +220,81 @@ public class UpdateProjectCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         project.Name.Should().Be("Original");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(ExpenditureCategoryState.Proposed)]
+    [InlineData(ExpenditureCategoryState.Archived)]
+    public async Task Handle_ShouldFail_WhenChangingToAnExpenditureCategoryThatIsNotActive(ExpenditureCategoryState state)
+    {
+        // Arrange
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+        var category = new ExpenditureCategoryFaker().WithId(project.ExpenditureCategoryId + 100).WithState(state).Generate();
+        _dbContext.AddExpenditureCategory(category);
+
+        // Act
+        var result = await _handler.Handle(CommandFor(project, expenditureCategoryId: category.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Expenditure Category is not active.");
+        project.ExpenditureCategoryId.Should().NotBe(category.Id);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenChangingToAnExpenditureCategoryThatDoesNotExist()
+    {
+        // Arrange
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+
+        // Act
+        var result = await _handler.Handle(
+            CommandFor(project, expenditureCategoryId: project.ExpenditureCategoryId + 100), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Expenditure Category not found.");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldChangeTheExpenditureCategory_WhenTheNewOneIsActive()
+    {
+        // Arrange
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+        var category = new ExpenditureCategoryFaker().WithId(project.ExpenditureCategoryId + 100).GenerateActive();
+        _dbContext.AddExpenditureCategory(category);
+
+        // Act
+        var result = await _handler.Handle(CommandFor(project, expenditureCategoryId: category.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.ExpenditureCategoryId.Should().Be(category.Id);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepTheCurrentExpenditureCategory_WhenItHasSinceBeenArchived()
+    {
+        // Arrange — a whole-record update echoes the current category back, and archiving one must not
+        // lock every project that uses it out of being edited.
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+        _dbContext.AddExpenditureCategory(
+            new ExpenditureCategoryFaker().WithId(project.ExpenditureCategoryId).GenerateArchived());
+
+        // Act
+        var result = await _handler.Handle(CommandFor(project), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Name.Should().Be("Renamed");
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     public void Dispose() => GC.SuppressFinalize(this);

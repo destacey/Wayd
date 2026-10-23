@@ -27,6 +27,7 @@ public sealed class GetMyRisksQueryHandler : IQueryHandler<GetMyRisksQuery, IRea
 
         return await _planningDbContext.Risks
             .Where(r => r.Status == RiskStatus.Open && r.AssigneeId == employeeId)
+            .OrderBy(r => r.Key)
             .ProjectToType<RiskListDto>()
             .ToListAsync(cancellationToken);
     }

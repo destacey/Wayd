@@ -33,6 +33,8 @@ public sealed class GetTeamDependenciesQueryHandler(IWorkDbContext workDbContext
             .Where(l => l.RemovedOn == null)
             .Where(l => l.Source!.TeamId == request.TeamId || l.Target!.TeamId == request.TeamId)
             .Where(l => statusCategories.Contains(l.Source!.StatusCategory))
+            .OrderBy(l => l.CreatedOn)
+            .ThenBy(l => l.Id)
             .ProjectToType<DependencyDto>()
             .ToListAsync(cancellationToken);
 

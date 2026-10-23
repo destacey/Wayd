@@ -8,6 +8,7 @@ namespace Wayd.Web.Api.Controllers.Work;
 [Route("api/work/work-statuses")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Work, "wayd-work")]
 public class WorkStatusesController : ControllerBase
 {
     private readonly ILogger<WorkStatusesController> _logger;
@@ -21,7 +22,9 @@ public class WorkStatusesController : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkStatuses)]
-    [EndpointSummary("Get a list of all work statuss.")]
+    [EndpointSummary("Get a list of all work statuses.")]
+    [EndpointDescription("The statuses work items can be in, such as New, In Progress or Done, by name, each with an integer `id`. A status has no category of its own: each workflow places it in a work status category. Active statuses only unless `includeInactive` is true.")]
+    [McpTool("WorkStatuses_GetWorkStatuses", "List work statuses")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkStatusDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
@@ -33,6 +36,7 @@ public class WorkStatusesController : ControllerBase
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkStatuses)]
     [EndpointSummary("Get work status details using the id.")]
+    [McpTool("WorkStatuses_GetWorkStatus", "Get work status")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -48,6 +52,8 @@ public class WorkStatusesController : ControllerBase
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.WorkStatuses)]
     [EndpointSummary("Create a work status.")]
+    [EndpointDescription("Returns the new status's integer id. The name must be unique and can never be changed. Statuses are normally created by syncing a work process from the source system, which reuses an existing status of the same name.")]
+    [McpTool("WorkStatuses_Create", "Create a work status", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult> Create(CreateWorkStatusRequest request, CancellationToken cancellationToken)
     {
@@ -61,6 +67,8 @@ public class WorkStatusesController : ControllerBase
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.WorkStatuses)]
     [EndpointSummary("Update a work status.")]
+    [EndpointDescription("Changes a status's description, the only field that can change; its name cannot. `id` must match `id` in the body. A whole-record overwrite: an omitted description is cleared, so read the status first and pass back what should stay.")]
+    [McpTool("WorkStatuses_Update", "Update a work status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

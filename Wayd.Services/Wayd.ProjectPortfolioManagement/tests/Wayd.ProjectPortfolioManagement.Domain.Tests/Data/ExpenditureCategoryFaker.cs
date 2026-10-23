@@ -18,6 +18,13 @@ public sealed class ExpenditureCategoryFaker : PrivateConstructorFaker<Expenditu
         RuleFor(x => x.AccountingCode, f => f.Random.Bool() ? f.Finance.Account() : null);
     }
 
+    public ExpenditureCategoryFaker WithId(int id)
+    {
+        RuleFor(x => x.Id, id);
+
+        return this;
+    }
+
     public ExpenditureCategoryFaker WithName(string? name)
     {
         RuleFor(x => x.Name, name);

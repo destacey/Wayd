@@ -37,7 +37,7 @@ public class DeletePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         var hc = objective.AddHealthCheck(HealthStatus.Healthy, Guid.NewGuid(), _now.Plus(Duration.FromDays(7)), null, EventActor.System, _now).Value;
         _dbContext.AddPlanningIntervalObjective(objective);
 
-        var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(objective.Id, hc.Id);
+        var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(objective.PlanningIntervalId, objective.Id, hc.Id);
 
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -49,7 +49,7 @@ public class DeletePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
     [Fact]
     public async Task Handle_WhenObjectiveNotFound_ReturnsFailure()
     {
-        var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(Guid.NewGuid(), Guid.NewGuid());
+        var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
 
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -65,12 +65,32 @@ public class DeletePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         _dbContext.AddPlanningIntervalObjective(objective);
         var unknownHcId = Guid.NewGuid();
 
-        var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(objective.Id, unknownHcId);
+        var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(objective.PlanningIntervalId, objective.Id, unknownHcId);
 
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain(unknownHcId.ToString());
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenObjectiveIsInAnotherPlanningInterval_ReturnsFailureAndKeepsTheCheck()
+    {
+        // Arrange
+        var objective = _objectiveFaker.Generate();
+        var hc = objective.AddHealthCheck(HealthStatus.Healthy, Guid.NewGuid(), _now.Plus(Duration.FromDays(7)), null, EventActor.System, _now).Value;
+        _dbContext.AddPlanningIntervalObjective(objective);
+
+        var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(Guid.NewGuid(), objective.Id, hc.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
+        objective.HealthChecks.Should().ContainSingle().Which.Id.Should().Be(hc.Id);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

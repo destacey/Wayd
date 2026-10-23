@@ -12,8 +12,8 @@ public class UpdatePlanningIntervalObjectiveHealthCheckRequest
     public Instant Expiration { get; set; }
     public string? Note { get; set; }
 
-    public UpdatePlanningIntervalObjectiveHealthCheckCommand ToCommand()
-        => new(PlanningIntervalObjectiveId, Id, (HealthStatus)StatusId, Expiration, Note);
+    public UpdatePlanningIntervalObjectiveHealthCheckCommand ToCommand(Guid planningIntervalId)
+        => new(planningIntervalId, PlanningIntervalObjectiveId, Id, (HealthStatus)StatusId, Expiration, Note);
 }
 
 public sealed class UpdatePlanningIntervalObjectiveHealthCheckRequestValidator

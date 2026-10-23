@@ -59,6 +59,8 @@ public sealed class GetChildWorkItemsQueryHandler(IWorkDbContext workDbContext, 
 
         return await _workDbContext.WorkItems
             .Where(w => w.ParentId == workItemId)
+            .OrderBy(w => w.StackRank)
+            .ThenBy(w => w.Id)
             .ProjectToType<WorkItemListDto>()
             .ToListAsync(cancellationToken);
     }

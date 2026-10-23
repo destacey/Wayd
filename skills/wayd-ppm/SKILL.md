@@ -1,6 +1,6 @@
 ---
 name: wayd-ppm
-description: Read before calling the Wayd MCP tools named Portfolios_*, Programs_*, Projects_*, Tasks_*, ProjectLifecycles_*, StrategicInitiatives_* or ExpenditureCategories_*. Guides agents working with Wayd portfolio, program, project, and task management via the Wayd MCP server. Use when looking up or creating and updating portfolios, programs, or projects; exploring project lifecycles, stages, the project plan, or team; approving, activating, completing, cancelling, closing, archiving, or reverting any of those records or a strategic initiative; creating, updating, or deleting tasks within a project; reviewing project scores or a portfolio's ranking board; exploring strategic initiatives and recording KPI measurements; or recommending, logging, or correcting project health checks.
+description: Read before calling the Wayd MCP tools named Portfolios_*, Programs_*, Projects_*, Tasks_*, ProjectLifecycles_*, StrategicInitiatives_*, ExpenditureCategories_* or ScoringModels_*. Guides agents working with Wayd portfolio, program, project, and task management via the Wayd MCP server. Use when looking up, creating, updating, or deleting portfolios, programs, or projects; exploring the project plan or team; assigning or changing a project's lifecycle or updating its stages; creating, activating, or archiving lifecycle templates; approving, activating, completing, cancelling, closing, archiving, or reverting any of those records or a strategic initiative; creating, updating, moving, or deleting tasks within a project; scoring a project, finding a scoring model and assigning it to a portfolio, or reordering its ranking board; creating, updating, or deleting strategic initiatives, their KPIs and checkpoint plans, or linking projects to them; recording KPI measurements; managing expenditure categories; or recommending, logging, or correcting project health checks.
 ---
 
 # Wayd PPM (Portfolio / Program / Project / Task Management)
@@ -15,17 +15,20 @@ When the user approves, do exactly what they approved. An option you offered tha
 
 Read the matching file before working in these areas. The rules on this page still apply there.
 
-| File                                                       | Read it when                                                                                                     |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [reference/status-changes.md](reference/status-changes.md) | Approving, activating, completing, cancelling, closing, or archiving a portfolio, program, or project, or reverting a project |
-| [reference/tasks.md](reference/tasks.md)                   | Creating, updating, or deleting a task, or adding or removing a task dependency                                  |
-| [reference/health-checks.md](reference/health-checks.md)   | Reviewing, recommending, logging, correcting, or deleting a project health check                                 |
-| [reference/initiatives-kpis.md](reference/initiatives-kpis.md) | Exploring strategic initiatives, changing an initiative's status, reading KPI progress, or recording a measurement |
-| [reference/scoring.md](reference/scoring.md)               | Project scores and portfolio ranking (read-only)                                                                 |
+| File                                                           | Read it when                                                                                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [reference/status-changes.md](reference/status-changes.md)     | Approving, activating, completing, cancelling, closing, or archiving a portfolio, program, or project, reverting a project, or deleting any of them    |
+| [reference/lifecycles.md](reference/lifecycles.md)             | Assigning or changing a project's lifecycle, updating a project stage, or managing lifecycle templates                                                 |
+| [reference/tasks.md](reference/tasks.md)                       | Creating, updating, moving, or deleting a task, or adding or removing a task dependency                                                                |
+| [reference/health-checks.md](reference/health-checks.md)       | Reviewing, recommending, logging, correcting, or deleting a project health check                                                                       |
+| [reference/initiatives-kpis.md](reference/initiatives-kpis.md) | Strategic initiatives: creating, updating, deleting, changing status, linking projects, managing KPIs and checkpoint plans, or recording a measurement |
+| [reference/scoring.md](reference/scoring.md)                   | Scoring a project, finding or assigning a portfolio's scoring model, or reading or reordering a portfolio's ranking                                    |
 
 ## What MCP can change
 
-Portfolios, programs, and projects can be created, updated, and moved through their statuses; tasks support full create, update, and delete. Read-only: project lifecycles and stages, scores and rankings, and strategic initiative records and KPI definitions. Nothing deletes a portfolio, program, or project.
+Portfolios, programs, and projects can be created, updated, moved through their statuses, and — while still Proposed — deleted. Tasks, project stages, lifecycle templates, strategic initiatives with their KPIs, checkpoint plans and project links, scores, rankings, and expenditure categories can all be changed.
+
+The tools that delete a portfolio, program, or project, or change lifecycles, stages, scores, rankings, scoring models, initiative details and project links, KPI definitions and checkpoint plans, task placement, or expenditure categories, and the scoring-model reads (`ScoringModels_*`), are offered only by the hosted endpoint (`/mcp` on the Wayd API), not by the `@wayd/mcp` package. When a tool named here is not in your tool list, say the change has to be made in the Wayd UI.
 
 ## Entity model
 
@@ -43,7 +46,7 @@ Portfolio
 ```
 
 - **Project** — belongs to one portfolio and at most one program. Has a unique `key` (2–20 uppercase letters and digits), a committed timeline `start`/`end`, a status, an optional lifecycle, and an embedded current `healthCheck`. There is no project-level progress field; progress lives on stages and tasks.
-- **Lifecycle** — a reusable template of ordered stages, with a state of `Proposed`, `Active` or `Archived`. Only Active lifecycles can be assigned. Through MCP a lifecycle can only be set at creation (`projectLifecycleId` on `Projects_Create`); otherwise it is assigned in the Wayd UI.
+- **Lifecycle** — a reusable template of ordered stages, with a state of `Proposed`, `Active` or `Archived`. Only Active lifecycles can be assigned: at creation (`projectLifecycleId` on `Projects_Create`) or later with `Projects_AssignLifecycle` / `Projects_ChangeLifecycle` — see [reference/lifecycles.md](reference/lifecycles.md).
 - **Stage** — one stage of a project's plan, from its lifecycle, with its own status, `start`/`end`, and `progress`.
 - **Task** — type `Task` (planned `plannedStart`/`plannedEnd`, `progress` 0–100) or `Milestone` (a single `plannedDate`, no progress). Every task sits under a stage or under another task. Dependencies are finish-to-start.
 
@@ -53,7 +56,7 @@ Portfolio
 - **Status filters** take status names (`Active`, `Completed`, …), which each tool's schema lists. The status tools — `Portfolios_GetPortfolioStatuses`, `Programs_GetProgramStatuses`, `Projects_GetStatuses`, `Tasks_GetTaskStatuses`, `StrategicInitiatives_GetStatuses` — describe each one; its `code` is the name a filter takes.
 - **Role filters** take `Sponsor`, `Owner`, `Manager`, `Member` or `Assignee` (assigned a task on the project). There is no lookup tool for these.
 - **People are employee ids.** Role lists, task `assigneeIds`, `employeeId` filters, and people in activity payloads all take or return employee ids, never user ids. Resolve a name with `employee.id` from `Users_GetUsers` — see the `wayd-users` skill.
-- **Delivery leadership.** Changing a portfolio, program, or project — updates, status transitions, key and program changes — and writing project health checks require the caller to be an **Owner or Manager** of the record or of an ancestor (project ← program ← portfolio). Sponsors and Members do not qualify, and a permission alone is not enough. Strategic initiative transitions and task changes check permissions only. When a call is rejected as unauthorized, check the record's role lists before retrying.
+- **Delivery leadership.** Changing a portfolio, program, or project — updates, status transitions, key, program and lifecycle changes, scoring, a portfolio's scoring model and ranking — and writing project health checks require the caller to be an **Owner or Manager** of the record or of an ancestor (project ← program ← portfolio). Sponsors and Members do not qualify, and a permission alone is not enough. Deletes, stage updates, task changes, lifecycle templates, expenditure categories, and everything on strategic initiatives check permissions only. When a call is rejected as unauthorized, check the record's role lists before retrying.
 
 ## Finding records
 
@@ -88,29 +91,31 @@ The metrics tools return counts only; follow up with `Projects_GetProjects` when
 
 ## A project's plan and team
 
-| Goal                                     | Tool                                                                     |
-| ---------------------------------------- | ------------------------------------------------------------------------ |
-| Full plan: stages with nested tasks, WBS | `Projects_GetProjectPlanTree` (prefer this for a hierarchical view)      |
-| Plan metrics for one project             | `Projects_GetProjectPlanSummary`                                         |
-| Plan metrics for many projects           | `Projects_GetProjectsPlanSummaries`                                      |
-| Stages                                   | `Projects_GetProjectStages`, `Projects_GetProjectStage`                  |
-| Team: roles, stages, active task counts  | `Projects_GetProjectTeam`                                                |
-| Linked work items                        | `Projects_GetWorkItems`                                                  |
-| When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)     |
-| Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath` |
+| Goal                                     | Tool                                                                                             |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Full plan: stages with nested tasks, WBS | `Projects_GetProjectPlanTree` (prefer this for a hierarchical view)                              |
+| Plan metrics for one project             | `Projects_GetProjectPlanSummary`                                                                 |
+| Plan metrics for many projects           | `Projects_GetProjectsPlanSummaries`                                                              |
+| Stages                                   | `Projects_GetProjectStages`, `Projects_GetProjectStage`                                          |
+| Team: roles, stages, active task counts  | `Projects_GetProjectTeam`                                                                        |
+| Linked work items                        | `Projects_GetWorkItems`                                                                          |
+| When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)                             |
+| Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath`                         |
 | Evidence for a health check (hosted)     | `Projects_GetHealthCheckEvidence` (see [reference/health-checks.md](reference/health-checks.md)) |
 
 When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
 
 ## Creating and updating records
 
-| Goal                                             | Tool                                                                                           |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| Create                                           | `Portfolios_Create`, `Programs_Create`, `Projects_Create`                                      |
-| Change some fields or roles (hosted)             | `Portfolios_Patch`, `Programs_Patch`, `Projects_Patch`                                         |
-| Update the whole record                          | `Portfolios_Update`, `Programs_Update`, `Projects_Update`                                      |
-| Move a project to another program, or out of one | `Projects_ChangeProgram` (target must be in the same portfolio; `null` detaches)               |
-| Change a project's key                           | `Projects_ChangeKey` — only when the user explicitly asks; it breaks task keys and saved links |
+| Goal                                             | Tool                                                                                                                       |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Create                                           | `Portfolios_Create`, `Programs_Create`, `Projects_Create`                                                                  |
+| Change some fields or roles (hosted)             | `Portfolios_Patch`, `Programs_Patch`, `Projects_Patch`                                                                     |
+| Update the whole record                          | `Portfolios_Update`, `Programs_Update`, `Projects_Update`                                                                  |
+| Move a project to another program, or out of one | `Projects_ChangeProgram` (target must be in the same portfolio; `null` detaches)                                           |
+| Change a project's key                           | `Projects_ChangeKey` — only when the user explicitly asks; it breaks task keys and saved links                             |
+| Assign or change a project's lifecycle (hosted)  | `Projects_AssignLifecycle`, `Projects_ChangeLifecycle` — see [reference/lifecycles.md](reference/lifecycles.md)            |
+| Delete a proposed record (hosted)                | `Portfolios_Delete`, `Programs_Delete`, `Projects_Delete` — see [reference/status-changes.md](reference/status-changes.md) |
 
 New records start in **Proposed**. Creating a project needs an `expenditureCategoryId` from `ExpenditureCategories_GetOptions`. Updates never change status, a project's key, program, or lifecycle, or a program's portfolio. Status changes only through dedicated transition tools — see [reference/status-changes.md](reference/status-changes.md).
 
@@ -141,3 +146,20 @@ Without a patch tool, every update overwrites the whole record: an omitted field
 5. **Show the user** any role that would lose members, by name, and confirm before calling.
 6. **Call** the update.
 7. **Re-read** the record and verify the Owners and Managers are intact and the change landed.
+
+## Expenditure categories (hosted)
+
+An expenditure category classifies how a project's spending is treated (Opex, Capex, …). Categories are identified by a **numeric id**, not a UUID.
+
+| Goal                         | Tool                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| Pick one for a project       | `ExpenditureCategories_GetOptions`                                                               |
+| Full list or one category    | `ExpenditureCategories_GetExpenditureCategories`, `ExpenditureCategories_GetExpenditureCategory` |
+| Create, or overwrite details | `ExpenditureCategories_Create`, `ExpenditureCategories_Update`                                   |
+| Change state                 | `ExpenditureCategories_Activate` (Proposed), `ExpenditureCategories_Archive` (Active)            |
+| Delete                       | `ExpenditureCategories_Delete` (Proposed only, and not used by any project)                      |
+
+- A new category is **Proposed**, and a project can be given only an **Active** one, on create or when its category changes; a project keeps a category archived after it was assigned.
+- **Activating fixes `isCapitalizable` and `requiresDepreciation`.** After that, `ExpenditureCategories_Update` must send them unchanged; name, description and accounting code stay editable. Archived categories cannot be updated or reactivated.
+- `ExpenditureCategories_Update` overwrites every field: read the category first and send back what should stay, or an omitted accounting code is cleared and an omitted flag becomes false.
+- Categories are shared by every project, so confirm any change with the user.

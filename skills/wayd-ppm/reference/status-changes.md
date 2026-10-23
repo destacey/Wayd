@@ -1,4 +1,4 @@
-# Changing status
+# Changing status and deleting
 
 Status changes only through dedicated transition tools, never through an update. **Confirm every transition with the user first**, naming the record and the transition: others rely on the status, and portfolio, program, and initiative transitions cannot be undone.
 
@@ -33,3 +33,17 @@ Check these first so a transition fails in conversation rather than at the API:
 2. If the project's program or portfolio is closed, the revert is rejected — that parent must be reopened first.
 3. Agree a `reason` with the user. It is required and stored in the status history as the record of why a decision was reversed, so write something a later reader will understand — never "revert" or "fix".
 4. Confirm, then call with `toStatus` and `reason`.
+
+## Deleting a record (hosted)
+
+Deleting is permanent and only for a record that never got going. Anything past Proposed is retired with a transition instead — cancel a project or program, close and archive a portfolio — which keeps its history.
+
+| Tool                | Deletes only when                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| `Projects_Delete`   | The project is Proposed and **has never left Proposed**                                         |
+| `Programs_Delete`   | The program is Proposed and has no projects — move them out first with `Projects_ChangeProgram` |
+| `Portfolios_Delete` | The portfolio is Proposed, so it holds no programs, projects, or initiatives yet                |
+
+A project that was approved or activated and later reverted to Proposed stays undeletable. Deleting a project takes its stages, tasks, health checks, scores, and initiative links with it. Project and program deletes are also rejected while the portfolio is Archived. Each takes the record's UUID and checks the delete permission only, not delivery leadership. Strategic initiatives, lifecycles, and expenditure categories have their own delete rules, in their sections.
+
+Before calling, tell the user what will be lost and offer the transition as the alternative; delete only when they choose it.

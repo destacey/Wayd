@@ -21,8 +21,8 @@ public sealed class CreatePlanningIntervalObjectiveCommandHandlerTests : IDispos
 
     public CreatePlanningIntervalObjectiveCommandHandlerTests()
     {
-        _interval = new PlanningIntervalFaker().Generate();
         _team = new PlanningTeamFaker(TeamType.Team).Generate();
+        _interval = new PlanningIntervalFaker().WithTeams(_team.Id).Generate();
 
         _dbContext.AddPlanningInterval(_interval);
         _dbContext.AddPlanningTeam(_team);
@@ -90,10 +90,27 @@ public sealed class CreatePlanningIntervalObjectiveCommandHandlerTests : IDispos
     }
 
     [Fact]
+    public async Task Handle_WhenTeamIsNotInTheInterval_Fails()
+    {
+        // Arrange
+        var outsider = new PlanningTeamFaker(TeamType.Team).Generate();
+        _dbContext.AddPlanningTeam(outsider);
+
+        // Act
+        var result = await _handler.Handle(Command(teamId: outsider.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("The team is not part of this Planning Interval.");
+        _interval.Objectives.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_WhenObjectivesAreLocked_Fails()
     {
         // Arrange
-        var locked = new PlanningIntervalFaker().WithObjectivesLocked(true).Generate();
+        var locked = new PlanningIntervalFaker().WithTeams(_team.Id).WithObjectivesLocked(true).Generate();
         _dbContext.AddPlanningInterval(locked);
 
         // Act

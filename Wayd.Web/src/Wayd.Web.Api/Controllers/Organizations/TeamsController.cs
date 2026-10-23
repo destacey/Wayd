@@ -94,6 +94,9 @@ public class TeamsController(
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Teams)]
     [EndpointSummary("Create a team.")]
+    [EndpointDescription(
+        "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system default time zone and working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).")]
+    [McpTool("Teams_Create", "Create team", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateTeamRequest request, CancellationToken cancellationToken)
     {
@@ -240,7 +243,10 @@ public class TeamsController(
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [EndpointSummary("Update a team.")]
+    [EndpointSummary("Update a team's name, code and description.")]
+    [EndpointDescription(
+        "**This is a whole-record overwrite of those three fields: an omitted description is cleared.** Read the team first with Teams_GetTeam and pass back what should stay. Takes the team's UUID `id`, which must match the body's `id`. `code` is 2 to 10 uppercase letters and digits. The active date, operating model, members and team-of-teams membership each have their own tools.")]
+    [McpTool("Teams_Update", "Update team")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -259,6 +265,9 @@ public class TeamsController(
     [HttpPut("{id}/deactivate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
     [EndpointSummary("Deactivate a team.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`, which must match the body's `id`, and the `inactiveDate` (yyyy-MM-dd), which must be after the team's active date. Refused when the team is already inactive, or when its latest team-of-teams membership has no end date or ends after `inactiveDate`: end or remove that membership first with Teams_UpdateTeamMembership or Teams_RemoveTeamMembership. No tool reactivates a team, so confirm with the user before calling.")]
+    [McpTool("Teams_Deactivate", "Deactivate team")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -278,17 +287,28 @@ public class TeamsController(
 
     [HttpGet("{id}/team-memberships")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [EndpointSummary("Get parent team memberships.")]
+    [EndpointSummary("Get a team's memberships in teams of teams, past, current and future.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. Each membership has its own `id` (the `teamMembershipId` the update and remove tools take), the `child` team and `parent` team of teams, `start` and `end` (yyyy-MM-dd; no end is open-ended), and a `state` (Past, Active or Future) as of today. A team belongs to at most one team of teams on any day. Returns 404 for an unknown team.")]
+    [McpTool("Teams_GetTeamMemberships", "List team's team-of-teams memberships")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<TeamMembershipDto>>> GetTeamMemberships(Guid id, CancellationToken cancellationToken)
     {
-        return Ok(await _dispatcher.Send(new GetTeamMembershipsQuery(id), cancellationToken));
+        var memberships = await _dispatcher.Send(new GetTeamMembershipsQuery(id), cancellationToken);
+
+        return memberships is null
+            ? NotFound()
+            : Ok(memberships);
     }
 
     [HttpPost("{id}/team-memberships")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [EndpointSummary("Add a parent team membership.")]
+    [EndpointSummary("Place a team under a team of teams for a date range.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`, which must match the body's `teamId`, and the parent team of teams' UUID in `parentTeamId` (resolve it with TeamsOfTeams_GetList). `start` and optional `end` are yyyy-MM-dd; no `end` is open-ended. Both teams must be active, and the range must not overlap another of the team's memberships: to move a team, first end its current membership with Teams_UpdateTeamMembership, then add the new one starting the day after. The hierarchy drives team-of-teams rollups (capacity, work distribution) for those dates.")]
+    [McpTool("Teams_AddTeamMembership", "Add team to a team of teams", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -306,7 +326,10 @@ public class TeamsController(
 
     [HttpPut("{id}/team-memberships/{teamMembershipId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [EndpointSummary("Update a team membership.")]
+    [EndpointSummary("Change the dates of a team's membership in a team of teams.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the membership's `teamMembershipId` from Teams_GetTeamMemberships, each of which must match the body. **Both dates are overwritten: an omitted `end` makes the membership open-ended**, so pass the current `end` back to keep it. Both teams must be active, and the new range must not overlap the team's other memberships. The parent cannot be changed here: end this membership and add another.")]
+    [McpTool("Teams_UpdateTeamMembership", "Change team membership dates")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -326,7 +349,10 @@ public class TeamsController(
 
     [HttpDelete("{id}/team-memberships/{teamMembershipId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [EndpointSummary("Remove a parent team membership.")]
+    [EndpointSummary("Remove a team's membership in a team of teams.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the membership's `teamMembershipId` from Teams_GetTeamMemberships. The membership is deleted for its whole range, so the team drops out of the parent's rollups for past dates too; to record that a team left, end the membership with Teams_UpdateTeamMembership instead. Both teams must be active.")]
+    [McpTool("Teams_RemoveTeamMembership", "Remove team from a team of teams")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveTeamMembership(Guid id, Guid teamMembershipId, CancellationToken cancellationToken)
@@ -345,7 +371,10 @@ public class TeamsController(
     // TODO: update the claims check for viewing teams and work items
     [HttpGet("{idOrCode}/backlog")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [EndpointSummary("Get the backlog for a team.")]
+    [EndpointSummary("Get a team's open backlog in rank order.")]
+    [EndpointDescription(
+        "Takes the team's UUID or `code`. Returns the team's Requirement-tier work items (such as user stories and bugs) in a Proposed or Active status category, sorted by stack rank, each with its 1-based `rank`, `parentRank`, workspace, type, status, parent, sprint, assignee, project and its Story Points, Effort and Size estimates. Portfolio-tier items (epics, features) are not listed. An unknown team returns an empty list. To grade the backlog, use Teams_GetBacklogHealth.")]
+    [McpTool("Teams_GetBacklog", "Get team backlog")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemBacklogItemDto>>> GetTeamBacklog(string idOrCode, CancellationToken cancellationToken)
@@ -413,7 +442,8 @@ public class TeamsController(
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the capacity of a team over a date range, from the time people are allocated to it.")]
     [EndpointDescription(
-        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Takes the team's UUID `id`. Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), the `workingDays` in the range and each person allocated to the team with their person-days: `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity, and `elsewherePersonDays` allocated to other teams on the same days. One person-day is one person allocated in full for one working day. `roles` breaks the allocated time down by team member role, each line saying whether it counts toward delivery capacity, and adds up to `allocatedPersonDays`. Each person carries their `allocations` to this team with the `personDays` each is worth, and their `elsewhereAllocations` to other teams in the range. A working day is a day in the team's working week that is not one of its holidays. `canManage` says whether the caller may change the allocations, which is done per person with Employees_ChangeAllocations. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [McpTool("Teams_GetCapacity", "Get team capacity")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -437,7 +467,8 @@ public class TeamsController(
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Report the capacity of a team over a date range.")]
     [EndpointDescription(
-        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person and team member role allocated to the team. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` holds the team alone, as `nodeId` 0. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated to other teams and `unallocatedPersonDays` allocated nowhere. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Takes the team's UUID `id`. Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 731 days), one `lines` entry per person and team member role allocated to the team. A line's `total` is in person-days: `allocatedPersonDays` over the team's working days, the part lost to `holidayPersonDays` and `timeAwayPersonDays`, what is left as `availablePersonDays`, and the part of that in roles that count toward delivery capacity as `deliveryPersonDays`. `interval` (`Week` or `Month`) also splits each line into `buckets`, in the order of the report's `buckets`. `teams` holds the team alone, as `nodeId` 0. `people` gives each person's time over the system default working days that the report does not count: `outsidePersonDays` allocated to other teams and `unallocatedPersonDays` allocated nowhere. Time away is reported as time lost, never why. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [McpTool("Teams_GetCapacityReport", "Report team capacity")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -461,7 +492,8 @@ public class TeamsController(
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the capacity of a team over a date range day by day, to plan against.")]
     [EndpointDescription(
-        "Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint, as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Takes the team's UUID `id`. Returns, for `from` to `to` (yyyy-MM-dd, inclusive, max 366 days), the `capacity` the `capacity` endpoint (Teams_GetCapacity) returns for the same range, the `days` of the team's working week in the range, and for each person allocated to it their time day by day. Each person has a `rows` entry per team member role with the `days` that role has time allocated: the `percent` and the `personDays` it is worth after the holidays the person takes and their time away. Their own `days` list the working days on which something else decides their time: `isHoliday` in the calendar they take, `percentAway` (never why), and `elsewherePercent` allocated to other teams. A day left out of a list has none of it. `daysOff` (repeatable) are days the whole team is off beyond its working week and holidays, such as a sprint's team days off: yyyy-MM-dd for a full day, or yyyy-MM-dd:percent for part of one (`2026-10-01:50` is half the day). Each takes its share of everyone's time that day and is listed in `teamDaysOff`; a day keeps its percent, worth only the share the team works, so 0 person-days on a full day off. Nothing is stored per day: change a day or a week through the change allocations endpoint (Employees_ChangeAllocations), as a change over that range. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [McpTool("Teams_GetCapacityPlan", "Get team capacity plan")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -493,7 +525,8 @@ public class TeamsController(
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Propose allocations for a team from its members, without saving anything.")]
     [EndpointDescription(
-        "Returns one row per active member and active role they hold on the team, for allocations starting on `from` (yyyy-MM-dd). A row has no `end` unless the member already has a later allocation to it, in which case it ends the day before so that allocation is untouched; a member with time on it on `from` has no rows. `remainingPercent` is what is left of the member's time across all teams: 100 less their most allocated day from `from` to `end`. `percent` is that remainder split evenly between the member's roles. A member with nothing left is returned at 0, not left out. Nothing is saved: send the rows to keep to the change allocations endpoint. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+        "Takes the team's UUID `id`. Returns one row per active member and active role they hold on the team, for allocations starting on `from` (yyyy-MM-dd). A row has no `end` unless the member already has a later allocation to it, in which case it ends the day before so that allocation is untouched; a member with time on it on `from` has no rows. `remainingPercent` is what is left of the member's time across all teams: 100 less their most allocated day from `from` to `end`. `percent` is that remainder split evenly between the member's roles. A member with nothing left is returned at 0, not left out. Nothing is saved: send the rows to keep to the change allocations endpoint (Employees_ChangeAllocations). Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [McpTool("Teams_GetAllocationProposal", "Propose team allocations")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -549,7 +582,10 @@ public class TeamsController(
 
     [HttpGet("{idOrCode}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [EndpointSummary("Get the work items for a team.")]
+    [EndpointSummary("Get a team's Requirement-tier work items, optionally filtered by status category and done date.")]
+    [EndpointDescription(
+        "Takes the team's UUID or `code`. Lists the team's Requirement-tier work items (such as user stories and bugs; never epics or features), ordered by stack rank. `statusCategories` (repeatable: Proposed, Active, Done, Removed) narrows them; omit it for all. `doneFrom` and `doneTo` are ISO 8601 date-times (UTC when no offset is given) bounding when an item reached Done, and leave out items that are not done. For the open backlog in rank order, use Teams_GetBacklog. An unknown team returns an empty list.")]
+    [McpTool("Teams_GetWorkItems", "List team work items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetTeamWorkItems(
@@ -585,7 +621,10 @@ public class TeamsController(
 
     [HttpGet("{id}/dependencies")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [EndpointSummary("Get the active dependencies for a team.")]
+    [EndpointSummary("Get the open dependencies for a team.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. Lists the work item dependencies, not removed, where the team owns either end and the predecessor (`source`) is not yet done (state To Do or In Progress); `target` is the successor waiting on it. Each has a `state`, a `health` (Healthy, At Risk, Unhealthy) from the two items' status and planned sprints, and a `scope` (Intra-Team, Cross-Team, or Unknown when an end has no team). Returns 404 for an unknown team.")]
+    [McpTool("Teams_GetDependencies", "List team dependencies")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -604,7 +643,10 @@ public class TeamsController(
 
     [HttpGet("{id}/risks")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [EndpointSummary("Get team risks.")]
+    [EndpointSummary("Get a team's risks.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. Open risks only unless `includeClosed` is true. Each has its `id`, `key`, summary, team, status, ROAM category, `exposure` (Low, Medium or High, from impact and likelihood), assignee and follow-up date. Returns 404 for an unknown team; a team of teams' risks are under TeamsOfTeams_GetRisks.")]
+    [McpTool("Teams_GetRisks", "List team risks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -621,7 +663,10 @@ public class TeamsController(
 
     [HttpGet("{id}/risks/{riskIdOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [EndpointSummary("Get a team risk by Id.")]
+    [EndpointSummary("Get one of a team's risks.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the risk's UUID or integer key in `riskIdOrKey`. Returns 404 when the risk belongs to another team. Status, category, impact, likelihood and exposure each come as `{ id, name }`; the `id` is what Teams_UpdateRisk takes.")]
+    [McpTool("Teams_GetRisk", "Get team risk")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -641,11 +686,14 @@ public class TeamsController(
     [HttpPost("{id}/risks")]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Risks)]
     [EndpointSummary("Create a risk for a team.")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [EndpointDescription(
+        "Takes the team's UUID `id`, which must match the body's `teamId`. `categoryId` is the ROAM category's numeric id from Risks_GetCategories (1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated); `impactId` and `likelihoodId` are grade ids from Risks_GetGrades (1 Low, 2 Medium, 3 High). `assigneeId` is an employee UUID. The risk starts Open, reported now by the caller, whose account must be linked to an employee. The same as Risks_Create.")]
+    [McpTool("Teams_CreateRisk", "Create team risk", Destructive = false)]
+    [ProducesResponseType(typeof(ObjectIdAndKey), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> CreateRisk(Guid id, [FromBody] CreateRiskRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ObjectIdAndKey>> CreateRisk(Guid id, [FromBody] CreateRiskRequest request, CancellationToken cancellationToken)
     {
         if (id != request.TeamId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.TeamId), HttpContext));
@@ -657,13 +705,16 @@ public class TeamsController(
         var result = await _dispatcher.Send(request.ToCreateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetRiskById), new { id, riskIdOrKey = result.Value.ToString() }, result.Value)
+            ? CreatedAtAction(nameof(GetRiskById), new { id, riskIdOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpPut("{id}/risks/{riskId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Risks)]
-    [EndpointSummary("Update a team risk.")]
+    [EndpointSummary("Update one of a team's risks, including closing or reopening it.")]
+    [EndpointDescription(
+        "**This is a whole-record overwrite: an omitted description, assignee, follow-up date or response is cleared.** Read the risk first with Teams_GetRisk and pass back what should stay. Takes the team's UUID `id` and the risk's UUID `riskId`, which must match the body's `teamId` and `riskId`; the risk cannot be moved to another team. `statusId` is 1 Open or 2 Closed (Risks_GetStatuses); closing stamps the closed date and reopening clears it. `categoryId`, `impactId` and `likelihoodId` are as for Teams_CreateRisk. The same as Risks_Update.")]
+    [McpTool("Teams_UpdateRisk", "Update team risk")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -687,7 +738,10 @@ public class TeamsController(
 
     [HttpGet("{id}/operating-models/{operatingModelId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [EndpointSummary("Get a specific operating model for a team.")]
+    [EndpointSummary("Get one of a team's operating models.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the model's UUID `operatingModelId` from Teams_GetOperatingModels. An operating model is how the team works from its `start` to its `end` (none while current): its `methodology` (Scrum or Kanban), `sizingMethod` (StoryPoints, Count, Effort or Size), IANA `timeZone`, `commitmentGraceDays`, `workingDays`, `holidayCalendar` (null for the system default), and for Kanban an optional reporting cadence (`cadenceWeeks` and `cadenceAnchor`).")]
+    [McpTool("Teams_GetOperatingModel", "Get team operating model")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamOperatingModelDetailsDto>> GetOperatingModel(Guid id, Guid operatingModelId, CancellationToken cancellationToken)
@@ -706,6 +760,9 @@ public class TeamsController(
     [HttpGet("{id}/operating-models")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the operating model history for a team.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. Every operating model the team has had, back to back by date; `isCurrent` marks the one in force now. See Teams_GetOperatingModel for the fields.")]
+    [McpTool("Teams_GetOperatingModels", "List team operating models")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<TeamOperatingModelDetailsDto>>> GetOperatingModels(Guid id, CancellationToken cancellationToken)
@@ -720,6 +777,9 @@ public class TeamsController(
     [HttpGet("{id}/operating-models/as-of")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the current operating model for a team, or the model effective on a specific date.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. `asOfDate` is an ISO 8601 date (its calendar date is used); omit it for today. Returns 404 when the team has no model in force on that date, such as a date before it started.")]
+    [McpTool("Teams_GetOperatingModelAsOf", "Get team operating model on a date")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamOperatingModelDetailsDto>> GetOperatingModelAsOf(Guid id, [FromQuery] DateTime? asOfDate, CancellationToken cancellationToken)
@@ -739,7 +799,10 @@ public class TeamsController(
 
     [HttpGet("operating-models")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [EndpointSummary("Get operating models for multiple teams.")]
+    [EndpointSummary("Get the operating models in force for several teams on one date.")]
+    [EndpointDescription(
+        "`teamIds` (repeatable) are team UUIDs. `asOfDate` is an ISO 8601 date (its calendar date is used); omit it for today. Returns one model per team that had one in force that day; unknown teams, and teams with none that day, are left out.")]
+    [McpTool("Teams_GetOperatingModelsForTeams", "Get operating models for several teams")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TeamOperatingModelDetailsDto>>> GetOperatingModelsForTeams(
@@ -761,7 +824,8 @@ public class TeamsController(
     [HttpGet("{id}/operating-models/defaults")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the values a new operating model for a team is pre-filled with.")]
-    [EndpointDescription("The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default.")]
+    [EndpointDescription("Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.")]
+    [McpTool("Teams_GetOperatingModelDefaults", "Get team operating model defaults")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -784,6 +848,8 @@ public class TeamsController(
     [HttpGet("{id}/has-ever-been-scrum")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Check if a team has ever used the Scrum methodology.")]
+    [EndpointDescription("Takes the team's UUID `id`. True when any of its operating models, past or current, is Scrum, which means it may have sprints to report on. Returns 404 for an unknown team.")]
+    [McpTool("Teams_HasEverBeenScrum", "Check whether team has used Scrum")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<bool>> HasEverBeenScrum(Guid id, CancellationToken cancellationToken)
@@ -797,7 +863,10 @@ public class TeamsController(
 
     [HttpPost("{id}/operating-models")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [EndpointSummary("Set a new operating model for a team.")]
+    [EndpointSummary("Change how a team works from a date, by starting a new operating model.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. The new model starts on `startDate` (yyyy-MM-dd), which must be after the current model's start; the current model is closed the day before. Use it for a real change of methodology, sizing, time zone, working week, holiday calendar or cadence from a date; to fix a model's values for its whole period, use Teams_UpdateOperatingModel. `methodology` is Scrum or Kanban; `sizingMethod` is StoryPoints, Count, Effort or Size; `timeZone` is an IANA id; `commitmentGraceDays` is 0 to 14. `workingDays` (day names such as Monday, at least one) carries over the current model's when omitted. `holidayCalendarId` is a calendar from HolidayCalendars_GetList, or null for the system default. `cadenceWeeks` (1 to 8) with `cadenceAnchor` (yyyy-MM-dd, the first day of one period) set a Kanban team's reporting cadence; omit both for none, and always for Scrum. Teams_GetOperatingModelDefaults gives the values to start from. Returns the new model's id.")]
+    [McpTool("Teams_SetOperatingModel", "Set team operating model")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -817,7 +886,10 @@ public class TeamsController(
 
     [HttpPut("{id}/operating-models/{operatingModelId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [EndpointSummary("Update an existing operating model for a team.")]
+    [EndpointSummary("Correct one of a team's operating models for its whole period.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the model's `operatingModelId`; any model, current or past, can be corrected, and its dates do not change. The corrected values apply to every date the model covers, so for a change that starts on a date use Teams_SetOperatingModel instead. **This is a whole-record overwrite: an omitted `holidayCalendarId` reverts to the system default and omitted `cadenceWeeks`/`cadenceAnchor` remove the cadence**; only an omitted `workingDays` keeps the model's own. Read the model first with Teams_GetOperatingModel and pass back what should stay. Field rules are as for Teams_SetOperatingModel.")]
+    [McpTool("Teams_UpdateOperatingModel", "Correct team operating model")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -833,7 +905,10 @@ public class TeamsController(
 
     [HttpDelete("{id}/operating-models/{operatingModelId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
-    [EndpointSummary("Delete an operating model from a team.")]
+    [EndpointSummary("Delete a team's current operating model, reinstating the one before it.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the current model's `operatingModelId`. Only the current model can be deleted, and never the team's only one; the previous model becomes current again with no end date. Use it to undo a model set by mistake.")]
+    [McpTool("Teams_DeleteOperatingModel", "Delete team operating model")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -851,6 +926,9 @@ public class TeamsController(
     [HttpGet("{id}/sprints")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
     [EndpointSummary("Get the sprints for a team.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. Every sprint the team has, past, current and future, ordered by start date, each with its `state` (Future, Active or Completed) and sprint type. An unknown team, or a team of teams, returns an empty list. For velocity and predictability, use Teams_GetSprintMetrics.")]
+    [McpTool("Teams_GetSprints", "List team sprints")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<SprintListDto>>> GetSprints(Guid id, CancellationToken cancellationToken)
@@ -863,13 +941,19 @@ public class TeamsController(
     [HttpGet("{id}/sprints/active")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
     [EndpointSummary("Get the team's active sprint")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. Returns the sprint in progress now, with its dates, sprint type and what the caller may do with it. Returns 404 when the team has no sprint in progress, or the id is not a team's: report that the team has no active sprint, not a failure, and use Teams_GetSprints to find its next or last one.")]
+    [McpTool("Teams_GetActiveSprint", "Get team active sprint")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintDetailsDto>> GetActiveSprint(Guid id, CancellationToken cancellationToken)
     {
         var sprint = await _dispatcher.Send(new GetTeamActiveSprintQuery(id), cancellationToken);
 
-        return Ok(sprint);
+        return sprint is not null
+            ? Ok(sprint)
+            : NotFound();
     }
 
     [HttpGet("{id}/sprint-metrics")]
@@ -908,7 +992,10 @@ public class TeamsController(
 
     [HttpGet("functional-organization-chart")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [EndpointSummary("Get the functional organizaation chart for a given date.")]
+    [EndpointSummary("Get the functional organization chart for a given date.")]
+    [EndpointDescription(
+        "The tree of teams of teams and teams active on `asOfDate` (an ISO 8601 date, its calendar date used; omit for today), placed by their memberships on that day: `organization` holds the top-level units, each with its `id`, `key`, `code`, `type` (Team or Team of Teams), `level` (0 at the top), `path` of codes and `children`; a team with no parent that day is at the top. `total` counts every unit and `maxDepth` is the deepest level. Teams only, not people: for members use Teams_GetMembers.")]
+    [McpTool("Teams_GetFunctionalOrganizationChart", "Get functional organization chart")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<FunctionalOrganizationChartDto>> GetFunctionalOrganizationChart([FromQuery] DateTime? asOfDate, CancellationToken cancellationToken)
     {
@@ -927,6 +1014,9 @@ public class TeamsController(
     [HttpGet("{id}/members")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the members of a team.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`. One entry per person, by name, with the `employee` (`id` is the employee UUID the member tools take) and every team member `role` they hold on the team. Membership has no dates; the time people give the team is their allocation, under Teams_GetCapacity. An unknown team returns an empty list.")]
+    [McpTool("Teams_GetMembers", "List team members")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetMembers(Guid id, CancellationToken cancellationToken)
     {
@@ -936,6 +1026,9 @@ public class TeamsController(
     [HttpPost("{id}/members")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
     [EndpointSummary("Add a member to a team.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id`, the `employeeId` (employee UUID) and at least one `roleIds` entry: team member role UUIDs from TeamMemberRoles_GetList. The team and the employee must be active. Adding someone who is already a member adds the roles; a role they already hold on the team is refused. Membership does not allocate their time; that is Employees_ChangeAllocations.")]
+    [McpTool("Teams_AddMember", "Add team member", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> AddMember(Guid id, [FromBody] AddTeamMemberRequest request, CancellationToken cancellationToken)
@@ -950,6 +1043,9 @@ public class TeamsController(
     [HttpPut("{id}/members/{employeeId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
     [EndpointSummary("Update a team member's roles.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the member's `employeeId`. **`roleIds` replaces the member's roles on the team**: roles left out are removed, so pass every role they should keep (at least one; to take them off the team, use Teams_RemoveMember). Read the current roles with Teams_GetMembers first.")]
+    [McpTool("Teams_UpdateMember", "Change team member roles")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateMember(Guid id, Guid employeeId, [FromBody] UpdateTeamMemberRequest request, CancellationToken cancellationToken)
@@ -964,6 +1060,9 @@ public class TeamsController(
     [HttpDelete("{id}/members/{employeeId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
     [EndpointSummary("Remove a member from a team.")]
+    [EndpointDescription(
+        "Takes the team's UUID `id` and the member's `employeeId`, and removes every role they hold on the team. Their allocations to the team are not changed; end those with Employees_ChangeAllocations.")]
+    [McpTool("Teams_RemoveMember", "Remove team member")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveMember(Guid id, Guid employeeId, CancellationToken cancellationToken)

@@ -40,6 +40,14 @@ public sealed class DeleteExpenditureCategoryCommandHandler(
                 return Result.Failure("Expenditure Category cannot be deleted.");
             }
 
+            // Projects are assigned only Active categories, but nothing in the schema stops a project holding
+            // a Proposed one, and deleting it would then fail on the foreign key.
+            if (await _projectPortfolioManagementDbContext.Projects.AnyAsync(p => p.ExpenditureCategoryId == request.Id, cancellationToken))
+            {
+                _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} is used by a project and cannot be deleted.", request.Id);
+                return Result.Failure("Expenditure Category is used by a project and cannot be deleted.");
+            }
+
             _projectPortfolioManagementDbContext.ExpenditureCategories.Remove(expenditureCategory);
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 

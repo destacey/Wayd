@@ -51,6 +51,8 @@ public sealed class GetTeamWorkItemsQueryHandler(
         }
 
         var workItems = await query
+            .OrderBy(item => item.StackRank)
+            .ThenBy(item => item.Id)
             .ProjectToType<WorkItemListDto>()
             .ToListAsync(cancellationToken);
 

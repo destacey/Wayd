@@ -601,6 +601,3302 @@ export class TimeZonesClient {
     }
 }
 
+export class SprintsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of sprints.
+     * @param teamId (optional) 
+     * @return OK
+     */
+    getSprints(teamId?: string | null | undefined, cancelToken?: CancelToken): Promise<SprintListDto[]> {
+        let url_ = this.baseUrl + "/api/work/sprints?";
+        if (teamId !== undefined && teamId !== null)
+            url_ += "teamId=" + encodeURIComponent("" + teamId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprints(_response);
+        });
+    }
+
+    protected processGetSprints(response: AxiosResponse): Promise<SprintListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintListDto[]>(null as any);
+    }
+
+    /**
+     * Get a list of all sprint types.
+     * @return OK
+     */
+    getSprintTypes( cancelToken?: CancelToken): Promise<SprintTypeDto[]> {
+        let url_ = this.baseUrl + "/api/work/sprints/types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintTypes(_response);
+        });
+    }
+
+    protected processGetSprintTypes(response: AxiosResponse): Promise<SprintTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintTypeDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintTypeDto[]>(null as any);
+    }
+
+    /**
+     * Get sprint details.
+     * @return OK
+     */
+    getSprint(idOrKey: string, cancelToken?: CancelToken): Promise<SprintDetailsDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprint(_response);
+        });
+    }
+
+    protected processGetSprint(response: AxiosResponse): Promise<SprintDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintDetailsDto>(null as any);
+    }
+
+    /**
+     * Get activity history for the sprint.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/activities?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Get sprint backlog items.
+     * @return OK
+     */
+    getSprintBacklog(idOrKey: string, cancelToken?: CancelToken): Promise<SprintBacklogItemDto[]> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/backlog";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintBacklog(_response);
+        });
+    }
+
+    protected processGetSprintBacklog(response: AxiosResponse): Promise<SprintBacklogItemDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintBacklogItemDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintBacklogItemDto[]>(null as any);
+    }
+
+    /**
+     * Get sprint work item metrics.
+     * @return OK
+     */
+    getSprintMetrics(idOrKey: string, cancelToken?: CancelToken): Promise<SprintWorkItemMetricsDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/metrics";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintMetrics(_response);
+        });
+    }
+
+    protected processGetSprintMetrics(response: AxiosResponse): Promise<SprintWorkItemMetricsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintWorkItemMetricsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintWorkItemMetricsDto>(null as any);
+    }
+
+    /**
+     * Get sprint scope.
+     * @return OK
+     */
+    getSprintScope(idOrKey: string, cancelToken?: CancelToken): Promise<SprintScopeDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/scope";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintScope(_response);
+        });
+    }
+
+    protected processGetSprintScope(response: AxiosResponse): Promise<SprintScopeDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintScopeDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintScopeDto>(null as any);
+    }
+
+    /**
+     * Get sprint burn-up and burn-down.
+     * @return OK
+     */
+    getSprintBurn(idOrKey: string, cancelToken?: CancelToken): Promise<SprintBurnDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/burn";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintBurn(_response);
+        });
+    }
+
+    protected processGetSprintBurn(response: AxiosResponse): Promise<SprintBurnDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintBurnDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintBurnDto>(null as any);
+    }
+
+    /**
+     * Get a sprint's capacity beside its scope.
+     * @return OK
+     */
+    getSprintCapacity(idOrKey: string, cancelToken?: CancelToken): Promise<SprintCapacityDto> {
+        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/capacity";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSprintCapacity(_response);
+        });
+    }
+
+    protected processGetSprintCapacity(response: AxiosResponse): Promise<SprintCapacityDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SprintCapacityDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SprintCapacityDto>(null as any);
+    }
+
+    /**
+     * Start a sprint.
+     * @return No Content
+     */
+    start(id: string, request: StartSprintRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/start";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStart(_response);
+        });
+    }
+
+    protected processStart(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Complete a sprint.
+     * @return No Content
+     */
+    complete(id: string, request: CompleteSprintRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/complete";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processComplete(_response);
+        });
+    }
+
+    protected processComplete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Reopen a sprint.
+     * @return No Content
+     */
+    reopen(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/reopen";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReopen(_response);
+        });
+    }
+
+    protected processReopen(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set a sprint's team days off.
+     * @return No Content
+     */
+    setTeamDaysOff(id: string, request: SetSprintTeamDaysOffRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/team-days-off";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTeamDaysOff(_response);
+        });
+    }
+
+    protected processSetTeamDaysOff(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set or clear a sprint's type.
+     * @return No Content
+     */
+    setSprintType(id: string, request: SetSprintTypeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/type";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetSprintType(_response);
+        });
+    }
+
+    protected processSetSprintType(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Correct sprints' actual dates.
+     * @return No Content
+     */
+    correctActualDates(request: CorrectSprintActualDatesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/actual-dates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCorrectActualDates(_response);
+        });
+    }
+
+    protected processCorrectActualDates(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get planning intervals that this sprint is mapped to.
+     * @return OK
+     */
+    getPlanningIntervals(key: number, cancelToken?: CancelToken): Promise<NavigationDto[]> {
+        let url_ = this.baseUrl + "/api/work/sprints/{key}/planning-intervals";
+        if (key === undefined || key === null)
+            throw new globalThis.Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetPlanningIntervals(_response);
+        });
+    }
+
+    protected processGetPlanningIntervals(response: AxiosResponse): Promise<NavigationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<NavigationDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<NavigationDto[]>(null as any);
+    }
+}
+
+export class WorkProcessesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of work processes.
+     * @param includeInactive (optional) 
+     * @return OK
+     */
+    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkProcessListDto[]> {
+        let url_ = this.baseUrl + "/api/work/work-processes?";
+        if (includeInactive === null)
+            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
+        else if (includeInactive !== undefined)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<WorkProcessListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkProcessListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkProcessListDto[]>(null as any);
+    }
+
+    /**
+     * Get work process details.
+     * @return OK
+     */
+    get(idOrKey: string, cancelToken?: CancelToken): Promise<WorkProcessDto> {
+        let url_ = this.baseUrl + "/api/work/work-processes/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGet(_response);
+        });
+    }
+
+    protected processGet(response: AxiosResponse): Promise<WorkProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkProcessDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkProcessDto>(null as any);
+    }
+
+    /**
+     * Get activity history for the work process.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/work/work-processes/{idOrKey}/activities?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Activate a work process.
+     * @return No Content
+     */
+    activate(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/work-processes/{id}/activate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processActivate(_response);
+        });
+    }
+
+    protected processActivate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Deactivate a work process.
+     * @return No Content
+     */
+    deactivate(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/work-processes/{id}/deactivate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeactivate(_response);
+        });
+    }
+
+    protected processDeactivate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get work process schemes.
+     * @return OK
+     */
+    getSchemes(id: string, cancelToken?: CancelToken): Promise<WorkProcessSchemeDto[]> {
+        let url_ = this.baseUrl + "/api/work/work-processes/{id}/schemes";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSchemes(_response);
+        });
+    }
+
+    protected processGetSchemes(response: AxiosResponse): Promise<WorkProcessSchemeDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkProcessSchemeDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkProcessSchemeDto[]>(null as any);
+    }
+}
+
+export class WorkspacesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of workspaces.
+     * @param includeInactive (optional) 
+     * @return OK
+     */
+    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkspaceListDto[]> {
+        let url_ = this.baseUrl + "/api/work/workspaces?";
+        if (includeInactive === null)
+            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
+        else if (includeInactive !== undefined)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<WorkspaceListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkspaceListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkspaceListDto[]>(null as any);
+    }
+
+    /**
+     * Get workspace details.
+     * @return OK
+     */
+    get(idOrKey: string, cancelToken?: CancelToken): Promise<WorkspaceDto> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGet(_response);
+        });
+    }
+
+    protected processGet(response: AxiosResponse): Promise<WorkspaceDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkspaceDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkspaceDto>(null as any);
+    }
+
+    /**
+     * Set the external view work item URL template for a workspace.
+     * @return No Content
+     */
+    setExternalUrlTemplates(id: string, dto: SetExternalUrlTemplatesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{id}/external-url-templates";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(dto);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetExternalUrlTemplates(_response);
+        });
+    }
+
+    protected processSetExternalUrlTemplates(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get work items for a workspace.
+     * @return OK
+     */
+    getWorkItems(idOrKey: string, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItems(_response);
+        });
+    }
+
+    protected processGetWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemListDto[]>(null as any);
+    }
+
+    /**
+     * Get work item details.
+     * @return OK
+     */
+    getWorkItem(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemDetailsDto> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (workItemKey === undefined || workItemKey === null)
+            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
+        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItem(_response);
+        });
+    }
+
+    protected processGetWorkItem(response: AxiosResponse): Promise<WorkItemDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemDetailsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemDetailsDto>(null as any);
+    }
+
+    /**
+     * Get a work item's project info.
+     * @return OK
+     */
+    getWorkItemProjectInfo(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemProjectInfoDto> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/project-info";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (workItemKey === undefined || workItemKey === null)
+            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
+        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItemProjectInfo(_response);
+        });
+    }
+
+    protected processGetWorkItemProjectInfo(response: AxiosResponse): Promise<WorkItemProjectInfoDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemProjectInfoDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemProjectInfoDto>(null as any);
+    }
+
+    /**
+     * Update the project for a work item.
+     * @return No Content
+     */
+    updateWorkItemProject(id: string, workItemId: string, request: UpdateWorkItemProjectRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{id}/work-items/{workItemId}/update-project";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workItemId === undefined || workItemId === null)
+            throw new globalThis.Error("The parameter 'workItemId' must be defined.");
+        url_ = url_.replace("{workItemId}", encodeURIComponent("" + workItemId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateWorkItemProject(_response);
+        });
+    }
+
+    protected processUpdateWorkItemProject(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get a work item's child work items.
+     * @return OK
+     */
+    getChildWorkItems(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/children";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (workItemKey === undefined || workItemKey === null)
+            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
+        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetChildWorkItems(_response);
+        });
+    }
+
+    protected processGetChildWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemListDto[]>(null as any);
+    }
+
+    /**
+     * Get a work item's dependencies.
+     * @return OK
+     */
+    getWorkItemDependencies(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<ScopedDependencyDto[]> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/dependencies";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (workItemKey === undefined || workItemKey === null)
+            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
+        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItemDependencies(_response);
+        });
+    }
+
+    protected processGetWorkItemDependencies(response: AxiosResponse): Promise<ScopedDependencyDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ScopedDependencyDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ScopedDependencyDto[]>(null as any);
+    }
+
+    /**
+     * Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.
+     * @param targetDate (optional) 
+     * @param lookbackDays (optional) 
+     * @param ignoreDependencies (optional) 
+     * @param startedWorkFirst (optional) 
+     * @return OK
+     */
+    getWorkItemForecast(idOrKey: string, workItemKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, startedWorkFirst?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/forecast?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (workItemKey === undefined || workItemKey === null)
+            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
+        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
+        if (targetDate !== undefined && targetDate !== null)
+            url_ += "targetDate=" + encodeURIComponent("" + targetDate) + "&";
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (ignoreDependencies !== undefined && ignoreDependencies !== null)
+            url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
+            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItemForecast(_response);
+        });
+    }
+
+    protected processGetWorkItemForecast(response: AxiosResponse): Promise<WorkItemForecastDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemForecastDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemForecastDto>(null as any);
+    }
+
+    /**
+     * Get metrics for a work item.
+     * @return OK
+     */
+    getMetrics(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemProgressDailyRollupDto[]> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/metrics";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (workItemKey === undefined || workItemKey === null)
+            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
+        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMetrics(_response);
+        });
+    }
+
+    protected processGetMetrics(response: AxiosResponse): Promise<WorkItemProgressDailyRollupDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemProgressDailyRollupDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemProgressDailyRollupDto[]>(null as any);
+    }
+
+    /**
+     * Search for a work item using its key or title.
+     * @param query (optional) 
+     * @param top (optional) 
+     * @return OK
+     */
+    searchWorkItems(query?: string | undefined, top?: number | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+        let url_ = this.baseUrl + "/api/work/workspaces/work-items/search?";
+        if (query === null)
+            throw new globalThis.Error("The parameter 'query' cannot be null.");
+        else if (query !== undefined)
+            url_ += "query=" + encodeURIComponent("" + query) + "&";
+        if (top === null)
+            throw new globalThis.Error("The parameter 'top' cannot be null.");
+        else if (top !== undefined)
+            url_ += "top=" + encodeURIComponent("" + top) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearchWorkItems(_response);
+        });
+    }
+
+    protected processSearchWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemListDto[]>(null as any);
+    }
+}
+
+export class WorkStatusCategoriesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of all work status categories.
+     * @return OK
+     */
+    getList( cancelToken?: CancelToken): Promise<WorkStatusCategoryListDto[]> {
+        let url_ = this.baseUrl + "/api/work/work-status-categories";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<WorkStatusCategoryListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkStatusCategoryListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkStatusCategoryListDto[]>(null as any);
+    }
+}
+
+export class WorkStatusesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of all work statuses.
+     * @param includeInactive (optional) 
+     * @return OK
+     */
+    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkStatusDto[]> {
+        let url_ = this.baseUrl + "/api/work/work-statuses?";
+        if (includeInactive === null)
+            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
+        else if (includeInactive !== undefined)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<WorkStatusDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkStatusDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkStatusDto[]>(null as any);
+    }
+
+    /**
+     * Create a work status.
+     * @return Created
+     */
+    create(request: CreateWorkStatusRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/work/work-statuses";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<number>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Get work status details using the id.
+     * @return OK
+     */
+    getById(id: number, cancelToken?: CancelToken): Promise<WorkStatusDto> {
+        let url_ = this.baseUrl + "/api/work/work-statuses/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetById(_response);
+        });
+    }
+
+    protected processGetById(response: AxiosResponse): Promise<WorkStatusDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkStatusDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkStatusDto>(null as any);
+    }
+
+    /**
+     * Update a work status.
+     * @return No Content
+     */
+    update(id: number, request: UpdateWorkStatusRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/work-statuses/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class WorkTypeLevelsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of all work type levels.
+     * @return OK
+     */
+    getList( cancelToken?: CancelToken): Promise<WorkTypeLevelDto[]> {
+        let url_ = this.baseUrl + "/api/work/work-type-levels";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<WorkTypeLevelDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkTypeLevelDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkTypeLevelDto[]>(null as any);
+    }
+
+    /**
+     * Create a work type level.
+     * @return Created
+     */
+    create(request: CreateWorkTypeLevelRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/work/work-type-levels";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<number>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Get work type level details using the id.
+     * @return OK
+     */
+    getById(id: number, cancelToken?: CancelToken): Promise<WorkTypeLevelDto> {
+        let url_ = this.baseUrl + "/api/work/work-type-levels/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetById(_response);
+        });
+    }
+
+    protected processGetById(response: AxiosResponse): Promise<WorkTypeLevelDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkTypeLevelDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkTypeLevelDto>(null as any);
+    }
+
+    /**
+     * Update a work type level.
+     * @return No Content
+     */
+    update(id: number, request: UpdateWorkTypeLevelRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/work-type-levels/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Update the order of portfolio tier work type levels.
+     * @return No Content
+     */
+    updateOrder(request: UpdateWorkTypeLevelsOrderRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/work-type-levels/order";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateOrder(_response);
+        });
+    }
+
+    protected processUpdateOrder(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class WorkTypesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of all work types.
+     * @param includeInactive (optional) 
+     * @return OK
+     */
+    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkTypeDto[]> {
+        let url_ = this.baseUrl + "/api/work/work-types?";
+        if (includeInactive === null)
+            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
+        else if (includeInactive !== undefined)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<WorkTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkTypeDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkTypeDto[]>(null as any);
+    }
+
+    /**
+     * Create a work type.
+     * @return Created
+     */
+    create(request: CreateWorkTypeRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/work/work-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<number>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Get work type details using the id.
+     * @return OK
+     */
+    getById(id: number, cancelToken?: CancelToken): Promise<WorkTypeDto> {
+        let url_ = this.baseUrl + "/api/work/work-types/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetById(_response);
+        });
+    }
+
+    protected processGetById(response: AxiosResponse): Promise<WorkTypeDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkTypeDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkTypeDto>(null as any);
+    }
+
+    /**
+     * Update a work type.
+     * @return No Content
+     */
+    update(id: number, request: UpdateWorkTypeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/work-types/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class WorkTypeTiersClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of all work type tiers.
+     * @return OK
+     */
+    getList( cancelToken?: CancelToken): Promise<WorkTypeTierDto[]> {
+        let url_ = this.baseUrl + "/api/work/work-type-tiers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<WorkTypeTierDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkTypeTierDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkTypeTierDto[]>(null as any);
+    }
+}
+
 export class AuthClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -13838,7 +17134,7 @@ export class ExpenditureCategoriesClient {
     }
 
     /**
-     * Get a list of expenditure categories.
+     * Get a list of expenditure categories — how project spending is classified (for example Opex or Capex) — in every state.
      * @return OK
      */
     getExpenditureCategories( cancelToken?: CancelToken): Promise<ExpenditureCategoryListDto[]> {
@@ -14022,7 +17318,7 @@ export class ExpenditureCategoriesClient {
     }
 
     /**
-     * Update an expenditure category.
+     * Update an expenditure category's name, description, capitalizable and depreciation settings, and accounting code.
      * @return No Content
      */
     update(id: number, request: UpdateExpenditureCategoryRequest, cancelToken?: CancelToken): Promise<void> {
@@ -14149,7 +17445,7 @@ export class ExpenditureCategoriesClient {
     }
 
     /**
-     * Activate an expenditure category.
+     * Activate a proposed expenditure category so projects can use it.
      * @return No Content
      */
     activate(id: number, cancelToken?: CancelToken): Promise<void> {
@@ -14214,7 +17510,7 @@ export class ExpenditureCategoriesClient {
     }
 
     /**
-     * Archive an expenditure category.
+     * Archive an active expenditure category, retiring it from new projects.
      * @return No Content
      */
     archive(id: number, cancelToken?: CancelToken): Promise<void> {
@@ -17161,7 +20457,7 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Create a project lifecycle.
+     * Create a project lifecycle — a reusable template of ordered stages that projects are planned in.
      * @return Created
      */
     create(request: CreateProjectLifecycleRequest, cancelToken?: CancelToken): Promise<string> {
@@ -17286,7 +20582,7 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Update a project lifecycle.
+     * Update a project lifecycle's name and description.
      * @return No Content
      */
     update(id: string, request: UpdateProjectLifecycleRequest, cancelToken?: CancelToken): Promise<void> {
@@ -17413,7 +20709,7 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Activate a project lifecycle.
+     * Activate a proposed project lifecycle, making it available to assign to projects.
      * @return No Content
      */
     activate(id: string, cancelToken?: CancelToken): Promise<void> {
@@ -17478,7 +20774,7 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Archive a project lifecycle.
+     * Archive an active project lifecycle so it can no longer be assigned to projects.
      * @return No Content
      */
     archive(id: string, cancelToken?: CancelToken): Promise<void> {
@@ -17609,7 +20905,7 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Update a stage in a project lifecycle.
+     * Update a lifecycle stage's name and description.
      * @return No Content
      */
     updateStage(id: string, stageId: string, request: ProjectLifecycleStageRequest, cancelToken?: CancelToken): Promise<void> {
@@ -19615,7 +22911,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Assign a lifecycle to a project.
+     * Assign a lifecycle to a project that has none, creating the project's stages from it.
      * @return No Content
      */
     assignLifecycle(id: string, request: AssignProjectLifecycleRequest, cancelToken?: CancelToken): Promise<void> {
@@ -20068,7 +23364,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Update a project stage.
+     * Update a project stage's description, status, planned dates, progress and assignees.
      * @return No Content
      */
     updateProjectStage(id: string, stageId: string, request: UpdateProjectStageRequest, cancelToken?: CancelToken): Promise<void> {
@@ -20343,7 +23639,7 @@ export class ProjectScoresClient {
     }
 
     /**
-     * Record a score for a project.
+     * Record a score for a project against its portfolio's scoring model, returning the new score's id.
      * @return Created
      */
     recordScore(id: string, request: RecordProjectScoreRequest, cancelToken?: CancelToken): Promise<string> {
@@ -21735,7 +25031,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Update a strategic initiative.
+     * Update a strategic initiative's name, description, dates, sponsors and owners.
      * @return No Content
      */
     update(id: string, request: UpdateStrategicInitiativeRequest, cancelToken?: CancelToken): Promise<void> {
@@ -21847,12 +25143,12 @@ export class StrategicInitiativesClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 404) {
+        } else if (status === 400) {
             const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22374,7 +25670,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Update a KPI for a strategic initiative.
+     * Update a KPI's definition: name, description, starting and target values, display prefix and suffix, and target direction.
      * @return No Content
      */
     updateKpi(id: string, kpiId: string, request: UpdateStrategicInitiativeKpiRequest, cancelToken?: CancelToken): Promise<void> {
@@ -22498,13 +25794,6 @@ export class StrategicInitiativesClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22713,7 +26002,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Manage the checkpoint plan for a strategic initiative KPI.
+     * Replace a KPI's checkpoint plan — the dated targets it is expected to hit.
      * @return No Content
      */
     manageKpiCheckpointPlan(id: string, kpiId: string, request: ManageStrategicInitiativeKpiCheckpointPlanRequest, cancelToken?: CancelToken): Promise<void> {
@@ -23062,7 +26351,7 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Manage projects for the strategic initiative.
+     * Set which projects are linked to a strategic initiative as the work delivering it.
      * @return No Content
      */
     manageProjects(id: string, request: ManageStrategicInitiativeProjectsRequest, cancelToken?: CancelToken): Promise<void> {
@@ -24020,7 +27309,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Update a planning interval.
+     * Update a planning interval's name, description and whether its objectives are locked.
      * @return No Content
      */
     update(id: string, request: UpdatePlanningIntervalRequest, cancelToken?: CancelToken): Promise<void> {
@@ -24216,7 +27505,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Manage planning interval dates and iterations.
+     * Set a planning interval's start and end dates and its complete list of iterations.
      * @return No Content
      */
     manageDates(id: string, request: ManagePlanningIntervalDatesRequest, cancelToken?: CancelToken): Promise<void> {
@@ -24278,7 +27567,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Manage planning interval teams.
+     * Set the complete list of teams taking part in a planning interval.
      * @return No Content
      */
     manageTeams(id: string, request: ManagePlanningIntervalTeamsRequest, cancelToken?: CancelToken): Promise<void> {
@@ -25829,7 +29118,7 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Manage objective work items.
+     * Set the complete list of work items linked to a planning interval objective.
      * @return No Content
      */
     manageObjectiveWorkItems(id: string, objectiveId: string, request: ManagePlanningIntervalObjectiveWorkItemsRequest, cancelToken?: CancelToken): Promise<void> {
@@ -26412,6 +29701,13 @@ export class PlanningIntervalsClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -27465,7 +30761,7 @@ export class RisksClient {
     }
 
     /**
-     * Get a list of risks.
+     * Get the risks of every team and team of teams.
      * @param includeClosed (optional) 
      * @return OK
      */
@@ -27529,7 +30825,7 @@ export class RisksClient {
     }
 
     /**
-     * Create a risk.
+     * Create a risk for a team or team of teams.
      * @return Created
      */
     create(request: CreateRiskRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
@@ -27654,7 +30950,7 @@ export class RisksClient {
     }
 
     /**
-     * Get activity history for the risk.
+     * Get a risk's activity history, newest first: its creation, detail changes, category, assessment (impact and likelihood), assignee and follow-up date changes, and closing or reopening.
      * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
@@ -27785,7 +31081,7 @@ export class RisksClient {
     }
 
     /**
-     * Update a risk.
+     * Update a risk, including closing or reopening it.
      * @return No Content
      */
     update(id: string, request: UpdateRiskRequest, cancelToken?: CancelToken): Promise<void> {
@@ -28895,7 +32191,7 @@ export class RoadmapsClient {
      * Create a roadmap item of type: Activity, Timebox, Milestone.
      * @return Created
      */
-    createItem(roadmapId: string, request: CreateRoadmapItemRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+    createItem(roadmapId: string, request: CreateRoadmapItemRequest, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/planning/roadmaps/{roadmapId}/items";
         if (roadmapId === undefined || roadmapId === null)
             throw new globalThis.Error("The parameter 'roadmapId' must be defined.");
@@ -28926,7 +32222,7 @@ export class RoadmapsClient {
         });
     }
 
-    protected processCreateItem(response: AxiosResponse): Promise<ObjectIdAndKey> {
+    protected processCreateItem(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -28941,7 +32237,7 @@ export class RoadmapsClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = resultData201;
-            return Promise.resolve<ObjectIdAndKey>(result201);
+            return Promise.resolve<string>(result201);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -28954,7 +32250,7 @@ export class RoadmapsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ObjectIdAndKey>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -32316,3368 +35612,6 @@ export class StoryMapsClient {
     }
 }
 
-export class TeamTypesClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of all team types.
-     * @return OK
-     */
-    getList( cancelToken?: CancelToken): Promise<TeamTypeDto[]> {
-        let url_ = this.baseUrl + "/api/organization/team-types";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<TeamTypeDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<TeamTypeDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<TeamTypeDto[]>(null as any);
-    }
-}
-
-export class SprintsClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of sprints.
-     * @param teamId (optional) 
-     * @return OK
-     */
-    getSprints(teamId?: string | null | undefined, cancelToken?: CancelToken): Promise<SprintListDto[]> {
-        let url_ = this.baseUrl + "/api/work/sprints?";
-        if (teamId !== undefined && teamId !== null)
-            url_ += "teamId=" + encodeURIComponent("" + teamId) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprints(_response);
-        });
-    }
-
-    protected processGetSprints(response: AxiosResponse): Promise<SprintListDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintListDto[]>(null as any);
-    }
-
-    /**
-     * Get a list of all sprint types.
-     * @return OK
-     */
-    getSprintTypes( cancelToken?: CancelToken): Promise<SprintTypeDto[]> {
-        let url_ = this.baseUrl + "/api/work/sprints/types";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprintTypes(_response);
-        });
-    }
-
-    protected processGetSprintTypes(response: AxiosResponse): Promise<SprintTypeDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintTypeDto[]>(result200);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintTypeDto[]>(null as any);
-    }
-
-    /**
-     * Get sprint details.
-     * @return OK
-     */
-    getSprint(idOrKey: string, cancelToken?: CancelToken): Promise<SprintDetailsDto> {
-        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprint(_response);
-        });
-    }
-
-    protected processGetSprint(response: AxiosResponse): Promise<SprintDetailsDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintDetailsDto>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintDetailsDto>(null as any);
-    }
-
-    /**
-     * Get activity history for the sprint.
-     * @param page (optional) 
-     * @param pageSize (optional) 
-     * @return OK
-     */
-    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
-        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/activities?";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (page === null)
-            throw new globalThis.Error("The parameter 'page' cannot be null.");
-        else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetActivities(_response);
-        });
-    }
-
-    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
-    }
-
-    /**
-     * Get sprint backlog items.
-     * @return OK
-     */
-    getSprintBacklog(idOrKey: string, cancelToken?: CancelToken): Promise<SprintBacklogItemDto[]> {
-        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/backlog";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprintBacklog(_response);
-        });
-    }
-
-    protected processGetSprintBacklog(response: AxiosResponse): Promise<SprintBacklogItemDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintBacklogItemDto[]>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintBacklogItemDto[]>(null as any);
-    }
-
-    /**
-     * Get sprint work item metrics.
-     * @return OK
-     */
-    getSprintMetrics(idOrKey: string, cancelToken?: CancelToken): Promise<SprintWorkItemMetricsDto> {
-        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/metrics";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprintMetrics(_response);
-        });
-    }
-
-    protected processGetSprintMetrics(response: AxiosResponse): Promise<SprintWorkItemMetricsDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintWorkItemMetricsDto>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintWorkItemMetricsDto>(null as any);
-    }
-
-    /**
-     * Get sprint scope.
-     * @return OK
-     */
-    getSprintScope(idOrKey: string, cancelToken?: CancelToken): Promise<SprintScopeDto> {
-        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/scope";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprintScope(_response);
-        });
-    }
-
-    protected processGetSprintScope(response: AxiosResponse): Promise<SprintScopeDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintScopeDto>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintScopeDto>(null as any);
-    }
-
-    /**
-     * Get sprint burn-up and burn-down.
-     * @return OK
-     */
-    getSprintBurn(idOrKey: string, cancelToken?: CancelToken): Promise<SprintBurnDto> {
-        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/burn";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprintBurn(_response);
-        });
-    }
-
-    protected processGetSprintBurn(response: AxiosResponse): Promise<SprintBurnDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintBurnDto>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintBurnDto>(null as any);
-    }
-
-    /**
-     * Get a sprint's capacity beside its scope.
-     * @return OK
-     */
-    getSprintCapacity(idOrKey: string, cancelToken?: CancelToken): Promise<SprintCapacityDto> {
-        let url_ = this.baseUrl + "/api/work/sprints/{idOrKey}/capacity";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSprintCapacity(_response);
-        });
-    }
-
-    protected processGetSprintCapacity(response: AxiosResponse): Promise<SprintCapacityDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<SprintCapacityDto>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SprintCapacityDto>(null as any);
-    }
-
-    /**
-     * Start a sprint.
-     * @return No Content
-     */
-    start(id: string, request: StartSprintRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/sprints/{id}/start";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processStart(_response);
-        });
-    }
-
-    protected processStart(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Complete a sprint.
-     * @return No Content
-     */
-    complete(id: string, request: CompleteSprintRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/sprints/{id}/complete";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processComplete(_response);
-        });
-    }
-
-    protected processComplete(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Reopen a sprint.
-     * @return No Content
-     */
-    reopen(id: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/sprints/{id}/reopen";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processReopen(_response);
-        });
-    }
-
-    protected processReopen(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Set a sprint's team days off.
-     * @return No Content
-     */
-    setTeamDaysOff(id: string, request: SetSprintTeamDaysOffRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/sprints/{id}/team-days-off";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSetTeamDaysOff(_response);
-        });
-    }
-
-    protected processSetTeamDaysOff(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Set or clear a sprint's type.
-     * @return No Content
-     */
-    setSprintType(id: string, request: SetSprintTypeRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/sprints/{id}/type";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSetSprintType(_response);
-        });
-    }
-
-    protected processSetSprintType(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Correct sprints' actual dates.
-     * @return No Content
-     */
-    correctActualDates(request: CorrectSprintActualDatesRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/sprints/actual-dates";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCorrectActualDates(_response);
-        });
-    }
-
-    protected processCorrectActualDates(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Get planning intervals that this sprint is mapped to.
-     * @return OK
-     */
-    getPlanningIntervals(key: number, cancelToken?: CancelToken): Promise<NavigationDto[]> {
-        let url_ = this.baseUrl + "/api/work/sprints/{key}/planning-intervals";
-        if (key === undefined || key === null)
-            throw new globalThis.Error("The parameter 'key' must be defined.");
-        url_ = url_.replace("{key}", encodeURIComponent("" + key));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetPlanningIntervals(_response);
-        });
-    }
-
-    protected processGetPlanningIntervals(response: AxiosResponse): Promise<NavigationDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<NavigationDto[]>(result200);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<NavigationDto[]>(null as any);
-    }
-}
-
-export class WorkProcessesClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of work processes.
-     * @param includeInactive (optional) 
-     * @return OK
-     */
-    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkProcessListDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-processes?";
-        if (includeInactive === null)
-            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
-        else if (includeInactive !== undefined)
-            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkProcessListDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkProcessListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkProcessListDto[]>(null as any);
-    }
-
-    /**
-     * Get work process details.
-     * @return OK
-     */
-    get(idOrKey: string, cancelToken?: CancelToken): Promise<WorkProcessDto> {
-        let url_ = this.baseUrl + "/api/work/work-processes/{idOrKey}";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGet(_response);
-        });
-    }
-
-    protected processGet(response: AxiosResponse): Promise<WorkProcessDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkProcessDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkProcessDto>(null as any);
-    }
-
-    /**
-     * Get activity history for the work process.
-     * @param page (optional) 
-     * @param pageSize (optional) 
-     * @return OK
-     */
-    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
-        let url_ = this.baseUrl + "/api/work/work-processes/{idOrKey}/activities?";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (page === null)
-            throw new globalThis.Error("The parameter 'page' cannot be null.");
-        else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetActivities(_response);
-        });
-    }
-
-    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
-    }
-
-    /**
-     * Activate a work process.
-     * @return No Content
-     */
-    activate(id: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/work-processes/{id}/activate";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processActivate(_response);
-        });
-    }
-
-    protected processActivate(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Deactivate a work process.
-     * @return No Content
-     */
-    deactivate(id: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/work-processes/{id}/deactivate";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processDeactivate(_response);
-        });
-    }
-
-    protected processDeactivate(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Get work process schemes.
-     * @return OK
-     */
-    getSchemes(id: string, cancelToken?: CancelToken): Promise<WorkProcessSchemeDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-processes/{id}/schemes";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSchemes(_response);
-        });
-    }
-
-    protected processGetSchemes(response: AxiosResponse): Promise<WorkProcessSchemeDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkProcessSchemeDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkProcessSchemeDto[]>(null as any);
-    }
-}
-
-export class WorkspacesClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of workspaces.
-     * @param includeInactive (optional) 
-     * @return OK
-     */
-    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkspaceListDto[]> {
-        let url_ = this.baseUrl + "/api/work/workspaces?";
-        if (includeInactive === null)
-            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
-        else if (includeInactive !== undefined)
-            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkspaceListDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkspaceListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkspaceListDto[]>(null as any);
-    }
-
-    /**
-     * Get workspace details.
-     * @return OK
-     */
-    get(idOrKey: string, cancelToken?: CancelToken): Promise<WorkspaceDto> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGet(_response);
-        });
-    }
-
-    protected processGet(response: AxiosResponse): Promise<WorkspaceDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkspaceDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkspaceDto>(null as any);
-    }
-
-    /**
-     * Set the external view work item URL template for a workspace.
-     * @return No Content
-     */
-    setExternalUrlTemplates(id: string, dto: SetExternalUrlTemplatesRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{id}/external-url-templates";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(dto);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSetExternalUrlTemplates(_response);
-        });
-    }
-
-    protected processSetExternalUrlTemplates(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Get work items for a workspace.
-     * @return OK
-     */
-    getWorkItems(idOrKey: string, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkItems(_response);
-        });
-    }
-
-    protected processGetWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkItemListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkItemListDto[]>(null as any);
-    }
-
-    /**
-     * Get work item details.
-     * @return OK
-     */
-    getWorkItem(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemDetailsDto> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (workItemKey === undefined || workItemKey === null)
-            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
-        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkItem(_response);
-        });
-    }
-
-    protected processGetWorkItem(response: AxiosResponse): Promise<WorkItemDetailsDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkItemDetailsDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkItemDetailsDto>(null as any);
-    }
-
-    /**
-     * Get a work item's project info.
-     * @return OK
-     */
-    getWorkItemProjectInfo(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemProjectInfoDto> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/project-info";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (workItemKey === undefined || workItemKey === null)
-            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
-        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkItemProjectInfo(_response);
-        });
-    }
-
-    protected processGetWorkItemProjectInfo(response: AxiosResponse): Promise<WorkItemProjectInfoDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkItemProjectInfoDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkItemProjectInfoDto>(null as any);
-    }
-
-    /**
-     * Update the project for a work item.
-     * @return No Content
-     */
-    updateWorkItemProject(id: string, workItemId: string, request: UpdateWorkItemProjectRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{id}/work-items/{workItemId}/update-project";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (workItemId === undefined || workItemId === null)
-            throw new globalThis.Error("The parameter 'workItemId' must be defined.");
-        url_ = url_.replace("{workItemId}", encodeURIComponent("" + workItemId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdateWorkItemProject(_response);
-        });
-    }
-
-    protected processUpdateWorkItemProject(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Get a work item's child work items.
-     * @return OK
-     */
-    getChildWorkItems(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/children";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (workItemKey === undefined || workItemKey === null)
-            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
-        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetChildWorkItems(_response);
-        });
-    }
-
-    protected processGetChildWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkItemListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkItemListDto[]>(null as any);
-    }
-
-    /**
-     * Get a work item's dependencies.
-     * @return OK
-     */
-    getWorkItemDependencies(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<ScopedDependencyDto[]> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/dependencies";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (workItemKey === undefined || workItemKey === null)
-            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
-        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkItemDependencies(_response);
-        });
-    }
-
-    protected processGetWorkItemDependencies(response: AxiosResponse): Promise<ScopedDependencyDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<ScopedDependencyDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<ScopedDependencyDto[]>(null as any);
-    }
-
-    /**
-     * Forecast when a work item will be done, by Monte Carlo simulation of its team's recent throughput, its position in the team's backlog (everything ahead of it counts; active work comes first unless `startedWorkFirst` is false), and the open predecessors it waits on.
-     * @param targetDate (optional) 
-     * @param lookbackDays (optional) 
-     * @param ignoreDependencies (optional) 
-     * @param startedWorkFirst (optional) 
-     * @return OK
-     */
-    getWorkItemForecast(idOrKey: string, workItemKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, startedWorkFirst?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/forecast?";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (workItemKey === undefined || workItemKey === null)
-            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
-        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
-        if (targetDate !== undefined && targetDate !== null)
-            url_ += "targetDate=" + encodeURIComponent("" + targetDate) + "&";
-        if (lookbackDays !== undefined && lookbackDays !== null)
-            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
-        if (ignoreDependencies !== undefined && ignoreDependencies !== null)
-            url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
-        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
-            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkItemForecast(_response);
-        });
-    }
-
-    protected processGetWorkItemForecast(response: AxiosResponse): Promise<WorkItemForecastDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkItemForecastDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkItemForecastDto>(null as any);
-    }
-
-    /**
-     * Get metrics for a work item.
-     * @return OK
-     */
-    getMetrics(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemProgressDailyRollupDto[]> {
-        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/metrics";
-        if (idOrKey === undefined || idOrKey === null)
-            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
-        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
-        if (workItemKey === undefined || workItemKey === null)
-            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
-        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetMetrics(_response);
-        });
-    }
-
-    protected processGetMetrics(response: AxiosResponse): Promise<WorkItemProgressDailyRollupDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkItemProgressDailyRollupDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkItemProgressDailyRollupDto[]>(null as any);
-    }
-
-    /**
-     * Search for a work item using its key or title.
-     * @param query (optional) 
-     * @param top (optional) 
-     * @return OK
-     */
-    searchWorkItems(query?: string | undefined, top?: number | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
-        let url_ = this.baseUrl + "/api/work/workspaces/work-items/search?";
-        if (query === null)
-            throw new globalThis.Error("The parameter 'query' cannot be null.");
-        else if (query !== undefined)
-            url_ += "query=" + encodeURIComponent("" + query) + "&";
-        if (top === null)
-            throw new globalThis.Error("The parameter 'top' cannot be null.");
-        else if (top !== undefined)
-            url_ += "top=" + encodeURIComponent("" + top) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSearchWorkItems(_response);
-        });
-    }
-
-    protected processSearchWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkItemListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkItemListDto[]>(null as any);
-    }
-}
-
-export class WorkStatusCategoriesClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of all work status categories.
-     * @return OK
-     */
-    getList( cancelToken?: CancelToken): Promise<WorkStatusCategoryListDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-status-categories";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkStatusCategoryListDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkStatusCategoryListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkStatusCategoryListDto[]>(null as any);
-    }
-}
-
-export class WorkStatusesClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of all work statuss.
-     * @param includeInactive (optional) 
-     * @return OK
-     */
-    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkStatusDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-statuses?";
-        if (includeInactive === null)
-            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
-        else if (includeInactive !== undefined)
-            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkStatusDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkStatusDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkStatusDto[]>(null as any);
-    }
-
-    /**
-     * Create a work status.
-     * @return Created
-     */
-    create(request: CreateWorkStatusRequest, cancelToken?: CancelToken): Promise<number> {
-        let url_ = this.baseUrl + "/api/work/work-statuses";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCreate(_response);
-        });
-    }
-
-    protected processCreate(response: AxiosResponse): Promise<number> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 201) {
-            const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = resultData201;
-            return Promise.resolve<number>(result201);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<number>(null as any);
-    }
-
-    /**
-     * Get work status details using the id.
-     * @return OK
-     */
-    getById(id: number, cancelToken?: CancelToken): Promise<WorkStatusDto> {
-        let url_ = this.baseUrl + "/api/work/work-statuses/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetById(_response);
-        });
-    }
-
-    protected processGetById(response: AxiosResponse): Promise<WorkStatusDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkStatusDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkStatusDto>(null as any);
-    }
-
-    /**
-     * Update a work status.
-     * @return No Content
-     */
-    update(id: number, request: UpdateWorkStatusRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/work-statuses/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdate(_response);
-        });
-    }
-
-    protected processUpdate(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-}
-
-export class WorkTypeLevelsClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of all work type levels.
-     * @return OK
-     */
-    getList( cancelToken?: CancelToken): Promise<WorkTypeLevelDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-type-levels";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkTypeLevelDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkTypeLevelDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkTypeLevelDto[]>(null as any);
-    }
-
-    /**
-     * Create a work type level.
-     * @return Created
-     */
-    create(request: CreateWorkTypeLevelRequest, cancelToken?: CancelToken): Promise<number> {
-        let url_ = this.baseUrl + "/api/work/work-type-levels";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCreate(_response);
-        });
-    }
-
-    protected processCreate(response: AxiosResponse): Promise<number> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 201) {
-            const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = resultData201;
-            return Promise.resolve<number>(result201);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<number>(null as any);
-    }
-
-    /**
-     * Get work type level details using the id.
-     * @return OK
-     */
-    getById(id: number, cancelToken?: CancelToken): Promise<WorkTypeLevelDto> {
-        let url_ = this.baseUrl + "/api/work/work-type-levels/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetById(_response);
-        });
-    }
-
-    protected processGetById(response: AxiosResponse): Promise<WorkTypeLevelDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkTypeLevelDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkTypeLevelDto>(null as any);
-    }
-
-    /**
-     * Update a work type level.
-     * @return No Content
-     */
-    update(id: number, request: UpdateWorkTypeLevelRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/work-type-levels/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdate(_response);
-        });
-    }
-
-    protected processUpdate(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Update the order of portfolio tier work type levels.
-     * @return No Content
-     */
-    updateOrder(request: UpdateWorkTypeLevelsOrderRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/order";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdateOrder(_response);
-        });
-    }
-
-    protected processUpdateOrder(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-}
-
-export class WorkTypesClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of all work types.
-     * @param includeInactive (optional) 
-     * @return OK
-     */
-    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkTypeDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-types?";
-        if (includeInactive === null)
-            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
-        else if (includeInactive !== undefined)
-            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkTypeDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkTypeDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkTypeDto[]>(null as any);
-    }
-
-    /**
-     * Create a work type.
-     * @return Created
-     */
-    create(request: CreateWorkTypeRequest, cancelToken?: CancelToken): Promise<number> {
-        let url_ = this.baseUrl + "/api/work/work-types";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCreate(_response);
-        });
-    }
-
-    protected processCreate(response: AxiosResponse): Promise<number> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 201) {
-            const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = resultData201;
-            return Promise.resolve<number>(result201);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<number>(null as any);
-    }
-
-    /**
-     * Get work type details using the id.
-     * @return OK
-     */
-    getById(id: number, cancelToken?: CancelToken): Promise<WorkTypeDto> {
-        let url_ = this.baseUrl + "/api/work/work-types/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetById(_response);
-        });
-    }
-
-    protected processGetById(response: AxiosResponse): Promise<WorkTypeDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkTypeDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkTypeDto>(null as any);
-    }
-
-    /**
-     * Update a work type.
-     * @return No Content
-     */
-    update(id: number, request: UpdateWorkTypeRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/work-types/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdate(_response);
-        });
-    }
-
-    protected processUpdate(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-}
-
-export class WorkTypeTiersClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of all work type tiers.
-     * @return OK
-     */
-    getList( cancelToken?: CancelToken): Promise<WorkTypeTierDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-type-tiers";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkTypeTierDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkTypeTierDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkTypeTierDto[]>(null as any);
-    }
-}
-
 export class EmployeesClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -36089,6 +36023,13 @@ export class EmployeesClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -36263,6 +36204,13 @@ export class EmployeesClient {
             let resultData200  = _responseText;
             result200 = resultData200;
             return Promise.resolve<TeamMemberDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -38218,7 +38166,7 @@ export class TeamsClient {
     }
 
     /**
-     * Update a team.
+     * Update a team's name, code and description.
      * @return No Content
      */
     update(id: string, request: UpdateTeamRequest, cancelToken?: CancelToken): Promise<void> {
@@ -38695,7 +38643,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get parent team memberships.
+     * Get a team's memberships in teams of teams, past, current and future.
      * @return OK
      */
     getTeamMemberships(id: string, cancelToken?: CancelToken): Promise<TeamMembershipDto[]> {
@@ -38749,6 +38697,13 @@ export class TeamsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -38757,7 +38712,7 @@ export class TeamsClient {
     }
 
     /**
-     * Add a parent team membership.
+     * Place a team under a team of teams for a date range.
      * @return No Content
      */
     addTeamMembership(id: string, request: AddTeamMembershipRequest, cancelToken?: CancelToken): Promise<void> {
@@ -38826,7 +38781,7 @@ export class TeamsClient {
     }
 
     /**
-     * Update a team membership.
+     * Change the dates of a team's membership in a team of teams.
      * @return No Content
      */
     updateTeamMembership(id: string, teamMembershipId: string, request: UpdateTeamMembershipRequest, cancelToken?: CancelToken): Promise<void> {
@@ -38898,7 +38853,7 @@ export class TeamsClient {
     }
 
     /**
-     * Remove a parent team membership.
+     * Remove a team's membership in a team of teams.
      * @return No Content
      */
     removeTeamMembership(id: string, teamMembershipId: string, cancelToken?: CancelToken): Promise<void> {
@@ -38959,7 +38914,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get the backlog for a team.
+     * Get a team's open backlog in rank order.
      * @return OK
      */
     getTeamBacklog(idOrCode: string, cancelToken?: CancelToken): Promise<WorkItemBacklogItemDto[]> {
@@ -39622,7 +39577,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get the work items for a team.
+     * Get a team's Requirement-tier work items, optionally filtered by status category and done date.
      * @param statusCategories (optional) 
      * @param doneFrom (optional) 
      * @param doneTo (optional) 
@@ -39693,7 +39648,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get the active dependencies for a team.
+     * Get the open dependencies for a team.
      * @return OK
      */
     getTeamDependencies(id: string, cancelToken?: CancelToken): Promise<DependencyDto[]> {
@@ -39762,7 +39717,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get team risks.
+     * Get a team's risks.
      * @param includeClosed (optional) 
      * @return OK
      */
@@ -39839,7 +39794,7 @@ export class TeamsClient {
      * Create a risk for a team.
      * @return Created
      */
-    createRisk(id: string, request: CreateRiskRequest, cancelToken?: CancelToken): Promise<string> {
+    createRisk(id: string, request: CreateRiskRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/organization/teams/{id}/risks";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -39870,7 +39825,7 @@ export class TeamsClient {
         });
     }
 
-    protected processCreateRisk(response: AxiosResponse): Promise<string> {
+    protected processCreateRisk(response: AxiosResponse): Promise<ObjectIdAndKey> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -39885,7 +39840,7 @@ export class TeamsClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = resultData201;
-            return Promise.resolve<string>(result201);
+            return Promise.resolve<ObjectIdAndKey>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -39912,11 +39867,11 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ObjectIdAndKey>(null as any);
     }
 
     /**
-     * Get a team risk by Id.
+     * Get one of a team's risks.
      * @return OK
      */
     getRiskById(id: string, riskIdOrKey: string, cancelToken?: CancelToken): Promise<RiskDetailsDto> {
@@ -39988,7 +39943,7 @@ export class TeamsClient {
     }
 
     /**
-     * Update a team risk.
+     * Update one of a team's risks, including closing or reopening it.
      * @return No Content
      */
     updateRisk(id: string, riskId: string, request: UpdateRiskRequest, cancelToken?: CancelToken): Promise<void> {
@@ -40060,7 +40015,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get a specific operating model for a team.
+     * Get one of a team's operating models.
      * @return OK
      */
     getOperatingModel(id: string, operatingModelId: string, cancelToken?: CancelToken): Promise<TeamOperatingModelDetailsDto> {
@@ -40125,7 +40080,7 @@ export class TeamsClient {
     }
 
     /**
-     * Update an existing operating model for a team.
+     * Correct one of a team's operating models for its whole period.
      * @return No Content
      */
     updateOperatingModel(id: string, operatingModelId: string, request: UpdateTeamOperatingModelRequest, cancelToken?: CancelToken): Promise<void> {
@@ -40204,7 +40159,7 @@ export class TeamsClient {
     }
 
     /**
-     * Delete an operating model from a team.
+     * Delete a team's current operating model, reinstating the one before it.
      * @return No Content
      */
     deleteOperatingModel(id: string, operatingModelId: string, cancelToken?: CancelToken): Promise<void> {
@@ -40334,7 +40289,7 @@ export class TeamsClient {
     }
 
     /**
-     * Set a new operating model for a team.
+     * Change how a team works from a date, by starting a new operating model.
      * @return Created
      */
     setOperatingModel(id: string, request: SetTeamOperatingModelRequest, cancelToken?: CancelToken): Promise<string> {
@@ -40479,7 +40434,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get operating models for multiple teams.
+     * Get the operating models in force for several teams on one date.
      * @param teamIds (optional) 
      * @param asOfDate (optional) 
      * @return OK
@@ -40798,6 +40753,13 @@ export class TeamsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -40950,7 +40912,7 @@ export class TeamsClient {
     }
 
     /**
-     * Get the functional organizaation chart for a given date.
+     * Get the functional organization chart for a given date.
      * @param asOfDate (optional) 
      * @return OK
      */
@@ -41451,7 +41413,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Update a team of teams.
+     * Update a team of teams' name, code and description.
      * @return No Content
      */
     update(id: string, request: UpdateTeamOfTeamsRequest, cancelToken?: CancelToken): Promise<void> {
@@ -41520,7 +41482,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Get activity history for the team of teams.
+     * Get a team of teams' activity history, newest first: its creation, detail changes, activation and deactivation, members joining, leaving or changing roles (by employee and role id), its own membership in a parent team of teams being added, re-dated or removed, and operating models being set, corrected or removed.
      * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
@@ -42130,7 +42092,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Get parent team memberships.
+     * Get a team of teams' memberships: in its parent, and of the teams beneath it.
      * @return OK
      */
     getTeamMemberships(id: string, cancelToken?: CancelToken): Promise<TeamMembershipDto[]> {
@@ -42184,6 +42146,13 @@ export class TeamsOfTeamsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -42192,7 +42161,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Add a parent team membership.
+     * Nest a team of teams under another team of teams for a date range.
      * @return No Content
      */
     addTeamMembership(id: string, request: AddTeamMembershipRequest, cancelToken?: CancelToken): Promise<void> {
@@ -42261,7 +42230,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Update a team membership.
+     * Change the dates of a team of teams' membership in its parent.
      * @return No Content
      */
     updateTeamMembership(id: string, teamMembershipId: string, request: UpdateTeamMembershipRequest, cancelToken?: CancelToken): Promise<void> {
@@ -42333,7 +42302,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Remove a parent team membership.
+     * Remove a team of teams' membership in its parent.
      * @return No Content
      */
     removeTeamMembership(id: string, teamMembershipId: string, cancelToken?: CancelToken): Promise<void> {
@@ -42456,7 +42425,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Set a new operating model for a team of teams.
+     * Change a team of teams' time zone from a date, by starting a new operating model.
      * @return Created
      */
     setOperatingModel(id: string, request: SetTeamOfTeamsOperatingModelRequest, cancelToken?: CancelToken): Promise<string> {
@@ -42610,7 +42579,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Get a specific operating model for a team of teams.
+     * Get one of a team of teams' operating models.
      * @return OK
      */
     getOperatingModel(id: string, operatingModelId: string, cancelToken?: CancelToken): Promise<TeamOfTeamsOperatingModelDetailsDto> {
@@ -42808,7 +42777,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Get team risks.
+     * Get a team of teams' own risks.
      * @param includeClosed (optional) 
      * @return OK
      */
@@ -42885,7 +42854,7 @@ export class TeamsOfTeamsClient {
      * Create a risk for a team of teams.
      * @return Created
      */
-    createRisk(id: string, request: CreateRiskRequest, cancelToken?: CancelToken): Promise<string> {
+    createRisk(id: string, request: CreateRiskRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/risks";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -42916,7 +42885,7 @@ export class TeamsOfTeamsClient {
         });
     }
 
-    protected processCreateRisk(response: AxiosResponse): Promise<string> {
+    protected processCreateRisk(response: AxiosResponse): Promise<ObjectIdAndKey> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -42931,7 +42900,7 @@ export class TeamsOfTeamsClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = resultData201;
-            return Promise.resolve<string>(result201);
+            return Promise.resolve<ObjectIdAndKey>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -42958,11 +42927,11 @@ export class TeamsOfTeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ObjectIdAndKey>(null as any);
     }
 
     /**
-     * Get a team of teams risk by Id.
+     * Get one of a team of teams' risks.
      * @return OK
      */
     getRiskById(id: string, riskIdOrKey: string, cancelToken?: CancelToken): Promise<RiskDetailsDto> {
@@ -43034,7 +43003,7 @@ export class TeamsOfTeamsClient {
     }
 
     /**
-     * Update a team of teams risk.
+     * Update one of a team of teams' risks, including closing or reopening it.
      * @return No Content
      */
     updateRisk(id: string, riskId: string, request: UpdateRiskRequest, cancelToken?: CancelToken): Promise<void> {
@@ -43346,6 +43315,79 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+}
+
+export class TeamTypesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of all team types.
+     * @return OK
+     */
+    getList( cancelToken?: CancelToken): Promise<TeamTypeDto[]> {
+        let url_ = this.baseUrl + "/api/organization/team-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<TeamTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamTypeDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamTypeDto[]>(null as any);
     }
 }
 
@@ -46816,7 +46858,7 @@ export class ScoringModelsClient {
     }
 
     /**
-     * Get a list of scoring models.
+     * Get a list of scoring models — the formula-driven models portfolios score and rank their projects with.
      * @param state (optional) 
      * @return OK
      */
@@ -46941,7 +46983,7 @@ export class ScoringModelsClient {
     }
 
     /**
-     * Get scoring model details.
+     * Get a scoring model with its criteria, rating scales and output formulas.
      * @return OK
      */
     getScoringModel(idOrKey: string, cancelToken?: CancelToken): Promise<ScoringModelDetailsDto> {
@@ -53214,7 +53256,7 @@ export interface MapPlanningIntervalSprintsRequest {
 This is a sync/replace operation - any team sprints currently mapped but not included will be unmapped.
 - Non-null value: Maps the sprint to the iteration.
 - Null value: Explicitly unmaps any sprint from that iteration for this team.
-- Omitted iteration: No change to that iteration's mappings. */
+- Omitted iteration: the team's sprint mapped to it, if any, is unmapped like any other sprint not named. */
     iterationSprintMappings: { [key: string]: string; };
 }
 
@@ -55527,7 +55569,9 @@ export interface SetEstimationScaleActiveStatusRequest {
     isActive: boolean;
 }
 
+/** Sets or clears a Managed workspace's external view work item URL template. */
 export interface SetExternalUrlTemplatesRequest {
+    /** The URL prefix a work item's external id is appended to; null, empty or whitespace clears it. */
     externalViewWorkItemUrlTemplate?: string | undefined;
 }
 
@@ -58283,7 +58327,9 @@ supplied collection becomes the new full set (omitted or empty means no exclusio
 }
 
 export interface UpdateWorkItemProjectRequest {
+    /** The work item's UUID; must match `workItemId` in the route. */
     workItemId: string;
+    /** The project to assign, or null to clear the work item's own project so it inherits its parent's. */
     projectId?: string | undefined;
 }
 
@@ -58295,7 +58341,7 @@ export interface UpdateWorkStatusRequest {
 
 export interface UpdateWorkTypeLevelRequest {
     id: number;
-    /** The name of the work type level.  The name cannot be changed. */
+    /** The work type level's new name, unique among levels. */
     name: string;
     /** The description of the work type level. */
     description?: string | undefined;

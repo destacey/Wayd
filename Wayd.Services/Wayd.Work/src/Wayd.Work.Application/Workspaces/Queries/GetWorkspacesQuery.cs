@@ -16,6 +16,10 @@ public sealed class GetWorkspacesQueryHandler(IWorkDbContext workDbContext) : IQ
         if (!request.IncludeInactive)
             query = query.Where(e => e.IsActive);
 
-        return await query.ProjectToType<WorkspaceListDto>().ToListAsync(cancellationToken);
+        return await query
+            .OrderBy(e => e.Name)
+            .ThenBy(e => e.Id)
+            .ProjectToType<WorkspaceListDto>()
+            .ToListAsync(cancellationToken);
     }
 }

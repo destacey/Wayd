@@ -22,6 +22,7 @@ public sealed class GetSprintPlanningIntervalsQueryHandler(IPlanningDbContext pl
             })
             .Distinct()
             .OrderBy(pi => pi.Name)
+            .ThenBy(pi => pi.Key)
             .ToListAsync(cancellationToken);
     }
 }

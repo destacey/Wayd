@@ -4,14 +4,21 @@ using Wayd.Work.Application.WorkItems.Dtos;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
 
-public sealed record UpdateWorkItemProjectCommand(Guid WorkItemId, Guid? ProjectId) : ICommand;
+/// <summary>Sets or clears a Portfolio-tier work item's own project.</summary>
+/// <param name="WorkspaceId">The workspace the work item must belong to.</param>
+/// <param name="WorkItemId">The work item's id.</param>
+/// <param name="ProjectId">The project to assign, or null to inherit the parent's project again.</param>
+public sealed record UpdateWorkItemProjectCommand(Guid WorkspaceId, Guid WorkItemId, Guid? ProjectId) : ICommand;
 
 public sealed class UpdateWorkItemProjectCommandValidator : AbstractValidator<UpdateWorkItemProjectCommand>
 {
     public UpdateWorkItemProjectCommandValidator()
     {
+        RuleFor(x => x.WorkspaceId)
+            .NotEmpty();
+
         RuleFor(x => x.WorkItemId)
-            .NotNull();
+            .NotEmpty();
 
         When(x => x.ProjectId.HasValue, () =>
         {
@@ -36,10 +43,10 @@ public sealed class UpdateWorkItemProjectCommandHandler(
             var workItem = await _workDbContext.WorkItems
                 .Include(i => i.Type)
                     .ThenInclude(t => t.Level)
-                .FirstOrDefaultAsync(w => w.Id == request.WorkItemId, cancellationToken);
+                .FirstOrDefaultAsync(w => w.Id == request.WorkItemId && w.WorkspaceId == request.WorkspaceId, cancellationToken);
             if (workItem is null)
             {
-                _logger.LogInformation("Work item {WorkItemId} not found.", request.WorkItemId);
+                _logger.LogInformation("Work item {WorkItemId} not found in workspace {WorkspaceId}.", request.WorkItemId, request.WorkspaceId);
                 return Result.Failure("Work item not found.");
             }
 

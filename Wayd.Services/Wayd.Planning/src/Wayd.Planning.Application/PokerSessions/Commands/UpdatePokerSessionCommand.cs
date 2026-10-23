@@ -38,16 +38,14 @@ public sealed class UpdatePokerSessionCommandHandler(IPlanningDbContext planning
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            if (request.EstimationScaleId != session.EstimationScaleId)
-            {
-                var scaleExists = await _planningDbContext.EstimationScales
-                    .AnyAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
+            var scale = await _planningDbContext.EstimationScales
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
 
-                if (!scaleExists)
-                    return Result.Failure("Estimation scale not found.");
-            }
+            if (scale is null)
+                return Result.Failure("Estimation scale not found.");
 
-            var result = session.Update(request.Name, request.EstimationScaleId);
+            var result = session.Update(request.Name, scale);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 

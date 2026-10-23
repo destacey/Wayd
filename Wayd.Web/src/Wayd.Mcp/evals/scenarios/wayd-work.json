@@ -1,0 +1,813 @@
+[
+  {
+    "id": "work-forecast-work-item-by-key",
+    "skill": "wayd-work",
+    "prompt": "When will CORE-482 be done? The steering committee wants a date for the CSV export story on Thursday.",
+    "traps": [
+      "key-vs-uuid"
+    ],
+    "fixtures": [
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^CORE$"
+          },
+          "workItemKey": "CORE-482"
+        },
+        "result": {
+          "outcome": {
+            "id": 1,
+            "name": "Forecast"
+          },
+          "forecastStart": "2026-10-22",
+          "lookbackDays": 90,
+          "ignoreDependencies": false,
+          "startedWorkFirst": true,
+          "backlogPosition": 7,
+          "remainingWorkItems": 1,
+          "excludedWorkItems": [],
+          "teams": [
+            {
+              "team": {
+                "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+                "key": 12,
+                "name": "Falcon",
+                "code": "FALC",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 46
+            }
+          ],
+          "targetDate": null,
+          "chanceOfFinishingByTargetDate": null,
+          "trials": 10000,
+          "trialsBeyondHorizon": 0,
+          "percentiles": [
+            {
+              "confidence": 50,
+              "date": "2026-11-10"
+            },
+            {
+              "confidence": 70,
+              "date": "2026-11-16"
+            },
+            {
+              "confidence": 85,
+              "date": "2026-11-20"
+            },
+            {
+              "confidence": 95,
+              "date": "2026-11-27"
+            }
+          ],
+          "histogram": [
+            {
+              "date": "2026-11-02",
+              "trials": 310
+            },
+            {
+              "date": "2026-11-05",
+              "trials": 1120
+            },
+            {
+              "date": "2026-11-09",
+              "trials": 2240
+            },
+            {
+              "date": "2026-11-12",
+              "trials": 2610
+            },
+            {
+              "date": "2026-11-16",
+              "trials": 1980
+            },
+            {
+              "date": "2026-11-19",
+              "trials": 1040
+            },
+            {
+              "date": "2026-11-23",
+              "trials": 520
+            },
+            {
+              "date": "2026-11-27",
+              "trials": 180
+            }
+          ],
+          "dependencies": [],
+          "ignoredDependencies": [],
+          "issues": []
+        }
+      },
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+          "title": "Not Found",
+          "status": 404
+        },
+        "error": true
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Workspaces_GetWorkItemForecast",
+        "with": {
+          "idOrKey": "CORE",
+          "workItemKey": "CORE-482"
+        },
+        "because": "The workspace is the prefix of the work item key; the item is CORE-482."
+      },
+      {
+        "type": "everyCall",
+        "tool": "Workspaces_GetWorkItemForecast",
+        "with": {
+          "idOrKey": {
+            "$regex": "^CORE$"
+          }
+        },
+        "because": "idOrKey names the workspace (CORE), never the whole work item key or its number."
+      },
+      {
+        "type": "says",
+        "pattern": "2026-11-20|Nov(ember)?\\.?\\s+20\\b|\\b20(th)?\\s+Nov|\\b11/20\\b",
+        "because": "The 85% date, 20 November, is the planning figure to lead with."
+      },
+      {
+        "type": "says",
+        "pattern": "2026-11-10|Nov(ember)?\\.?\\s+10\\b|\\b10(th)?\\s+Nov|\\b11/10\\b",
+        "because": "A forecast is a range: the 50% date, 10 November, is the coin flip beside the 85% date."
+      }
+    ],
+    "expected": "The agent calls Workspaces_GetWorkItemForecast with idOrKey CORE (the prefix of the work item key) and workItemKey CORE-482. Following wayd-work 'Forecasting a work item', it reads the outcome (Forecast), leads with the 85% date (2026-11-20) as the planning figure, gives the 50% date (2026-11-10) as a coin flip rather than collapsing the forecast to one date, and reports the item's backlog position (7th, active work counted first) and the 90-day history window."
+  },
+  {
+    "id": "work-forecast-chance-by-date",
+    "skill": "wayd-work",
+    "prompt": "Finance is asking whether the payouts feature, PAY-1207, will be finished by December 15. How likely is that?",
+    "fixtures": [
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^PAY$"
+          },
+          "workItemKey": "PAY-1207",
+          "ignoreDependencies": true,
+          "targetDate": {
+            "$present": true
+          }
+        },
+        "result": {
+          "outcome": {
+            "id": 1,
+            "name": "Forecast"
+          },
+          "forecastStart": "2026-10-22",
+          "lookbackDays": 90,
+          "ignoreDependencies": true,
+          "startedWorkFirst": true,
+          "backlogPosition": null,
+          "remainingWorkItems": 9,
+          "excludedWorkItems": [
+            {
+              "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+              "key": "PAY-1311",
+              "workspaceKey": "PAY",
+              "title": "Reconcile refunds in the ledger export"
+            }
+          ],
+          "teams": [
+            {
+              "team": {
+                "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "key": 31,
+                "name": "Kestrel",
+                "code": "KEST",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 31
+            },
+            {
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 27
+            }
+          ],
+          "targetDate": "2026-12-15",
+          "chanceOfFinishingByTargetDate": 0.72,
+          "trials": 10000,
+          "trialsBeyondHorizon": 0,
+          "percentiles": [
+            {
+              "confidence": 50,
+              "date": "2026-12-04"
+            },
+            {
+              "confidence": 70,
+              "date": "2026-12-14"
+            },
+            {
+              "confidence": 85,
+              "date": "2026-12-22"
+            },
+            {
+              "confidence": 95,
+              "date": "2027-01-08"
+            }
+          ],
+          "histogram": [
+            {
+              "date": "2026-11-30",
+              "trials": 2140
+            },
+            {
+              "date": "2026-12-07",
+              "trials": 3020
+            },
+            {
+              "date": "2026-12-14",
+              "trials": 2050
+            },
+            {
+              "date": "2026-12-21",
+              "trials": 1310
+            },
+            {
+              "date": "2026-12-28",
+              "trials": 890
+            },
+            {
+              "date": "2027-01-04",
+              "trials": 590
+            }
+          ],
+          "dependencies": [],
+          "ignoredDependencies": [],
+          "issues": [
+            {
+              "workItem": {
+                "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+                "key": "PAY-1311",
+                "workspaceKey": "PAY",
+                "title": "Reconcile refunds in the ledger export"
+              },
+              "type": {
+                "id": 1,
+                "name": "No Team"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^PAY$"
+          },
+          "workItemKey": "PAY-1207",
+          "ignoreDependencies": true
+        },
+        "result": {
+          "outcome": {
+            "id": 1,
+            "name": "Forecast"
+          },
+          "forecastStart": "2026-10-22",
+          "lookbackDays": 90,
+          "ignoreDependencies": true,
+          "startedWorkFirst": true,
+          "backlogPosition": null,
+          "remainingWorkItems": 9,
+          "excludedWorkItems": [
+            {
+              "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+              "key": "PAY-1311",
+              "workspaceKey": "PAY",
+              "title": "Reconcile refunds in the ledger export"
+            }
+          ],
+          "teams": [
+            {
+              "team": {
+                "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "key": 31,
+                "name": "Kestrel",
+                "code": "KEST",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 31
+            },
+            {
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 27
+            }
+          ],
+          "targetDate": null,
+          "chanceOfFinishingByTargetDate": null,
+          "trials": 10000,
+          "trialsBeyondHorizon": 0,
+          "percentiles": [
+            {
+              "confidence": 50,
+              "date": "2026-12-04"
+            },
+            {
+              "confidence": 70,
+              "date": "2026-12-14"
+            },
+            {
+              "confidence": 85,
+              "date": "2026-12-22"
+            },
+            {
+              "confidence": 95,
+              "date": "2027-01-08"
+            }
+          ],
+          "histogram": [
+            {
+              "date": "2026-11-30",
+              "trials": 2140
+            },
+            {
+              "date": "2026-12-07",
+              "trials": 3020
+            },
+            {
+              "date": "2026-12-14",
+              "trials": 2050
+            },
+            {
+              "date": "2026-12-21",
+              "trials": 1310
+            },
+            {
+              "date": "2026-12-28",
+              "trials": 890
+            },
+            {
+              "date": "2027-01-04",
+              "trials": 590
+            }
+          ],
+          "dependencies": [],
+          "ignoredDependencies": [],
+          "issues": [
+            {
+              "workItem": {
+                "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+                "key": "PAY-1311",
+                "workspaceKey": "PAY",
+                "title": "Reconcile refunds in the ledger export"
+              },
+              "type": {
+                "id": 1,
+                "name": "No Team"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^PAY$"
+          },
+          "workItemKey": "PAY-1207",
+          "targetDate": {
+            "$present": true
+          }
+        },
+        "result": {
+          "outcome": {
+            "id": 1,
+            "name": "Forecast"
+          },
+          "forecastStart": "2026-10-22",
+          "lookbackDays": 90,
+          "ignoreDependencies": false,
+          "startedWorkFirst": true,
+          "backlogPosition": null,
+          "remainingWorkItems": 9,
+          "excludedWorkItems": [
+            {
+              "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+              "key": "PAY-1311",
+              "workspaceKey": "PAY",
+              "title": "Reconcile refunds in the ledger export"
+            }
+          ],
+          "teams": [
+            {
+              "team": {
+                "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "key": 31,
+                "name": "Kestrel",
+                "code": "KEST",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 31
+            },
+            {
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 27
+            }
+          ],
+          "targetDate": "2026-12-15",
+          "chanceOfFinishingByTargetDate": 0.31,
+          "trials": 10000,
+          "trialsBeyondHorizon": 812,
+          "percentiles": [
+            {
+              "confidence": 50,
+              "date": "2026-12-28"
+            },
+            {
+              "confidence": 70,
+              "date": "2027-01-19"
+            },
+            {
+              "confidence": 85,
+              "date": "2027-02-09"
+            },
+            {
+              "confidence": 95,
+              "date": null
+            }
+          ],
+          "histogram": [
+            {
+              "date": "2026-12-07",
+              "trials": 1460
+            },
+            {
+              "date": "2026-12-21",
+              "trials": 2280
+            },
+            {
+              "date": "2027-01-04",
+              "trials": 1910
+            },
+            {
+              "date": "2027-01-18",
+              "trials": 1370
+            },
+            {
+              "date": "2027-02-01",
+              "trials": 1120
+            },
+            {
+              "date": "2027-02-15",
+              "trials": 1048
+            }
+          ],
+          "dependencies": [
+            {
+              "predecessor": {
+                "id": "9a3c51e7-02d4-4b8f-a6e1-5c7f2d0b8e94",
+                "key": "CORE-950",
+                "workspaceKey": "CORE",
+                "title": "Expose settlement batch API"
+              },
+              "successor": {
+                "id": "d61b2f08-7c3a-49e5-8b10-e4a6c95f3d27",
+                "key": "PAY-1214",
+                "workspaceKey": "PAY",
+                "title": "Call settlement batch API from payouts"
+              },
+              "shareOfTrialsSettingFinish": 0.58
+            }
+          ],
+          "ignoredDependencies": [],
+          "issues": [
+            {
+              "workItem": {
+                "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+                "key": "PAY-1311",
+                "workspaceKey": "PAY",
+                "title": "Reconcile refunds in the ledger export"
+              },
+              "type": {
+                "id": 1,
+                "name": "No Team"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^PAY$"
+          },
+          "workItemKey": "PAY-1207"
+        },
+        "result": {
+          "outcome": {
+            "id": 1,
+            "name": "Forecast"
+          },
+          "forecastStart": "2026-10-22",
+          "lookbackDays": 90,
+          "ignoreDependencies": false,
+          "startedWorkFirst": true,
+          "backlogPosition": null,
+          "remainingWorkItems": 9,
+          "excludedWorkItems": [
+            {
+              "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+              "key": "PAY-1311",
+              "workspaceKey": "PAY",
+              "title": "Reconcile refunds in the ledger export"
+            }
+          ],
+          "teams": [
+            {
+              "team": {
+                "id": "12102401-b256-4ed2-b18b-e299300f8c56",
+                "key": 31,
+                "name": "Kestrel",
+                "code": "KEST",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 31
+            },
+            {
+              "team": {
+                "id": "1c2fb2fa-37d9-423e-b9b1-fa1eec14e3f3",
+                "key": 27,
+                "name": "Osprey",
+                "code": "OSPR",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 27
+            }
+          ],
+          "targetDate": null,
+          "chanceOfFinishingByTargetDate": null,
+          "trials": 10000,
+          "trialsBeyondHorizon": 812,
+          "percentiles": [
+            {
+              "confidence": 50,
+              "date": "2026-12-28"
+            },
+            {
+              "confidence": 70,
+              "date": "2027-01-19"
+            },
+            {
+              "confidence": 85,
+              "date": "2027-02-09"
+            },
+            {
+              "confidence": 95,
+              "date": null
+            }
+          ],
+          "histogram": [
+            {
+              "date": "2026-12-07",
+              "trials": 1460
+            },
+            {
+              "date": "2026-12-21",
+              "trials": 2280
+            },
+            {
+              "date": "2027-01-04",
+              "trials": 1910
+            },
+            {
+              "date": "2027-01-18",
+              "trials": 1370
+            },
+            {
+              "date": "2027-02-01",
+              "trials": 1120
+            },
+            {
+              "date": "2027-02-15",
+              "trials": 1048
+            }
+          ],
+          "dependencies": [
+            {
+              "predecessor": {
+                "id": "9a3c51e7-02d4-4b8f-a6e1-5c7f2d0b8e94",
+                "key": "CORE-950",
+                "workspaceKey": "CORE",
+                "title": "Expose settlement batch API"
+              },
+              "successor": {
+                "id": "d61b2f08-7c3a-49e5-8b10-e4a6c95f3d27",
+                "key": "PAY-1214",
+                "workspaceKey": "PAY",
+                "title": "Call settlement batch API from payouts"
+              },
+              "shareOfTrialsSettingFinish": 0.58
+            }
+          ],
+          "ignoredDependencies": [],
+          "issues": [
+            {
+              "workItem": {
+                "id": "4f0d8a62-3b1e-4c7a-9d55-71e2c0a9b318",
+                "key": "PAY-1311",
+                "workspaceKey": "PAY",
+                "title": "Reconcile refunds in the ledger export"
+              },
+              "type": {
+                "id": 1,
+                "name": "No Team"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+          "title": "Not Found",
+          "status": 404
+        },
+        "error": true
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Workspaces_GetWorkItemForecast",
+        "with": {
+          "idOrKey": "PAY",
+          "workItemKey": "PAY-1207",
+          "targetDate": "2026-12-15"
+        },
+        "because": "A work item has no target date of its own; the chance of finishing by 15 December comes from passing targetDate."
+      },
+      {
+        "type": "says",
+        "pattern": "\\b31\\s?(%|percent)",
+        "because": "chanceOfFinishingByTargetDate is 0.31, stated as a percent."
+      },
+      {
+        "type": "says",
+        "pattern": "PAY-1311",
+        "because": "PAY-1311 has no team and was left out, so the forecast is a lower bound and the excluded item must be named."
+      },
+      {
+        "type": "says",
+        "pattern": "CORE-950",
+        "because": "Waiting on CORE-950 set the finish in 58% of trials; it is the dependency to chase."
+      }
+    ],
+    "expected": "The agent calls Workspaces_GetWorkItemForecast with idOrKey PAY, workItemKey PAY-1207 and targetDate 2026-12-15 (and may add an ignoreDependencies what-if, labelled as one). It reports a 31% chance of finishing by 15 December, leads with the 85% date (2027-02-09) beside the 50% date (2026-12-28), says the 95% figure is beyond two years, explains the forecast is a lower bound because PAY-1311 has no team and was excluded, and names CORE-950 (Osprey's settlement batch API) as the predecessor that decided the finish in 58% of trials."
+  },
+  {
+    "id": "work-forecast-not-enough-history",
+    "skill": "wayd-work",
+    "prompt": "The field team keeps asking when offline sync for inspections will be ready. Can you get me a forecast for that story?",
+    "replies": [
+      "Sorry, it's MOB-88."
+    ],
+    "traps": [
+      "unsupported"
+    ],
+    "fixtures": [
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "when": {
+          "idOrKey": {
+            "$regex": "^MOB$"
+          },
+          "workItemKey": "MOB-88"
+        },
+        "result": {
+          "outcome": {
+            "id": 3,
+            "name": "Not Enough History"
+          },
+          "forecastStart": "2026-10-22",
+          "lookbackDays": 90,
+          "ignoreDependencies": false,
+          "startedWorkFirst": true,
+          "backlogPosition": 3,
+          "remainingWorkItems": 1,
+          "excludedWorkItems": [],
+          "teams": [
+            {
+              "team": {
+                "id": "cdb06ed8-62a4-48e3-9f35-2ca2e738ab05",
+                "key": 34,
+                "name": "Heron",
+                "code": "HERN",
+                "type": "Team"
+              },
+              "from": "2026-07-24",
+              "to": "2026-10-21",
+              "itemsCompleted": 4
+            }
+          ],
+          "targetDate": null,
+          "chanceOfFinishingByTargetDate": null,
+          "trials": 10000,
+          "trialsBeyondHorizon": 0,
+          "percentiles": [],
+          "histogram": [],
+          "dependencies": [],
+          "ignoredDependencies": [],
+          "issues": [
+            {
+              "workItem": {
+                "id": "b8e27c14-6f03-4d9a-8c5b-2a91e7d04f63",
+                "key": "MOB-88",
+                "workspaceKey": "MOB",
+                "title": "Offline sync for field inspections"
+              },
+              "type": {
+                "id": 3,
+                "name": "Not Enough History"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Workspaces_GetWorkItemForecast",
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+          "title": "Not Found",
+          "status": 404
+        },
+        "error": true
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Workspaces_GetWorkItemForecast",
+        "with": {
+          "idOrKey": "MOB",
+          "workItemKey": "MOB-88"
+        },
+        "because": "Once the user gives the key, the forecast is for MOB-88 in workspace MOB."
+      },
+      {
+        "type": "everyCall",
+        "tool": "Workspaces_GetWorkItemForecast",
+        "with": {
+          "workItemKey": "MOB-88"
+        },
+        "because": "No tool here finds a work item by title, so the agent asks for the key rather than guessing one."
+      },
+      {
+        "type": "says",
+        "pattern": "not enough (recent )?history|enough (recent |completed )?(history|work|throughput)|too (few|little)|fewer than (10|ten)|only (4|four)\\b",
+        "because": "The outcome is Not Enough History: Heron finished only 4 backlog items in the window, so there are no dates to report."
+      }
+    ],
+    "expected": "No tool available finds a work item by title, so the agent asks the user for the work item key instead of guessing one. Given MOB-88, it calls Workspaces_GetWorkItemForecast with idOrKey MOB and workItemKey MOB-88, reads the outcome first, and reports that there is no forecast because of Not Enough History (Heron finished only 4 backlog items in the last 90 days, fewer than the 10 needed) without inventing a date. It may mention the item is 3rd in Heron's backlog."
+  }
+]

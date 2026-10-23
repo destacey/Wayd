@@ -405,6 +405,9 @@ public sealed class AzureDevOpsWorkItemSource(
         }
 
         var workProcessSchemes = await _dispatcher.Send(new GetWorkProcessSchemesQuery(workProcessInternalId), cancellationToken);
+        if (workProcessSchemes is null)
+            return Result.Failure($"Work process {workProcessInternalId} not found.");
+
         var workProcessSchemesByWorkTypeName = workProcessSchemes.ToDictionary(s => s.WorkType.Name);
 
         var workflowMappings = new List<CreateWorkProcessSchemeDto>(processResult.Value.WorkTypes.Count);

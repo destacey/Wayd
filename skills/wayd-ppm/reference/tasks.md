@@ -14,7 +14,7 @@ A project needs an assigned lifecycle before it can hold tasks.
 
 ## Updating a task
 
-**When `Tasks_PatchProjectTask` is available (the hosted server), use it**: send only the change as a JSON Patch, and every field it does not name keeps its value — e.g. `[{ "op": "add", "path": "/assigneeIds/-", "value": "<employeeId>" }]` to add an assignee, `[{ "op": "replace", "path": "/statusId", "value": <id from Tasks_GetTaskStatuses> }]` to change status. To remove an assignee, `replace` `/assigneeIds` with everyone who stays (read the task first). `Projects_PatchStage` patches a stage the same way.
+**When `Tasks_PatchProjectTask` is available (the hosted server), use it**: send only the change as a JSON Patch, and every field it does not name keeps its value — e.g. `[{ "op": "add", "path": "/assigneeIds/-", "value": "<employeeId>" }]` to add an assignee, `[{ "op": "replace", "path": "/statusId", "value": <id from Tasks_GetTaskStatuses> }]` to change status. To remove an assignee, `replace` `/assigneeIds` with everyone who stays (read the task first). `Projects_PatchStage` patches a stage the same way; for stages see [lifecycles.md](lifecycles.md).
 
 Otherwise, `Tasks_UpdateProjectTask` overwrites the whole task: an omitted description, effort, date, or assignee list is cleared. An omitted or empty `assigneeIds` removes every assignee.
 
@@ -26,6 +26,16 @@ Otherwise, `Tasks_UpdateProjectTask` overwrites the whole task: an omitted descr
    - `progress` — required for a Task; omit for a Milestone
    - `name`, `description`, `plannedStart`, `plannedEnd`, `plannedDate`, `estimatedEffortHours` as read
 3. Call `Tasks_UpdateProjectTask`. The task type cannot be changed.
+
+## Moving a task (hosted)
+
+`Tasks_UpdateProjectTaskPlacement` moves a task — with its subtasks — under another parent, or reorders it among its siblings, and changes nothing else. Use it rather than an update whenever the position matters.
+
+- `parentId`: a stage id (the task becomes top-level in that stage) or another task's id (it becomes that task's child). A milestone cannot be a parent, and a task cannot move under itself or one of its own subtasks.
+- `order`: the 1-based position among the new parent's children (`Projects_GetProjectPlanTree` shows the current order). Omit it to place the task last.
+- The path `id` and the body's `taskId` are both the task's UUID; the project takes a UUID or key.
+
+Show the user where the task will land, then call.
 
 ## Deleting tasks and managing dependencies
 

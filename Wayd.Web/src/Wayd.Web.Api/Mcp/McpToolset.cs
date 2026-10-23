@@ -13,7 +13,7 @@ public enum McpToolset
     /// <summary>Portfolios, programs, projects, tasks, strategic initiatives and their lookups.</summary>
     Ppm,
 
-    /// <summary>Planning intervals, roadmaps and story maps.</summary>
+    /// <summary>Planning intervals, roadmaps, story maps, poker sessions and estimation scales.</summary>
     Planning,
 
     /// <summary>The product catalog: products, product types and tag categories.</summary>
@@ -25,9 +25,12 @@ public enum McpToolset
     /// <summary>Teams, teams of teams and users.</summary>
     Teams,
 
-    /// <summary>Work management: workspaces and their work item forecasts.</summary>
+    /// <summary>Work management: workspaces, work items, sprints and the work processes, types and statuses behind them.</summary>
     Work,
 
     /// <summary>Checking, applying and following CSV imports.</summary>
     Imports,
+
+    /// <summary>Employees, holiday calendars, team member roles, team types and risks.</summary>
+    Organization,
 }

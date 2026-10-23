@@ -18,7 +18,7 @@ namespace Wayd.Web.Api.Controllers.Work;
 [Route("api/work/workspaces")]
 [ApiVersionNeutral]
 [ApiController]
-[McpTools(McpToolset.Work, "wayd-teams")]
+[McpTools(McpToolset.Work, "wayd-work")]
 public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
@@ -26,6 +26,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Workspaces)]
     [EndpointSummary("Get a list of workspaces.")]
+    [EndpointDescription("Each workspace has a UUID `id`, a `key` (2 to 20 uppercase letters and digits, the prefix of its work item keys, such as `CORE` in `CORE-123`) and an `ownership`: Managed when it syncs from an external system such as Azure DevOps, Owned when Wayd holds it. Active workspaces only unless `includeInactive` is true.")]
+    [McpTool("Workspaces_GetWorkspaces", "List workspaces")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkspaceListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
@@ -37,6 +39,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Workspaces)]
     [EndpointSummary("Get workspace details.")]
+    [EndpointDescription("`idOrKey` takes the workspace's UUID `id` or its `key` (such as `CORE`). Returns its ownership, its work process, and the `externalViewWorkItemUrlTemplate` that links its work items to the source system.")]
+    [McpTool("Workspaces_GetWorkspace", "Get workspace")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -68,6 +72,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{id}/external-url-templates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Workspaces)]
     [EndpointSummary("Set the external view work item URL template for a workspace.")]
+    [EndpointDescription("Takes the workspace's UUID `id` only. The template is the URL prefix a work item's external id is appended to, giving each work item's `externalViewWorkItemUrl` (for Azure DevOps, something like `https://dev.azure.com/org/project/_workitems/edit/`), at most 256 characters, trimmed. Null, empty or whitespace clears it. Only a Managed workspace, one synced from an external system, takes a template.")]
+    [McpTool("Workspaces_SetExternalUrlTemplates", "Set external work item URL")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetExternalUrlTemplates(Guid id, [FromBody] SetExternalUrlTemplatesRequest dto, CancellationToken cancellationToken)
@@ -84,6 +90,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Get work items for a workspace.")]
+    [EndpointDescription("`idOrKey` takes the workspace's UUID `id` or its `key`. Returns every work item in the workspace, in key order, which can be thousands: to find particular items, prefer `Workspaces_SearchWorkItems`, or a team's or project's work item tools.")]
+    [McpTool("Workspaces_GetWorkItems", "List workspace work items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetWorkItems(string idOrKey, CancellationToken cancellationToken)
@@ -112,6 +120,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Get work item details.")]
+    [EndpointDescription("`idOrKey` takes the workspace's UUID `id` or its `key`, the prefix of the work item key; `workItemKey` takes the work item key, such as `CORE-123`. A work item UUID is not accepted.")]
+    [McpTool("Workspaces_GetWorkItem", "Get work item")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -148,6 +158,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}/project-info")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Get a work item's project info.")]
+    [EndpointDescription("`idOrKey` takes the workspace's UUID `id` or `key`; `workItemKey` the work item key. Returns the work item's own `project`, the `parentProject` it would otherwise inherit, and `projectSource`: WorkItem (its own assignment), Parent (inherited) or None. Read it before `Workspaces_UpdateWorkItemProject`.")]
+    [McpTool("Workspaces_GetWorkItemProjectInfo", "Get work item project")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -184,14 +196,21 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{id}/work-items/{workItemId}/update-project")]
     [MustHavePermission(ApplicationAction.ManageProjectWorkItems, ApplicationResource.Projects)]
     [EndpointSummary("Update the project for a work item.")]
+    [EndpointDescription("Sets a Portfolio-tier work item's own project; other tiers are refused. `id` is the workspace's UUID, and `workItemId` the work item's UUID, which must match `workItemId` in the body; a work item key is not accepted. Returns 404 when the work item is not in that workspace. A null `projectId` clears the item's own project so it inherits its parent's again, and choosing the parent's project is the same as inheriting it. Work items beneath it that have no project of their own inherit the change.")]
+    [McpTool("Workspaces_UpdateWorkItemProject", "Set a work item's project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateWorkItemProject(Guid id, Guid workItemId, [FromBody] UpdateWorkItemProjectRequest request, CancellationToken cancellationToken)
     {
         if (workItemId != request.WorkItemId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _dispatcher.Send(request.ToUpdateWorkItemProjectCommand(), cancellationToken);
+        var workItemExists = await _dispatcher.Send(new WorkItemExistsInWorkspaceQuery(id, workItemId), cancellationToken);
+        if (!workItemExists)
+            return NotFound();
+
+        var result = await _dispatcher.Send(request.ToUpdateWorkItemProjectCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -201,6 +220,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}/children")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Get a work item's child work items.")]
+    [EndpointDescription("`idOrKey` takes the workspace's UUID `id` or `key`; `workItemKey` the parent's work item key. Returns its direct children only, in backlog rank order. Only Portfolio-tier work items have children.")]
+    [McpTool("Workspaces_GetChildWorkItems", "List child work items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetChildWorkItems(string idOrKey, string workItemKey, CancellationToken cancellationToken)
@@ -234,6 +255,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}/dependencies")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Get a work item's dependencies.")]
+    [EndpointDescription("`idOrKey` takes the workspace's UUID `id` or `key`; `workItemKey` the work item key. Returns its current dependency links, oldest first, each naming the other work item (`dependency`) and its `type` from this item's side: Predecessor when this item waits on it, Successor when it waits on this item. `state`, `health` and `scope` describe the link.")]
+    [McpTool("Workspaces_GetWorkItemDependencies", "Get work item dependencies")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -298,6 +321,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Get metrics for a work item.")]
+    [EndpointDescription("A daily cumulative flow of the work item's Requirement-tier work, itself or, for a Portfolio-tier item, its descendants: for each `date` from the earliest creation to the day it was done (or today), how many items were Proposed, Active and Done. Removed work is left out. `idOrKey` takes the workspace's UUID `id` or `key`; `workItemKey` the work item key.")]
+    [McpTool("Workspaces_GetWorkItemMetrics", "Get work item progress metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemProgressDailyRollupDto>>> GetMetrics(string idOrKey, string workItemKey, CancellationToken cancellationToken)
@@ -331,6 +356,8 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("work-items/search")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Search for a work item using its key or title.")]
+    [EndpointDescription("Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. Each result's `workspace` key and `key` are what the other work item tools take.")]
+    [McpTool("Workspaces_SearchWorkItems", "Search work items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> SearchWorkItems(string query, CancellationToken cancellationToken, int top = 50)

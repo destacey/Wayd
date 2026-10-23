@@ -72,6 +72,7 @@ All analysis works off the single `StoryMaps_GetStoryMap` response:
 ### Managing a map
 
 - **Rename/describe** — `StoryMaps_UpdateStoryMap`, `StoryMaps_RenameGoal`, `StoryMaps_RenameStep`, `StoryMaps_UpdateTask`. `StoryMaps_UpdateTask` replaces both the title and the description, so resend the one that should stay
+- **One task field (hosted server)** — the hosted endpoint (`/mcp`) also offers `StoryMaps_RenameTask` (body: `title`) and `StoryMaps_SetTaskDescription` (body: `description`; `null` clears it), which change only that field. Prefer them to `StoryMaps_UpdateTask` when only one changes, so a concurrent edit to the other is not reverted
 - **Reorder** — `StoryMaps_ReorderGoal`, `StoryMaps_ReorderStep`, `StoryMaps_ReorderSwimLane`, `StoryMaps_ReorderPersona` (zero-based `newOrder`; the default swim lane always holds position 0, so other lanes start at 1)
 - **Move** — `StoryMaps_MoveStep` (to another goal), `StoryMaps_MoveTask` (to a step + swim lane)
 - **Swim lanes** — `StoryMaps_RenameSwimLane`, `StoryMaps_SetSwimLaneDates` (pass `null` to clear a date); the default lane can't be renamed, reordered, or removed

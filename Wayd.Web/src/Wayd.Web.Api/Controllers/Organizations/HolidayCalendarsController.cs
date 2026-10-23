@@ -11,6 +11,7 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/holiday-calendars")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Organization, "wayd-teams")]
 public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
@@ -18,6 +19,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Get the holiday calendars, by name.")]
+    [EndpointDescription("Each calendar has its `id` (UUID), `key`, name, description, `holidayCount`, and `isDefault` for the system default calendar, which a team operating model or employee with no calendar of its own takes.")]
+    [McpTool("HolidayCalendars_GetList", "List holiday calendars")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<HolidayCalendarListDto>>> GetList(CancellationToken cancellationToken)
     {
@@ -27,6 +30,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Get a holiday calendar with its holidays.")]
+    [EndpointDescription("Takes the calendar's UUID or integer key. Returns its `holidays` (each with its own `id`, `date` and `name`), `isDefault`, and how many team operating models (`operatingModelCount`) and employees (`employeeCount`) use it.")]
+    [McpTool("HolidayCalendars_GetHolidayCalendar", "Get holiday calendar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<HolidayCalendarDetailsDto>> Get(string idOrKey, CancellationToken cancellationToken)
@@ -38,6 +43,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Get a holiday calendar's activity history, newest first: its creation, detail changes, and holidays being added, changed or removed.")]
+    [EndpointDescription("Takes the calendar's UUID or integer key. Each entry has a `category`, an `actorKind` with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string, carrying the value before and after a change. Paged: the response carries `totalCount` and `hasNextPage`.")]
+    [McpTool("HolidayCalendars_GetActivities", "Get holiday calendar activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -49,6 +56,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Create a holiday calendar with no holidays.")]
+    [EndpointDescription("`name` is unique across calendars. Add its days with HolidayCalendars_AddHoliday, then assign it to a team through its operating model (Teams_SetOperatingModel or Teams_UpdateOperatingModel) or to a person with Employees_ChangeHolidayCalendar. Returns the new calendar's `id` (UUID) and `key`.")]
+    [McpTool("HolidayCalendars_Create", "Create holiday calendar", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateHolidayCalendarRequest request, CancellationToken cancellationToken)
     {
@@ -62,6 +71,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{id:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Rename a holiday calendar or change its description.")]
+    [EndpointDescription("**This is a whole-record overwrite of both fields: an omitted description is cleared.** Takes the calendar's UUID `id`, which must match the body's `id`. `name` is unique across calendars. Its holidays have their own tools.")]
+    [McpTool("HolidayCalendars_Update", "Update holiday calendar")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateHolidayCalendarRequest request, CancellationToken cancellationToken)
@@ -79,7 +90,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpDelete("{id:guid}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Delete a holiday calendar with its holidays.")]
-    [EndpointDescription("Refused while a team operating model uses the calendar or it is the system default.")]
+    [EndpointDescription("Takes the calendar's UUID `id`. Refused while it is the system default, or while any team operating model, past or current, or any employee uses it: HolidayCalendars_GetHolidayCalendar gives the counts. Cannot be undone, so confirm with the user before calling.")]
+    [McpTool("HolidayCalendars_Delete", "Delete holiday calendar")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -94,7 +106,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpPost("{id:guid}/holidays")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Add a holiday to a calendar.")]
-    [EndpointDescription("A calendar holds at most one holiday per date.")]
+    [EndpointDescription("Takes the calendar's UUID `id`, a `date` (yyyy-MM-dd) and a `name`. A calendar holds at most one holiday per date. Every team and person taking the calendar loses that day from their capacity. Returns the new holiday's id.")]
+    [McpTool("HolidayCalendars_AddHoliday", "Add holiday", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> AddHoliday(Guid id, [FromBody] HolidayRequest request, CancellationToken cancellationToken)
     {
@@ -108,6 +121,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{id:guid}/holidays/{holidayId:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Move a holiday to another date or rename it.")]
+    [EndpointDescription("Takes the calendar's UUID `id` and the holiday's `holidayId` from HolidayCalendars_GetHolidayCalendar. Both `date` and `name` are required and overwrite the holiday's; the new date must not already have a holiday in the calendar.")]
+    [McpTool("HolidayCalendars_ChangeHoliday", "Change holiday")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ChangeHoliday(Guid id, Guid holidayId, [FromBody] HolidayRequest request, CancellationToken cancellationToken)
@@ -122,6 +137,8 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [HttpDelete("{id:guid}/holidays/{holidayId:guid}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.HolidayCalendars)]
     [EndpointSummary("Remove a holiday from a calendar.")]
+    [EndpointDescription("Takes the calendar's UUID `id` and the holiday's `holidayId` from HolidayCalendars_GetHolidayCalendar. The day becomes a working day again for everyone taking the calendar.")]
+    [McpTool("HolidayCalendars_RemoveHoliday", "Remove holiday")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveHoliday(Guid id, Guid holidayId, CancellationToken cancellationToken)

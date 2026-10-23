@@ -10,7 +10,6 @@ import {
   UpdateRiskRequest,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
-import _ from 'lodash'
 import { OptionModel } from '@/src/components/types'
 
 export const risksApi = apiSlice.injectEndpoints({
@@ -111,7 +110,7 @@ export const risksApi = apiSlice.injectEndpoints({
         try {
           const portfolios = await getRisksClient().getStatuses()
 
-          const statuses = _.sortBy(portfolios, ['order'])
+          const statuses = portfolios.toSorted((a, b) => a.order - b.order)
           const data: OptionModel<number>[] = statuses.map((category) => ({
             label: category.name,
             value: category.id,
@@ -132,7 +131,7 @@ export const risksApi = apiSlice.injectEndpoints({
       queryFn: async () => {
         try {
           const categories = await getRisksClient().getCategories()
-          return { data: _.sortBy(categories, ['order']) }
+          return { data: categories.toSorted((a, b) => a.order - b.order) }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -145,7 +144,7 @@ export const risksApi = apiSlice.injectEndpoints({
         try {
           const portfolios = await getRisksClient().getCategories()
 
-          const categories = _.sortBy(portfolios, ['order'])
+          const categories = portfolios.toSorted((a, b) => a.order - b.order)
           const data: OptionModel<number>[] = categories.map((category) => ({
             label: category.name,
             value: category.id,
@@ -164,7 +163,7 @@ export const risksApi = apiSlice.injectEndpoints({
         try {
           const portfolios = await getRisksClient().getGrades()
 
-          const grades = _.sortBy(portfolios, ['order'])
+          const grades = portfolios.toSorted((a, b) => a.order - b.order)
           const data: OptionModel<number>[] = grades.map((category) => ({
             label: category.name,
             value: category.id,

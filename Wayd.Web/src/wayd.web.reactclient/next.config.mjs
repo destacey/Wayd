@@ -6,6 +6,14 @@ import { withSerwist } from '@serwist/turbopack'
 const nextConfig = {
   output: 'standalone',
   reactCompiler: true,
+  // Loaded from node_modules rather than bundled: the auto-instrumentations pull in
+  // systeminformation (via the host-metrics instrumentation), whose platform-specific
+  // binary lookups Turbopack cannot resolve, and instrumentations patch modules by
+  // hooking require, which only works on unbundled packages.
+  serverExternalPackages: [
+    '@opentelemetry/sdk-node',
+    '@opentelemetry/auto-instrumentations-node',
+  ],
   experimental: {
     optimizePackageImports: ['antd', '@ant-design/icons', '@ant-design/charts'],
     // typescript-eslint has no TS 7 support yet (typescript-eslint#10940), so

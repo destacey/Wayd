@@ -3,7 +3,6 @@
 import { WorkItemProgressRollupDto } from '@/src/services/wayd-api'
 import { Progress } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
-import { round } from 'lodash'
 import { memo } from 'react'
 
 export interface WorkProgressProps {
@@ -36,11 +35,11 @@ const calculateProgressPercentages = (
 
   return {
     proposed: rollup.proposed,
-    proposedPercentage: round((rollup.proposed / rollup.total) * 100, 2),
+    proposedPercentage: Math.round((rollup.proposed / rollup.total) * 10000) / 100,
     active: rollup.active,
-    activePercentage: round((rollup.active / rollup.total) * 100, 2),
+    activePercentage: Math.round((rollup.active / rollup.total) * 10000) / 100,
     done: rollup.done,
-    donePercentage: round((rollup.done / rollup.total) * 100, 2),
+    donePercentage: Math.round((rollup.done / rollup.total) * 10000) / 100,
     total: rollup.total,
   }
 }

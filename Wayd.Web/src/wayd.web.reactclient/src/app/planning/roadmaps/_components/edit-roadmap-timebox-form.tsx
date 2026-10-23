@@ -3,7 +3,6 @@
 import {
   RoadmapActivityListDto,
   RoadmapTimeboxDetailsDto,
-  RoadmapTimeboxListDto,
   UpdateRoadmapTimeboxRequest,
 } from '@/src/services/wayd-api'
 import {
@@ -18,7 +17,7 @@ import {
   toApiError,
 } from '@/src/utils'
 import { Alert, DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import dayjs from 'dayjs'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -71,10 +70,6 @@ const EditRoadmapTimeboxForm = ({
   onFormComplete,
   onFormCancel,
 }: EditRoadmapTimeboxFormProps) => {
-  const [activitiesTree, setActivitiesTree] = useState<RoadmapTimeboxListDto[]>(
-    [],
-  )
-
   const messageApi = useMessage()
 
   const {
@@ -128,11 +123,12 @@ const EditRoadmapTimeboxForm = ({
       permission: 'Permissions.Roadmaps.Update',
     })
 
+  const activitiesTree =
+    timeboxData && activities && !activitiesIsLoading ? activities : []
+
   // Initialize form values when data is loaded
   useEffect(() => {
     if (!timeboxData || !activities || activitiesIsLoading) return
-
-    setActivitiesTree(activities)
 
     const timebox = timeboxData as RoadmapTimeboxDetailsDto
     form.setFieldsValue({

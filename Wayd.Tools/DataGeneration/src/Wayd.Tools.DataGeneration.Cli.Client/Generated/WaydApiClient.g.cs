@@ -20279,6 +20279,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <br/>`Date` and sends `toISOString()`, which no `LocalDate` binder accepts. The caller
         /// <br/>sends the start of its local day, which lands on that day in its own zone.</param>
         /// <param name="to">Any instant on the window's last day, which is inclusive.</param>
+        /// <param name="productId">The ID of the product to scope the delivery overview to. Omit for the whole catalog.</param>
         /// <param name="timeZone">The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
         /// <br/>to UTC.</param>
         /// <returns>OK</returns>
@@ -20370,6 +20371,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <br/>`Date` and sends `toISOString()`, which no `LocalDate` binder accepts. The caller
         /// <br/>sends the start of its local day, which lands on that day in its own zone.</param>
         /// <param name="to">Any instant on the window's last day, which is inclusive.</param>
+        /// <param name="productId">The ID of the product to scope the delivery overview to. Omit for the whole catalog.</param>
         /// <param name="timeZone">The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
         /// <br/>to UTC.</param>
         /// <returns>OK</returns>

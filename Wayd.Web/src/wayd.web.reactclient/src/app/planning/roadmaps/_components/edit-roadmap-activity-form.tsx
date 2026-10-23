@@ -19,7 +19,7 @@ import {
   toApiError,
 } from '@/src/utils'
 import { Alert, DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import dayjs from 'dayjs'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -92,10 +92,6 @@ const EditRoadmapActivityForm = ({
   onFormComplete,
   onFormCancel,
 }: EditRoadmapActivityFormProps) => {
-  const [activitiesTree, setActivitiesTree] = useState<
-    RoadmapActivityListDto[]
-  >([])
-
   const messageApi = useMessage()
 
   const {
@@ -152,12 +148,14 @@ const EditRoadmapActivityForm = ({
       permission: 'Permissions.Roadmaps.Update',
     })
 
+  const activitiesTree =
+    activityData && activities && !activitiesIsLoading
+      ? filterActivities(activities, activityId)
+      : []
+
   // Initialize form values when data is loaded
   useEffect(() => {
     if (!activityData || !activities || activitiesIsLoading) return
-
-    const filteredActivities = filterActivities(activities, activityId)
-    setActivitiesTree(filteredActivities)
 
     const activity = activityData as RoadmapActivityDetailsDto
     form.setFieldsValue({

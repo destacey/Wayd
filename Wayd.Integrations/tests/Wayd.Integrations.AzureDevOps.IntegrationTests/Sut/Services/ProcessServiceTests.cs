@@ -111,7 +111,7 @@ public class ProcessServiceTests
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Error),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => string.Equals(v.ToString(), expectedLogMessage)),
+                It.Is<It.IsAnyType>((v, t) => string.Equals(v!.ToString(), expectedLogMessage)),
                 It.IsAny<Exception>(),
                 It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)!),
             Times.Once);
@@ -183,7 +183,7 @@ public class ProcessServiceTests
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Error),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => string.Equals(v.ToString(), expectedLogMessage)),
+                It.Is<It.IsAnyType>((v, t) => string.Equals(v!.ToString(), expectedLogMessage)),
                 It.IsAny<Exception>(),
                 It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)!),
             Times.Once);

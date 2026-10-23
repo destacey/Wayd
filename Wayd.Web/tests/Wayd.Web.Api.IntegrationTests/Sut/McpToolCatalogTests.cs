@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +39,7 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         var names = (await GetTools()).Select(t => t.ProtocolTool.Name).ToHashSet(StringComparer.Ordinal);
 
         // Assert
-        Assert.Empty(expected.Where(n => !names.Contains(n)));
+        Assert.DoesNotContain(expected, n => !names.Contains(n));
     }
 
     [Fact]

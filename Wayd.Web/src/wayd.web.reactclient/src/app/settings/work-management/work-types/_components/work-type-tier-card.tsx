@@ -3,7 +3,7 @@
 import { WaydEmpty, WaydList } from '@/src/components/common'
 import { WorkTypeLevelDto, WorkTypeTierDto } from '@/src/services/wayd-api'
 import { Button, Card, Typography } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { CreateWorkTypeLevelForm, WorkTypeLevelCard } from '.'
 import { PlusOutlined } from '@ant-design/icons'
 import {
@@ -42,14 +42,16 @@ const sortOrderedLevels = (levels: WorkTypeLevelDto[]) => {
 }
 
 const WorkTypeTierCard = (props: WorkTypeTierCardProps) => {
-  const sortedLevels = useMemo(
-    () => (props.levels ? sortOrderedLevels(props.levels) : []),
-    [props.levels],
+  // Holds the optimistic drag order; re-seeded whenever the levels prop changes
+  // (a refetch after create, delete or reorder).
+  const [orderedLevels, setOrderedLevels] = useState<WorkTypeLevelDto[]>(() =>
+    props.levels ? sortOrderedLevels(props.levels) : [],
   )
-
-  // Initialize with sorted levels and update when levels change from external source
-  const [orderedLevels, setOrderedLevels] =
-    useState<WorkTypeLevelDto[]>(sortedLevels)
+  const [seededLevels, setSeededLevels] = useState(props.levels)
+  if (props.levels !== seededLevels) {
+    setSeededLevels(props.levels)
+    setOrderedLevels(props.levels ? sortOrderedLevels(props.levels) : [])
+  }
   const [openCreateWorkTypeLevelForm, setOpenCreateWorkTypeLevelForm] =
     useState<boolean>(false)
 
@@ -66,11 +68,6 @@ const WorkTypeTierCard = (props: WorkTypeTierCardProps) => {
   )
 
   const [updateLevelsOrder] = useUpdateWorkTypeLevelsOrderMutation()
-
-  // Sync orderedLevels when sortedLevels changes from external updates (e.g., after create/delete)
-  useEffect(() => {
-    setOrderedLevels(sortedLevels)
-  }, [sortedLevels])
 
   const onCreateObjectiveFormClosed = (wasSaved: boolean) => {
     setOpenCreateWorkTypeLevelForm(false)

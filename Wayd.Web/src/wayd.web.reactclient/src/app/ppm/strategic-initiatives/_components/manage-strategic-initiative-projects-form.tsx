@@ -15,7 +15,7 @@ import {
 } from '@/src/store/features/ppm/strategic-initiatives-api'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { Checkbox, Flex, Modal } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { isApiError, type ApiError } from '@/src/utils'
 
 export interface ManageStrategicInitiativeProjectsFormProps {
@@ -128,10 +128,17 @@ const ManageStrategicInitiativeProjectsForm = ({
     permission: 'Permissions.StrategicInitiatives.Update',
   })
 
-  useEffect(() => {
-    if (!existingProjectsData) return
-    setTargetProjects(existingProjectsData?.slice().sort(defaultSort) ?? [])
-  }, [existingProjectsData])
+  // Re-seeded whenever the saved projects arrive or refetch; moves made in
+  // between stay local until saved.
+  const [seededProjectsData, setSeededProjectsData] = useState<
+    ProjectListDto[] | undefined
+  >()
+  if (existingProjectsData !== seededProjectsData) {
+    setSeededProjectsData(existingProjectsData)
+    if (existingProjectsData) {
+      setTargetProjects(existingProjectsData.slice().sort(defaultSort))
+    }
+  }
 
   const sourceProjects = useMemo(() => {
     if (!projectData) return []

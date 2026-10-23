@@ -13,7 +13,7 @@ import {
 } from '@/src/store/features/common/status-workflows-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { Alert, Descriptions, Flex, Modal, Select, Steps, Typography } from 'antd'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import StatusRemapTable from './status-remap-table'
 
 const { Text } = Typography
@@ -64,17 +64,19 @@ const ReassignWorkflowModal = ({
 
   // Re-seeded per preview, so switching targets cannot carry stale choices into
   // a different workflow.
-  useEffect(() => {
-    if (!preview) return
-
-    setDecisions(
-      Object.fromEntries(
-        preview.entries
-          .filter((entry) => entry.to)
-          .map((entry) => [entry.from.id, entry.to!.id]),
-      ),
-    )
-  }, [preview])
+  const [seededPreview, setSeededPreview] = useState<typeof preview>()
+  if (preview !== seededPreview) {
+    setSeededPreview(preview)
+    if (preview) {
+      setDecisions(
+        Object.fromEntries(
+          preview.entries
+            .filter((entry) => entry.to)
+            .map((entry) => [entry.from.id, entry.to!.id]),
+        ),
+      )
+    }
+  }
 
   const isComplete =
     preview !== undefined &&

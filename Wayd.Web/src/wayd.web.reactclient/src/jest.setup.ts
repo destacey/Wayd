@@ -304,7 +304,7 @@ if (!Element.prototype.scrollIntoView) {
 
 // jsdom has no layout, so WaydGrid's scrolling body viewport measures 0×0 and
 // the row virtualizer would render zero rows (TanStack virtual bails on a
-// 0-height scroll rect; it reads offsetWidth/offsetHeight). Report a fixed
+// 0-height scroll rect; it reads clientWidth/clientHeight). Report a fixed
 // 800×600 viewport for that one element (marked data-grid-body-viewport) so
 // grids render a deterministic window: 600px ÷ 28px estimated rows = indexes
 // 0-21 visible, plus 10 overscan.

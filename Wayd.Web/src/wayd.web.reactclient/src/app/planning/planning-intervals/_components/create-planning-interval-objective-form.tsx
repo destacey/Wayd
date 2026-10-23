@@ -1,7 +1,7 @@
 'use client'
 
 import { DatePicker, Form, Input, Modal, Select, Switch } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { CreatePlanningIntervalObjectiveRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -66,7 +66,6 @@ const CreatePlanningIntervalObjectiveForm = ({
   onFormCancel,
 }: CreatePlanningIntervalObjectiveFormProps) => {
   const messageApi = useMessage()
-  const [teams, setTeams] = useState<PlanningIntervalTeamSelectItem[]>([])
 
   const { data: planningIntervalData } =
     useGetPlanningIntervalQuery(planningIntervalKey)
@@ -113,14 +112,16 @@ const CreatePlanningIntervalObjectiveForm = ({
       permission: 'Permissions.PlanningIntervalObjectives.Manage',
     })
 
+  const teams: PlanningIntervalTeamSelectItem[] =
+    teamData && statusData
+      ? teamData
+          .filter((t) => t.type === 'Team')
+          .map((t) => ({ value: t.id, label: t.name }))
+      : []
+
   useEffect(() => {
     if (!teamData || !statusData) return
 
-    setTeams(
-      teamData
-        .filter((t) => t.type === 'Team')
-        .map((t) => ({ value: t.id, label: t.name })),
-    )
     form.setFieldsValue({
       planningIntervalId: planningIntervalData?.id,
       teamId: teamId,

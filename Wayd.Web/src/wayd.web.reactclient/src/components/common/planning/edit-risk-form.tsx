@@ -10,7 +10,7 @@ import {
   Radio,
   Select,
 } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { RiskDetailsDto, UpdateRiskRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -71,9 +71,8 @@ const EditRiskForm = ({
   onFormSave,
   onFormCancel,
 }: EditRiskFormProps) => {
-  const [teamName, setTeamName] = useState<string>('')
-
   const { data: riskData } = useGetRiskQuery(riskKey)
+  const teamName = riskData?.team?.name ?? ''
 
   const [updateRisk] = useUpdateRiskMutation()
 
@@ -129,7 +128,6 @@ const EditRiskForm = ({
         response: risk.response || '',
       })
     }
-    setTeamName(riskData.team?.name ?? '')
     mapToFormValues(riskData)
   }, [form, riskData, isOpen])
 

@@ -9,7 +9,7 @@ import {
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Switch } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
 
 const { Item } = Form
@@ -48,11 +48,13 @@ const EditExpenditureCategoryForm = ({
   onFormCancel,
 }: EditExpenditureCategoryFormProps) => {
   const messageApi = useMessage()
-  const [hideReadOnlyFields, setHideReadOnlyFields] = useState(false)
 
   const { data: categoryData, error } = useGetExpenditureCategoryQuery(
     expenditureCategoryId,
   )
+
+  const hideReadOnlyFields =
+    categoryData !== undefined && categoryData.state.name !== 'Proposed'
 
   const [updateExpenditureCategory] = useUpdateExpenditureCategoryMutation()
 
@@ -91,9 +93,6 @@ const EditExpenditureCategoryForm = ({
 
   useEffect(() => {
     if (!categoryData) return
-    if (categoryData.state.name !== 'Proposed') {
-      setHideReadOnlyFields(true)
-    }
     form.setFieldsValue({
       name: categoryData.name,
       description: categoryData.description,

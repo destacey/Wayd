@@ -225,7 +225,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Unable to sync external work items")),
+                It.Is<It.IsAnyType>((v, t) => v!.ToString()!.Contains("Unable to sync external work items")),
                 It.IsAny<Exception>(),
                 It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
             Times.Once);
@@ -310,7 +310,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
         var existingWorkItem = new WorkItemFaker()
             .WithWorkspace(workspace)
-            .WithType(workProcess.Schemes.Single().WorkType)
+            .WithType(workProcess.Schemes.Single().WorkType!)
             .WithExternalId(101)
             .Generate();
 
@@ -402,8 +402,8 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
     private WorkProcess CreateWorkProcessWithSchemes(string workTypeName, string workStatusName)
     {
-        var workType = new WorkTypeFaker().WithName(workTypeName).Generate();
-        var workStatus = new WorkStatusFaker().WithName(workStatusName).Generate();
+        WorkType workType = new WorkTypeFaker().WithName(workTypeName).Generate();
+        WorkStatus workStatus = new WorkStatusFaker().WithName(workStatusName).Generate();
 
         // Create workflow with properly linked workflow scheme
         var workflow = new WorkflowFaker()

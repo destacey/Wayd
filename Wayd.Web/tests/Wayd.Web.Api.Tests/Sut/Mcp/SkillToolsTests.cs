@@ -150,10 +150,10 @@ public sealed class SkillToolsTests
 
     private static async Task<CallToolResult> Invoke(Dictionary<string, JsonElement> arguments)
     {
-        var request = new RequestContext<CallToolRequestParams>(new Mock<McpServer>().Object, new JsonRpcRequest { Method = RequestMethods.ToolsCall })
-        {
-            Params = new CallToolRequestParams { Name = SkillTools.Name, Arguments = arguments },
-        };
+        var request = new RequestContext<CallToolRequestParams>(
+            new Mock<McpServer>().Object,
+            new JsonRpcRequest { Method = RequestMethods.ToolsCall },
+            new CallToolRequestParams { Name = SkillTools.Name, Arguments = arguments });
         return await SkillTools.Create(_skills).InvokeAsync(request, TestContext.Current.CancellationToken);
     }
 

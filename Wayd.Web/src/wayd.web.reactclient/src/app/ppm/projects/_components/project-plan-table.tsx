@@ -564,10 +564,14 @@ const ProjectPlanTable = ({
 
   // Pointer offset from the bar's left edge at move-drag start, so the live date
   // label can follow the cursor rather than centering on the whole bar.
-  const grabOffsetRef = useRef(0)
+  const [grabOffset, setGrabOffset] = useState(0)
   const onBarPointerDown = useCallback(
-    (e: React.PointerEvent, item: GanttDragItem, mode: 'move' | 'resize-start' | 'resize-end') => {
-      if (mode === 'move') grabOffsetRef.current = e.nativeEvent.offsetX
+    (
+      e: React.PointerEvent,
+      item: GanttDragItem,
+      mode: 'move' | 'resize-start' | 'resize-end',
+    ) => {
+      if (mode === 'move') setGrabOffset(e.nativeEvent.offsetX)
       barDrag.start(e, item, mode)
     },
     [barDrag],
@@ -579,8 +583,7 @@ const ProjectPlanTable = ({
     editable: canManageTasks,
     activeDrag: barDrag.active,
     onBarPointerDown,
-    moveGrabOffset:
-      barDrag.active?.mode === 'move' ? grabOffsetRef.current : undefined,
+    moveGrabOffset: barDrag.active?.mode === 'move' ? grabOffset : undefined,
   })
 
   const handleEditTask = useCallback((task: any) => {

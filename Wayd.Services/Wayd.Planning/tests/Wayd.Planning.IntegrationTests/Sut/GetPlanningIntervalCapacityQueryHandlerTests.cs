@@ -58,7 +58,7 @@ public sealed class GetPlanningIntervalCapacityQueryHandlerTests(SqlServerDbCont
 
         // Each iteration's figures are those of the period asked for at its dates, in date order.
         var asked = (GetTeamsCapacityByPeriodQuery)dispatcher.Invocations
-            .Single(i => i.Arguments[0] is GetTeamsCapacityByPeriodQuery).Arguments[0];
+            .Single(i => i.Arguments[0] is GetTeamsCapacityByPeriodQuery).Arguments[0]!;
         asked.Periods.Skip(1).Select(p => (p.Start, p.End))
             .Should().Equal(capacity.Iterations.Select(i => (i.Start, i.End)));
         teamRow.TeamDaysOff.Should().Equal(

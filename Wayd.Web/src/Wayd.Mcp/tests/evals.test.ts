@@ -145,7 +145,7 @@ describe('scenarios', () => {
     const skillsDir = join(__dirname, '../../../../skills');
     const prefixesOf = (skill: string): string[] => {
       const description = readFileSync(join(skillsDir, skill, 'SKILL.md'), 'utf8').match(/^description: (.*)$/m)?.[1] ?? '';
-      return [...description.matchAll(/\b([A-Z][A-Za-z]*_)\*/g)].map((m) => m[1]);
+      return [...description.matchAll(/\b([A-Z][A-Za-z]*_)\*/g)].flatMap((m) => (m[1] ? [m[1]] : []));
     };
     const skills = readdirSync(skillsDir, { withFileTypes: true })
       .filter((e) => e.isDirectory())

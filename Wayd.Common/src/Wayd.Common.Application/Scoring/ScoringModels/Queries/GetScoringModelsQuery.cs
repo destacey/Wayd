@@ -22,6 +22,7 @@ public sealed class GetScoringModelsQueryHandler(IWaydDbContext waydDbContext)
         }
 
         return await query
+            .OrderBy(x => x.Key)
             .ProjectToType<ScoringModelListDto>()
             .ToListAsync(cancellationToken);
     }

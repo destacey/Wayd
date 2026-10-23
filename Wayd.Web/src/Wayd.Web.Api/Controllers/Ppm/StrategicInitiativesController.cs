@@ -79,6 +79,9 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.StrategicInitiatives)]
     [EndpointSummary("Create a strategic initiative.")]
+    [EndpointDescription(
+        "It starts in Proposed status. `portfolioId` must be an active or on-hold portfolio (Portfolios_GetPortfolioOptions resolves a name). `start` and `end` are calendar dates, end on or after start. `sponsorIds` and `ownerIds` are employee ids. Add KPIs afterwards with StrategicInitiatives_CreateKpi and link projects with StrategicInitiatives_ManageProjects. Returns the new initiative's id and key. Confirm with the user before calling.")]
+    [McpTool("StrategicInitiatives_Create", "Create strategic initiative", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStrategicInitiativeRequest request, CancellationToken cancellationToken)
     {
@@ -192,7 +195,10 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [EndpointSummary("Update a strategic initiative.")]
+    [EndpointSummary("Update a strategic initiative's name, description, dates, sponsors and owners.")]
+    [EndpointDescription(
+        "This is a whole-record update, not a patch: every field is overwritten from the request body, so read the initiative first (StrategicInitiatives_GetStrategicInitiative) and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty `sponsorIds` or `ownerIds` REMOVES everyone in that role; only an explicit null leaves it unchanged. Role ids are employee ids. The id in the body must match the id path parameter. Status, portfolio, KPIs and linked projects are not changed here. Checks permissions only, not delivery leadership. Changes a record other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
+    [McpTool("StrategicInitiatives_Update", "Update strategic initiative", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -283,8 +289,11 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.StrategicInitiatives)]
     [EndpointSummary("Delete a strategic initiative.")]
+    [EndpointDescription(
+        "Permanent: its KPIs, checkpoints and measurements go with it, and its links to projects are removed (the projects themselves stay). Only a Proposed or Approved initiative can be deleted; an active or closed one cannot — cancel it instead (StrategicInitiatives_Cancel). Rejected when the portfolio is archived. Confirm with the user before calling. Takes a UUID only, not a key.")]
+    [McpTool("StrategicInitiatives_Delete", "Delete strategic initiative")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new DeleteStrategicInitiativeCommand(id), cancellationToken);
@@ -344,6 +353,9 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [HttpPost("{id}/kpis")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
     [EndpointSummary("Create a KPI for a strategic initiative.")]
+    [EndpointDescription(
+        "`strategicInitiativeId` in the body must match the id path parameter. `targetValue` is required and non-zero. `targetDirection` is Increase or Decrease, and a `startingValue`, when given, must be below the target for Increase and above it for Decrease. `prefix` and `suffix` (at most 8 characters each, such as `$` or `%`) are only for display. The KPI is added after the existing ones. Set its dated targets afterwards with StrategicInitiatives_ManageKpiCheckpointPlan. Rejected once the initiative is completed or canceled. Returns the new KPI's id and key. Confirm with the user before calling. Takes UUIDs only, not keys.")]
+    [McpTool("StrategicInitiatives_CreateKpi", "Create a KPI", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> CreateKpi(Guid id, [FromBody] CreateStrategicInitiativeKpiRequest request, CancellationToken cancellationToken)
     {
@@ -353,13 +365,16 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         var result = await _dispatcher.Send(request.ToCreateStrategicInitiativeKpiCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetKpi), new { id = id, kpiId = result.Value }, result.Value)
+            ? CreatedAtAction(nameof(GetKpi), new { id = id.ToString(), kpiId = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpPut("{id}/kpis/{kpiId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [EndpointSummary("Update a KPI for a strategic initiative.")]
+    [EndpointSummary("Update a KPI's definition: name, description, starting and target values, display prefix and suffix, and target direction.")]
+    [EndpointDescription(
+        "This is a whole-record update, not a patch: every field is overwritten from the request body, so an omitted description, starting value, prefix or suffix is cleared. Read the KPI first (StrategicInitiatives_GetKpi) and echo back every value that should stay the same. A `startingValue` must be below the target for Increase and above it for Decrease. Measurements and checkpoints are not changed here. `strategicInitiativeId` and `kpiId` in the body must match the path parameters. Rejected once the initiative is completed or canceled. Confirm with the user before calling. Takes UUIDs only, not keys.")]
+    [McpTool("StrategicInitiatives_UpdateKpi", "Update a KPI")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -378,9 +393,11 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [HttpDelete("{id}/kpis/{kpiId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
     [EndpointSummary("Delete a KPI for a strategic initiative.")]
+    [EndpointDescription(
+        "Permanent: the KPI's checkpoints and every measurement recorded against it go with it. Rejected once the initiative is completed or canceled. Confirm with the user before calling. Takes UUIDs only, not keys.")]
+    [McpTool("StrategicInitiatives_DeleteKpi", "Delete a KPI")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteKpi(Guid id, Guid kpiId, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new DeleteStrategicInitiativeKpiCommand(id, kpiId), cancellationToken);
@@ -393,6 +410,9 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [HttpPost("{id}/kpis/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
     [EndpointSummary("Reorder KPIs for a strategic initiative.")]
+    [EndpointDescription(
+        "`orderedKpiIds` lists **every** KPI of the initiative exactly once, in the new display order; a partial list is rejected. Rejected once the initiative is completed or canceled. Confirm with the user before calling. Takes the initiative's UUID only, not a key.")]
+    [McpTool("StrategicInitiatives_ReorderKpis", "Reorder KPIs")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -443,7 +463,10 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/kpis/{kpiId}/checkpoints/plan")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [EndpointSummary("Manage the checkpoint plan for a strategic initiative KPI.")]
+    [EndpointSummary("Replace a KPI's checkpoint plan — the dated targets it is expected to hit.")]
+    [EndpointDescription(
+        "**The body is the whole plan**: a checkpoint with a `checkpointId` updates that existing checkpoint, one without is added, and every existing checkpoint left out is removed. Read the plan first (StrategicInitiatives_GetKpiCheckpoints) and send back each checkpoint to keep with its id. Each checkpoint has a `targetValue`, a `checkpointDate` (ISO 8601 UTC datetime, unique within the KPI), a short `dateLabel` such as \"Q1 2027\" (at most 16 characters), and an optional `atRiskValue` threshold that must differ from the target. Measurements are not changed. `strategicInitiativeId` and `kpiId` in the body must match the path parameters. Confirm with the user before calling, naming any checkpoint that would be removed. Takes UUIDs only, not keys.")]
+    [McpTool("StrategicInitiatives_ManageKpiCheckpointPlan", "Set a KPI checkpoint plan")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -535,7 +558,10 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
 
     [HttpPost("{id}/projects")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StrategicInitiatives)]
-    [EndpointSummary("Manage projects for the strategic initiative.")]
+    [EndpointSummary("Set which projects are linked to a strategic initiative as the work delivering it.")]
+    [EndpointDescription(
+        "**`projectIds` is the complete set**: projects not in it are unlinked and new ones are linked, so an empty list unlinks every project. Read the current links first (StrategicInitiatives_GetProjects) and include every project that should stay. Every id must be an existing project's UUID. Rejected once the initiative is completed or canceled. The `id` in the body must match the id path parameter. Confirm with the user before calling, naming any project that would be unlinked. Takes UUIDs only, not keys.")]
+    [McpTool("StrategicInitiatives_ManageProjects", "Set strategic initiative projects")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

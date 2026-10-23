@@ -997,7 +997,7 @@ public class PlanningIntervalTests
     {
         // Arrange
         var team = new PlanningTeamFaker(TeamType.TeamOfTeams).Generate();
-        var sut = _planningIntervalFaker.Generate();
+        var sut = _planningIntervalFaker.WithTeams(team.Id).Generate();
         var start = sut.DateRange.Start;
         var target = sut.DateRange.End;
 
@@ -1027,7 +1027,7 @@ public class PlanningIntervalTests
     {
         // Arrange
         var team = new PlanningTeamFaker(TeamType.Team).Generate();
-        var sut = _planningIntervalFaker.WithObjectivesLocked(true).Generate();
+        var sut = _planningIntervalFaker.WithTeams(team.Id).WithObjectivesLocked(true).Generate();
 
         // Act
         var result = sut.CreateObjective(team, "Ship it", null, false, null, null, null, EventActor.System, _dateTimeProvider.Now);
@@ -1043,13 +1043,29 @@ public class PlanningIntervalTests
     {
         // Arrange
         var team = new PlanningTeamFaker(TeamType.Team).Generate();
-        var sut = _planningIntervalFaker.Generate();
+        var sut = _planningIntervalFaker.WithTeams(team.Id).Generate();
 
         // Act
         var result = sut.CreateObjective(team, "   ", null, false, null, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        sut.Objectives.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateObjective_WhenTeamIsNotInTheInterval_Fails()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithTeams(Guid.NewGuid()).Generate();
+
+        // Act
+        var result = sut.CreateObjective(team, "Ship it", null, false, null, null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The team is not part of this Planning Interval.");
         sut.Objectives.Should().BeEmpty();
     }
 
@@ -1538,6 +1554,30 @@ public class PlanningIntervalTests
             new PlanningIntervalSprintMapping(iterationIds[1], sprint2.Id)]);
         raised.Removed.Should().BeEmpty();
         raised.SprintMappings.Should().BeEquivalentTo(raised.Added);
+    }
+
+    [Fact]
+    public void SyncTeamSprintMappings_SprintOfAnotherTeam_FailsAndChangesNothing()
+    {
+        // Arrange
+        var teamId = Guid.NewGuid();
+        var otherTeamId = Guid.NewGuid();
+        var sut = ExistingWithIterations(teamId, otherTeamId);
+        var iterationIds = sut.Iterations.Select(i => i.Id).ToList();
+        var ownSprint = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
+        var otherTeamsSprint = new PlanningSprintFaker().AsSprint().WithTeamId(otherTeamId).Generate();
+
+        // Act
+        var result = sut.SyncTeamSprintMappings(teamId,
+            new Dictionary<Guid, Guid?> { [iterationIds[0]] = ownSprint.Id, [iterationIds[1]] = otherTeamsSprint.Id },
+            new Dictionary<Guid, PlanningSprint> { [ownSprint.Id] = ownSprint, [otherTeamsSprint.Id] = otherTeamsSprint },
+            Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Sprint {otherTeamsSprint.Id} does not belong to team {teamId}.");
+        sut.IterationSprints.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

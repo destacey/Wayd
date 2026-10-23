@@ -115,6 +115,11 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
         return !ObjectivesLocked;
     }
 
+    private const string TeamNotInIntervalError = "The team is not part of this Planning Interval.";
+
+    /// <summary>Whether the team is on the interval's roster.</summary>
+    private bool HasTeam(Guid teamId) => _teams.Any(t => t.TeamId == teamId);
+
     /// <summary>
     /// Gets a calendar with PI and iteration dates.
     /// </summary>
@@ -515,11 +520,22 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <param name="teamId">The team whose sprints are being synchronized.</param>
     /// <param name="iterationSprintMappings">Dictionary where key is iteration ID and value is sprint ID (null to unmap).</param>
     /// <param name="sprints">Dictionary of available sprints keyed by ID.</param>
-    /// <returns>A result indicating success or failure with an error message.</returns>
+    /// <returns>A result indicating success or failure with an error message. Fails, changing nothing, when a mapped sprint is not one of <paramref name="teamId"/>'s.</returns>
     public Result SyncTeamSprintMappings(Guid teamId, Dictionary<Guid, Guid?> iterationSprintMappings, Dictionary<Guid, PlanningSprint> sprints, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(iterationSprintMappings, nameof(iterationSprintMappings));
         Guard.Against.Null(sprints, nameof(sprints));
+
+        // Checked before anything changes: only the team's own mappings are replaced, so a sprint of another
+        // team would be mapped under this one and then never unmapped by it.
+        foreach (var sprintId in iterationSprintMappings.Values.Where(id => id.HasValue).Select(id => id!.Value))
+        {
+            if (!sprints.TryGetValue(sprintId, out var sprint))
+                return Result.Failure($"Sprint {sprintId} not found.");
+
+            if (sprint.TeamId != teamId)
+                return Result.Failure($"Sprint {sprintId} does not belong to team {teamId}.");
+        }
 
         var previousMappings = SprintMappings();
 
@@ -599,13 +615,19 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
 
     #region Objectives
 
-    /// <summary>Creates a PI objective for a team.</summary>
+    /// <summary>
+    /// Creates a PI objective for one of the interval's teams. <see cref="Teams"/> must be loaded: an unloaded
+    /// roster refuses every team.
+    /// </summary>
     public Result<PlanningIntervalObjective> CreateObjective(PlanningTeam team, string name, string? description, bool isStretch, LocalDate? startDate, LocalDate? targetDate, int? order, EventActor actor, Instant timestamp)
     {
         try
         {
             if (!CanCreateObjectives())
                 return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
+
+            if (!HasTeam(team.Id))
+                return Result.Failure<PlanningIntervalObjective>(TeamNotInIntervalError);
 
             var objective = PlanningIntervalObjective.Create(Id, team.Id, name, description, ObjectiveTypeFor(team), isStretch, startDate, targetDate, order, actor, timestamp);
             _objectives.Add(objective);

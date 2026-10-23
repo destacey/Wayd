@@ -21,6 +21,9 @@ public sealed class GetDirectReportsQueryHandler : IQueryHandler<GetDirectReport
     {
         return await _waydDbContext.Employees
             .Where(e => e.ManagerId == request.EmployeeId && e.IsActive)
+            .OrderBy(e => e.Name.LastName)
+            .ThenBy(e => e.Name.FirstName)
+            .ThenBy(e => e.Id)
             .ProjectToType<EmployeeListDto>()
             .ToListAsync(cancellationToken);
     }

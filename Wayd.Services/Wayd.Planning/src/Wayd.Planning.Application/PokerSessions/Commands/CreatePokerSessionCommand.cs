@@ -31,15 +31,16 @@ public sealed class CreatePokerSessionCommandHandler(IPlanningDbContext planning
     {
         try
         {
-            var scaleExists = await _planningDbContext.EstimationScales
-                .AnyAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
+            var scale = await _planningDbContext.EstimationScales
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
 
-            if (!scaleExists)
+            if (scale is null)
                 return Result.Failure<ObjectIdAndKey>("Estimation scale not found.");
 
             var sessionResult = PokerSession.Create(
                 request.Name,
-                request.EstimationScaleId,
+                scale,
                 _currentUserId,
                 _dateTimeProvider.Now);
 

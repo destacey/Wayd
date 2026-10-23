@@ -12,6 +12,8 @@ public sealed class GetExpenditureCategoriesQueryHandler(IProjectPortfolioManage
     public async Task<List<ExpenditureCategoryListDto>> Handle(GetExpenditureCategoriesQuery request, CancellationToken cancellationToken)
     {
         return await _projectPortfolioManagementDbContext.ExpenditureCategories
+            .OrderBy(c => c.Name)
+            .ThenBy(c => c.Id)
             .ProjectToType<ExpenditureCategoryListDto>()
             .ToListAsync(cancellationToken);
     }

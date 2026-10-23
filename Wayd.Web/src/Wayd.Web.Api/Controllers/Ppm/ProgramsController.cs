@@ -236,6 +236,9 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Programs)]
     [EndpointSummary("Delete a program.")]
+    [EndpointDescription(
+        "Permanent, and only for a program still in Proposed status that has no projects — move its projects out first with Projects_ChangeProgram (Programs_GetProgramProjects lists them). A program past Proposed cannot be deleted; complete or cancel it instead. Rejected when the portfolio is archived. Requires the delete permission only, not delivery leadership. Confirm with the user before calling. Takes a UUID only, not a key.")]
+    [McpTool("Programs_Delete", "Delete program")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)

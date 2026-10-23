@@ -1,6 +1,6 @@
 ---
 name: wayd-pi
-description: Read before calling the Wayd MCP tools named PlanningIntervals_*. Guides agents working with Wayd Planning Intervals via the Wayd MCP server — iterations, sprint mappings, iteration metrics and backlogs, team objectives and their linked work items, objective health checks, PI health reports, predictability, and risks. Use when finding or exploring a PI or its iterations, listing or analyzing team objectives, recommending, reviewing or logging a health check on an objective (Healthy / AtRisk / Unhealthy), building a PI health report or predictability summary, reviewing PI risks, or finding out what changed on a PI or an objective and who changed it.
+description: Read before calling the Wayd MCP tools named PlanningIntervals_*. Guides agents working with Wayd Planning Intervals via the Wayd MCP server — iterations, teams, sprint mappings, capacity, metrics and backlogs, team objectives and their linked work items, objective health checks, PI health reports, predictability, and risks. Use when finding or exploring a PI or its iterations, creating a PI or changing its dates, iterations, teams or sprint mappings, reading PI capacity, metrics or backlog, listing, analyzing, creating, updating, reordering or deleting team objectives or linking their work items, locking or unlocking objectives, recommending, reviewing, logging, correcting or deleting a health check on an objective (Healthy / AtRisk / Unhealthy), building a PI health report or predictability summary, reviewing PI risks, or finding out what changed on a PI or an objective and who changed it.
 ---
 
 # Wayd Planning Intervals (PI)
@@ -10,6 +10,14 @@ description: Read before calling the Wayd MCP tools named PlanningIntervals_*. G
 Confirm every change with the user before you make it. Before a call that creates, updates, tags, sets, moves, changes the status of, or deletes anything, tell the user what will happen — the record, what it will look like afterwards, and anything replaced or removed with it — and wait for their go-ahead. A request names the goal, not the details you worked out to reach it, and Wayd records are shared by everyone who plans from them, so the user approves the details. Reads need no confirmation.
 
 When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
+
+## Reference
+
+Read the matching file before working in these areas. The rules on this page still apply there.
+
+| File | Read it when |
+| --- | --- |
+| [reference/changing-a-pi.md](reference/changing-a-pi.md) | Creating or updating a PI, changing its dates, iterations, teams or sprint mappings, creating, updating, reordering or deleting objectives, linking their work items, or correcting or deleting a health check (hosted server only) |
 
 ## Entity context
 
@@ -79,6 +87,11 @@ Planning Interval (PI)
 | Sprint mappings for one iteration   | `PlanningIntervals_GetIterationSprints` | `idOrKey`, `iterationId` (UUID) |
 | Aggregated metrics for an iteration | `PlanningIntervals_GetIterationMetrics` | `idOrKey`, `iterationIdOrKey`   |
 | Combined backlog for an iteration   | `PlanningIntervals_GetIterationBacklog` | `idOrKey`, `iterationIdOrKey`   |
+| Combined backlog for the whole PI   | `PlanningIntervals_GetBacklog`          | `idOrKey` (hosted only)         |
+| PI metrics per team                 | `PlanningIntervals_GetMetrics`          | `idOrKey` (hosted only)         |
+| Team capacity in person-days        | `PlanningIntervals_GetCapacity`         | `idOrKey` (hosted only)         |
+
+`PlanningIntervals_GetMetrics` rolls up cycle time, predictability and objective counts per team across every mapped sprint; only teams with mapped sprints appear. A 404 means the PI was not found, or a mapped sprint's team no longer resolves to a team with a code. `PlanningIntervals_GetCapacity` needs the `team-capacity-management` feature flag (404 when it is off): each team's person-days for the whole PI and per iteration, after holidays, time away and team days off. A team of teams counts its own allocations plus those of the teams beneath it, so never add a team-of-teams row to its teams' rows.
 
 A Scrum team's sprints are mapped automatically when it joins a PI, each to the iteration holding most of its days, and only where the team had no mapping. In `PlanningIntervals_GetActivities` those mappings have `actorKind` `Automation`, and `employee` is whoever added the team, not someone who chose the mappings (none for a PI import). An iteration with no sprint for a Scrum team means no sprint lined up with it, the sprint was already mapped elsewhere, or the sprint or iteration was created after the team joined.
 
@@ -106,6 +119,8 @@ The PI-wide health report is a dedicated endpoint — do not attempt to derive i
 | Full health check history for one objective               | `PlanningIntervals_GetObjectiveHealthChecks`   | Takes PI `id` and `objectiveId` (both UUIDs). Newest first.                                            |
 | One specific health check                                 | `PlanningIntervals_GetObjectiveHealthCheck`    | Takes PI `id`, `objectiveId`, and `healthCheckId`.                                                     |
 | Log a new health check on an objective                    | `PlanningIntervals_CreateObjectiveHealthCheck` | Takes PI `id` and `objectiveId`; body: `{ planningIntervalObjectiveId, statusId, expiration, note? }`. |
+| Correct an unexpired check (hosted only)                  | `PlanningIntervals_UpdateObjectiveHealthCheck` | Whole-record overwrite; see [reference/changing-a-pi.md](reference/changing-a-pi.md#health-checks).    |
+| Delete a check (hosted only)                              | `PlanningIntervals_DeleteObjectiveHealthCheck` | Leaves the objective with no active check if it was the active one.                                     |
 
 Notes for logging a check:
 
@@ -113,7 +128,7 @@ Notes for logging a check:
 - `expiration` is an ISO 8601 UTC datetime and **must be in the future**.
 - `note` is optional, max 1024 characters.
 - The body redundantly requires `planningIntervalObjectiveId` in addition to the path `objectiveId` — they must match.
-- The objective must belong to the PI in the path `id`; on the three health-check tools a mismatch is refused as not found.
+- The objective must belong to the PI in the path `id`; on every health-check tool a mismatch is refused as not found.
 - Logging a new check automatically expires the previously active check; only one non-expired check can exist at a time.
 
 ### Recommending and logging an objective health check (recipe)
@@ -193,7 +208,17 @@ Both return entries newest first, paged (at most 100 per page). Each entry has a
 
 ### Risks
 
-`PlanningIntervals_GetRisks` returns **open risks only** unless you pass `includeClosed: true`; pass `teamId` to scope to one team. If the user seems to be missing risks, they are probably closed — rerun with `includeClosed: true`.
+Read a PI's risks with `PlanningIntervals_GetRisks` (`idOrKey`). It returns **open risks only** unless you pass `includeClosed: true`; pass `teamId` to scope to one team. If the user seems to be missing risks, they are probably closed — rerun with `includeClosed: true`.
+
+To create or update a risk, use the `Risks_*` tools; the `wayd-teams` skill covers them.
+
+### Changing a PI (hosted server)
+
+The hosted endpoint (`/mcp`) also offers the tools that change a PI: creating and updating it, setting its dates and iterations, its teams and each team's sprint mappings, and creating, updating, reordering and deleting objectives and their linked work items. Read [reference/changing-a-pi.md](reference/changing-a-pi.md) before calling any of them. The rules that catch agents out:
+
+- **Most of them replace a whole list or record.** `PlanningIntervals_ManageDates` (iterations), `PlanningIntervals_ManageTeams` (teams), `PlanningIntervals_MapTeamSprints` (the team's sprint mappings) and `PlanningIntervals_ManageObjectiveWorkItems` (links) delete or unlink whatever the body leaves out. `PlanningIntervals_UpdatePlanningInterval`, `PlanningIntervals_UpdateObjective` and `PlanningIntervals_UpdateObjectiveHealthCheck` clear every field the body omits. Read the current state first and send back everything that should stay.
+- **Locked objectives.** While the PI's `objectivesLocked` is true, objectives cannot be created or deleted, and an update keeps each objective's name and stretch flag whatever you send. Omitting `objectivesLocked` from `PlanningIntervals_UpdatePlanningInterval` unlocks them.
+- **Writes take UUIDs**, and most bodies repeat the path's ids, which must match.
 
 ### PI health report recipe (compound task)
 

@@ -20,6 +20,6 @@ public sealed class GetProjectPortfolioOptionsQueryHandler(IProjectPortfolioMana
             .ProjectToType<ProjectPortfolioOptionDto>()
             .ToListAsync(cancellationToken);
 
-        return [.. portfolios.OrderBy(p => p.Name)];
+        return [.. portfolios.OrderBy(p => p.Name).ThenBy(p => p.Id)];
     }
 }

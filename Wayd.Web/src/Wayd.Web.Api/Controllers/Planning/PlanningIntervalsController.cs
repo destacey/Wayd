@@ -130,6 +130,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.PlanningIntervals)]
     [EndpointSummary("Create a planning interval.")]
+    [EndpointDescription(
+        "Iterations are generated from `iterationWeeks` and `iterationPrefix`: each is `iterationWeeks` long and named the prefix plus its sequence number, starting at `start`; the last one is cut to `end` and is an Innovation and Planning (IP) iteration, the rest Development. Change them afterwards with PlanningIntervals_ManageDates. The new interval has no teams (add them with PlanningIntervals_ManageTeams) and its objectives are unlocked. Returns the new interval's `id` and `key`.")]
+    [McpTool("PlanningIntervals_CreatePlanningInterval", "Create planning interval", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult> Create([FromBody] CreatePlanningIntervalRequest request, CancellationToken cancellationToken)
     {
@@ -194,7 +197,10 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
-    [EndpointSummary("Update a planning interval.")]
+    [EndpointSummary("Update a planning interval's name, description and whether its objectives are locked.")]
+    [EndpointDescription(
+        "A whole-record overwrite: every field is set from the body, so an omitted `description` is cleared and an omitted `objectivesLocked` unlocks the objectives. Read the interval with PlanningIntervals_GetPlanningInterval first and pass back what should stay. Takes the interval's UUID, in the path and again as `id` in the body. Locking objectives freezes the plan: no objective can be created or deleted, and an objective update keeps its name and stretch flag while its other fields stay editable. Dates and iterations change through PlanningIntervals_ManageDates, teams through PlanningIntervals_ManageTeams.")]
+    [McpTool("PlanningIntervals_UpdatePlanningInterval", "Update planning interval")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -248,7 +254,10 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
-    [EndpointSummary("Manage planning interval dates and iterations.")]
+    [EndpointSummary("Set a planning interval's start and end dates and its complete list of iterations.")]
+    [EndpointDescription(
+        "Replaces the iteration list: an iteration in `iterations` with its `iterationId` is updated, one without an `iterationId` is added, and an existing iteration left out is deleted along with its sprint mappings. Read the current iterations with PlanningIntervals_GetIterations first and pass back every one that should stay, with its id. Each iteration needs a `name` unique within the interval, a `categoryId` (1 Development, 2 Innovation and Planning; PlanningIntervals_GetIterationCategories lists them), and `start`/`end` inside the interval's dates that overlap no other iteration. Takes the interval's UUID, in the path and again as `id` in the body. Nothing changes when any rule fails.")]
+    [McpTool("PlanningIntervals_ManageDates", "Set PI dates and iterations")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ManageDates(Guid id, [FromBody] ManagePlanningIntervalDatesRequest request, CancellationToken cancellationToken)
@@ -265,7 +274,10 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/teams")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
-    [EndpointSummary("Manage planning interval teams.")]
+    [EndpointSummary("Set the complete list of teams taking part in a planning interval.")]
+    [EndpointDescription(
+        "Replaces the roster: `teamIds` is every team that should take part, teams and teams of teams alike (UUIDs). A team left out is removed along with its sprint mappings; its objectives stay. Read the current roster with PlanningIntervals_GetTeams first and pass back every team that should stay. A Scrum team that joins has its sprints mapped automatically, each to the iteration holding most of its days. Takes the interval's UUID, in the path and again as `id` in the body. A team created moments ago may not have reached planning yet; the call then fails and can be retried.")]
+    [McpTool("PlanningIntervals_ManageTeams", "Set PI teams")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ManageTeams(Guid id, [FromBody] ManagePlanningIntervalTeamsRequest request, CancellationToken cancellationToken)
@@ -305,6 +317,7 @@ public class PlanningIntervalsController : ControllerBase
         "Get the capacity of each team in a planning interval, for the whole planning interval and each of its iterations.")]
     [EndpointDescription(
         "Returns the planning interval's `iterations` in date order and, for each team in it, its capacity in person-days after holidays, time away and team days off: a `total` over the whole planning interval and one figure per iteration in `iterations`, each with `allocatedPersonDays` in every role, `deliveryPersonDays` in roles that count toward delivery capacity and `awayPersonDays` that time away took. Iterations are read by the planning interval's own dates, whatever a team's sprint length or cadence. A team of teams is counted as its rollup: its own allocations and those of the teams beneath it for the days they were in its hierarchy, so a team beneath it that is also in the planning interval is counted in both rows. A team's sprint days off count as nobody working, wherever that team is counted, and a team's are listed in `teamDaysOff`. `hasAllocations` is false for a team with nobody allocated in the planning interval. Requires the team-capacity-management feature flag; returns 404 when it is off.")]
+    [McpTool("PlanningIntervals_GetCapacity", "Get PI team capacity")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PlanningIntervalCapacityDto>> GetCapacity(string idOrKey, CancellationToken cancellationToken)
@@ -364,7 +377,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpPost("{id}/teams/{teamId}/sprints")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
     [EndpointSummary("Map team sprints to Planning Interval iterations.")]
-    [EndpointDescription("This is a sync/replace operation that sets the complete desired state for the team's sprint mappings.")]
+    [EndpointDescription(
+        "This is a sync/replace operation that sets the complete desired state for the team's sprint mappings. `iterationSprintMappings` maps an iteration id to a sprint id, or to null to leave that iteration with no sprint for the team; every sprint of the team that is mapped now but not named as a value is unmapped, whether or not its iteration is in the body. So pass every mapping that should stay — read them with PlanningIntervals_GetIterationSprints first. A team has at most one sprint per iteration and a sprint maps to one iteration; mapping a sprint moves it from wherever it was. The team must take part in the interval, and each sprint must be one of that team's own sprints and of type Sprint; any other sprint refuses the whole request. All ids are UUIDs; the interval's and team's are given in the path and again as `id` and `teamId` in the body.")]
+    [McpTool("PlanningIntervals_MapTeamSprints", "Map a team's sprints to PI iterations")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -386,6 +401,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpGet("{idOrKey}/metrics")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
     [EndpointSummary("Get PI-level metrics aggregated across all mapped sprints in every iteration.")]
+    [EndpointDescription(
+        "Returns the interval's `teamCount` and `sprintCount` (teams and sprints with a sprint mapping), the `cycleTime` across every mapped sprint, and `teamMetrics`, one entry per team with its `teamCode`, `predictability`, regular, stretch and completed objective counts, `cycleTime` and `sprintCount`. Only sprint mappings count: a Kanban team, which has no sprints, is absent. A 404 when the interval is not found, or when a mapped sprint's team no longer resolves to a team with a code. For a single iteration's work figures use PlanningIntervals_GetIterationMetrics.")]
+    [McpTool("PlanningIntervals_GetMetrics", "Get PI metrics")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -452,6 +470,20 @@ public class PlanningIntervalsController : ControllerBase
             cancellationToken);
         var codeByTeamId = teamList.ToDictionary(t => t.Id, t => t.Code);
 
+        var resolvedCodeByTeamId = new Dictionary<Guid, string>();
+        foreach (var team in sprintToTeam.Values.DistinctBy(t => t.Id))
+        {
+            codeByTeamId.TryGetValue(team.Id, out var teamCode);
+            var resolvedTeamCode = !string.IsNullOrWhiteSpace(teamCode) ? teamCode : team.Code;
+            if (string.IsNullOrWhiteSpace(resolvedTeamCode))
+            {
+                _logger.LogWarning("PI metrics for {PlanningIntervalId}: no team code found for team {TeamId}.", planningInterval.Id, team.Id);
+                return NotFound();
+            }
+
+            resolvedCodeByTeamId[team.Id] = resolvedTeamCode;
+        }
+
         // Per-team rollup. Cycle time aggregates by summing each sprint's
         // count + total — composing CycleTimeSummary objects this way yields
         // a true weighted average (Σtotal / Σcount) rather than an
@@ -468,16 +500,11 @@ public class PlanningIntervalsController : ControllerBase
             {
                 var team = sprintToTeam[g.First().SprintId];
                 teamPredictabilityByTeamId.TryGetValue(team.Id, out var teamPredictability);
-                codeByTeamId.TryGetValue(team.Id, out var teamCode);
-                var resolvedTeamCode = !string.IsNullOrWhiteSpace(teamCode) ? teamCode : team.Code;
-
-                if (string.IsNullOrWhiteSpace(resolvedTeamCode))
-                    throw new InvalidOperationException($"Unable to resolve a non-empty team code for team '{team.Name}' ({team.Id}).");
 
                 return new PlanningIntervalTeamMetrics
                 {
                     Team = new Common.Application.Dtos.NavigationDto { Id = team.Id, Key = team.Key, Name = team.Name },
-                    TeamCode = resolvedTeamCode,
+                    TeamCode = resolvedCodeByTeamId[team.Id],
                     Predictability = teamPredictability?.Predictability,
                     RegularObjectivesCount = teamPredictability?.RegularObjectivesCount ?? 0,
                     StretchObjectivesCount = teamPredictability?.StretchObjectivesCount ?? 0,
@@ -634,6 +661,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpGet("{idOrKey}/backlog")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
     [EndpointSummary("Get the combined backlog for a PI from every sprint mapped to any of its iterations.")]
+    [EndpointDescription(
+        "The work items of every mapped sprint in one list; a Kanban team's work, which is in no sprint, is not included. For one iteration's backlog use PlanningIntervals_GetIterationBacklog.")]
+    [McpTool("PlanningIntervals_GetBacklog", "Get PI backlog")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -715,6 +745,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpPost("{id}/objectives")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
     [EndpointSummary("Create a planning interval objective.")]
+    [EndpointDescription(
+        "Creates a team's objective: `teamId` is the UUID of a team or team of teams taking part in the interval (PlanningIntervals_GetTeams); any other team is refused. `name` is the commitment itself; `startDate` and `targetDate` are optional, and when both are given the start must be before the target. `order` is optional. A new objective is Not Started at 0% progress. Refused while the interval's objectives are locked. Takes the interval's UUID, in the path and again as `planningIntervalId` in the body. Returns the new objective's `id` and `key`.")]
+    [McpTool("PlanningIntervals_CreateObjective", "Create PI objective", Destructive = false)]
     [ProducesResponseType(typeof(ObjectIdAndKey), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -734,6 +767,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpPut("{id}/objectives/{objectiveId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
     [EndpointSummary("Update a planning interval objective.")]
+    [EndpointDescription(
+        "A whole-record overwrite: name, description, status, progress, dates and stretch flag are all set from the body, so an omitted `description`, `startDate` or `targetDate` is cleared, an omitted `isStretch` becomes false and an omitted `progress` 0. Read the objective with PlanningIntervals_GetObjective first and pass back what should stay. `statusId` is a number: 1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed (PlanningIntervals_GetObjectiveStatuses lists them); Completed, Canceled and Missed close the objective. `progress` is 0 to 100. While the interval's objectives are locked, `name` and `isStretch` keep their current values whatever the body says; the rest still changes. Order is changed with PlanningIntervals_UpdateObjectivesOrder. Both ids are UUIDs, given in the path and again as `planningIntervalId` and `objectiveId` in the body.")]
+    [McpTool("PlanningIntervals_UpdateObjective", "Update PI objective")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -755,6 +791,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpPut("{id}/objectives/order")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
     [EndpointSummary("Update the order of planning interval objectives.")]
+    [EndpointDescription(
+        "`objectives` maps an objective's UUID to its new `order`, or to null to clear it; objectives not named keep their order. Every objective named must belong to the interval, or nothing changes. Takes the interval's UUID, in the path and again as `planningIntervalId` in the body.")]
+    [McpTool("PlanningIntervals_UpdateObjectivesOrder", "Reorder PI objectives")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -884,7 +923,10 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/objectives/{objectiveId}/work-items")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
-    [EndpointSummary("Manage objective work items.")]
+    [EndpointSummary("Set the complete list of work items linked to a planning interval objective.")]
+    [EndpointDescription(
+        "Replaces the links: `workItemIds` is every work item that should be linked (work item UUIDs, not keys); a linked item left out is unlinked and an empty list unlinks them all. Read the current links with PlanningIntervals_GetObjectiveWorkItems first and pass back every one that should stay. Both ids are UUIDs, given in the path and again as `planningIntervalId` and `objectiveId` in the body; an objective not in the interval is a 404.")]
+    [McpTool("PlanningIntervals_ManageObjectiveWorkItems", "Set a PI objective's work items")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -962,6 +1004,9 @@ public class PlanningIntervalsController : ControllerBase
     [HttpDelete("{id}/objectives/{objectiveId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
     [EndpointSummary("Delete a planning interval objective.")]
+    [EndpointDescription(
+        "Removes the objective from the interval. Refused while the interval's objectives are locked. Both ids are UUIDs.")]
+    [McpTool("PlanningIntervals_DeleteObjective", "Delete PI objective")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> DeleteObjective(Guid id, Guid objectiveId, CancellationToken cancellationToken)
@@ -1090,8 +1135,12 @@ public class PlanningIntervalsController : ControllerBase
     [HttpPut("{id}/objectives/{objectiveId}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
     [EndpointSummary("Update a planning interval objective health check.")]
+    [EndpointDescription(
+        "A whole-record overwrite of the check's `statusId` (1 Healthy, 2 AtRisk, 3 Unhealthy), `expiration` and `note`: an omitted `note` is cleared. Read the check with PlanningIntervals_GetObjectiveHealthCheck first and pass back what should stay. `expiration` must be in the future, and an expired check cannot be changed — log a new one with PlanningIntervals_CreateObjectiveHealthCheck instead. All ids are UUIDs; the objective's and the check's are given in the path and again as `planningIntervalObjectiveId` and `id` in the body. A check not on that objective, or an objective not in the interval, is a 404. Returns the updated check.")]
+    [McpTool("PlanningIntervals_UpdateObjectiveHealthCheck", "Update PI objective health check")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<PlanningIntervalObjectiveHealthCheckDetailsDto>> UpdateObjectiveHealthCheck(Guid id, Guid objectiveId, Guid healthCheckId, [FromBody] UpdatePlanningIntervalObjectiveHealthCheckRequest request, CancellationToken cancellationToken)
     {
@@ -1100,7 +1149,11 @@ public class PlanningIntervalsController : ControllerBase
         else if (healthCheckId != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(healthCheckId), nameof(request.Id), HttpContext));
 
-        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+        var healthCheck = await _dispatcher.Send(new GetPlanningIntervalObjectiveHealthCheckQuery(id, objectiveId, healthCheckId), cancellationToken);
+        if (healthCheck is null)
+            return NotFound();
+
+        var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -1110,12 +1163,19 @@ public class PlanningIntervalsController : ControllerBase
     [HttpDelete("{id}/objectives/{objectiveId}/health-checks/{healthCheckId}")]
     [MustHavePermission(ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives)]
     [EndpointSummary("Delete a planning interval objective health check.")]
+    [EndpointDescription(
+        "Removes the check from the objective's history, expired or not; it is not replaced, so deleting the active check leaves the objective with none until a new one is logged. All ids are UUIDs; a check not on that objective, or an objective not in the interval, is a 404.")]
+    [McpTool("PlanningIntervals_DeleteObjectiveHealthCheck", "Delete PI objective health check")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteObjectiveHealthCheck(Guid id, Guid objectiveId, Guid healthCheckId, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new DeletePlanningIntervalObjectiveHealthCheckCommand(objectiveId, healthCheckId), cancellationToken);
+        var healthCheck = await _dispatcher.Send(new GetPlanningIntervalObjectiveHealthCheckQuery(id, objectiveId, healthCheckId), cancellationToken);
+        if (healthCheck is null)
+            return NotFound();
+
+        var result = await _dispatcher.Send(new DeletePlanningIntervalObjectiveHealthCheckCommand(id, objectiveId, healthCheckId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

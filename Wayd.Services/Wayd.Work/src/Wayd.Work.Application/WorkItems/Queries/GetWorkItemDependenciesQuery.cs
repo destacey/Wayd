@@ -41,6 +41,8 @@ public sealed class GetWorkItemDependenciesQueryHandler(IWorkDbContext workDbCon
         var dependencyLinks = await _workDbContext.WorkItemDependencies
             .Where(l => l.RemovedOn == null)
             .Where(l => l.SourceId == workItemId || l.TargetId == workItemId)
+            .OrderBy(l => l.CreatedOn)
+            .ThenBy(l => l.Id)
             .ProjectToType<DependencyDto>()
             .ToListAsync(cancellationToken);
 

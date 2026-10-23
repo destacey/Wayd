@@ -36,7 +36,11 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            var result = session.SubmitVote(request.RoundId, _currentUserId, request.Value, _dateTimeProvider.Now);
+            var scale = await _planningDbContext.EstimationScales
+                .AsNoTracking()
+                .FirstAsync(s => s.Id == session.EstimationScaleId, cancellationToken);
+
+            var result = session.SubmitVote(request.RoundId, _currentUserId, request.Value, scale, _dateTimeProvider.Now);
             if (result.IsFailure)
                 return result;
 

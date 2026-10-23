@@ -13,12 +13,10 @@ public sealed record UpdateWorkTypeLevelCommand : ICommand
 
     public int Id { get; }
 
-    /// <summary>The name of the work type.  The name cannot be changed.</summary>
-    /// <value>The name.</value>
+    /// <summary>The work type level's new name, unique among levels.</summary>
     public string Name { get; }
 
-    /// <summary>The description of the work type.</summary>
-    /// <value>The description.</value>
+    /// <summary>The description of the work type level.</summary>
     public string? Description { get; }
 }
 

@@ -42,7 +42,7 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
 
         session.AddRound("Story");
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, _currentUserId, "8", Instant.FromUtc(2026, 1, 15, 9, 0));
+        session.SubmitVote(round.Id, _currentUserId, "8", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 9, 0));
 
         var command = new WithdrawVoteCommand(session.Id, round.Id);
 

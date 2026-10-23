@@ -292,6 +292,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProjectPortfolios)]
     [EndpointSummary("Delete a portfolio.")]
+    [EndpointDescription(
+        "Permanent, and only for a portfolio still in Proposed status — any other status is rejected; close or archive it instead (Portfolios_Close, Portfolios_Archive). A proposed portfolio holds no programs, projects or strategic initiatives, which are created only once it is active. Requires the delete permission only, not delivery leadership. Confirm with the user before calling. Takes a UUID only, not a key.")]
+    [McpTool("Portfolios_Delete", "Delete portfolio")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -306,6 +309,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [HttpPut("{id}/scoring-model")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
     [EndpointSummary("Assign a scoring model to a portfolio, enabling project scoring.")]
+    [EndpointDescription(
+        "Replaces any model already assigned; assigning the current model again changes nothing. Only an Active scoring model can be assigned, and an archived portfolio cannot be changed. Existing project scores keep the model they were recorded with, so projects scored under the previous model drop off Portfolios_GetRankingScoreboard until re-scored. Requires delivery leadership — the caller must be an Owner or Manager of the portfolio; a permission claim alone is not enough. Changes how every project in the portfolio is scored, so confirm with the user before calling. Takes the portfolio's UUID only, not a key.")]
+    [McpTool("Portfolios_AssignScoringModel", "Assign portfolio scoring model")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -321,6 +327,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [HttpDelete("{id}/scoring-model")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
     [EndpointSummary("Clear a portfolio's scoring model, disabling new project scoring.")]
+    [EndpointDescription(
+        "Recorded scores are kept, but no project in the portfolio can be scored until a model is assigned again (Portfolios_AssignScoringModel). Clearing a portfolio with no model changes nothing. An archived portfolio cannot be changed. Requires delivery leadership — the caller must be an Owner or Manager of the portfolio; a permission claim alone is not enough. Confirm with the user before calling. Takes a UUID only, not a key.")]
+    [McpTool("Portfolios_ClearScoringModel", "Clear portfolio scoring model")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ClearScoringModel(Guid id, CancellationToken cancellationToken)
@@ -335,6 +344,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [HttpPut("{id}/project-ranks")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
     [EndpointSummary("Reposition an ordered batch of projects within the portfolio's ranking.")]
+    [EndpointDescription(
+        "Read the current order first with Portfolios_GetPortfolioProjects (`position` is the 1-based rank). `projectIds` are the projects to move, in the order they should end up; every one must belong to this portfolio. Place them with anchors: `afterProjectId` is the project that will sit immediately above the batch, `beforeProjectId` the one immediately below. Give both to drop between two projects, only `beforeProjectId` (the current first project) to move to the top, or only `afterProjectId` (the current last project) to move to the bottom. At least one anchor is required, an anchor cannot be in the batch, and `afterProjectId` must rank above `beforeProjectId`. Projects already between the anchors keep their order after the batch. Ranks are opaque fractional values; never show them to the user. Requires delivery leadership — the caller must be an Owner or Manager of the portfolio; a permission claim alone is not enough. The ranking is shared, so confirm the new order with the user before calling. Takes the portfolio's UUID only, not a key.")]
+    [McpTool("Portfolios_MoveProjectRanks", "Move projects in portfolio ranking")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -350,6 +362,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [HttpPut("{id}/project-ranks/rebalance")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
     [EndpointSummary("Rebalance the portfolio's project ranks to clean, gap-free whole numbers.")]
+    [EndpointDescription(
+        "Maintenance only: every project keeps its place in the order, closed projects included; only the underlying rank values are respaced. It is never needed to reorder projects — use Portfolios_MoveProjectRanks for that. An archived portfolio cannot be changed. Requires delivery leadership — the caller must be an Owner or Manager of the portfolio; a permission claim alone is not enough. Takes a UUID only, not a key.")]
+    [McpTool("Portfolios_RebalanceProjectRanks", "Rebalance portfolio ranking")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RebalanceProjectRanks(Guid id, CancellationToken cancellationToken)

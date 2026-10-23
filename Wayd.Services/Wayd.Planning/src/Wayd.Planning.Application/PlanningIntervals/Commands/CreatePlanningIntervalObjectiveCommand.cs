@@ -66,6 +66,7 @@ public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
         try
         {
             var planningInterval = await _planningDbContext.PlanningIntervals
+                .Include(p => p.Teams)
                 .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
             if (planningInterval is null)
             {

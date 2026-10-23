@@ -18,6 +18,8 @@ public sealed class GetEstimationScalesQueryHandler(IPlanningDbContext planningD
         }
 
         return await query
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
             .ProjectToType<EstimationScaleDto>()
             .ToListAsync(cancellationToken);
     }

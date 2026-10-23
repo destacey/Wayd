@@ -12,6 +12,7 @@ public class EstimationScaleFaker : PrivateConstructorFaker<EstimationScale>
         RuleFor(x => x.Name, f => f.Lorem.Word());
         RuleFor(x => x.Description, f => f.Lorem.Sentence());
         RuleFor(x => x.IsActive, true);
+        RuleFor("_values", f => new List<string> { "1", "2", "3", "5", "8", "13", "?" });
     }
 }
 
@@ -32,6 +33,12 @@ public static class EstimationScaleFakerExtensions
     public static EstimationScaleFaker WithDescription(this EstimationScaleFaker faker, string? description)
     {
         faker.RuleFor(x => x.Description, description);
+        return faker;
+    }
+
+    public static EstimationScaleFaker WithValues(this EstimationScaleFaker faker, params string[] values)
+    {
+        faker.RuleFor("_values", f => values.ToList());
         return faker;
     }
 

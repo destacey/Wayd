@@ -1,9 +1,25 @@
 ---
 name: wayd-teams
-description: Read before calling the Wayd MCP tools named Teams_*, TeamsOfTeams_* or Workspaces_*. Guides agents working with Wayd teams and teams of teams via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting when work will be done, or generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type.
+description: Read before calling the Wayd MCP tools named Teams_*, TeamsOfTeams_*, HolidayCalendars_*, TeamMemberRoles_*, TeamTypes_* or Risks_*. Guides agents working with Wayd teams, teams of teams and the organization settings behind them via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, creating, updating or deactivating a team or team of teams, arranging the team hierarchy, adding or removing members and their roles, setting or correcting a team's operating model (Scrum or Kanban, sizing, time zone, working week, holiday calendar, cadence), reading a team's capacity, backlog, work items, dependencies or sprints, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting a team's throughput, generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type, managing holiday calendars, team member roles or team types, or listing, creating, updating or closing team risks.
 ---
 
 # Wayd Teams
+
+Confirm every change with the user before you make it: say what you will create, change or remove, and wait for
+their go-ahead. Tools that change records, and the capacity, backlog, work item, dependency, sprint, operating
+model, member, holiday calendar, team member role, team type and risk tools, are offered by the hosted MCP
+endpoint (`/mcp`) only.
+
+## Reference
+
+Read the matching file before working in these areas. The rules on this page still apply there.
+
+| File | Read it when |
+| --- | --- |
+| [reference/changing-teams.md](reference/changing-teams.md) | Creating, updating or deactivating a team or team of teams, changing the team hierarchy, managing members and their roles, or reading, setting, correcting or deleting an operating model |
+| [reference/capacity.md](reference/capacity.md) | Reading a team's or team of teams' capacity, capacity report or plan, or proposing allocations |
+| [reference/risks.md](reference/risks.md) | Listing, reading, creating, updating, closing or reopening risks, or looking up risk statuses, categories and grades |
+| [reference/organization-settings.md](reference/organization-settings.md) | Managing holiday calendars and their holidays, team member roles, or reading team types |
 
 ## Team identifiers
 
@@ -11,11 +27,11 @@ A team carries three identifiers, and each tool accepts a specific one:
 
 | Identifier | Example      | Accepted by                                                                                                                                           |
 | ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`       | UUID         | `Teams_GetActivities`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`, `Teams_GetSprintMetrics`, `Teams_GetCadenceMetrics` (UUID only) |
-| `key`      | integer      | `Teams_GetTeam` (its parameter is named `id` but takes the integer `key`), `Teams_GetActivities`                                                      |
-| `code`     | short string | `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`                                                              |
+| `id`       | UUID         | Every `Teams_*` tool that takes a team except `Teams_GetTeam`; most take only the UUID |
+| `key`      | integer      | `Teams_GetTeam` (its parameter is named `id` but takes the integer `key`), `Teams_GetActivities` |
+| `code`     | short string | `Teams_GetBacklog`, `Teams_GetWorkItems`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution` (each also takes the UUID) |
 
-Resolve a team name with `Teams_GetTeams`, which returns all three (active teams only unless `includeInactive: true`). A team of teams has a UUID `id` and a `code`; resolve it with `TeamsOfTeams_GetList`.
+Resolve a team name with `Teams_GetTeams`, which returns all three (active teams only unless `includeInactive: true`). A team of teams has the same three; resolve it with `TeamsOfTeams_GetList`. `TeamsOfTeams_GetTeamOfTeams` takes the integer `key`, `TeamsOfTeams_GetActivities` the key or UUID, `TeamsOfTeams_GetWorkDistribution` the UUID or code, and every other `TeamsOfTeams_*` tool the UUID. Most `Teams_*` tools given a team of teams' id answer 404 or an empty list rather than naming the mix-up, so check which kind a record is (`type` in the lists) and use the `TeamsOfTeams_*` tool.
 
 Planning Interval tools take the same UUID `id` as their `teamId`; a team has no separate id within a PI. For which tools, see the `wayd-pi` skill.
 
@@ -23,9 +39,21 @@ Planning Interval tools take the same UUID `id` as their `teamId`; a team has no
 
 `Teams_GetActivities` returns the team's recorded changes, newest first: creation, detail changes, activation and deactivation, membership changes, team-of-teams membership, and operating models.
 
-- Member entries carry employee and role ids, not names. Resolve employee ids against `employee.id` from `Users_GetUsers` (see the `wayd-users` skill); no tool resolves role ids. Report any id you cannot resolve as an id — never guess who or what it is.
+- Member entries carry employee and role ids, not names. Resolve employee ids with `Employees_GetList` (see the `wayd-employees` skill) or against `employee.id` from `Users_GetUsers`, and role ids with `TeamMemberRoles_GetList` (pass `includeInactive: true`). Report any id you cannot resolve as an id — never guess who or what it is.
 - Each `payload` is a JSON string carrying the value before and after the change.
 - A `Baseline` entry marks where tracking began for a team that already existed. Nothing before it is in the log, so do not report it as the team's creation.
+
+## A team's work
+
+| Question | Tool | Notes |
+| --- | --- | --- |
+| The open backlog in rank order | `Teams_GetBacklog` | Requirement-tier items in a Proposed or Active status category, each with its 1-based `rank` |
+| Work items, by status category or done date | `Teams_GetWorkItems` | `statusCategories` (Proposed, Active, Done, Removed); `doneFrom`/`doneTo` keep only items done in that window |
+| Open dependencies | `Teams_GetDependencies` | Links where the team owns either end and the predecessor (`source`) is not done |
+| Every sprint | `Teams_GetSprints` | Each with its `state` (Future, Active, Completed) |
+| The sprint in progress | `Teams_GetActiveSprint` | No sprint in progress answers 404: report "no active sprint", not a failure |
+
+These list Requirement-tier work only (user stories, bugs and the like), never epics or features. An unknown team returns an empty list from the backlog, work item and sprint tools, so confirm the team with `Teams_GetTeams` before reporting it has no work. A team of teams has no backlog, work items or sprints of its own; read them per team.
 
 ## Backlog health
 
@@ -68,17 +96,18 @@ Monte Carlo forecasts from each team's recent daily throughput (10,000 trials, h
 
 | Question                                                     | Tool                                     | Identifies the work by                                                                   |
 | ------------------------------------------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
-| When will this work item be done?                            | `Workspaces_GetWorkItemForecast`         | `idOrKey` (workspace key — the prefix of the work item key) + `workItemKey` (`CORE-123`) |
 | When will this PI objective's work be done?                  | `PlanningIntervals_GetObjectiveForecast` | `idOrKey` + `objectiveIdOrKey`                                                           |
 | When will this project's work be done?                       | `Projects_GetForecast`                   | `idOrKey` (project UUID or key)                                                          |
 | How many backlog work items will this team finish by a date? | `Teams_GetThroughputForecast`            | `idOrCode` (team UUID or code) + required `targetDate`                                   |
 
+Forecasting when a single work item will be done lives in the `wayd-work` skill.
+
 - **Read the `outcome` first.** Only `Forecast` fills `percentiles`. `Done`, `Not Enough History` (the team finished fewer than 10 backlog work items in the window), `Blocked by Dependency`, `Cannot Forecast` and `Nothing Remaining` each mean there are no dates — report which, and why from `issues`.
 - **Report a range, lead with 85%.** Quote the 85% date (or count) as the planning figure and the 50% as a coin flip; never collapse the forecast to one date. A percentile with a null `date` did not finish within two years — say "beyond 2 years".
-- **Chance by target date.** `chanceOfFinishingByTargetDate` is 0 to 1; state it as a percent against `targetDate`. An objective defaults to its target date, else the PI's end; a project to its planned end; a work item has none unless you pass `targetDate`.
+- **Chance by target date.** `chanceOfFinishingByTargetDate` is 0 to 1; state it as a percent against `targetDate`. An objective defaults to its target date, else the PI's end; a project to its planned end.
 - **Exclusions make it a lower bound.** When `excludedWorkItems` is non-empty, the dates cover only what could be forecast — say so and list the excluded keys with their issue.
 - **Name the dependency to chase.** `dependencies[].shareOfTrialsSettingFinish` is how often waiting on that predecessor decided the finish; cite the highest. To show what dependencies cost, compare against `ignoreDependencies: true` and label that result a what-if. `ignoredDependencies` lists links left out (Predecessor Removed, Closes a Cycle) that likely need cleaning up.
-- **Backlog position drives a work item's date.** Everything ahead of it in its team's backlog counts; report `backlogPosition` alongside the date. By default active items count ahead of proposed ones (`startedWorkFirst`, since teams usually finish what they have started), so an active item can sit ahead of its rank; pass `startedWorkFirst: false` for rank order alone, and say which order a forecast used.
+- **Backlog position drives the dates.** Everything ahead of an item in its team's backlog counts. By default active items count ahead of proposed ones (`startedWorkFirst`, since teams usually finish what they have started), so an active item can sit ahead of its rank; pass `startedWorkFirst: false` for rank order alone, and say which order a forecast used.
 - **Team throughput** answers with a count: each percentile's `workItems` is finished at least that often, and `throughWorkItem` names how far down the backlog that reaches ("at 85%, through CORE-123").
 - **History window.** `lookbackDays` (14–365, default 90). Use a shorter window when a team's pace recently changed, and state the window you used. Nothing is saved.
 

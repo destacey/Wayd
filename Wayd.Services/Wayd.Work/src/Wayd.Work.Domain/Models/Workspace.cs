@@ -209,17 +209,17 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     }
 
     /// <summary>
-    /// Set's the work item's external URL template
+    /// Sets the URL prefix a work item's external id is appended to, to view it in the external system.
+    /// Only a Managed workspace takes one.
     /// </summary>
-    /// <param name="externalWorkItemUrlTemplate"></param>
-    /// <param name="timestamp"></param>
-    /// <returns></returns>
+    /// <param name="externalWorkItemUrlTemplate">The template; null, empty or whitespace clears it.</param>
+    /// <param name="timestamp">When the change is made.</param>
     public Result SetExternalViewWorkItemUrlTemplate(string? externalWorkItemUrlTemplate, Instant timestamp)
     {
         if (OwnershipInfo.Ownership is not Ownership.Managed)
             return Result.Failure($"Unable to set the external view work item url template for an {OwnershipInfo.Ownership.GetDisplayName()} workspace.");
 
-        var newExternalWorkItemUrlTemplate = externalWorkItemUrlTemplate?.Trim();
+        var newExternalWorkItemUrlTemplate = externalWorkItemUrlTemplate.NullIfWhiteSpacePlusTrim();
 
         // return success if no changes
         if (string.Equals(ExternalViewWorkItemUrlTemplate, newExternalWorkItemUrlTemplate, StringComparison.Ordinal))

@@ -24,6 +24,7 @@ public sealed class GetTeamMembersQueryHandler(IOrganizationDbContext organizati
                 Roles = g.OrderBy(r => r.Role.Name).Select(r => r.Role).ToList(),
             })
             .OrderBy(m => m.Employee.Name)
+            .ThenBy(m => m.Employee.Id)
             .ToList();
     }
 }

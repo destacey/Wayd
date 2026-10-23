@@ -61,12 +61,37 @@ public sealed class GetEmployeeWorkItemsQueryTests
         Assert.Equal(expected.Id, result[0].Id);
     }
 
+    [Fact]
+    public async Task Handle_OrdersByStackRankThenId()
+    {
+        // Arrange — two items share a stack rank, so only the id separates them
+        using var context = new FakeWorkDbContext();
+        var employeeId = Guid.NewGuid();
+        var requirementType = new WorkTypeFaker().AsStory().Generate();
+
+        var lowest = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 1, stackRank: 1);
+        var tiedA = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 2, stackRank: 5);
+        var highest = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 3, stackRank: 9);
+        var tiedB = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 4, stackRank: 5);
+        var tied = new[] { tiedA, tiedB }.OrderBy(w => w.Id).ToArray();
+
+        context.AddWorkItems([highest, tied[1], lowest, tied[0]]);
+        var handler = new GetEmployeeWorkItemsQueryHandler(context);
+
+        // Act
+        var result = await handler.Handle(new GetEmployeeWorkItemsQuery(employeeId), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal([lowest.Id, tied[0].Id, tied[1].Id, highest.Id], result.Select(w => w.Id));
+    }
+
     private static WorkItem CreateWorkItem(
         Guid employeeId,
         WorkType workType,
         WorkStatusCategory statusCategory,
         int externalId,
-        Instant? doneTimestamp = null)
+        Instant? doneTimestamp = null,
+        double? stackRank = null)
     {
         var workspace = new WorkspaceFaker()
             .AsExternal()
@@ -86,6 +111,9 @@ public sealed class GetEmployeeWorkItemsQueryTests
             .WithExternalId(externalId)
             .WithKey(new WorkItemKey(workspace.Key, externalId))
             .WithType(workType).WithStatus(status).WithStatusCategory(statusCategory).WithAssignedToId(employeeId).WithCreated(created).WithActivatedTimestamp(activated).WithDoneTimestamp(done);
+
+        if (stackRank is { } rank)
+            faker = faker.WithStackRank(rank);
 
         faker.RuleFor(x => x.Workspace, workspace);
 

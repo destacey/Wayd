@@ -32,19 +32,24 @@ public sealed record PokerSessionDetailsDto : IMapFrom<PokerSession>
     }
 
     /// <summary>
-    /// Hides vote values for rounds that have not yet been revealed.
-    /// Participant identity is preserved so the UI can show who has voted.
+    /// Blanks the value of every vote in a round that has not been revealed, except the viewer's own.
+    /// Participant identity is preserved so the UI can show who has voted, and the viewer's own value
+    /// is kept so their selected card survives a reload.
     /// </summary>
-    public void HideUnrevealedVotes()
+    /// <param name="viewerUserId">The user id of the caller; <c>null</c> or a non-matching id hides every value.</param>
+    public void HideUnrevealedVotes(string? viewerUserId)
     {
+        Guid? viewerId = Guid.TryParse(viewerUserId, out var parsed) ? parsed : null;
+
         foreach (var round in Rounds)
         {
-            if (!_revealedStatuses.Contains(round.Status))
+            if (_revealedStatuses.Contains(round.Status))
+                continue;
+
+            foreach (var vote in round.Votes)
             {
-                foreach (var vote in round.Votes)
-                {
+                if (viewerId is null || vote.Participant?.Id != viewerId)
                     vote.Value = string.Empty;
-                }
             }
         }
     }

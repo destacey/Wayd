@@ -12,6 +12,7 @@ namespace Wayd.Web.Api.Controllers.Admin;
 [Route("api/scoring-models")]
 [ApiVersionNeutral]
 [ApiController]
+[McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class ScoringModelsController(ILogger<ScoringModelsController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ScoringModelsController> _logger = logger;
@@ -19,7 +20,10 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
-    [EndpointSummary("Get a list of scoring models.")]
+    [EndpointSummary("Get a list of scoring models — the formula-driven models portfolios score and rank their projects with.")]
+    [EndpointDescription(
+        "Each carries its UUID `id`, numeric `key`, name, description, state (Proposed, Active, Archived), and how many criteria, scales and outputs it has. Filter with `state`; only an Active model can be assigned to a portfolio, so pass `Active` to find the UUID that Portfolios_AssignScoringModel takes. A portfolio's current model is on Portfolios_GetPortfolio, and a project's on Projects_GetScoringContext.")]
+    [McpTool("ScoringModels_GetScoringModels", "List scoring models")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ScoringModelListDto>>> GetScoringModels([FromQuery] ScoringModelState? state, CancellationToken cancellationToken)
@@ -31,7 +35,10 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
-    [EndpointSummary("Get scoring model details.")]
+    [EndpointSummary("Get a scoring model with its criteria, rating scales and output formulas.")]
+    [EndpointDescription(
+        "Criteria are what a project is rated on: one with a `scaleId` is rated by choosing a level of that scale, any other takes a number. Outputs are named formulas over the criteria's `token`s, and the one with `isPrimary` is the headline score; the formulas alone decide the score, so a criterion's `weight` is informational only. Accepts the model's UUID or numeric key.")]
+    [McpTool("ScoringModels_GetScoringModel", "Get scoring model")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ScoringModelDetailsDto>> GetScoringModel(string idOrKey, CancellationToken cancellationToken)

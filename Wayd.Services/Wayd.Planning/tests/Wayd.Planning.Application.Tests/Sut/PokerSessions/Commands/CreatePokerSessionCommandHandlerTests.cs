@@ -65,6 +65,25 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldFail_WhenEstimationScaleIsInactive()
+    {
+        // Arrange
+        var scale = _estimationScaleFaker.WithId(1).WithIsActive(false).Generate();
+        _dbContext.AddEstimationScale(scale);
+
+        var command = new CreatePokerSessionCommand("Sprint Planning", scale.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The estimation scale is inactive and cannot be chosen for a session.");
+        _dbContext.PokerSessions.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_ShouldSetFacilitatorToCurrentUser()
     {
         // Arrange

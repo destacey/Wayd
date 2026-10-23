@@ -48,7 +48,8 @@ public sealed class GetSprintBacklogQueryHandler(IWorkDbContext workDbContext, I
         var rank = 1;
         var backlog = workItems
             .OrderBy(w => w.StackRank)
-            .ThenBy(w => w.Created);
+            .ThenBy(w => w.Created)
+            .ThenBy(w => w.Id);
         foreach (var workItem in backlog)
         {
             workItem.Rank = rank++;

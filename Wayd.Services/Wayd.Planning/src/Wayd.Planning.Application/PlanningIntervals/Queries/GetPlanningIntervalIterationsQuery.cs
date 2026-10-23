@@ -30,6 +30,6 @@ public sealed class GetPlanningIntervalIterationsQueryHandler(IPlanningDbContext
             .ProjectToType<PlanningIntervalIterationListDto>(config)
             .ToListAsync(cancellationToken);
 
-        return [.. iterations.OrderBy(i => i.Start)];
+        return [.. iterations.OrderBy(i => i.Start).ThenBy(i => i.Key)];
     }
 }

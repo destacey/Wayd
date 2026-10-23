@@ -23,6 +23,11 @@ public sealed class GetEmployeesQueryHandler : IQueryHandler<GetEmployeesQuery, 
         if (!request.IncludeInactive)
             query = query.Where(e => e.IsActive);
 
-        return await query.ProjectToType<EmployeeListDto>().ToListAsync(cancellationToken);
+        return await query
+            .OrderBy(e => e.Name.LastName)
+            .ThenBy(e => e.Name.FirstName)
+            .ThenBy(e => e.Id)
+            .ProjectToType<EmployeeListDto>()
+            .ToListAsync(cancellationToken);
     }
 }

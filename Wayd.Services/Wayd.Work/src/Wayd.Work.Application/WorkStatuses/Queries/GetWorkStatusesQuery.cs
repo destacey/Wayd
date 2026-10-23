@@ -21,6 +21,10 @@ public sealed class GetWorkStatusesQueryHandler : IQueryHandler<GetWorkStatusesQ
         if (!request.IncludeInactive)
             query = query.Where(e => e.IsActive);
 
-        return await query.ProjectToType<WorkStatusDto>().ToListAsync(cancellationToken);
+        return await query
+            .OrderBy(e => e.Name)
+            .ThenBy(e => e.Id)
+            .ProjectToType<WorkStatusDto>()
+            .ToListAsync(cancellationToken);
     }
 }

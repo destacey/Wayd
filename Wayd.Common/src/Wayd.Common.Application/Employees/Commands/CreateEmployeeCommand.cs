@@ -110,12 +110,11 @@ public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmploye
     {
         try
         {
-            // verify the manager exists
-            var managerId = request.ManagerId;
-            if (managerId.HasValue
-                && await _waydDbContext.Employees.AllAsync(e => e.Id != request.ManagerId, cancellationToken))
+            if (request.ManagerId.HasValue
+                && await _waydDbContext.Employees.AllAsync(e => e.Id != request.ManagerId.Value, cancellationToken))
             {
-                managerId = null;
+                _logger.LogWarning("Wayd Request: Unable to find manager {ManagerId} while creating employee {EmployeeNumber}", request.ManagerId.Value, request.EmployeeNumber);
+                return Result.Failure<ObjectIdAndKey>("Manager not found.");
             }
 
             var employee = Employee.Create(
@@ -126,7 +125,7 @@ public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmploye
                 request.JobTitle,
                 request.Department,
                 request.OfficeLocation,
-                managerId,
+                request.ManagerId,
                 true,
                 employeeType: null,
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),

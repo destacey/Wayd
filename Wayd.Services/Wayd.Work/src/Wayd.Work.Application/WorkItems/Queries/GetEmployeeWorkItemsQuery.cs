@@ -39,6 +39,8 @@ public sealed class GetEmployeeWorkItemsQueryHandler(
         }
 
         return await query
+            .OrderBy(item => item.StackRank)
+            .ThenBy(item => item.Id)
             .ProjectToType<WorkItemListDto>()
             .ToListAsync(cancellationToken);
     }

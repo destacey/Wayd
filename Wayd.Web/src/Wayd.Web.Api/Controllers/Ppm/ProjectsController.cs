@@ -41,7 +41,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [EndpointSummary("Get a list of projects.")]
     [EndpointDescription(
-        "A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.")]
+        "A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in. For the caller's own projects (\"where am I the project manager?\"), pass the role and leave employeeId out: there is no need to look yourself up first.")]
     [McpTool("Projects_GetProjects", "List projects")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -151,7 +151,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Projects)]
     [EndpointSummary("Create a project in a portfolio, optionally inside a program.")]
     [EndpointDescription(
-        "It starts in Proposed status. Approving it later requires an assigned lifecycle, and activating it requires a start and end date. Resolve expenditureCategoryId with ExpenditureCategories_GetOptions. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.")]
+        "It starts in Proposed status. Approving it later requires an assigned lifecycle, and activating it requires a start and end date. `expenditureCategoryId` must be an Active category; ExpenditureCategories_GetOptions lists them. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_Create", "Create project", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateProjectRequest request, CancellationToken cancellationToken)
@@ -308,7 +308,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [EndpointSummary(
         "Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes.")]
     [EndpointDescription(
-        "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Projects_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+        "The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is not changed here either — use Projects_AssignLifecycle or Projects_ChangeLifecycle. A changed `expenditureCategoryId` must be an Active category (ExpenditureCategories_GetOptions lists them); the project's current category is accepted even if it has since been archived. This is a whole-record update, not a patch: every field is overwritten from the request body, so omitting a field clears it. For a partial change, use Projects_Patch instead. Read the record first and echo back every value that should stay the same. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. The id in the body must match the id path parameter. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_Update", "Update project", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -329,7 +329,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Change some of a project's details, roles or strategic themes with a JSON Patch (RFC 6902), leaving the rest as they are.")]
     [EndpointDescription(
-        "Prefer this to Projects_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /businessCase, /expectedBenefits, /expenditureCategoryId, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /memberIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Role ids are employee ids. The key, program and lifecycle are not patchable (Projects_ChangeKey, Projects_ChangeProgram). Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
+        "Prefer this to Projects_Update for any partial change. Paths are the update's camelCase fields: /name, /description, /businessCase, /expectedBenefits, /expenditureCategoryId, /start and /end (set both, or clear both), /sponsorIds, /ownerIds, /managerIds, /memberIds, /strategicThemeIds. `replace` changes a field; `add` with `/managerIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. A new /expenditureCategoryId must be an Active category (ExpenditureCategories_GetOptions lists them). Role ids are employee ids. The key, program and lifecycle are not patchable (Projects_ChangeKey, Projects_ChangeProgram, Projects_AssignLifecycle, Projects_ChangeLifecycle). Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_Patch", "Patch project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -516,6 +516,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Projects)]
     [EndpointSummary("Delete a project.")]
+    [EndpointDescription(
+        "Permanent: the project's stages, tasks, health checks and scores go with it. Only a project in Proposed status that has never moved out of Proposed can be deleted — one that was approved or activated and later reverted stays undeletable, so cancel it instead (Projects_Cancel). Rejected when the portfolio is archived. Requires the delete permission only, not delivery leadership. Confirm with the user before calling. Takes a UUID only, not a key.")]
+    [McpTool("Projects_Delete", "Delete project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -608,7 +611,10 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/lifecycle")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [EndpointSummary("Assign a lifecycle to a project.")]
+    [EndpointSummary("Assign a lifecycle to a project that has none, creating the project's stages from it.")]
+    [EndpointDescription(
+        "Only for a project with no lifecycle yet — when one is assigned, use Projects_ChangeLifecycle. `lifecycleId` must be an Active lifecycle (ProjectLifecycles_GetProjectLifecycles with state Active). Each lifecycle stage becomes a project stage, in order, ready to hold tasks; approving a project (Projects_Approve) requires a lifecycle. Rejected for a completed or canceled project. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Confirm with the user before calling. Takes the project's UUID only, not a key.")]
+    [McpTool("Projects_AssignLifecycle", "Assign project lifecycle")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> AssignLifecycle(Guid id, [FromBody] AssignProjectLifecycleRequest request, CancellationToken cancellationToken)
@@ -623,6 +629,9 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [HttpPost("{id}/lifecycle/change")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Change a project's lifecycle, remapping tasks between stages.")]
+    [EndpointDescription(
+        "**Replaces every stage of the project**: the current stages are removed with their status, dates, progress and assignees, and fresh stages are created from the new lifecycle; tasks are kept and moved. `lifecycleId` must be an Active lifecycle different from the current one. `stageMapping` maps each current project stage id (Projects_GetProjectStages) to the id of a stage in the new lifecycle (ProjectLifecycles_GetProjectLifecycle); every current stage that holds tasks must be mapped, and at least one entry is required. Tasks in an unmapped stage go to the new lifecycle's first stage. Only for a project that already has a lifecycle — otherwise use Projects_AssignLifecycle. Rejected for a completed or canceled project. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Show the user the mapping and the stage data that will be lost, and confirm before calling. Takes the project's UUID only, not a key.")]
+    [McpTool("Projects_ChangeLifecycle", "Change project lifecycle")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -710,7 +719,10 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPut("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [EndpointSummary("Update a project stage.")]
+    [EndpointSummary("Update a project stage's description, status, planned dates, progress and assignees.")]
+    [EndpointDescription(
+        "This is a whole-record update, not a patch: every field is overwritten from the request body, so an omitted date is cleared and an omitted progress becomes 0. For a partial change, use Projects_PatchStage instead. Read the stage first (Projects_GetProjectStage) and echo back every value that should stay the same. `status` is a task status id from Tasks_GetTaskStatuses. `plannedStart` and `plannedEnd` are set together or both left null, and must cover the dated top-level tasks in the stage. `assigneeIds` REPLACES the stage's assignees — an omitted or empty list removes every assignee; only an explicit null leaves them unchanged. Assignee ids are employee ids. The stage's name comes from its lifecycle and cannot be changed here. Requires the project update permission. Confirm with the user before calling. Takes the project's and the stage's UUIDs, not keys.")]
+    [McpTool("Projects_UpdateStage", "Update a project stage")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateProjectStage(Guid id, Guid stageId, [FromBody] UpdateProjectStageRequest request, CancellationToken cancellationToken)

@@ -35,6 +35,8 @@ public sealed class GetSprintsQueryHandler(
 
         // Every sprint of each team in the result, which is what each team's timeline needs.
         var sprints = await query
+            .OrderBy(i => i.DateRange.Start)
+            .ThenBy(i => i.Key)
             .Include(i => i.Team)
             .AsNoTracking()
             .ToListAsync(cancellationToken);

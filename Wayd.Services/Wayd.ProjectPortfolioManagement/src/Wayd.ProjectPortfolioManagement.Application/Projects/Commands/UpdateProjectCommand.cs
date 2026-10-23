@@ -89,6 +89,26 @@ public sealed class UpdateProjectCommandHandler(
                 return Result.Failure<ObjectIdAndKey>("Project not found.");
             }
 
+            // Only a newly chosen category must be active: a project keeps a category archived after it
+            // was assigned, and a whole-record update echoes that category back.
+            if (project.ExpenditureCategoryId != request.ExpenditureCategoryId)
+            {
+                var expenditureCategoryState = await _projectPortfolioManagementDbContext.ExpenditureCategories
+                    .Where(e => e.Id == request.ExpenditureCategoryId)
+                    .Select(e => (ExpenditureCategoryState?)e.State)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (expenditureCategoryState is null)
+                {
+                    _logger.LogInformation("Expenditure Category with Id {ExpenditureCategoryId} not found.", request.ExpenditureCategoryId);
+                    return Result.Failure("Expenditure Category not found.");
+                }
+                else if (expenditureCategoryState != ExpenditureCategoryState.Active)
+                {
+                    _logger.LogInformation("Expenditure Category with Id {ExpenditureCategoryId} is not active.", request.ExpenditureCategoryId);
+                    return Result.Failure("Expenditure Category is not active.");
+                }
+            }
+
             var ancestry = project.AncestryRoles();
 
             var updateResult = project.UpdateDetails(

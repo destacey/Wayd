@@ -58,7 +58,7 @@ public class UpdatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         var (objective, hc) = Seed();
         var newExpiration = _now.Plus(Duration.FromDays(14));
         var command = new UpdatePlanningIntervalObjectiveHealthCheckCommand(
-            objective.Id, hc.Id, HealthStatus.AtRisk, newExpiration, "new note");
+            objective.PlanningIntervalId, objective.Id, hc.Id, HealthStatus.AtRisk, newExpiration, "new note");
 
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -76,12 +76,31 @@ public class UpdatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
     public async Task Handle_WhenObjectiveNotFound_ReturnsFailure()
     {
         var command = new UpdatePlanningIntervalObjectiveHealthCheckCommand(
-            Guid.NewGuid(), Guid.NewGuid(), HealthStatus.AtRisk, _now.Plus(Duration.FromDays(7)), null);
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), HealthStatus.AtRisk, _now.Plus(Duration.FromDays(7)), null);
 
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenObjectiveIsInAnotherPlanningInterval_ReturnsFailureAndChangesNothing()
+    {
+        // Arrange
+        var (objective, hc) = Seed();
+        var command = new UpdatePlanningIntervalObjectiveHealthCheckCommand(
+            Guid.NewGuid(), objective.Id, hc.Id, HealthStatus.AtRisk, _now.Plus(Duration.FromDays(14)), "new note");
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
+        hc.Status.Should().Be(HealthStatus.Healthy);
+        hc.Note.Should().Be("old");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

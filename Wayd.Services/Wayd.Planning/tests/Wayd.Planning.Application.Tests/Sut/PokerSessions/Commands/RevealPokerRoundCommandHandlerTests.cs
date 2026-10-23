@@ -38,7 +38,7 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
 
         session.AddRound("Story to estimate");
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 10, 0));
 
         var command = new RevealPokerRoundCommand(session.Id, round.Id);
 
@@ -76,7 +76,7 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
 
         session.AddRound("Story");
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 10, 0));
         session.RevealRound(round.Id);
 
         var command = new RevealPokerRoundCommand(session.Id, round.Id);

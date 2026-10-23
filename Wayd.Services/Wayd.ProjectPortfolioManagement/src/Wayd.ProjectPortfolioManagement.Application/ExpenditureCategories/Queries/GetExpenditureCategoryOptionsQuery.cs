@@ -21,6 +21,6 @@ public sealed class GetExpenditureCategoryOptionsQueryHandler(IProjectPortfolioM
             .ProjectToType<ExpenditureCategoryOptionDto>()
             .ToListAsync(cancellationToken);
 
-        return [.. categories.OrderBy(c => c.Name)];
+        return [.. categories.OrderBy(c => c.Name).ThenBy(c => c.Id)];
     }
 }

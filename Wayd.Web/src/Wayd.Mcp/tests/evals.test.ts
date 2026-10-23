@@ -139,11 +139,18 @@ describe('scenarios', () => {
     assert.deepEqual(duplicates, []);
   });
 
-  test('every published skill has at least three scenarios', () => {
-    // Arrange
-    const skills = readdirSync(join(__dirname, '../../../../skills'), { withFileTypes: true })
+  test('every published skill whose tools ship here has at least three scenarios', () => {
+    // Arrange — the stub server offers only this package's tools, so a skill whose tools the hosted
+    // endpoint alone offers cannot be evaluated here
+    const skillsDir = join(__dirname, '../../../../skills');
+    const prefixesOf = (skill: string): string[] => {
+      const description = readFileSync(join(skillsDir, skill, 'SKILL.md'), 'utf8').match(/^description: (.*)$/m)?.[1] ?? '';
+      return [...description.matchAll(/\b([A-Z][A-Za-z]*_)\*/g)].flatMap((m) => (m[1] ? [m[1]] : []));
+    };
+    const skills = readdirSync(skillsDir, { withFileTypes: true })
       .filter((e) => e.isDirectory())
-      .map((e) => e.name);
+      .map((e) => e.name)
+      .filter((skill) => prefixesOf(skill).some((prefix) => [...toolNames].some((name) => name.startsWith(prefix))));
     const scenarios = loadScenarios();
 
     // Act

@@ -36,6 +36,8 @@ public sealed class GetTeamOperatingModelsForTeamsQueryHandler(IOrganizationDbCo
             (x.Model.DateRange.End == null || x.Model.DateRange.End >= asOfDate));
 
         var results = await query
+            .OrderBy(x => x.Id)
+            .ThenBy(x => x.Model.Id)
             .Select(x => new { x.Id, x.Model })
             .ToListAsync(cancellationToken);
 

@@ -53,6 +53,7 @@ public sealed class GetRisksQueryHandler : IQueryHandler<GetRisksQuery, IReadOnl
         }
 
         var risks = await query
+            .OrderBy(r => r.Key)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 

@@ -338,7 +338,7 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
 
         // Assert
         Assert.Equal(Enum.GetValues<McpToolset>(), tools.Where(t => t.Toolset is not null).Select(t => t.Toolset!.Value).Distinct().Order());
-        Assert.Equal([SkillTools.Name], tools.Where(t => t.Toolset is null).Select(t => t.Tool.ProtocolTool.Name));
+        Assert.Equal(["Me_GetAllocations", "Me_GetProfile", "Me_GetTeamMemberships", "Me_GetWorkItems", SkillTools.Name], tools.Where(t => t.Toolset is null).Select(t => t.Tool.ProtocolTool.Name));
     }
 
     [Fact]

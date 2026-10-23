@@ -68,6 +68,57 @@ public class WorkspaceTests
 
     #endregion
 
+    #region SetExternalViewWorkItemUrlTemplate
+
+    [Fact]
+    public void SetExternalViewWorkItemUrlTemplate_TrimsTheTemplate()
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker().AsExternal().Generate();
+
+        // Act
+        var result = workspace.SetExternalViewWorkItemUrlTemplate("  https://dev.example/acme/_workitems/edit/  ", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workspace.ExternalViewWorkItemUrlTemplate.Should().Be("https://dev.example/acme/_workitems/edit/");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void SetExternalViewWorkItemUrlTemplate_ClearsTheTemplate_WhenNoneIsGiven(string? template)
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker()
+            .AsExternal(externalViewWorkItemUrlTemplate: "https://dev.example/acme/_workitems/edit/")
+            .Generate();
+
+        // Act
+        var result = workspace.SetExternalViewWorkItemUrlTemplate(template, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workspace.ExternalViewWorkItemUrlTemplate.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetExternalViewWorkItemUrlTemplate_WhenOwnedWorkspace_ReturnsFailure()
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker().Generate();
+
+        // Act
+        var result = workspace.SetExternalViewWorkItemUrlTemplate("https://dev.example/acme/_workitems/edit/", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        workspace.ExternalViewWorkItemUrlTemplate.Should().BeNull();
+    }
+
+    #endregion
+
     #region WorkItemHistoryReadToEnd
 
     [Fact]

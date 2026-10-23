@@ -22,7 +22,7 @@ public sealed record MapPlanningIntervalSprintsRequest
     /// This is a sync/replace operation - any team sprints currently mapped but not included will be unmapped.
     /// - Non-null value: Maps the sprint to the iteration.
     /// - Null value: Explicitly unmaps any sprint from that iteration for this team.
-    /// - Omitted iteration: No change to that iteration's mappings.
+    /// - Omitted iteration: the team's sprint mapped to it, if any, is unmapped like any other sprint not named.
     /// </summary>
     public Dictionary<Guid, Guid?> IterationSprintMappings { get; set; } = [];
 

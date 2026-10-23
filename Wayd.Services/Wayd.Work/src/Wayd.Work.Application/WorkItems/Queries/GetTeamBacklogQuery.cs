@@ -41,7 +41,11 @@ public sealed class GetTeamBacklogQueryHandler(IWorkDbContext workDbContext) : I
         workItems.Sort((a, b) =>
         {
             var rankCompare = a.StackRank.CompareTo(b.StackRank);
-            return rankCompare != 0 ? rankCompare : a.Created.CompareTo(b.Created);
+            if (rankCompare != 0)
+                return rankCompare;
+
+            var createdCompare = a.Created.CompareTo(b.Created);
+            return createdCompare != 0 ? createdCompare : a.Id.CompareTo(b.Id);
         });
 
         foreach (var (index, workItem) in workItems.Index())

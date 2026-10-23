@@ -57,6 +57,7 @@ public sealed class GetEmployeeAllocationsQueryHandler(
             .OrderBy(r => r.Start)
             .ThenBy(r => r.TeamName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(r => r.RoleName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Id)
             .Select(r => new EmployeeAllocationDto
             {
                 Id = r.Id,

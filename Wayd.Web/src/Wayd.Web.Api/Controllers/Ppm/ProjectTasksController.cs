@@ -159,6 +159,9 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPut("{id}/placement")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Update a project task's placement within a parent.")]
+    [EndpointDescription(
+        "Moves a task, with its subtasks, to another place in the plan or reorders it among its siblings; nothing else about the task changes. `parentId` is a stage id (the task becomes a top-level task in that stage) or another task's id (it becomes that task's child); a milestone cannot be a parent, and a task cannot move under itself or its own subtasks. `order` is the 1-based position among the new parent's children; omit it to place the task last. Moving to another stage moves its subtasks too. `taskId` in the body must match the id path parameter, which takes the task's UUID only; the project accepts a UUID or key. Confirm with the user before calling.")]
+    [McpTool("Tasks_UpdateProjectTaskPlacement", "Move a project task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

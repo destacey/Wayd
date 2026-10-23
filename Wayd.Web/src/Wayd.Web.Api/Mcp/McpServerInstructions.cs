@@ -15,7 +15,7 @@ public static class McpServerInstructions
     /// The instructions the hosted server sends: <see cref="Shared"/>, then how to fetch a skill, which only
     /// the hosted server can serve.
     /// </summary>
-    public const string Text = Shared + " " + SkillsGuidance;
+    public const string Text = Shared + " " + SkillsGuidance + " " + SelfGuidance;
 
     /// <summary>
     /// The instructions this server shares word for word with <c>@wayd/mcp</c>, which the parity snapshot
@@ -30,6 +30,13 @@ public static class McpServerInstructions
         "A parameter named idOrKey (or xxxIdOrKey) accepts a UUID or a key; any other id parameter takes a UUID only unless its description says it accepts a key, so look the UUID up with a read tool first. " +
         "Send a moment as an ISO 8601 datetime with its offset, exactly as reported and never converted to a local date; a calendar date is yyyy-MM-dd. " +
         "Recommending and logging a project or PI objective health check follows a recipe in the description of Projects_CreateProjectHealthCheck or PlanningIntervals_CreateObjectiveHealthCheck, and of the matching health-check evidence tool where one is listed: read it before you gather evidence.";
+
+    /// <summary>
+    /// How an agent answers a question about the person asking. Without it, agents list users or employees
+    /// to find the caller, which most callers are not permitted to do.
+    /// </summary>
+    private const string SelfGuidance =
+        "When a request is about the person asking (my work items, my teams, projects I manage), never list users or employees to find them: call Me_GetProfile, whose employee id is the one employeeId, role and assignee parameters take for them, or use a Me_ tool or a tool that defaults to the caller.";
 
     /// <summary>How an agent finds the skill for the area it works in.</summary>
     private const string SkillsGuidance =

@@ -423,12 +423,16 @@ export const teamApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    getActiveSprint: builder.query<SprintDetailsDto, string>({
+    getActiveSprint: builder.query<SprintDetailsDto | null, string>({
       queryFn: async (id: string) => {
         try {
           const data = await getTeamsClient().getActiveSprint(id)
           return { data }
-        } catch (error) {
+        } catch (error: any) {
+          // 404 is the API's answer for a team with no sprint in progress.
+          if (error?.status === 404) {
+            return { data: null }
+          }
           console.error('API Error:', error)
           return { error }
         }

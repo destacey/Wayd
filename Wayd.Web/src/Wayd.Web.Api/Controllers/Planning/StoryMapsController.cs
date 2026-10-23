@@ -267,6 +267,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
     [EndpointSummary("Rename a task.")]
     [EndpointDescription("Updates only the title, leaving the description untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
+    [McpTool("StoryMaps_RenameTask", "Rename a story map task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RenameTask(Guid storyMapId, Guid taskId, [FromBody] RenameTaskRequest request, CancellationToken cancellationToken)
@@ -279,6 +280,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set a task's description.")]
     [EndpointDescription("Updates only the description, leaving the title untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
+    [McpTool("StoryMaps_SetTaskDescription", "Set a story map task description")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetTaskDescription(Guid storyMapId, Guid taskId, [FromBody] SetTaskDescriptionRequest request, CancellationToken cancellationToken)

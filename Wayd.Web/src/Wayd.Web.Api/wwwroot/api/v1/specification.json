@@ -7662,6 +7662,7 @@
           {
             "name": "productId",
             "in": "query",
+            "description": "The ID of the product to scope the delivery overview to. Omit for the whole catalog.",
             "schema": {
               "type": "string",
               "format": "uuid",

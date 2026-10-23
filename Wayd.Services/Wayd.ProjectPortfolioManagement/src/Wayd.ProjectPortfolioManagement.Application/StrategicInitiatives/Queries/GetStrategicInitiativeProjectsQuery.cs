@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -37,11 +37,12 @@ public sealed class GetStrategicInitiativeProjectsQueryHandler(IProjectPortfolio
             PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
         var config = ProjectListDto.CreateTypeAdapterConfig(
             now, await _currentPrincipal.GetEmployeeId(cancellationToken), isPpmAdministrator);
+
         return await query
             .SelectMany(i => i.StrategicInitiativeProjects.Select(ip => ip.Project))
             // Key last, so an MCP caller's offset slices the same list on every call.
-            .OrderBy(p => p.Name)
-            .ThenBy(p => p.Key)
+            .OrderBy(p => p!.Name)
+            .ThenBy(p => p!.Key)
             .ProjectToType<ProjectListDto>(config)
             .ToListAsync(cancellationToken);
     }

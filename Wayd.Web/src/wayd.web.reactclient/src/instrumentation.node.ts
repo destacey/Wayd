@@ -4,8 +4,15 @@
 // The exporter is chosen from OTEL_EXPORTER_OTLP_PROTOCOL. Aspire injects grpc for its dashboard.
 // Datadog's OTLP intake is http/protobuf, and a gRPC exporter pointed at that URL exports nothing.
 
-import { NodeSDK } from '@opentelemetry/sdk-node'
+import http from 'node:http'
+import { context, propagation } from '@opentelemetry/api'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
+import { NodeSDK } from '@opentelemetry/sdk-node'
+import {
+  AlwaysOnSampler,
+  ParentBasedSampler,
+} from '@opentelemetry/sdk-trace-base'
+import { DropHealthCheckSampler } from './otel/drop-health-check-sampler'
 
 const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
 console.log(
@@ -17,8 +24,43 @@ console.log(
 process.env.OTEL_METRIC_EXPORT_INTERVAL = '5000'
 process.env.OTEL_METRIC_EXPORT_TIMEOUT = '3000'
 
+// Node commits response headers through writeHead, including the implicit call
+// from the first write. The active span then is the request being served, so
+// the browser can continue that trace on the API calls it makes afterwards.
+// The two overloads cannot be implemented as one function, so the assignment
+// goes through a signature that covers both.
+type WriteHead = (
+  this: http.ServerResponse,
+  statusCode: number,
+  statusMessage?: string | http.OutgoingHttpHeaders | http.OutgoingHttpHeader[],
+  headers?: http.OutgoingHttpHeaders | http.OutgoingHttpHeader[],
+) => http.ServerResponse
+
+const originalWriteHead = http.ServerResponse.prototype
+  .writeHead as unknown as WriteHead
+http.ServerResponse.prototype.writeHead = function writeHead(
+  this: http.ServerResponse,
+  statusCode: number,
+  statusMessage?: string | http.OutgoingHttpHeaders | http.OutgoingHttpHeader[],
+  headers?: http.OutgoingHttpHeaders | http.OutgoingHttpHeader[],
+) {
+  if (!this.headersSent && !this.getHeader('traceresponse')) {
+    const carrier: Record<string, string> = {}
+    propagation.inject(context.active(), carrier)
+    if (carrier.traceparent) this.setHeader('traceresponse', carrier.traceparent)
+  }
+  return originalWriteHead.call(this, statusCode, statusMessage, headers)
+} as typeof http.ServerResponse.prototype.writeHead
+
+const dropHealthChecks = new DropHealthCheckSampler(new AlwaysOnSampler())
+
 const sdk = new NodeSDK({
   serviceName: process.env.OTEL_SERVICE_NAME || 'wayd-client',
+  sampler: new ParentBasedSampler({
+    root: dropHealthChecks,
+    remoteParentSampled: dropHealthChecks,
+    localParentSampled: dropHealthChecks,
+  }),
   instrumentations: [
     getNodeAutoInstrumentations({
       // Disable fs instrumentation to reduce noise

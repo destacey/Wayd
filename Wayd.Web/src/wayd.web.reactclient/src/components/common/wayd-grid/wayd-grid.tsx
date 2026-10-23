@@ -7,6 +7,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useEffectEvent,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -735,6 +736,135 @@ function GridBody<T extends RowData>({
   )
 }
 
+interface UseDraftCreationOptions {
+  /** Editing is on, drafts are configured, and nothing is loading or saving. */
+  canAttempt: boolean
+  hasDraft: boolean
+  isEditing: boolean
+  draftPrefix: string
+  onDraftsChange?: (drafts: DraftItem[]) => void
+  selectedRowId: string | null
+  saveFormChanges: (rowId: string) => Promise<boolean>
+  setSelectedRowId: (rowId: string | null) => void
+  setSelectedCellId: (cellId: string | null) => void
+  tableRef: { current: any }
+  draftTasksRef: { current: DraftItem[] }
+  updateDraftTasks: (updater: (prev: DraftItem[]) => DraftItem[]) => void
+}
+
+/**
+ * Adds draft rows to a tree grid: saves the row being edited first, allows one
+ * draft at a time, expands the parent and selects the new row's name cell.
+ * Kept in its own hook because the add callbacks touch refs and are handed to
+ * the consumer's column factory, which is called during render.
+ */
+function useDraftCreation({
+  canAttempt,
+  hasDraft,
+  isEditing,
+  draftPrefix,
+  onDraftsChange,
+  selectedRowId,
+  saveFormChanges,
+  setSelectedRowId,
+  setSelectedCellId,
+  tableRef,
+  draftTasksRef,
+  updateDraftTasks,
+}: UseDraftCreationOptions) {
+  // The ref guards against re-entry before a re-render lands; the state mirrors
+  // it so the add-draft controls disable while one is in flight.
+  const isAddingDraftRef = useRef(false)
+  const [isAddingDraft, setIsAddingDraft] = useState(false)
+  const draftCounterRef = useRef(0)
+
+  const canCreateDraft =
+    canAttempt && !isAddingDraft && (!hasDraft || isEditing)
+
+  const addDraft = useCallback(
+    async (parentId?: string): Promise<string | null> => {
+      if (!canCreateDraft) return null
+      if (isAddingDraftRef.current) return null
+
+      isAddingDraftRef.current = true
+      setIsAddingDraft(true)
+      try {
+        if (selectedRowId) {
+          const saved = await saveFormChanges(selectedRowId)
+          if (!saved) return null
+        }
+
+        // Prevent multiple simultaneous drafts from being added.
+        if (draftTasksRef.current.length > 0) {
+          return null
+        }
+
+        draftCounterRef.current += 1
+        const newDraft: DraftItem = {
+          id: `${draftPrefix}${Date.now()}-${draftCounterRef.current}`,
+          parentId,
+          order: 0,
+        }
+        updateDraftTasks((prev) => {
+          const next = [...prev, newDraft]
+          onDraftsChange?.(next)
+          return next
+        })
+
+        if (parentId && tableRef.current) {
+          const rows = tableRef.current.getRowModel().rows
+          const parentRow = rows.find((r: any) => r.original.id === parentId)
+          if (parentRow && !parentRow.getIsExpanded()) {
+            parentRow.toggleExpanded()
+          }
+        }
+
+        // Defer selection so the draft row renders first (unselected),
+        // then a second render mounts the editable input for focusing.
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            setSelectedRowId(newDraft.id)
+            setSelectedCellId(`${newDraft.id}-name`)
+            requestScrollRowIntoView(newDraft.id, styles.tableWrapper)
+          }, 50)
+        })
+
+        return newDraft.id
+      } finally {
+        isAddingDraftRef.current = false
+        setIsAddingDraft(false)
+      }
+    },
+    [
+      canCreateDraft,
+      draftPrefix,
+      onDraftsChange,
+      saveFormChanges,
+      selectedRowId,
+      setSelectedRowId,
+      setSelectedCellId,
+      tableRef,
+      draftTasksRef,
+      updateDraftTasks,
+    ],
+  )
+
+  const addDraftAtRoot = useCallback(() => {
+    void addDraft()
+    return null
+  }, [addDraft])
+
+  const addDraftAsChild = useCallback(
+    (parentId: string) => {
+      void addDraft(parentId)
+      return null
+    },
+    [addDraft],
+  )
+
+  return { canCreateDraft, addDraftAtRoot, addDraftAsChild }
+}
+
 function WaydGridInner<T extends RowData>(
   props: WaydGridProps<T>,
   ref: Ref<WaydGridHandle>,
@@ -869,17 +999,18 @@ function WaydGridInner<T extends RowData>(
   // cannot. When the consumer doesn't handle it, forward the vertical delta to
   // the grid's scroller so vertical scrolling works over the chart too.
   //
-  // The consumer's onWheel is held in a ref so the (non-passive) listener stays
-  // stable across renders — consumers commonly pass an inline callback, which
-  // would otherwise tear down and re-add the listener every render (including
-  // mid-drag).
-  const rightPaneOnWheelRef = useRef(rightPane?.onWheel)
-  rightPaneOnWheelRef.current = rightPane?.onWheel
+  // The consumer's onWheel is read through an effect event so the (non-passive)
+  // listener stays stable across renders — consumers commonly pass an inline
+  // callback, which would otherwise tear down and re-add the listener every
+  // render (including mid-drag).
+  const onRightPaneWheel = useEffectEvent((e: WheelEvent) =>
+    rightPane?.onWheel?.(e),
+  )
   useEffect(() => {
     const el = rightPaneTrackRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
-      if (rightPaneOnWheelRef.current?.(e) === true) return
+      if (onRightPaneWheel(e) === true) return
       if (e.deltaY !== 0 && bodyViewportRef.current) {
         // Forward vertical wheel to the grid's scroller; preventDefault so the
         // browser doesn't also scroll an ancestor (e.g. the page) at the edge.
@@ -1007,8 +1138,6 @@ function WaydGridInner<T extends RowData>(
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null)
   const [draftTasks, setDraftTasks] = useState<DraftItem[]>([])
   const draftTasksRef = useRef<DraftItem[]>([])
-  const isAddingDraftRef = useRef(false)
-  const draftCounterRef = useRef(0)
 
   const updateDraftTasks = useCallback(
     (updater: (prev: DraftItem[]) => DraftItem[]) => {
@@ -1110,92 +1239,20 @@ function WaydGridInner<T extends RowData>(
 
   // ─── Draft helpers ───────────────────────────────────────
   const isEditing = selectedRowId !== null
-  const hasDraft = draftTasks.length > 0
-  const canAttemptCreateDraft =
-    canEdit &&
-    !!createDraftNode &&
-    !isLoading &&
-    !isSaving &&
-    !isAddingDraftRef.current
-  const canCreateDraft = canAttemptCreateDraft && (!hasDraft || isEditing)
-
-  const addDraft = useCallback(
-    async (parentId?: string): Promise<string | null> => {
-      if (!canCreateDraft) return null
-      if (isAddingDraftRef.current) return null
-
-      isAddingDraftRef.current = true
-      try {
-        if (selectedRowId) {
-          const saved = await saveFormChanges(selectedRowId)
-          if (!saved) return null
-        }
-
-        // Prevent multiple simultaneous drafts from being added.
-        if (draftTasksRef.current.length > 0) {
-          return null
-        }
-
-        draftCounterRef.current += 1
-        const newDraft: DraftItem = {
-          id: `${draftPrefix}${Date.now()}-${draftCounterRef.current}`,
-          parentId,
-          order: 0,
-        }
-        updateDraftTasks((prev) => {
-          const next = [...prev, newDraft]
-          onDraftsChange?.(next)
-          return next
-        })
-
-        if (parentId && tableRef.current) {
-          const rows = tableRef.current.getRowModel().rows
-          const parentRow = rows.find((r: any) => r.original.id === parentId)
-          if (parentRow && !parentRow.getIsExpanded()) {
-            parentRow.toggleExpanded()
-          }
-        }
-
-        // Defer selection so the draft row renders first (unselected),
-        // then a second render mounts the editable input for focusing.
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            setSelectedRowId(newDraft.id)
-            setSelectedCellId(`${newDraft.id}-name`)
-            requestScrollRowIntoView(newDraft.id, styles.tableWrapper)
-          }, 50)
-        })
-
-        return newDraft.id
-      } finally {
-        isAddingDraftRef.current = false
-      }
-    },
-    [
-      canCreateDraft,
-      draftPrefix,
-      onDraftsChange,
-      saveFormChanges,
-      selectedRowId,
-      setSelectedRowId,
-      setSelectedCellId,
-      tableRef,
-      updateDraftTasks,
-    ],
-  )
-
-  const addDraftAtRoot = useCallback(() => {
-    void addDraft()
-    return null
-  }, [addDraft])
-
-  const addDraftAsChild = useCallback(
-    (parentId: string) => {
-      void addDraft(parentId)
-      return null
-    },
-    [addDraft],
-  )
+  const { canCreateDraft, addDraftAtRoot, addDraftAsChild } = useDraftCreation({
+    canAttempt: canEdit && !!createDraftNode && !isLoading && !isSaving,
+    hasDraft: draftTasks.length > 0,
+    isEditing,
+    draftPrefix,
+    onDraftsChange,
+    selectedRowId,
+    saveFormChanges,
+    setSelectedRowId,
+    setSelectedCellId,
+    tableRef,
+    draftTasksRef,
+    updateDraftTasks,
+  })
 
   // ─── Column context ──────────────────────────────────────
   // Tree drags reparent (onNodeMove); flat drags reorder (onRowReorder).
@@ -1527,7 +1584,11 @@ function WaydGridInner<T extends RowData>(
     },
   })
 
-  tableRef.current = table
+  // Read by the editing hook's handlers and effects, which are created before
+  // the table exists; a layout effect publishes it ahead of any passive effect.
+  useLayoutEffect(() => {
+    tableRef.current = table
+  }, [table, tableRef])
 
   useImperativeHandle(ref, () => ({
     table,

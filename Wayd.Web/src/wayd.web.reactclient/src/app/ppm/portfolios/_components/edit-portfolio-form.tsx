@@ -13,7 +13,7 @@ import {
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
 import { BaseOptionType } from 'antd/es/select'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 const { Item } = Form
 
@@ -50,8 +50,6 @@ const EditPortfolioForm = ({
   onFormComplete,
   onFormCancel,
 }: EditPortfolioFormProps) => {
-  const [employees, setEmployees] = useState<BaseOptionType[]>([])
-
   const messageApi = useMessage()
 
   const {
@@ -112,35 +110,30 @@ const EditPortfolioForm = ({
     })
   }, [portfolioData, form])
 
-  // Build employee options including inactive assigned employees
-  useEffect(() => {
-    if (!employeeData) return
-    const employeeOptions = [...employeeData]
+  // Employee options, plus any inactive employee already assigned a role.
+  const employees: BaseOptionType[] = []
+  if (employeeData) {
+    employees.push(...employeeData)
 
-    if (portfolioData) {
+    if (portfolioData && employees.length > 0) {
       const assignedEmployees = [
         ...portfolioData.portfolioSponsors,
         ...portfolioData.portfolioOwners,
         ...portfolioData.portfolioManagers,
       ]
-
-      if (employeeOptions && employeeOptions.length > 0) {
-        const missingEmployees = assignedEmployees.filter(
-          (e) => !employeeOptions.find((emp) => emp.value === e.id),
-        )
-        if (missingEmployees.length > 0) {
-          employeeOptions.push(
-            ...missingEmployees.map((e) => ({
-              value: e.id,
-              label: `${e.name} (Inactive)`,
-            })),
-          )
-        }
-      }
+      const missingEmployees = assignedEmployees.filter(
+        (e) => !employees.find((emp) => emp.value === e.id),
+      )
+      employees.push(
+        ...missingEmployees.map((e) => ({
+          value: e.id,
+          label: `${e.name} (Inactive)`,
+        })),
+      )
     }
 
-    setEmployees(employeeOptions.sort((a, b) => a.label.localeCompare(b.label)))
-  }, [employeeData, portfolioData])
+    employees.sort((a, b) => a.label.localeCompare(b.label))
+  }
 
   // Query error display
   useEffect(() => {

@@ -103,10 +103,10 @@ const ScoringModelCriteriaList = ({
 
   const sortedCriteria = useMemo(
     () =>
-      !scoringModel?.criteria
+      !scoringModel.criteria
         ? []
         : [...scoringModel.criteria].sort((a, b) => a.order - b.order),
-    [scoringModel?.criteria],
+    [scoringModel.criteria],
   )
 
   const totalWeight = useMemo(

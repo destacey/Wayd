@@ -484,6 +484,36 @@ function LocalLoginTab() {
   )
 }
 
+interface OidcCallback {
+  /** The provider chosen before the redirect, stored in sessionStorage. */
+  providerName: string
+  /** The IdP's error description when it returned an error rather than a code. */
+  error: string | null
+}
+
+/**
+ * The OIDC redirect this page was loaded from, or null when it was not loaded
+ * from one, the provider choice is missing, or the user is already signed in.
+ */
+const readOidcCallback = (): OidcCallback | null => {
+  if (typeof window === 'undefined' || isAuthActive()) return null
+
+  const params = new URL(window.location.href).searchParams
+  const hasError = params.has('error')
+  if (!params.has('code') && !hasError) return null
+
+  const providerName = getChosenProviderName()
+  if (!providerName) return null
+
+  return {
+    providerName,
+    error: hasError
+      ? (params.get('error_description') ??
+        'Sign-in was cancelled or failed.')
+      : null,
+  }
+}
+
 export default function LoginPage() {
   useDocumentTitle('Wayd Login')
   const router = useRouter()
@@ -497,12 +527,17 @@ export default function LoginPage() {
   // spinner on the right button while the redirect is initiating.
   const [signingInProvider, setSigningInProvider] = useState<string | null>(null)
 
-  // Exchange flow state. When we return from an OIDC redirect, the URL will
-  // contain the `code` and `state` params. We detect this, complete the
-  // callback, and exchange the access token for a Wayd JWT.
-  const [exchangeState, setExchangeState] = useState<
-    'idle' | 'running' | 'failed'
-  >('idle')
+  // Returning from an OIDC redirect, the URL carries `code` (or `error`); the
+  // callback is completed and its access token exchanged for a Wayd JWT. The
+  // URL and the chosen provider are read once: they change only as the
+  // exchange consumes them, and success leaves with a full reload.
+  const [oidcCallback] = useState(readOidcCallback)
+  const callbackProvider =
+    oidcCallback && providers
+      ? providers.oidc.find((p) => p.name === oidcCallback.providerName)
+      : undefined
+  const [exchangeFailed, setExchangeFailed] = useState(false)
+  const exchangeRunning = !!callbackProvider && !exchangeFailed
   const [exchangeError, setExchangeError] = useState<string | null>(null)
   const exchangeStartedRef = useRef(false)
 
@@ -518,37 +553,17 @@ export default function LoginPage() {
     }
   }, [router])
 
-  // OIDC redirect callback handler. Fires when we return from the IdP with a
-  // `code` param in the URL. We stored the chosen provider name in
-  // sessionStorage before the redirect; use it to match the right UserManager.
+  // Waits for the providers to load, since the provider is matched by name.
   useEffect(() => {
+    if (!oidcCallback || !callbackProvider) return
     if (exchangeStartedRef.current) return
-    if (isAuthActive()) return
-
-    const url = new URL(window.location.href)
-    const hasCode = url.searchParams.has('code')
-    const hasError = url.searchParams.has('error')
-    if (!hasCode && !hasError) return
-
-    const chosenProviderName = getChosenProviderName()
-    if (!chosenProviderName) return
-
-    // Providers may not be loaded yet — wait for them before completing signin.
-    // This effect re-runs when `providers` changes, so it will retry.
-    if (!providers) return
-
-    const provider = providers.oidc.find((p) => p.name === chosenProviderName)
-    if (!provider) return
-
     exchangeStartedRef.current = true
-    setExchangeState('running')
-    setExchangeError(null)
 
+    const provider = callbackProvider
     const run = async () => {
       try {
-        if (hasError) {
-          const errorDesc = url.searchParams.get('error_description') ?? 'Sign-in was cancelled or failed.'
-          throw new Error(errorDesc)
+        if (oidcCallback.error !== null) {
+          throw new Error(oidcCallback.error)
         }
 
         const oidcUser = await completeSignin(provider)
@@ -566,11 +581,11 @@ export default function LoginPage() {
         setExchangeError(
           'Unable to complete sign-in. Please try again.',
         )
-        setExchangeState('failed')
+        setExchangeFailed(true)
       }
     }
     run()
-  }, [providers])
+  }, [oidcCallback, callbackProvider])
 
   const handleOidcLogin = async (provider: OidcProviderInfo) => {
     setSigningInProvider(provider.name)
@@ -584,7 +599,7 @@ export default function LoginPage() {
     }
   }
 
-  if (exchangeState === 'running') {
+  if (exchangeRunning) {
     return <LoadingAccount message="Completing sign-in…" />
   }
 

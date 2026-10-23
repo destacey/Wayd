@@ -45,6 +45,14 @@ const SchedulingSettingsForm = ({
   const [updateSchedulingSettings, { isLoading: isSaving }] =
     useUpdateSchedulingSettingsMutation()
 
+  // A fresh copy of the settings replaces the form's values, so nothing is
+  // left unsaved.
+  const [loadedSettings, setLoadedSettings] = useState(settings)
+  if (settings !== loadedSettings) {
+    setLoadedSettings(settings)
+    if (settings) setIsDirty(false)
+  }
+
   useEffect(() => {
     if (!settings) return
     form.setFieldsValue({
@@ -54,7 +62,6 @@ const SchedulingSettingsForm = ({
       defaultHolidayCalendarId: settings.defaultHolidayCalendar?.id,
       workingDayHours: settings.workingDayHours,
     })
-    setIsDirty(false)
   }, [settings, form])
 
   const onFinish = async (values: SchedulingSettingsFormValues) => {

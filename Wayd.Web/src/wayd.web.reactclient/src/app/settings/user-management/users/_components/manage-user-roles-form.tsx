@@ -27,7 +27,6 @@ const ManageUserRolesForm: React.FC<ManageUserRolesFormProps> = ({
   onFormComplete,
   onFormCancel,
 }) => {
-  const [roles, setRoles] = useState<RecordType[]>([])
   const [targetKeys, setTargetKeys] = useState<string[]>([])
   const [selectedKeys, setSelectedKeys] = useState<TransferProps['targetKeys']>(
     [],
@@ -79,32 +78,30 @@ const ManageUserRolesForm: React.FC<ManageUserRolesFormProps> = ({
     permission: 'Permissions.UserRoles.Update',
   })
 
-  useEffect(() => {
-    if (!userRolesData) return
+  const roles = (userRolesData ?? [])
+    .map((role) => ({
+      key: role.roleName,
+      title: role.roleName,
+    }))
+    .sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')) as RecordType[]
 
-    const transformedRoles = userRolesData
-      .map((role) => ({
-        key: role.roleName,
-        title: role.roleName,
-      }))
-      .sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')) as RecordType[]
-
-    setRoles(transformedRoles)
-
-    const activeRoleNames = userRolesData
-      .filter((role) => role.enabled)
-      .map((role) => role.roleName)
-      .filter((r): r is string => r !== undefined)
-      .sort((a, b) => {
-        const roleA =
-          userRolesData.find((r) => r.roleName === a)?.roleName || ''
-        const roleB =
-          userRolesData.find((r) => r.roleName === b)?.roleName || ''
-        return roleA.localeCompare(roleB)
-      })
-
-    setTargetKeys(activeRoleNames)
-  }, [userRolesData])
+  // Re-seeded whenever the user's roles arrive or refetch; moves made in
+  // between stay local until saved.
+  const [seededUserRolesData, setSeededUserRolesData] =
+    useState<typeof userRolesData>()
+  if (userRolesData !== seededUserRolesData) {
+    setSeededUserRolesData(userRolesData)
+    setSelectedKeys([])
+    if (userRolesData) {
+      setTargetKeys(
+        userRolesData
+          .filter((role) => role.enabled)
+          .map((role) => role.roleName)
+          .filter((r): r is string => r !== undefined)
+          .sort((a, b) => a.localeCompare(b)),
+      )
+    }
+  }
 
   useEffect(() => {
     if (userRolesError) {
@@ -112,10 +109,6 @@ const ManageUserRolesForm: React.FC<ManageUserRolesFormProps> = ({
       onFormCancel()
     }
   }, [userRolesError, onFormCancel, messageApi])
-
-  useEffect(() => {
-    setSelectedKeys([])
-  }, [userRolesData])
 
   const onChange = (nextTargetKeys: Key[]) => {
     const keys = nextTargetKeys as string[]

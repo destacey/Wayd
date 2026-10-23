@@ -30,9 +30,17 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSavedRef = useRef(round.label ?? '')
 
-  // Sync from server when the round changes (different round selected)
-  useEffect(() => {
+  // Take the server's label when another round is selected or its label changes.
+  const [syncedRound, setSyncedRound] = useState({
+    id: round.id,
+    label: round.label,
+  })
+  if (syncedRound.id !== round.id || syncedRound.label !== round.label) {
+    setSyncedRound({ id: round.id, label: round.label })
     setLocalValue(round.label ?? '')
+  }
+
+  useEffect(() => {
     lastSavedRef.current = round.label ?? ''
   }, [round.id, round.label])
 

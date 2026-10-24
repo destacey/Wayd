@@ -110,6 +110,42 @@ public sealed record StatusTransitionDto
     [Required]
     public required Instant ChangedOn { get; init; }
 
+    /// <summary>
+    /// When the record moved out of <see cref="ToStatus"/>, or <c>null</c> while it is still there.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="ChangedOn"/> of the record's next transition, whatever that was — a move onto
+    /// another workflow ends the stay like any other change.
+    /// </remarks>
+    public Instant? LeftOn { get; init; }
+
+    /// <summary>
+    /// The calendar time the record spent in <see cref="ToStatus"/>, in whole seconds.
+    /// </summary>
+    /// <remarks>
+    /// Measured to <see cref="LeftOn"/>, or to the time of the request while the record is still in the
+    /// status, so the figure for the current status grows between reads. Never negative.
+    /// </remarks>
+    [Required]
+    public required long DurationSeconds { get; init; }
+
+    /// <summary>
+    /// How many separate stays the record has had in <see cref="ToStatus"/>, this one included.
+    /// </summary>
+    /// <remarks>
+    /// Counted by status id, so a stay under a name the status has since dropped still counts. The same
+    /// on every entry for that status.
+    /// </remarks>
+    [Required]
+    public required int StatusVisitCount { get; init; }
+
+    /// <summary>
+    /// The calendar time the record has spent in <see cref="ToStatus"/> across all its stays, in whole
+    /// seconds. Equal to <see cref="DurationSeconds"/> when there has been only one.
+    /// </summary>
+    [Required]
+    public required long StatusTotalSeconds { get; init; }
+
     /// <summary>Why the change was made, where a reason was recorded.</summary>
     public string? Reason { get; init; }
 }

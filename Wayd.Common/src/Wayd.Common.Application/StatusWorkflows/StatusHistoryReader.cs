@@ -1,6 +1,7 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.Users;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -10,10 +11,12 @@ namespace Wayd.Common.Application.StatusWorkflows;
 /// <inheritdoc cref="IStatusHistoryReader"/>
 public sealed class StatusHistoryReader(
     IStatusWorkflowDbContext dbContext,
-    IWaydDbContext waydDbContext) : IStatusHistoryReader
+    IWaydDbContext waydDbContext,
+    IDateTimeProvider dateTimeProvider) : IStatusHistoryReader
 {
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result<List<StatusTransitionDto>>> Read(
         string ownerType, Guid recordId, CancellationToken cancellationToken)
@@ -44,8 +47,11 @@ public sealed class StatusHistoryReader(
 
         var users = await ResolveUsers(transitions, cancellationToken);
         var employees = await ResolveEmployees(transitions, cancellationToken);
+        var timeInStatus = TimeInStatus.Calculate(transitions.Select(StatusEntry.From), _dateTimeProvider.Now);
+        var visits = timeInStatus.Visits.ToDictionary(v => v.Sequence);
+        var totals = timeInStatus.ByStatus.ToDictionary(t => t.StatusId);
 
-        return transitions.ConvertAll(t => ToDto(t, users, employees));
+        return transitions.ConvertAll(t => ToDto(t, visits[t.Sequence], totals[t.ToStatusId], users, employees));
     }
 
     /// <summary>
@@ -123,8 +129,13 @@ public sealed class StatusHistoryReader(
                 });
     }
 
+    /// <summary>A duration to the nearest whole second, matching how the time in status report rounds.</summary>
+    internal static long WholeSeconds(Duration duration) => (long)Math.Round(duration.TotalSeconds);
+
     private static StatusTransitionDto ToDto(
         StatusTransition transition,
+        StatusVisit visit,
+        StatusTimeTotal total,
         Dictionary<string, UserNavigationDto> users,
         Dictionary<Guid, NavigationDto> employees)
     {
@@ -162,6 +173,10 @@ public sealed class StatusHistoryReader(
                     : null,
             ChangedBySystem = isSystem,
             ChangedOn = transition.ChangedOn,
+            LeftOn = visit.LeftOn,
+            DurationSeconds = WholeSeconds(visit.Duration),
+            StatusVisitCount = total.Visits,
+            StatusTotalSeconds = WholeSeconds(total.Total),
             Reason = transition.Reason,
         };
     }

@@ -40,7 +40,7 @@ public sealed class StatusHistoryReaderIntegrationTests(SqlServerDbContextFixtur
         return provider.Object;
     }
 
-    private static StatusHistoryReader CreateSut(WaydDbContext context) => new(context, context);
+    private static StatusHistoryReader CreateSut(WaydDbContext context) => new(context, context, DateTimeProvider());
 
     private static StatusRef StatusOf(StatusWorkflow workflow, int index) =>
         StatusRef.From(workflow.Statuses.OrderBy(s => s.Order).Skip(index).First());

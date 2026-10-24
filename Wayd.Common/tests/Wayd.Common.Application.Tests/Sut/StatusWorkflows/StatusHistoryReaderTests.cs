@@ -20,7 +20,7 @@ public sealed class StatusHistoryReaderTests : StatusWorkflowHandlerTestBase
 {
     private static readonly Guid WorkflowId = Guid.CreateVersion7();
 
-    private StatusHistoryReader CreateSut() => new(DbContext, DbContext);
+    private StatusHistoryReader CreateSut() => new(DbContext, DbContext, DateTimeProvider.Object);
 
     private static StatusRef Ref(string name, StatusCategory category, int alias = StatusWorkflow.NoAlias) =>
         new(WorkflowId, Guid.CreateVersion7(), name, category, alias);
@@ -93,6 +93,55 @@ public sealed class StatusHistoryReaderTests : StatusWorkflowHandlerTestBase
         result.Value.Select(t => t.Sequence).Should().ContainInOrder(2, 1, 0);
         result.Value[0].ToStatus.Name.Should().Be("Terminal");
         result.Value[0].FromStatus!.Name.Should().Be("Notable");
+    }
+
+    [Fact]
+    public async Task Read_ReportsHowLongEachStatusWasHeld()
+    {
+        // Arrange — Proposed for 3 days, Notable for 10, and Terminal from 2 days before now.
+        var recordId = Guid.CreateVersion7();
+        var proposed = Ref("Proposed", StatusCategory.Proposed);
+        var notable = Ref("Notable", StatusCategory.Active, NotableAlias);
+        var terminal = Ref("Terminal", StatusCategory.Done, TerminalAlias);
+
+        Transition(recordId, 0, proposed, changedOn: Now - Duration.FromDays(15));
+        Transition(recordId, 1, notable, proposed, changedOn: Now - Duration.FromDays(12));
+        Transition(recordId, 2, terminal, notable, changedOn: Now - Duration.FromDays(2));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Read("test.widget", recordId, TestContext.Current.CancellationToken);
+
+        // Assert — newest first, the current status measured to the clock's now.
+        result.Value.Select(t => (t.ToStatus.Name, t.DurationSeconds, t.LeftOn)).Should().Equal(
+            ("Terminal", (long)Duration.FromDays(2).TotalSeconds, (Instant?)null),
+            ("Notable", (long)Duration.FromDays(10).TotalSeconds, Now - Duration.FromDays(2)),
+            ("Proposed", (long)Duration.FromDays(3).TotalSeconds, Now - Duration.FromDays(12)));
+    }
+
+    [Fact]
+    public async Task Read_TotalsEveryStayInTheSameStatus()
+    {
+        // Arrange — Notable for 4 days, Proposed for 1, then Notable again for the last 6.
+        var recordId = Guid.CreateVersion7();
+        var proposed = Ref("Proposed", StatusCategory.Proposed);
+        var notable = Ref("Notable", StatusCategory.Active, NotableAlias);
+
+        Transition(recordId, 0, notable, changedOn: Now - Duration.FromDays(11));
+        Transition(recordId, 1, proposed, notable, changedOn: Now - Duration.FromDays(7));
+        Transition(recordId, 2, notable, proposed, changedOn: Now - Duration.FromDays(6));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Read("test.widget", recordId, TestContext.Current.CancellationToken);
+
+        // Assert — both Notable entries carry the two stays and their 10-day total.
+        result.Value.Select(t => (t.ToStatus.Name, t.StatusVisitCount, t.StatusTotalSeconds)).Should().Equal(
+            ("Notable", 2, (long)Duration.FromDays(10).TotalSeconds),
+            ("Proposed", 1, (long)Duration.FromDays(1).TotalSeconds),
+            ("Notable", 2, (long)Duration.FromDays(10).TotalSeconds));
     }
 
     [Fact]

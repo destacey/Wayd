@@ -82,15 +82,16 @@ public sealed class PlanningIntervalObjectiveFollowingTests(SqlServerDbContextFi
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
-        var readRule = new PlanningIntervalObjectiveReadRule(context, principal.Object);
-        var handlerUnderTest = new GetMyFollowsQueryHandler(context, [readRule], principal.Object);
+        var clock = SqlServerDbContextFixture.DateTimeProvider(now.Plus(Duration.FromHours(2)));
+        var readRule = new PlanningIntervalObjectiveReadRule(context, principal.Object, clock);
+        var handlerUnderTest = new GetMyFollowsQueryHandler(context, context, [readRule], principal.Object, clock);
 
         // Act
         var result = await handlerUnderTest.Handle(new GetMyFollowsQuery(ownerType), ct);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        var follows = result.Value.Should().ContainSingle().Subject.Follows;
+        var follows = result.Value;
         follows.TotalCount.Should().Be(1);
         var item = follows.Items.Should().ContainSingle().Subject;
         item.Id.Should().Be(keptId);

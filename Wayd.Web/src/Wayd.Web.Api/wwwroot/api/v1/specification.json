@@ -249,8 +249,8 @@
         "tags": [
           "MyFollows"
         ],
-        "summary": "List the records you follow, grouped by kind.",
-        "description": "Returns one group per kind of record you follow — projects, programs, planning interval objectives — each with its `displayName` and one page of `follows`, most recently followed first. Each follow carries the record's `id`, `key`, `name` and, for an objective, `parentKey` and `parentName` (its planning interval). A record you can no longer read is left out of its group and its total, and a kind with nothing readable is left out entirely. Pass `ownerType` to page through one kind — `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`, and any other value returns 400; without it, `page` and `pageSize` (at most 100) apply to every group. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.",
+        "summary": "List the records you follow.",
+        "description": "Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyFollows_GetFollows",
         "parameters": [
           {
@@ -263,6 +263,41 @@
             "x-position": 1
           },
           {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/FollowView"
+                }
+              ],
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/FollowSort"
+                }
+              ],
+              "default": "LastChanged"
+            },
+            "x-position": 4
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -270,7 +305,7 @@
               "format": "int32",
               "default": 1
             },
-            "x-position": 2
+            "x-position": 5
           },
           {
             "name": "pageSize",
@@ -278,9 +313,22 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 20
+              "default": 50
             },
-            "x-position": 3
+            "x-position": 6
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SortDirection"
+                }
+              ],
+              "default": "Descending"
+            },
+            "x-position": 7
           }
         ],
         "responses": {
@@ -289,16 +337,118 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FollowGroupDto"
-                  }
+                  "$ref": "#/components/schemas/PagedResponseOfFollowedRecordDto"
                 }
               }
             }
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/follows/counts": {
+      "get": {
+        "tags": [
+          "MyFollows"
+        ],
+        "summary": "Count the records you follow, by kind and by what needs a look.",
+        "description": "Returns the `total` you follow and can still read, a count per kind of record you can read (`types`, each with `ownerType`, `displayName` and `count`, including kinds you follow none of), and a count per view (`views`: `Unhealthy`, `ChangedRecently`, `Closed`). Records you can no longer read are not counted. Requires the following feature flag; returns 404 when it is off.",
+        "operationId": "MyFollows_GetFollowCounts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowCountsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/follows/{ownerType}/{ownerId}/record": {
+      "get": {
+        "tags": [
+          "MyFollows"
+        ],
+        "summary": "Get a record you follow, with what has happened since you followed it.",
+        "description": "Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
+        "operationId": "MyFollows_GetFollowedRecord",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowedRecordDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -50031,12 +50181,102 @@
         },
         "additionalProperties": false
       },
+      "FollowCountsDto": {
+        "required": [
+          "total",
+          "types",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Every readable followed record.",
+            "format": "int32"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FollowTypeCountDto"
+            },
+            "description": "One entry per owner type the caller can read, ordered by display name, including types with none followed."
+          },
+          "views": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FollowViewCountDto"
+            },
+            "description": "One entry per FollowView, across every owner type."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How many records the caller follows and can still read, by owner type and by \"needs a look\" view."
+      },
+      "FollowedRecordDetailDto": {
+        "required": [
+          "record",
+          "people",
+          "changesSinceFollowed",
+          "hasMoreChanges"
+        ],
+        "type": "object",
+        "properties": {
+          "record": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FollowedRecordDto"
+              }
+            ],
+            "description": "The record as the list shows it."
+          },
+          "progress": {
+            "type": "number",
+            "description": "How far the record has got, 0 to 100, for an owner type that tracks it. Null otherwise.",
+            "format": "double",
+            "nullable": true
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordPerson"
+            },
+            "description": "Who leads the record and in what role: a project's or program's owners then managers, an objective's\nteam. Empty when no one does."
+          },
+          "start": {
+            "type": "string",
+            "description": "When the record starts, or null.",
+            "format": "date",
+            "nullable": true
+          },
+          "end": {
+            "type": "string",
+            "description": "When the record ends or is due, or null.",
+            "format": "date",
+            "nullable": true
+          },
+          "changesSinceFollowed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityLogDto"
+            },
+            "description": "The record's activity since the caller followed it, newest first, at most `ChangeLimit` entries."
+          },
+          "hasMoreChanges": {
+            "type": "boolean",
+            "description": "Whether more activity since following exists than List&lt;ActivityLogDto&gt; FollowedRecordDetailDto.ChangesSinceFollowed holds."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One followed record in full: the list's facts plus what its detail shows and what has happened to it since\nthe caller followed it."
+      },
       "FollowedRecordDto": {
         "required": [
           "ownerType",
           "id",
           "key",
           "name",
+          "statusName",
+          "lifecycle",
           "followedOn"
         ],
         "type": "object",
@@ -50060,7 +50300,7 @@
           },
           "parentKey": {
             "type": "string",
-            "description": "The key of the record this one is addressed under, such as a planning interval objective's\nplanning interval. Null when the owner type does not nest.",
+            "description": "The key of the record this one is addressed under, such as a planning interval objective's planning\ninterval. Null when the owner type does not nest.",
             "nullable": true
           },
           "parentName": {
@@ -50068,42 +50308,49 @@
             "description": "The name of the parent record. Null when there is none.",
             "nullable": true
           },
+          "statusName": {
+            "type": "string",
+            "description": "The record's status as its own pages name it."
+          },
+          "lifecycle": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LifecycleCategory"
+              }
+            ],
+            "description": "Where the status sits in the record's lifecycle."
+          },
+          "health": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HealthStatus"
+              }
+            ],
+            "description": "The record's current health, or null when it has none.",
+            "nullable": true
+          },
           "followedOn": {
             "type": "string",
             "description": "When the caller started following the record.",
             "format": "date-time"
+          },
+          "lastChangedOn": {
+            "type": "string",
+            "description": "When the record last changed: the newest entry its Activity section lists, its own or one naming it as\nrelated. Null when it has no recorded activity.",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "A record the caller follows."
+        "description": "A record the caller follows, as a list shows it."
       },
-      "FollowGroupDto": {
-        "required": [
-          "ownerType",
-          "displayName",
-          "follows"
+      "FollowSort": {
+        "enum": [
+          "LastChanged",
+          "Followed"
         ],
-        "type": "object",
-        "properties": {
-          "ownerType": {
-            "type": "string",
-            "description": "The owner type of every record in the group, such as `ppm.project`."
-          },
-          "displayName": {
-            "type": "string",
-            "description": "What to call this kind of record, such as \"Project\"."
-          },
-          "follows": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/PagedResponseOfFollowedRecordDto"
-              }
-            ],
-            "description": "One page of the followed records the caller can still read, most recently followed first. The\ntotal counts only those records."
-          }
-        },
-        "additionalProperties": false,
-        "description": "The caller's follows of one kind of record, one page at a time."
+        "type": "string",
+        "description": "The order the Following list is shown in."
       },
       "FollowStatusDto": {
         "required": [
@@ -50124,6 +50371,63 @@
         },
         "additionalProperties": false,
         "description": "Whether the caller follows a record."
+      },
+      "FollowTypeCountDto": {
+        "required": [
+          "ownerType",
+          "displayName",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "type": "string",
+            "description": "The owner type, such as `ppm.project`."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "What to call this kind of record, such as \"Project\"."
+          },
+          "count": {
+            "type": "integer",
+            "description": "How many readable records of this type the caller follows.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "How many records of one owner type the caller follows."
+      },
+      "FollowView": {
+        "enum": [
+          "Unhealthy",
+          "ChangedRecently",
+          "Closed"
+        ],
+        "type": "string"
+      },
+      "FollowViewCountDto": {
+        "required": [
+          "view",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "view": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FollowView"
+              }
+            ],
+            "description": "The view."
+          },
+          "count": {
+            "type": "integer",
+            "description": "How many readable followed records it holds.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "How many followed records fall in one \"needs a look\" view."
       },
       "ForecastDependencyInfluenceDto": {
         "required": [
@@ -53208,6 +53512,15 @@
           "Improving",
           "Worsening",
           "Stable"
+        ],
+        "type": "string"
+      },
+      "LifecycleCategory": {
+        "enum": [
+          "NotStarted",
+          "Active",
+          "Completed",
+          "Canceled"
         ],
         "type": "string"
       },
@@ -59016,6 +59329,31 @@
         "additionalProperties": false,
         "description": "A request to change a status's category and well-known meaning, which records carry denormalized."
       },
+      "RecordPerson": {
+        "required": [
+          "role",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "The role as the record's own pages name it, such as \"Project Manager\" or \"Team\"."
+          },
+          "name": {
+            "type": "string",
+            "description": "The person's or team's name."
+          },
+          "employeeId": {
+            "type": "string",
+            "description": "The employee's id when the holder is a person; null for a team.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A person leading a record, or the team owning it, and the role they hold."
+      },
       "RecordProjectScoreRequest": {
         "required": [
           "ratings"
@@ -61740,6 +62078,14 @@
           }
         },
         "additionalProperties": false
+      },
+      "SortDirection": {
+        "enum": [
+          "Ascending",
+          "Descending"
+        ],
+        "type": "string",
+        "description": "Which way a list runs along its sort key."
       },
       "SprintActualDatesRequest": {
         "required": [

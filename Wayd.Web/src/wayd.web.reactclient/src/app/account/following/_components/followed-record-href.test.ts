@@ -1,4 +1,4 @@
-import { FollowedRecordDto } from '@/src/services/wayd-api'
+import { FollowedRecordDto, LifecycleCategory } from '@/src/services/wayd-api'
 import { followedRecordHref } from './followed-record-href'
 
 const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
@@ -6,6 +6,8 @@ const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   id: 'id-1',
   key: 'APOLLO',
   name: 'Moon landing',
+  statusName: 'Active',
+  lifecycle: LifecycleCategory.Active,
   followedOn: new Date('2026-10-23T09:30:00Z'),
   ...overrides,
 })

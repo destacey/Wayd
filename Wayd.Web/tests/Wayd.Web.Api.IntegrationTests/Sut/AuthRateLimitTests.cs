@@ -14,8 +14,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// </summary>
 /// <remarks>
 /// Each test lowers the limits on a host of its own, so its limiter starts empty and no other test is throttled.
-/// Requests carry an empty body: model binding refuses it before any handler runs, so nothing is written and no
-/// account is locked, while the limiter, which runs first, still counts it.
+/// Requests carry an empty body: request validation refuses it with 422 before the action runs, so nothing is written
+/// and no account is locked, while the limiter, which runs first, still counts it.
 /// </remarks>
 [Collection(SqlServerApiTestCollection.Name)]
 public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
@@ -36,7 +36,7 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
         using var host = LimitedHost(limit);
         var client = host.CreateClient();
         for (var i = 0; i < Limit; i++)
-            (await Send(client, method, path)).StatusCode.Should().NotBe(HttpStatusCode.TooManyRequests);
+            (await Send(client, method, path)).StatusCode.Should().Be(WithinLimit(method));
 
         // Act
         var response = await Send(client, method, path);
@@ -54,7 +54,7 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
         using var host = LimitedHost("AuthSignIn");
         var client = host.CreateClient();
         for (var i = 0; i < Limit; i++)
-            await Send(client, "POST", "/api/auth/login");
+            (await Send(client, "POST", "/api/auth/login")).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
 
         // Act
         var response = await Send(client, "POST", "/api/auth/exchange");
@@ -69,15 +69,23 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
         // Arrange — both lowered, and the refresh budget spent, so a shared window would refuse the sign-in
         using var host = LimitedHost("AuthSignIn", "AuthRefresh");
         var client = host.CreateClient();
-        for (var i = 0; i < Limit + 1; i++)
+        for (var i = 0; i < Limit; i++)
             await Send(client, "POST", "/api/auth/refresh-token");
+        (await Send(client, "POST", "/api/auth/refresh-token")).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
 
         // Act
         var response = await Send(client, "POST", "/api/auth/login");
 
         // Assert
-        response.StatusCode.Should().NotBe(HttpStatusCode.TooManyRequests);
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
+
+    /// <summary>
+    /// What a request within its limit answers: request validation refuses the empty body of a POST before the action
+    /// runs, so no test signs anyone in or completes setup, and the provider list needs no body.
+    /// </summary>
+    private static HttpStatusCode WithinLimit(string method) =>
+        method == "POST" ? HttpStatusCode.UnprocessableEntity : HttpStatusCode.OK;
 
     /// <summary>A host whose named limits allow <see cref="Limit"/> requests an hour.</summary>
     private WebApplicationFactory<Program> LimitedHost(params string[] limits) =>

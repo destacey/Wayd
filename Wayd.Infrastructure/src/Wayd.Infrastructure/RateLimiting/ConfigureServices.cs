@@ -11,7 +11,7 @@ namespace Wayd.Infrastructure.RateLimiting;
 
 /// <summary>
 /// Registers the API's rate-limiting policies. An endpoint is limited only when it names a policy, with
-/// <c>RequireRateLimiting</c>.
+/// <c>RequireRateLimiting</c> on a minimal endpoint or <c>[EnableRateLimiting]</c> on a controller action.
 /// </summary>
 internal static class ConfigureServices
 {

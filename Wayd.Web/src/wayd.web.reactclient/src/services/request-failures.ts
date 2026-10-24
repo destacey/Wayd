@@ -23,12 +23,20 @@ export function isNetworkError(error: unknown): boolean {
   return e.message === 'Network Error'
 }
 
+const TRANSIENT_REFRESH_STATUSES = new Set([429, 502, 503, 504])
+
 /**
  * True when a failed refresh-token call says nothing about whether the session
  * is still good, so the caller must keep it rather than sign the user out:
  * the server could not be reached, refused the call for now (429 — the
  * refresh endpoint is rate limited per address, so everyone behind one office
- * IP would otherwise be signed out together), or failed itself (5xx).
+ * IP would otherwise be signed out together), or was unavailable (502, 503,
+ * 504 — a gateway or a restarting replica).
+ *
+ * A plain 500 is not transient: refresh answers 500 for a token it cannot
+ * validate (after the signing secret is rotated, say), which can never
+ * succeed, so keeping that session would leave the user stuck rather than
+ * signed out.
  *
  * The generated client throws an `ApiException` for a status it does not
  * document and the response body for one it does, so the status is read from
@@ -40,5 +48,5 @@ export function isTransientRefreshFailure(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   const { status } = error as { status?: unknown }
   if (typeof status !== 'number') return false
-  return status === 429 || status >= 500
+  return TRANSIENT_REFRESH_STATUSES.has(status)
 }

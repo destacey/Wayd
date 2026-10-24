@@ -281,8 +281,9 @@ axiosClient.interceptors.response.use(
         } catch (refreshError) {
           // The refresh attempt itself failed. Two distinct cases:
           //
-          // 1. Server reachable, refresh rejected (any other 4xx): the session
-          //    is invalid. Wipe storage and hard-navigate to /login so AuthGate
+          // 1. Server reachable, refresh rejected (any other 4xx, or a 500,
+          //    which refresh answers for a token it cannot validate): the
+          //    session is invalid. Wipe storage and hard-navigate to /login so AuthGate
           //    re-renders unauthenticated. We also remember the current page
           //    (storeReturnUrl) so the user lands back where they were.
           //

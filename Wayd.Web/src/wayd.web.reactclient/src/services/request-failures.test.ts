@@ -32,7 +32,7 @@ describe('isNetworkError', () => {
 })
 
 describe('isTransientRefreshFailure', () => {
-  it.each([429, 500, 502, 503])(
+  it.each([429, 502, 503, 504])(
     'keeps the session when the refresh answers %i',
     (status) => {
       // Arrange
@@ -46,7 +46,7 @@ describe('isTransientRefreshFailure', () => {
     },
   )
 
-  it.each([400, 403, 404, 428])(
+  it.each([400, 403, 404, 428, 501])(
     'treats a %i from the refresh as a rejected session',
     (status) => {
       // Arrange
@@ -63,6 +63,17 @@ describe('isTransientRefreshFailure', () => {
   it('treats the documented 401, thrown as its problem details body, as a rejected session', () => {
     // Arrange — the generated client throws a documented response's body, not an ApiException
     const error = { status: 401, title: 'Unauthorized' }
+
+    // Act
+    const result = isTransientRefreshFailure(error)
+
+    // Assert
+    expect(result).toBe(false)
+  })
+
+  it('treats a 500 as a rejected session, because refresh answers it for a token it cannot validate', () => {
+    // Arrange — a token signed with a rotated secret fails validation on every attempt
+    const error = apiException(500)
 
     // Act
     const result = isTransientRefreshFailure(error)

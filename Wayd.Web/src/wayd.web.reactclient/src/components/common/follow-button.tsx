@@ -71,21 +71,22 @@ const FollowButton = ({ ownerType, ownerId }: FollowButtonProps) => {
       title={
         isUnavailable
           ? isLoading
-            ? null
+            ? 'Follow'
             : 'Could not load whether you follow this.'
           : isFollowed
             ? 'You follow this. Click to stop following.'
             : 'Follow this to keep it in your Following list.'
       }
     >
+      {/* Icon only: a toggle keeps one name, and aria-pressed says whether
+          it is on. */}
       <Button
         icon={isFollowed ? <EyeFilled /> : <EyeOutlined />}
+        aria-label="Follow"
         aria-pressed={isFollowed}
         disabled={isUnavailable || isPending}
         onClick={onClick}
-      >
-        {isFollowed ? 'Following' : 'Follow'}
-      </Button>
+      />
     </Tooltip>
   )
 }

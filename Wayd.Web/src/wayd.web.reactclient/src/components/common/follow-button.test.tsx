@@ -45,8 +45,8 @@ describe('FollowButton', () => {
   it('follows the record when the person does not follow it', async () => {
     render(<FollowButton {...target} />)
 
-    const button = screen.getByRole('button', { name: /follow/i })
-    expect(button).toHaveTextContent('Follow')
+    const button = screen.getByRole('button', { name: 'Follow' })
+    expect(button).not.toHaveTextContent('Follow')
     expect(button).toHaveAttribute('aria-pressed', 'false')
 
     await act(async () => {
@@ -65,7 +65,7 @@ describe('FollowButton', () => {
 
     render(<FollowButton {...target} />)
 
-    const button = screen.getByRole('button', { name: /following/i })
+    const button = screen.getByRole('button', { name: 'Follow' })
     expect(button).toHaveAttribute('aria-pressed', 'true')
 
     await act(async () => {
@@ -75,6 +75,25 @@ describe('FollowButton', () => {
     expect(mockUnfollow).toHaveBeenCalledWith(target)
     expect(mockFollow).not.toHaveBeenCalled()
   })
+
+  it.each([
+    [false, 'Follow this to keep it in your Following list.'],
+    [true, 'You follow this. Click to stop following.'],
+  ])(
+    'explains itself in a tooltip on hover when following is %s',
+    async (isFollowing, tooltip) => {
+      mockUseGetFollowStatusQuery.mockReturnValue({
+        data: { isFollowing },
+        isLoading: false,
+      })
+
+      render(<FollowButton {...target} />)
+
+      fireEvent.mouseEnter(screen.getByRole('button', { name: 'Follow' }))
+
+      expect(await screen.findByText(tooltip)).toBeInTheDocument()
+    },
+  )
 
   it('shows the server explanation when following fails', async () => {
     mockFollow.mockResolvedValue({

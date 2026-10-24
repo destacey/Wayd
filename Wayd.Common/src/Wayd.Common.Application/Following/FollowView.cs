@@ -24,9 +24,9 @@ public enum FollowView
 /// </summary>
 public enum FollowSort
 {
-    /// <summary>Most recently changed first; records with no activity last.</summary>
+    /// <summary>By when the record last changed; a record with no activity counts as the least recent.</summary>
     LastChanged = 1,
 
-    /// <summary>Most recently followed first.</summary>
+    /// <summary>By when the caller followed the record.</summary>
     Followed = 2,
 }

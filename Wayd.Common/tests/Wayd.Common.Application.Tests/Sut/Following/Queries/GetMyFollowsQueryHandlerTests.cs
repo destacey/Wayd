@@ -4,6 +4,7 @@ using NodaTime.Testing;
 using Wayd.Common.Application.Following;
 using Wayd.Common.Application.Following.Queries;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.Enums;
@@ -88,6 +89,43 @@ public sealed class GetMyFollowsQueryHandlerTests
 
         // Assert
         result.Value.Items.Select(i => i.Key).Should().Equal("W-1", "G-1");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldListRecordsWithoutActivityFirst_ThenLeastRecentlyChanged_WhenAscending()
+    {
+        // Arrange
+        var quiet = _gadgets.Add("G-1", "Sprocket");
+        var busy = _widgets.Add("W-1", "Lever");
+        var neverChanged = _widgets.Add("W-2", "Pulley");
+        SeedFollow(GadgetType, quiet.Id, 1);
+        SeedFollow(WidgetType, busy.Id, 2);
+        SeedFollow(WidgetType, neverChanged.Id, 3);
+        SeedActivity(quiet.Id, Now.Minus(Duration.FromDays(20)));
+        SeedActivity(busy.Id, Now.Minus(Duration.FromHours(1)));
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Direction: SortDirection.Ascending), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Items.Select(i => i.Key).Should().Equal("W-2", "G-1", "W-1");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldListEarliestFollowFirst_WhenSortedByFollowDateAscending()
+    {
+        // Arrange
+        var first = _gadgets.Add("G-1", "Sprocket");
+        var second = _widgets.Add("W-1", "Lever");
+        SeedFollow(GadgetType, first.Id, 1);
+        SeedFollow(WidgetType, second.Id, 2);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed, Direction: SortDirection.Ascending), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Items.Select(i => i.Key).Should().Equal("G-1", "W-1");
     }
 
     [Fact]

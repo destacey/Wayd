@@ -732,9 +732,10 @@ export class MyFollowsClient {
      * @param sort (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
+     * @param direction (optional) 
      * @return OK
      */
-    getFollows(ownerType?: string | null | undefined, view?: FollowView | null | undefined, search?: string | null | undefined, sort?: FollowSort | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfFollowedRecordDto> {
+    getFollows(ownerType?: string | null | undefined, view?: FollowView | null | undefined, search?: string | null | undefined, sort?: FollowSort | undefined, page?: number | undefined, pageSize?: number | undefined, direction?: SortDirection | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfFollowedRecordDto> {
         let url_ = this.baseUrl + "/api/me/follows?";
         if (ownerType !== undefined && ownerType !== null)
             url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
@@ -754,6 +755,10 @@ export class MyFollowsClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (direction === null)
+            throw new globalThis.Error("The parameter 'direction' cannot be null.");
+        else if (direction !== undefined)
+            url_ += "direction=" + encodeURIComponent("" + direction) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -56589,6 +56594,12 @@ export enum SizingMethod {
 export interface SkippedUser {
     userId: string;
     reason: string;
+}
+
+/** Which way a list runs along its sort key. */
+export enum SortDirection {
+    Ascending = "Ascending",
+    Descending = "Descending",
 }
 
 /** A sprint's corrected actual dates. Both values are replaced; omit one to revert it to the sprint's default. */

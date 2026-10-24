@@ -24,7 +24,8 @@ public sealed record GetMyFollowsQuery(
     string? Search = null,
     FollowSort Sort = FollowSort.LastChanged,
     int PageNumber = 1,
-    int PageSize = 50)
+    int PageSize = 50,
+    SortDirection Direction = SortDirection.Descending)
     : IQuery<Result<PagedResponse<FollowedRecordDto>>>;
 
 /// <summary>Bounds the paging and search a caller may ask for.</summary>
@@ -41,6 +42,7 @@ public sealed class GetMyFollowsQueryValidator : CustomValidator<GetMyFollowsQue
         RuleFor(q => q.OwnerType).MaximumLength(FollowOwnerDescriptor.KeyMaxLength);
         RuleFor(q => q.View).IsInEnum();
         RuleFor(q => q.Sort).IsInEnum();
+        RuleFor(q => q.Direction).IsInEnum();
         RuleFor(q => q.Search).MaximumLength(MaxSearchLength);
         RuleFor(q => q.PageNumber).GreaterThanOrEqualTo(1);
         RuleFor(q => q.PageSize).InclusiveBetween(1, MaxPageSize);
@@ -99,16 +101,25 @@ public sealed class GetMyFollowsQueryHandler(
             return empty;
         }
 
-        // Records with no activity sort after every record that has some, newest follow first among them.
-        var ordered = request.Sort == FollowSort.Followed
-            ? filtered.OrderByDescending(r => r.FollowedOn).ThenBy(r => r.OwnerId)
-            : filtered
+        // Records with no activity count as the least recently changed: last when descending, first when
+        // ascending. The owner id breaks ties the same way in both directions, so paging stays stable.
+        var descending = request.Direction == SortDirection.Descending;
+        var ordered = (request.Sort, descending) switch
+        {
+            (FollowSort.Followed, true) => filtered.OrderByDescending(r => r.FollowedOn),
+            (FollowSort.Followed, false) => filtered.OrderBy(r => r.FollowedOn),
+            (_, true) => filtered
                 .OrderByDescending(r => r.LastChangedOn.HasValue)
                 .ThenByDescending(r => r.LastChangedOn)
-                .ThenByDescending(r => r.FollowedOn)
-                .ThenBy(r => r.OwnerId);
+                .ThenByDescending(r => r.FollowedOn),
+            _ => filtered
+                .OrderBy(r => r.LastChangedOn.HasValue)
+                .ThenBy(r => r.LastChangedOn)
+                .ThenBy(r => r.FollowedOn),
+        };
 
         var page = await ordered
+            .ThenBy(r => r.OwnerId)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);

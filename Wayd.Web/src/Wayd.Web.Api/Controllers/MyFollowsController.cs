@@ -33,7 +33,7 @@ public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet]
     [EndpointSummary("List the records you follow.")]
     [EndpointDescription(
-        $"Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` ({OwnerTypeValues}; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for completed or canceled) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default; records with no activity last) or `Followed`. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.")]
+        $"Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` ({OwnerTypeValues}; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for completed or canceled) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending.`page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.")]
     [McpTool("Me_GetFollows", "List what I follow")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -45,9 +45,10 @@ public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
         [FromQuery] FollowSort sort = FollowSort.LastChanged,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
+        [FromQuery] SortDirection direction = SortDirection.Descending,
         CancellationToken cancellationToken = default)
     {
-        var result = await _dispatcher.Send(new GetMyFollowsQuery(ownerType, view, search, sort, page, pageSize), cancellationToken);
+        var result = await _dispatcher.Send(new GetMyFollowsQuery(ownerType, view, search, sort, page, pageSize, direction), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)

@@ -8,6 +8,7 @@ using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Settings;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Links;
@@ -40,7 +41,7 @@ using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
-public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
+public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 
@@ -133,6 +134,12 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<WorkflowAssignment> WorkflowAssignments => Set<WorkflowAssignment>();
 
     #endregion StatusWorkflows
+
+    #region Following
+
+    public DbSet<Follow> Follows => Set<Follow>();
+
+    #endregion Following
 
     #region ProductManagement
 

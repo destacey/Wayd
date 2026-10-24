@@ -295,6 +295,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.Persistence.IPlanningDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProductManagement.Application.IProductManagementDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IStatusWorkflowDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.INotificationsDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IActivityLogDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProjectPortfolioManagement.Application.IProjectPortfolioManagementDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.StrategicManagement.Application.IStrategicManagementDbContext>();

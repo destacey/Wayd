@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Persistence;
+using Wayd.DemandManagement.Application;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Organization.Application.Persistence;
 using Wayd.Planning.Application.Persistence;
@@ -47,6 +48,7 @@ public sealed class DbContextScopeSharingTests(WaydSqlServerApiFactory factory)
         provider.GetRequiredService<IOrganizationDbContext>().Should().BeSameAs(context);
         provider.GetRequiredService<IPlanningDbContext>().Should().BeSameAs(context);
         provider.GetRequiredService<IActivityLogDbContext>().Should().BeSameAs(context);
+        provider.GetRequiredService<IDemandManagementDbContext>().Should().BeSameAs(context);
         provider.GetRequiredService<INotificationsDbContext>().Should().BeSameAs(context);
     }
 

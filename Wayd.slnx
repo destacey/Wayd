@@ -45,6 +45,15 @@
     <Project Path="Wayd.Services/Wayd.AppIntegration/tests/Wayd.AppIntegration.Application.Tests/Wayd.AppIntegration.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.AppIntegration/tests/Wayd.AppIntegration.Domain.Tests/Wayd.AppIntegration.Domain.Tests.csproj" />
   </Folder>
+  <Folder Name="/Wayd.Services/Wayd.DemandManagement/" />
+  <Folder Name="/Wayd.Services/Wayd.DemandManagement/src/">
+    <Project Path="Wayd.Services/Wayd.DemandManagement/src/Wayd.DemandManagement.Application/Wayd.DemandManagement.Application.csproj" />
+    <Project Path="Wayd.Services/Wayd.DemandManagement/src/Wayd.DemandManagement.Domain/Wayd.DemandManagement.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Wayd.Services/Wayd.DemandManagement/tests/">
+    <Project Path="Wayd.Services/Wayd.DemandManagement/tests/Wayd.DemandManagement.Application.Tests/Wayd.DemandManagement.Application.Tests.csproj" />
+    <Project Path="Wayd.Services/Wayd.DemandManagement/tests/Wayd.DemandManagement.Domain.Tests/Wayd.DemandManagement.Domain.Tests.csproj" />
+  </Folder>
   <Folder Name="/Wayd.Services/Wayd.Links/" />
   <Folder Name="/Wayd.Services/Wayd.Links/src/">
     <Project Path="Wayd.Services/Wayd.Links/src/Wayd.Links/Wayd.Links.csproj" />

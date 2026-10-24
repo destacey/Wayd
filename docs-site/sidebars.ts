@@ -72,6 +72,11 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'user-guide/demand-management/index',
+          label: 'Demand Management',
+        },
+        {
+          type: 'doc',
           id: 'user-guide/strategic-management/index',
           label: 'Strategic Management',
         },

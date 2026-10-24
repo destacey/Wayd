@@ -45062,6 +45062,1004 @@ export class HealthChecksClient {
     }
 }
 
+export class IntakeChannelsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the intake channels in the order requesters see them.
+     * @param includeArchived (optional) 
+     * @return OK
+     */
+    getIntakeChannels(includeArchived?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeChannelDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-channels?";
+        if (includeArchived === null)
+            throw new globalThis.Error("The parameter 'includeArchived' cannot be null.");
+        else if (includeArchived !== undefined)
+            url_ += "includeArchived=" + encodeURIComponent("" + includeArchived) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeChannels(_response);
+        });
+    }
+
+    protected processGetIntakeChannels(response: AxiosResponse): Promise<IntakeChannelDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeChannelDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeChannelDto[]>(null as any);
+    }
+}
+
+export class IntakeDesksClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the intake desks, or only those a requester can submit to now.
+     * @param submittableOnly (optional) 
+     * @return OK
+     */
+    getIntakeDesks(submittableOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeDeskDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks?";
+        if (submittableOnly === null)
+            throw new globalThis.Error("The parameter 'submittableOnly' cannot be null.");
+        else if (submittableOnly !== undefined)
+            url_ += "submittableOnly=" + encodeURIComponent("" + submittableOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeDesks(_response);
+        });
+    }
+
+    protected processGetIntakeDesks(response: AxiosResponse): Promise<IntakeDeskDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeDeskDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeDeskDto[]>(null as any);
+    }
+
+    /**
+     * Create an intake desk with its initial reviewers.
+     * @return Created
+     */
+    create(request: CreateIntakeDeskRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<ObjectIdAndKey>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get an intake desk.
+     * @return OK
+     */
+    getIntakeDesk(idOrKey: string, cancelToken?: CancelToken): Promise<IntakeDeskDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeDesk(_response);
+        });
+    }
+
+    protected processGetIntakeDesk(response: AxiosResponse): Promise<IntakeDeskDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeDeskDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeDeskDto>(null as any);
+    }
+
+    /**
+     * Get the desk visibility values, with their codes.
+     * @return OK
+     */
+    getVisibilities( cancelToken?: CancelToken): Promise<IntakeDeskVisibilityDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/visibilities";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetVisibilities(_response);
+        });
+    }
+
+    protected processGetVisibilities(response: AxiosResponse): Promise<IntakeDeskVisibilityDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeDeskVisibilityDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeDeskVisibilityDto[]>(null as any);
+    }
+}
+
+export class IntakeRequestsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the intake requests you can see, as summaries.
+     * @param deskId (optional) 
+     * @return OK
+     */
+    getIntakeRequests(deskId?: string | null | undefined, cancelToken?: CancelToken): Promise<IntakeRequestSummaryDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests?";
+        if (deskId !== undefined && deskId !== null)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeRequests(_response);
+        });
+    }
+
+    protected processGetIntakeRequests(response: AxiosResponse): Promise<IntakeRequestSummaryDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestSummaryDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestSummaryDto[]>(null as any);
+    }
+
+    /**
+     * Submit an intake request to a desk.
+     * @return Created
+     */
+    create(request: CreateIntakeRequestRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<ObjectIdAndKey>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get an intake request in the tiers you can read.
+     * @return OK
+     */
+    getIntakeRequest(idOrKey: string, cancelToken?: CancelToken): Promise<IntakeRequestDetailsDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeRequest(_response);
+        });
+    }
+
+    protected processGetIntakeRequest(response: AxiosResponse): Promise<IntakeRequestDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestDetailsDto>(null as any);
+    }
+
+    /**
+     * Get an intake request's history, limited to the tiers you can read.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{idOrKey}/activities?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Update an intake request.
+     * @return No Content
+     */
+    update(id: string, request: UpdateIntakeRequestRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete an intake request.
+     * @return No Content
+     */
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDelete(_response);
+        });
+    }
+
+    protected processDelete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Assign the reviewer who owns an intake request, or unassign it.
+     * @return No Content
+     */
+    assignReviewer(id: string, request: AssignIntakeRequestReviewerRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/assigned-reviewer";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAssignReviewer(_response);
+        });
+    }
+
+    protected processAssignReviewer(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Give an employee access to an intake request as a participant.
+     * @return No Content
+     */
+    addParticipant(id: string, request: AddIntakeRequestParticipantRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/participants";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddParticipant(_response);
+        });
+    }
+
+    protected processAddParticipant(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Remove a participant's access to an intake request.
+     * @return No Content
+     */
+    removeParticipant(id: string, employeeId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/participants/{employeeId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (employeeId === undefined || employeeId === null)
+            throw new globalThis.Error("The parameter 'employeeId' must be defined.");
+        url_ = url_.replace("{employeeId}", encodeURIComponent("" + employeeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveParticipant(_response);
+        });
+    }
+
+    protected processRemoveParticipant(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the need-by basis values, with their codes and families.
+     * @return OK
+     */
+    getNeedByBases( cancelToken?: CancelToken): Promise<NeedByBasisDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/need-by-bases";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetNeedByBases(_response);
+        });
+    }
+
+    protected processGetNeedByBases(response: AxiosResponse): Promise<NeedByBasisDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<NeedByBasisDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<NeedByBasisDto[]>(null as any);
+    }
+}
+
 export class AzureDevOpsConnectionsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -50979,6 +51977,12 @@ export interface AddGoalRequest {
     name: string;
 }
 
+/** Someone to give access to an intake request as a participant. */
+export interface AddIntakeRequestParticipantRequest {
+    /** The employee to give access. They will read the request and may join its discussion, but cannot change it. */
+    employeeId: string;
+}
+
 export interface AddPersonaRequest {
     name: string;
     description?: string | undefined;
@@ -51095,6 +52099,12 @@ export interface AssembleReleasePackageRequest {
     targetDate?: string | undefined;
     /** Every component version in this package. A component may appear only once. */
     components: ManifestEntryRequest[];
+}
+
+/** The reviewer who owns an intake request. */
+export interface AssignIntakeRequestReviewerRequest {
+    /** A reviewer on the request's desk, or null to unassign it. */
+    reviewerId?: string | undefined;
 }
 
 export interface AssignPortfolioScoringModelRequest {
@@ -51490,6 +52500,16 @@ export interface CommonEnumDto {
 }
 
 /** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
+export interface CommonEnumDtoOfIntakeDeskVisibility extends CommonEnumDto {
+    code: IntakeDeskVisibility;
+}
+
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
+export interface CommonEnumDtoOfNeedByBasis extends CommonEnumDto {
+    code: NeedByBasis;
+}
+
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfRoadmapState extends CommonEnumDto {
     code: RoadmapState;
 }
@@ -51720,6 +52740,42 @@ export interface CreateHolidayCalendarRequest {
     name: string;
     /** What the calendar covers, such as the region or office. */
     description?: string | undefined;
+}
+
+/** A new intake desk and its initial reviewers. */
+export interface CreateIntakeDeskRequest {
+    /** What reviewers and administrators call the desk. Unique. */
+    name: string;
+    /** The requester-facing description of what kind of ask to bring here, which requesters choose by. */
+    description: string;
+    /** How much of a request on the desk reaches people outside it: Open, SummaryOnly or Private. */
+    visibility: IntakeDeskVisibility;
+    /** Whether a requester can pick the desk. One they cannot is a destination reviewers route to. */
+    isRequesterSelectable: boolean;
+    /** Whether the desk accepts new requests. */
+    isOpen: boolean;
+    /** On a private desk, whether the requester may add participants themselves. Reviewers always can. */
+    requesterMayAddParticipants: boolean;
+    /** The employees named as the desk's reviewers. */
+    reviewerIds: string[];
+}
+
+/** A request submitted to a desk, for the caller or on someone else's behalf. */
+export interface CreateIntakeRequestRequest {
+    /** What is being asked for, in a line. On most desks everyone who can view requests reads the title, even when the detail stays with the desk. */
+    title: string;
+    /** The ask in full. */
+    description: string;
+    /** What gets better, and for whom, if the ask is delivered. */
+    expectedBenefits?: string | undefined;
+    /** The desk to submit to: one that is open and that requesters can pick. */
+    deskId: string;
+    /** Where the request came from: an active channel. */
+    channelId: string;
+    /** The employee the request is for, when it is not the caller. The caller is recorded as the submitter. */
+    requesterId?: string | undefined;
+    /** When the request has to land, and why. */
+    needBy?: IntakeRequestNeedByRequest | undefined;
 }
 
 export interface CreateLinkRequest {
@@ -53826,6 +54882,156 @@ export interface InstantWindowDto {
     latest?: Date | undefined;
 }
 
+/** An intake channel: one of the places requests come from. */
+export interface IntakeChannelDto {
+    /** The channel's id, which a request refers to. */
+    id: string;
+    /** What the company calls the channel. */
+    name: string;
+    /** What belongs in the channel, when described. */
+    description?: string | undefined;
+    /** Position in the list a requester chooses from, lowest first. */
+    order: number;
+    /** Whether new requests can be given this channel. */
+    isActive: boolean;
+}
+
+/** A channel as a request refers to it. */
+export interface IntakeChannelNavigationDto {
+    /** The channel's id. */
+    id: string;
+    /** What the company calls the channel. */
+    name: string;
+}
+
+/** An intake desk: what it takes, who reviews on it, and how much of its requests the rest of the company reads. */
+export interface IntakeDeskDto {
+    /** The desk's id. */
+    id: string;
+    /** The desk's key. */
+    key: number;
+    /** What reviewers and administrators call the desk. */
+    name: string;
+    /** The requester-facing description of what kind of ask to bring here, which requesters choose by. */
+    description: string;
+    /** How much of a request on this desk reaches people outside it. */
+    visibility: IntakeDeskVisibility;
+    /** Whether a requester can pick this desk. */
+    isRequesterSelectable: boolean;
+    /** Whether the desk accepts new requests. */
+    isOpen: boolean;
+    /** On a private desk, whether the requester may add participants themselves. */
+    requesterMayAddParticipants: boolean;
+    /** The employees named as reviewers on the desk, by name. */
+    reviewers: EmployeeNavigationDto[];
+}
+
+export enum IntakeDeskVisibility {
+    Open = "Open",
+    SummaryOnly = "SummaryOnly",
+    Private = "Private",
+}
+
+/** One desk visibility value: its code, name and what it exposes. */
+export interface IntakeDeskVisibilityDto extends CommonEnumDtoOfIntakeDeskVisibility {
+}
+
+/** One intake request as its reader may see it: the summary always, the substance only when they may read it. */
+export interface IntakeRequestDetailsDto {
+    /** The summary tier. */
+    summary: IntakeRequestSummaryDto;
+    /** The substance tier, or null when the reader may not see it. */
+    substance?: IntakeRequestSubstanceDto | undefined;
+    /** Whether the reader may edit the request as it stands. */
+    canEdit: boolean;
+    /** Whether the reader may review the request: Review on its desk, or Administer. */
+    canReview: boolean;
+}
+
+/** An intake request's need-by date, its basis and what the date rests on. */
+export interface IntakeRequestNeedByDto {
+    /** The date the request is needed by. */
+    date: string;
+    /** What makes it that date. */
+    basis: NeedByBasis;
+    /** Whether something outside the company set the date or someone here chose it. Derived from the basis. */
+    family: NeedByBasisFamily;
+    /** What the date rests on: the regulation and clause, the contract and clause, the event, or a note. */
+    reference: string;
+    /** For a commitment, the employee who made it. */
+    committedBy?: EmployeeNavigationDto | undefined;
+    /** For a commitment, the date it was made. */
+    committedOn?: string | undefined;
+}
+
+/** When a request has to land, and why. The date never travels without its basis and a reference. */
+export interface IntakeRequestNeedByRequest {
+    /** The date the request is needed by. */
+    date: string;
+    /** What makes it that date: a regulation, a contract, an external event, a commitment someone here made, or the requester's preference. */
+    basis: NeedByBasis;
+    /** What the date rests on: the regulation and clause, the contract and clause, the event, or a note. */
+    reference: string;
+    /** For a commitment, the employee who made it. Required for a commitment and refused for any other basis. */
+    committedById?: string | undefined;
+    /** For a commitment, the date it was made. Required for a commitment and refused for any other basis. */
+    committedOn?: string | undefined;
+}
+
+/** The upstream record an intake request arrived from. */
+export interface IntakeRequestOriginDto {
+    /** The system the request was raised in. */
+    sourceSystem: string;
+    /** The request's id in that system. */
+    externalId: string;
+    /** A link to the request in that system, when it has one. */
+    url?: string | undefined;
+}
+
+/** A participant on an intake request: who, and who added them when. */
+export interface IntakeRequestParticipantDto {
+    /** The employee given access. */
+    employee: EmployeeNavigationDto;
+    /** The employee who added them, or null when the platform did. */
+    addedBy?: EmployeeNavigationDto | undefined;
+    /** When they were added. */
+    addedOn: Date;
+}
+
+/** The substance tier of an intake request: the ask itself and its own people. */
+export interface IntakeRequestSubstanceDto {
+    /** The ask in full. */
+    description: string;
+    /** What gets better, and for whom, if the ask is delivered. */
+    expectedBenefits?: string | undefined;
+    /** The employee who entered the request, who differs from the requester when it was submitted on their behalf. */
+    submittedBy: EmployeeNavigationDto;
+    /** The people given access to the request beyond its requester and submitter. */
+    participants: IntakeRequestParticipantDto[];
+    /** The upstream record the request arrived from, when it did not start in Wayd. */
+    origin?: IntakeRequestOriginDto | undefined;
+}
+
+/** The summary tier of an intake request: enough to recognise that an ask exists. */
+export interface IntakeRequestSummaryDto {
+    /** The request's id. */
+    id: string;
+    /** The request's number, sequential across the install. */
+    key: number;
+    /** What is being asked for, in a line. */
+    title: string;
+    /** The desk the request is reviewed on. */
+    desk: NavigationDto;
+    /** The employee the request is for. */
+    requester: EmployeeNavigationDto;
+    /** Where the request came from. */
+    channel: IntakeChannelNavigationDto;
+    /** The reviewer who owns the request, when one is assigned. */
+    assignedReviewer?: EmployeeNavigationDto | undefined;
+    /** When the request has to land and why, when it has a need-by date. */
+    needBy?: IntakeRequestNeedByDto | undefined;
+}
+
 export interface IntegrationStateDto {
     internalId: string;
     isActive: boolean;
@@ -54219,6 +55425,27 @@ export interface NavigationDtoOfGuidAndString {
     id: string;
     key: string;
     name: string;
+}
+
+export enum NeedByBasis {
+    Regulatory = "Regulatory",
+    Contractual = "Contractual",
+    ExternalEvent = "ExternalEvent",
+    Commitment = "Commitment",
+    RequesterPreference = "RequesterPreference",
+}
+
+/** One need-by basis: its code, its name, and whether it is fixed for us or chosen by us. */
+export interface NeedByBasisDto extends CommonEnumDtoOfNeedByBasis {
+    /** Whether something outside the company sets the date or someone here chose it. */
+    family: NeedByBasisFamily;
+    /** Whether a need-by on this basis also records who made the commitment and when. */
+    recordsCommitment: boolean;
+}
+
+export enum NeedByBasisFamily {
+    FixedForUs = "FixedForUs",
+    ChosenByUs = "ChosenByUs",
 }
 
 /** Where to send the browser after the user approves or denies a connection request. */
@@ -58590,6 +59817,22 @@ export interface UpdateHolidayCalendarRequest {
     name: string;
     /** What the calendar covers, such as the region or office. */
     description?: string | undefined;
+}
+
+/** An intake request's editable fields, overwritten as a whole. Fields that did not change record nothing. */
+export interface UpdateIntakeRequestRequest {
+    /** The request's id. */
+    id: string;
+    /** What is being asked for, in a line. */
+    title: string;
+    /** The ask in full. */
+    description: string;
+    /** What gets better, and for whom, if the ask is delivered. */
+    expectedBenefits?: string | undefined;
+    /** Where the request came from. */
+    channelId: string;
+    /** When the request has to land and why. Null clears the date, its basis and its reference together. */
+    needBy?: IntakeRequestNeedByRequest | undefined;
 }
 
 export interface UpdateLinkRequest {

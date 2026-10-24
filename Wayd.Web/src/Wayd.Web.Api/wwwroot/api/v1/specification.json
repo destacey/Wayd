@@ -38983,6 +38983,773 @@
         ]
       }
     },
+    "/api/demand-management/intake-channels": {
+      "get": {
+        "tags": [
+          "IntakeChannels"
+        ],
+        "summary": "Get the intake channels in the order requesters see them.",
+        "operationId": "IntakeChannels_GetIntakeChannels",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeChannelDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-desks": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get the intake desks, or only those a requester can submit to now.",
+        "operationId": "IntakeDesks_GetIntakeDesks",
+        "parameters": [
+          {
+            "name": "submittableOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeDeskDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Create an intake desk with its initial reviewers.",
+        "operationId": "IntakeDesks_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntakeDeskRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-desks/{idOrKey}": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get an intake desk.",
+        "operationId": "IntakeDesks_GetIntakeDesk",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeDeskDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-desks/visibilities": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get the desk visibility values, with their codes.",
+        "operationId": "IntakeDesks_GetVisibilities",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeDeskVisibilityDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the intake requests you can see, as summaries.",
+        "description": "Requests on a private desk are absent for anyone outside it rather than listed as redacted rows.",
+        "operationId": "IntakeRequests_GetIntakeRequests",
+        "parameters": [
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestSummaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Submit an intake request to a desk.",
+        "operationId": "IntakeRequests_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntakeRequestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{idOrKey}": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get an intake request in the tiers you can read.",
+        "description": "The summary is always returned; the substance is null when you may not read it.",
+        "operationId": "IntakeRequests_GetIntakeRequest",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeRequestDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{idOrKey}/activities": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get an intake request's history, limited to the tiers you can read.",
+        "operationId": "IntakeRequests_GetActivities",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}": {
+      "put": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Update an intake request.",
+        "description": "The requester can edit their own request while it is proposed; otherwise the Update permission is needed. You must also be able to read the request's detail.",
+        "operationId": "IntakeRequests_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntakeRequestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Delete an intake request.",
+        "operationId": "IntakeRequests_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/assigned-reviewer": {
+      "put": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Assign the reviewer who owns an intake request, or unassign it.",
+        "description": "Needs Review on the request's desk. The assignee must be a reviewer on that desk.",
+        "operationId": "IntakeRequests_AssignReviewer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignIntakeRequestReviewerRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/participants": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Give an employee access to an intake request as a participant.",
+        "description": "A reviewer on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.",
+        "operationId": "IntakeRequests_AddParticipant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddIntakeRequestParticipantRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/participants/{employeeId}": {
+      "delete": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Remove a participant's access to an intake request.",
+        "description": "Needs Review on the request's desk.",
+        "operationId": "IntakeRequests_RemoveParticipant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/need-by-bases": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the need-by basis values, with their codes and families.",
+        "operationId": "IntakeRequests_GetNeedByBases",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NeedByBasisDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/azure-devops/{id}/sync-organization": {
       "post": {
         "tags": [
@@ -44129,6 +44896,22 @@
         },
         "additionalProperties": false
       },
+      "AddIntakeRequestParticipantRequest": {
+        "required": [
+          "employeeId"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The employee to give access. They will read the request and may join its discussion, but cannot change it.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Someone to give access to an intake request as a participant."
+      },
       "AddPersonaRequest": {
         "required": [
           "name",
@@ -44530,6 +45313,19 @@
         },
         "additionalProperties": false,
         "description": "Assembles several component releases into one shipment."
+      },
+      "AssignIntakeRequestReviewerRequest": {
+        "type": "object",
+        "properties": {
+          "reviewerId": {
+            "type": "string",
+            "description": "A reviewer on the request's desk, or null to unassign it.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The reviewer who owns an intake request."
       },
       "AssignPortfolioScoringModelRequest": {
         "required": [
@@ -45707,6 +46503,46 @@
         },
         "additionalProperties": false
       },
+      "CommonEnumDtoOfIntakeDeskVisibility": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "required": [
+              "code"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/IntakeDeskVisibility"
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "One value of a closed set of options, carrying the stable `code` that endpoints\nfiltering on the set accept."
+      },
+      "CommonEnumDtoOfNeedByBasis": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "required": [
+              "code"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/NeedByBasis"
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "One value of a closed set of options, carrying the stable `code` that endpoints\nfiltering on the set accept."
+      },
       "CommonEnumDtoOfRoadmapState": {
         "allOf": [
           {
@@ -46597,6 +47433,119 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateIntakeDeskRequest": {
+        "required": [
+          "name",
+          "description",
+          "visibility",
+          "isRequesterSelectable",
+          "isOpen",
+          "requesterMayAddParticipants",
+          "reviewerIds"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What reviewers and administrators call the desk. Unique."
+          },
+          "description": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string",
+            "description": "The requester-facing description of what kind of ask to bring here, which requesters choose by."
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDeskVisibility"
+              }
+            ],
+            "description": "How much of a request on the desk reaches people outside it: Open, SummaryOnly or Private."
+          },
+          "isRequesterSelectable": {
+            "type": "boolean",
+            "description": "Whether a requester can pick the desk. One they cannot is a destination reviewers route to."
+          },
+          "isOpen": {
+            "type": "boolean",
+            "description": "Whether the desk accepts new requests."
+          },
+          "requesterMayAddParticipants": {
+            "type": "boolean",
+            "description": "On a private desk, whether the requester may add participants themselves. Reviewers always can."
+          },
+          "reviewerIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The employees named as the desk's reviewers."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new intake desk and its initial reviewers."
+      },
+      "CreateIntakeRequestRequest": {
+        "required": [
+          "title",
+          "description",
+          "deskId",
+          "channelId"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "description": "What is being asked for, in a line. On most desks everyone who can view requests reads the title, even when the detail stays with the desk."
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ask in full."
+          },
+          "expectedBenefits": {
+            "type": "string",
+            "description": "What gets better, and for whom, if the ask is delivered.",
+            "nullable": true
+          },
+          "deskId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The desk to submit to: one that is open and that requesters can pick.",
+            "format": "uuid"
+          },
+          "channelId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Where the request came from: an active channel.",
+            "format": "uuid"
+          },
+          "requesterId": {
+            "type": "string",
+            "description": "The employee the request is for, when it is not the caller. The caller is recorded as the submitter.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "needBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestNeedByRequest"
+              }
+            ],
+            "description": "When the request has to land, and why.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request submitted to a desk, for the caller or on someone else's behalf."
       },
       "CreateLinkRequest": {
         "required": [
@@ -53081,6 +54030,451 @@
         "additionalProperties": false,
         "description": "The moments from `earliest` to `latest`, both included. A null\n`latest` means the window runs up to now, whenever the caller acts."
       },
+      "IntakeChannelDto": {
+        "required": [
+          "name",
+          "id",
+          "order",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The channel's id, which a request refers to.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the company calls the channel."
+          },
+          "description": {
+            "type": "string",
+            "description": "What belongs in the channel, when described.",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "description": "Position in the list a requester chooses from, lowest first.",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether new requests can be given this channel."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An intake channel: one of the places requests come from."
+      },
+      "IntakeChannelNavigationDto": {
+        "required": [
+          "name",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The channel's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the company calls the channel."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A channel as a request refers to it."
+      },
+      "IntakeDeskDto": {
+        "required": [
+          "name",
+          "description",
+          "reviewers",
+          "id",
+          "key",
+          "visibility",
+          "isRequesterSelectable",
+          "isOpen",
+          "requesterMayAddParticipants"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The desk's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The desk's key.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "What reviewers and administrators call the desk."
+          },
+          "description": {
+            "type": "string",
+            "description": "The requester-facing description of what kind of ask to bring here, which requesters choose by."
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDeskVisibility"
+              }
+            ],
+            "description": "How much of a request on this desk reaches people outside it."
+          },
+          "isRequesterSelectable": {
+            "type": "boolean",
+            "description": "Whether a requester can pick this desk."
+          },
+          "isOpen": {
+            "type": "boolean",
+            "description": "Whether the desk accepts new requests."
+          },
+          "requesterMayAddParticipants": {
+            "type": "boolean",
+            "description": "On a private desk, whether the requester may add participants themselves."
+          },
+          "reviewers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees named as reviewers on the desk, by name."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An intake desk: what it takes, who reviews on it, and how much of its requests the rest of the company reads."
+      },
+      "IntakeDeskVisibility": {
+        "enum": [
+          "Open",
+          "SummaryOnly",
+          "Private"
+        ],
+        "type": "string"
+      },
+      "IntakeDeskVisibilityDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfIntakeDeskVisibility"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ],
+        "description": "One desk visibility value: its code, name and what it exposes."
+      },
+      "IntakeRequestDetailsDto": {
+        "required": [
+          "summary",
+          "canEdit",
+          "canReview"
+        ],
+        "type": "object",
+        "properties": {
+          "summary": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestSummaryDto"
+              }
+            ],
+            "description": "The summary tier."
+          },
+          "substance": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestSubstanceDto"
+              }
+            ],
+            "description": "The substance tier, or null when the reader may not see it.",
+            "nullable": true
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "Whether the reader may edit the request as it stands."
+          },
+          "canReview": {
+            "type": "boolean",
+            "description": "Whether the reader may review the request: Review on its desk, or Administer."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One intake request as its reader may see it: the summary always, the substance only when they may read it."
+      },
+      "IntakeRequestNeedByDto": {
+        "required": [
+          "reference",
+          "date",
+          "basis",
+          "family"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The date the request is needed by.",
+            "format": "date"
+          },
+          "basis": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NeedByBasis"
+              }
+            ],
+            "description": "What makes it that date."
+          },
+          "family": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NeedByBasisFamily"
+              }
+            ],
+            "description": "Whether something outside the company set the date or someone here chose it. Derived from the basis."
+          },
+          "reference": {
+            "type": "string",
+            "description": "What the date rests on: the regulation and clause, the contract and clause, the event, or a note."
+          },
+          "committedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "For a commitment, the employee who made it.",
+            "nullable": true
+          },
+          "committedOn": {
+            "type": "string",
+            "description": "For a commitment, the date it was made.",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "An intake request's need-by date, its basis and what the date rests on."
+      },
+      "IntakeRequestNeedByRequest": {
+        "required": [
+          "date",
+          "basis",
+          "reference"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The date the request is needed by.",
+            "format": "date"
+          },
+          "basis": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NeedByBasis"
+              }
+            ],
+            "description": "What makes it that date: a regulation, a contract, an external event, a commitment someone here made, or the requester's preference."
+          },
+          "reference": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the date rests on: the regulation and clause, the contract and clause, the event, or a note."
+          },
+          "committedById": {
+            "type": "string",
+            "description": "For a commitment, the employee who made it. Required for a commitment and refused for any other basis.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "committedOn": {
+            "type": "string",
+            "description": "For a commitment, the date it was made. Required for a commitment and refused for any other basis.",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "When a request has to land, and why. The date never travels without its basis and a reference."
+      },
+      "IntakeRequestOriginDto": {
+        "required": [
+          "sourceSystem",
+          "externalId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceSystem": {
+            "type": "string",
+            "description": "The system the request was raised in."
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The request's id in that system."
+          },
+          "url": {
+            "type": "string",
+            "description": "A link to the request in that system, when it has one.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The upstream record an intake request arrived from."
+      },
+      "IntakeRequestParticipantDto": {
+        "required": [
+          "employee",
+          "addedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "employee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The employee given access."
+          },
+          "addedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The employee who added them, or null when the platform did.",
+            "nullable": true
+          },
+          "addedOn": {
+            "type": "string",
+            "description": "When they were added.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A participant on an intake request: who, and who added them when."
+      },
+      "IntakeRequestSubstanceDto": {
+        "required": [
+          "description",
+          "submittedBy",
+          "participants"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "The ask in full."
+          },
+          "expectedBenefits": {
+            "type": "string",
+            "description": "What gets better, and for whom, if the ask is delivered.",
+            "nullable": true
+          },
+          "submittedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The employee who entered the request, who differs from the requester when it was submitted on their behalf."
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestParticipantDto"
+            },
+            "description": "The people given access to the request beyond its requester and submitter."
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestOriginDto"
+              }
+            ],
+            "description": "The upstream record the request arrived from, when it did not start in Wayd.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The substance tier of an intake request: the ask itself and its own people."
+      },
+      "IntakeRequestSummaryDto": {
+        "required": [
+          "title",
+          "desk",
+          "requester",
+          "channel",
+          "id",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The request's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The request's number, sequential across the install.",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "description": "What is being asked for, in a line."
+          },
+          "desk": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The desk the request is reviewed on."
+          },
+          "requester": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The employee the request is for."
+          },
+          "channel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeChannelNavigationDto"
+              }
+            ],
+            "description": "Where the request came from."
+          },
+          "assignedReviewer": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The reviewer who owns the request, when one is assigned.",
+            "nullable": true
+          },
+          "needBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestNeedByDto"
+              }
+            ],
+            "description": "When the request has to land and why, when it has a need-by date.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The summary tier of an intake request: enough to recognise that an ask exists."
+      },
       "IntegrationStateDto": {
         "required": [
           "internalId",
@@ -54308,6 +55702,53 @@
           }
         },
         "additionalProperties": false
+      },
+      "NeedByBasis": {
+        "enum": [
+          "Regulatory",
+          "Contractual",
+          "ExternalEvent",
+          "Commitment",
+          "RequesterPreference"
+        ],
+        "type": "string"
+      },
+      "NeedByBasisDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfNeedByBasis"
+          },
+          {
+            "required": [
+              "family",
+              "recordsCommitment"
+            ],
+            "type": "object",
+            "properties": {
+              "family": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/NeedByBasisFamily"
+                  }
+                ],
+                "description": "Whether something outside the company sets the date or someone here chose it."
+              },
+              "recordsCommitment": {
+                "type": "boolean",
+                "description": "Whether a need-by on this basis also records who made the commitment and when."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "One need-by basis: its code, its name, and whether it is fixed for us or chosen by us."
+      },
+      "NeedByBasisFamily": {
+        "enum": [
+          "FixedForUs",
+          "ChosenByUs"
+        ],
+        "type": "string"
       },
       "OAuthAuthorizationDecisionResponse": {
         "required": [
@@ -68194,6 +69635,56 @@
         },
         "additionalProperties": false
       },
+      "UpdateIntakeRequestRequest": {
+        "required": [
+          "id",
+          "title",
+          "description",
+          "channelId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The request's id.",
+            "format": "uuid"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "description": "What is being asked for, in a line."
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ask in full."
+          },
+          "expectedBenefits": {
+            "type": "string",
+            "description": "What gets better, and for whom, if the ask is delivered.",
+            "nullable": true
+          },
+          "channelId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Where the request came from.",
+            "format": "uuid"
+          },
+          "needBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestNeedByRequest"
+              }
+            ],
+            "description": "When the request has to land and why. Null clears the date, its basis and its reference together.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "An intake request's editable fields, overwritten as a whole. Fields that did not change record nothing."
+      },
       "UpdateLinkRequest": {
         "required": [
           "id",
@@ -73293,6 +74784,15 @@
     },
     {
       "name": "HealthChecks"
+    },
+    {
+      "name": "IntakeChannels"
+    },
+    {
+      "name": "IntakeDesks"
+    },
+    {
+      "name": "IntakeRequests"
     },
     {
       "name": "AzureDevOpsConnections"

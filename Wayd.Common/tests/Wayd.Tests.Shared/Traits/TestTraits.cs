@@ -81,5 +81,6 @@ public static class TestAreas
     public const string Planning = "Planning";
     public const string Work = "Work";
     public const string StrategicManagement = "StrategicManagement";
+    public const string DemandManagement = "DemandManagement";
     public const string Integrations = "Integrations";
 }

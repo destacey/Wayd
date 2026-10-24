@@ -13,6 +13,7 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition DeliveryForecasting = new(Names.DeliveryForecasting, "Delivery Forecasting", "Controls availability of Monte Carlo delivery forecasts.");
     public static readonly FeatureFlagDefinition McpServer = new(Names.McpServer, "MCP Server", "Controls availability of the hosted MCP endpoint (/mcp) that exposes the API as agent tools.");
     public static readonly FeatureFlagDefinition TeamCapacityManagement = new(Names.TeamCapacityManagement, "Team Capacity Management", "Controls availability of employee allocation to teams and team capacity planning.");
+    public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "Controls availability of the Demand Management module: intake requests and the desks that review them.");
     public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Controls availability of following projects, programs and planning interval objectives, and the Following list. Following notifies nobody until in-app notifications ship.");
 
     /// <summary>
@@ -26,6 +27,7 @@ public static class FeatureFlags
         public const string DeliveryForecasting = "delivery-forecasting";
         public const string McpServer = "mcp-server";
         public const string TeamCapacityManagement = "team-capacity-management";
+        public const string DemandManagement = "demand-management";
         public const string Following = "following";
     }
 }

@@ -1646,6 +1646,214 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("WorkflowTransitions", "StatusWorkflows");
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeChannel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("IntakeChannels", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDesk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<bool>("IsOpen")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequesterSelectable")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("RequesterMayAddParticipants")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("IntakeDesks", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskReviewer", b =>
+                {
+                    b.Property<Guid>("DeskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("DeskId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("IntakeDeskReviewers", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssignedReviewerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("DeskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExpectedBenefits")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<Guid>("RequesterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SubmittedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("AssignedReviewerId");
+
+                    b.HasIndex("ChannelId");
+
+                    b.HasIndex("DeskId");
+
+                    b.HasIndex("RequesterId");
+
+                    b.HasIndex("SubmittedById");
+
+                    b.ToTable("IntakeRequests", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestParticipant", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AddedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AddedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("RequestId", "EmployeeId");
+
+                    b.HasIndex("AddedById");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("IntakeRequestParticipants", "DemandManagement");
+                });
+
             modelBuilder.Entity("Wayd.Infrastructure.Auditing.Trail", b =>
                 {
                     b.Property<long>("Id")
@@ -8166,6 +8374,155 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskReviewer", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)
+                        .WithMany("Reviewers")
+                        .HasForeignKey("DeskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedReviewerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeChannel", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)
+                        .WithMany()
+                        .HasForeignKey("DeskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("RequesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("SubmittedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("Wayd.DemandManagement.Domain.Models.IntakeRequestNeedBy", "NeedBy", b1 =>
+                        {
+                            b1.Property<Guid>("IntakeRequestId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Basis")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("NeedByBasis");
+
+                            b1.Property<Guid?>("CommittedById")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("NeedByCommittedById");
+
+                            b1.Property<DateTime?>("CommittedOn")
+                                .HasColumnType("date")
+                                .HasColumnName("NeedByCommittedOn");
+
+                            b1.Property<DateTime>("Date")
+                                .HasColumnType("date")
+                                .HasColumnName("NeedByDate");
+
+                            b1.Property<string>("Reference")
+                                .IsRequired()
+                                .HasMaxLength(1024)
+                                .HasColumnType("nvarchar(1024)")
+                                .HasColumnName("NeedByReference");
+
+                            b1.HasKey("IntakeRequestId");
+
+                            b1.HasIndex("CommittedById");
+
+                            b1.ToTable("IntakeRequests", "DemandManagement");
+
+                            b1.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                                .WithMany()
+                                .HasForeignKey("CommittedById")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.WithOwner()
+                                .HasForeignKey("IntakeRequestId");
+                        });
+
+                    b.OwnsOne("Wayd.DemandManagement.Domain.Models.IntakeRequestOrigin", "Origin", b1 =>
+                        {
+                            b1.Property<Guid>("IntakeRequestId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .IsRequired()
+                                .HasMaxLength(256)
+                                .HasColumnType("nvarchar(256)")
+                                .HasColumnName("OriginExternalId");
+
+                            b1.Property<string>("SourceSystem")
+                                .IsRequired()
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("OriginSourceSystem");
+
+                            b1.Property<string>("Url")
+                                .HasMaxLength(2048)
+                                .HasColumnType("nvarchar(2048)")
+                                .HasColumnName("OriginUrl");
+
+                            b1.HasKey("IntakeRequestId");
+
+                            b1.HasIndex("SourceSystem", "ExternalId")
+                                .IsUnique()
+                                .HasFilter("[OriginSourceSystem] IS NOT NULL");
+
+                            b1.ToTable("IntakeRequests", "DemandManagement");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IntakeRequestId");
+                        });
+
+                    b.Navigation("NeedBy");
+
+                    b.Navigation("Origin");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestParticipant", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("AddedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequest", null)
+                        .WithMany("Participants")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRoleClaim", b =>
                 {
                     b.HasOne("Wayd.Infrastructure.Identity.ApplicationRole", null)
@@ -9925,6 +10282,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowTransition", b =>
                 {
                     b.Navigation("Conditions");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDesk", b =>
+                {
+                    b.Navigation("Reviewers");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
+                {
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRole", b =>

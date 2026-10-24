@@ -12,6 +12,7 @@ Wayd supports:
 - **Planning** — Planning intervals (PIs), objectives, risks, roadmaps, planning poker, and story maps
 - **Work Management** — Workspaces, work items, sprints, work processes, workflows, and work types, synchronized from Azure DevOps; sprint metrics, reports, and delivery forecasting
 - **Project Portfolio Management** — Portfolios, programs, projects with lifecycles/stages/tasks, portfolio ranking, priority scoring, strategic initiatives with KPIs
+- **Demand Management** — Intake requests, intake desks and channels: asks for delivery capacity before they become projects or work items (in development)
 - **Strategic Management** — Visions, strategies, and strategic themes for organizational alignment
 - **Product Management** — Product catalog, product dependencies, versions, releases, release packages, deployments, and delivery metrics
 
@@ -47,6 +48,7 @@ Wayd supports:
 - [Strategic Initiatives](docs/user-guide/ppm/strategic-initiatives.mdx): Initiatives, KPIs, checkpoints, measurements
 - [Projects Dashboard](docs/user-guide/ppm/my-projects.mdx): Triage projects by person, portfolio, or program — health, overdue tasks, stages, and end dates
 - [PPM Bulk Import](docs/user-guide/ppm/bulk-import.mdx): Loading portfolios, programs, projects, tasks, stages, strategic themes, and initiatives from CSV
+- [Demand Management](docs/user-guide/demand-management/index.mdx): Intake requests, desks, channels, need-by basis, read tiers and desk visibility
 - [Strategic Management](docs/user-guide/strategic-management/index.mdx): Visions, strategies, strategic themes, cross-domain alignment
 - [Product Management Overview](docs/user-guide/product-management/index.mdx): Product catalog vs delivery records, module scope, permissions
 - [Products](docs/user-guide/product-management/products.mdx): Product tree, types and releasability, statuses, tags, moving, external links, dependencies between products (strength, interaction, change terms)

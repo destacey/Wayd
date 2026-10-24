@@ -244,6 +244,313 @@
         ]
       }
     },
+    "/api/me/follows": {
+      "get": {
+        "tags": [
+          "MyFollows"
+        ],
+        "summary": "List the records you follow, grouped by kind.",
+        "description": "Returns one group per kind of record you follow — projects, programs, planning interval objectives — each with its `displayName` and one page of `follows`, most recently followed first. Each follow carries the record's `id`, `key`, `name` and, for an objective, `parentKey` and `parentName` (its planning interval). A record you can no longer read is left out of its group and its total, and a kind with nothing readable is left out entirely. Pass `ownerType` to page through one kind — `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`, and any other value returns 400; without it, `page` and `pageSize` (at most 100) apply to every group. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.",
+        "operationId": "MyFollows_GetFollows",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FollowGroupDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/follows/{ownerType}/{ownerId}": {
+      "get": {
+        "tags": [
+          "MyFollows"
+        ],
+        "summary": "Get whether you follow a record.",
+        "description": "Returns `isFollowing` and, when true, `followedOn`. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.",
+        "operationId": "MyFollows_GetFollowStatus",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowStatusDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "MyFollows"
+        ],
+        "summary": "Follow a record.",
+        "description": "Follows the record for you. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access and notifies nobody yet. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyFollows_Follow",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "MyFollows"
+        ],
+        "summary": "Stop following a record.",
+        "description": "Removes your follow of the record. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyFollows_Unfollow",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/search": {
       "get": {
         "tags": [
@@ -49724,6 +50031,100 @@
         },
         "additionalProperties": false
       },
+      "FollowedRecordDto": {
+        "required": [
+          "ownerType",
+          "id",
+          "key",
+          "name",
+          "followedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "type": "string",
+            "description": "The record's owner type, such as `ppm.project`."
+          },
+          "id": {
+            "type": "string",
+            "description": "The record's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The record's human-readable key, as its own pages address it."
+          },
+          "name": {
+            "type": "string",
+            "description": "The record's name or title."
+          },
+          "parentKey": {
+            "type": "string",
+            "description": "The key of the record this one is addressed under, such as a planning interval objective's\nplanning interval. Null when the owner type does not nest.",
+            "nullable": true
+          },
+          "parentName": {
+            "type": "string",
+            "description": "The name of the parent record. Null when there is none.",
+            "nullable": true
+          },
+          "followedOn": {
+            "type": "string",
+            "description": "When the caller started following the record.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A record the caller follows."
+      },
+      "FollowGroupDto": {
+        "required": [
+          "ownerType",
+          "displayName",
+          "follows"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "type": "string",
+            "description": "The owner type of every record in the group, such as `ppm.project`."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "What to call this kind of record, such as \"Project\"."
+          },
+          "follows": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PagedResponseOfFollowedRecordDto"
+              }
+            ],
+            "description": "One page of the followed records the caller can still read, most recently followed first. The\ntotal counts only those records."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The caller's follows of one kind of record, one page at a time."
+      },
+      "FollowStatusDto": {
+        "required": [
+          "isFollowing"
+        ],
+        "type": "object",
+        "properties": {
+          "isFollowing": {
+            "type": "boolean",
+            "description": "Whether the caller follows the record."
+          },
+          "followedOn": {
+            "type": "string",
+            "description": "When the caller started following the record; null when they do not follow it.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Whether the caller follows a record."
+      },
       "ForecastDependencyInfluenceDto": {
         "required": [
           "predecessor",
@@ -54130,6 +54531,50 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ActivityLogDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
+      "PagedResponseOfFollowedRecordDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FollowedRecordDto"
             }
           },
           "pageNumber": {
@@ -72334,6 +72779,9 @@
     },
     {
       "name": "Me"
+    },
+    {
+      "name": "MyFollows"
     },
     {
       "name": "Search"

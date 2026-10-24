@@ -22,7 +22,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public DbSet<IntakeChannel> IntakeChannels => _channels.AsDbSet();
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
-    public IQueryable<Employee> Employees => _employees.AsQueryable();
+    public IQueryable<Employee> Employees => _employees.AsDbSet();
 
     /// <summary>
     /// The number of times <see cref="SaveChangesAsync"/> has been called.

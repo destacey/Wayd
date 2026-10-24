@@ -27,6 +27,12 @@ public static class IntakeRequestAuthorization
     public const string NotAReviewerError = "Only reviewers on the request's desk can do this.";
 
     /// <summary>
+    /// The failure a command returns for a request the caller cannot see, which an endpoint reports as 404
+    /// exactly as it does a request that does not exist.
+    /// </summary>
+    public const string NotFoundError = "Intake request not found.";
+
+    /// <summary>
     /// The current user as a reader of intake requests.
     /// </summary>
     public static async Task<IntakeRequestReader> ResolveIntakeRequestReader(

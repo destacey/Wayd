@@ -11,7 +11,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequests;
 /// </remarks>
 internal static class IntakeRequestAccess
 {
-    public const string NotFoundError = "Intake request not found.";
+    public const string NotFoundError = IntakeRequestAuthorization.NotFoundError;
 
     /// <summary>
     /// The request, tracked, when the reader may see it; otherwise null.

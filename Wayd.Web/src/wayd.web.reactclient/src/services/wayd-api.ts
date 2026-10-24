@@ -7584,6 +7584,82 @@ export class DeploymentsClient {
     }
 
     /**
+     * Get how long deployments stay in each status, for stays that ended within a window.
+     * @param from (optional) Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.
+     * @param to (optional) End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.
+     * @return OK
+     */
+    getTimeInStatus(from?: Date | undefined, to?: Date | undefined, cancelToken?: CancelToken): Promise<TimeInStatusReportDto> {
+        let url_ = this.baseUrl + "/api/product-management/deployments/time-in-status?";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTimeInStatus(_response);
+        });
+    }
+
+    protected processGetTimeInStatus(response: AxiosResponse): Promise<TimeInStatusReportDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TimeInStatusReportDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TimeInStatusReportDto>(null as any);
+    }
+
+    /**
      * Get a deployment's status change history, newest first.
      * @return OK
      */
@@ -8327,6 +8403,82 @@ export class ProductsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Get how long products stay in each status, for stays that ended within a window.
+     * @param from (optional) Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.
+     * @param to (optional) End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.
+     * @return OK
+     */
+    getTimeInStatus(from?: Date | undefined, to?: Date | undefined, cancelToken?: CancelToken): Promise<TimeInStatusReportDto> {
+        let url_ = this.baseUrl + "/api/product-management/products/time-in-status?";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTimeInStatus(_response);
+        });
+    }
+
+    protected processGetTimeInStatus(response: AxiosResponse): Promise<TimeInStatusReportDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TimeInStatusReportDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TimeInStatusReportDto>(null as any);
     }
 
     /**
@@ -10938,6 +11090,82 @@ export class ReleasePackagesClient {
     }
 
     /**
+     * Get how long release packages stay in each status, for stays that ended within a window.
+     * @param from (optional) Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.
+     * @param to (optional) End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.
+     * @return OK
+     */
+    getTimeInStatus(from?: Date | undefined, to?: Date | undefined, cancelToken?: CancelToken): Promise<TimeInStatusReportDto> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/time-in-status?";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTimeInStatus(_response);
+        });
+    }
+
+    protected processGetTimeInStatus(response: AxiosResponse): Promise<TimeInStatusReportDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TimeInStatusReportDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TimeInStatusReportDto>(null as any);
+    }
+
+    /**
      * Get a package's status change history, newest first.
      * @return OK
      */
@@ -11890,6 +12118,82 @@ export class ReleasesClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Get how long releases stay in each status, for stays that ended within a window.
+     * @param from (optional) Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.
+     * @param to (optional) End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.
+     * @return OK
+     */
+    getTimeInStatus(from?: Date | undefined, to?: Date | undefined, cancelToken?: CancelToken): Promise<TimeInStatusReportDto> {
+        let url_ = this.baseUrl + "/api/product-management/releases/time-in-status?";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTimeInStatus(_response);
+        });
+    }
+
+    protected processGetTimeInStatus(response: AxiosResponse): Promise<TimeInStatusReportDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TimeInStatusReportDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TimeInStatusReportDto>(null as any);
     }
 
     /**
@@ -13033,6 +13337,82 @@ export class VersionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Get how long versions stay in each status, for stays that ended within a window.
+     * @param from (optional) Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.
+     * @param to (optional) End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.
+     * @return OK
+     */
+    getTimeInStatus(from?: Date | undefined, to?: Date | undefined, cancelToken?: CancelToken): Promise<TimeInStatusReportDto> {
+        let url_ = this.baseUrl + "/api/product-management/versions/time-in-status?";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTimeInStatus(_response);
+        });
+    }
+
+    protected processGetTimeInStatus(response: AxiosResponse): Promise<TimeInStatusReportDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TimeInStatusReportDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TimeInStatusReportDto>(null as any);
     }
 
     /**
@@ -51693,6 +52073,8 @@ version number, which is what a reader identifies it by. */
     reason?: string | undefined;
     /** The deployment's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+    /** When the record entered its current status, or `null` when no change has been recorded. */
+    statusEnteredOn?: Date | undefined;
     /** The well-known meaning of the outcome. Metrics read this rather than the status name, so a
 renamed outcome still counts. */
     outcome: ProductStatusAlias;
@@ -54099,6 +54481,8 @@ export interface ProductDto {
     parent?: NavigationDto | undefined;
     /** The node's current lifecycle status. */
     status: StatusNavigationDto;
+    /** When the record entered its current status, or `null` when no change has been recorded. */
+    statusEnteredOn?: Date | undefined;
     tags: ProductTagDto[];
 }
 
@@ -54894,6 +55278,8 @@ export interface ReleaseDto {
     releasedDate?: string | undefined;
     /** The release's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+    /** When the record entered its current status, or `null` when no change has been recorded. */
+    statusEnteredOn?: Date | undefined;
     /** The versions this release announces directly, outside any package. */
     versions: ReleaseVersionDto[];
     /** The packages this release shipped. */
@@ -54933,6 +55319,8 @@ export interface ReleasePackageDto {
     releasedAt?: Date | undefined;
     /** The package's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+    /** When the record entered its current status, or `null` when no change has been recorded. */
+    statusEnteredOn?: Date | undefined;
     components: ReleasePackageComponentDto[];
 }
 
@@ -56265,6 +56653,15 @@ export interface StatusTransitionDto {
     /** Whether the platform made the change on its own behalf. */
     changedBySystem: boolean;
     changedOn: Date;
+    /** When the record moved out of StatusNavigationDto StatusTransitionDto.ToStatus, or `null` while it is still there. */
+    leftOn?: Date | undefined;
+    /** The calendar time the record spent in StatusNavigationDto StatusTransitionDto.ToStatus, in whole seconds. */
+    durationSeconds: number;
+    /** How many separate stays the record has had in StatusNavigationDto StatusTransitionDto.ToStatus, this one included. */
+    statusVisitCount: number;
+    /** The calendar time the record has spent in StatusNavigationDto StatusTransitionDto.ToStatus across all its stays, in whole
+seconds. Equal to long StatusTransitionDto.DurationSeconds when there has been only one. */
+    statusTotalSeconds: number;
     /** Why the change was made, where a reason was recorded. */
     reason?: string | undefined;
 }
@@ -57484,6 +57881,38 @@ export enum TimeAwayReason {
 export interface TimeAwayReasonDto extends CommonEnumDtoOfTimeAwayReason {
 }
 
+/** How long records of one type spent in each status, over a window. */
+export interface TimeInStatusReportDto {
+    /** Start of the window, inclusive. */
+    from: Date;
+    /** End of the window, inclusive. */
+    to: Date;
+    /** The workflow that governs this record type now, or `null` when none is assigned. */
+    workflow?: NavigationDto | undefined;
+    /** One row per status: the current workflow's statuses in their workflow order, then any status
+records left in the window that the current workflow no longer has. */
+    statuses: TimeInStatusReportRowDto[];
+}
+
+/** The stays in one status that ended within the report's window. */
+export interface TimeInStatusReportRowDto {
+    /** The status, by the id frozen on the transitions — stable across renames. */
+    statusId: string;
+    /** The status's current name, or for a status the workflow no longer has, the name it carried on
+the latest stay in the window. */
+    name: string;
+    /** The status's category: its current one, or the one frozen on its latest stay. */
+    category: StatusCategory;
+    /** Whether the status belongs to the workflow governing this record type now. */
+    inCurrentWorkflow: boolean;
+    /** The number of stays that ended in the window. A record that returned counts each stay. */
+    visits: number;
+    /** The mean length of those stays in whole seconds, or `null` when there were none. */
+    averageSeconds?: number | undefined;
+    /** The median length of those stays in whole seconds, or `null` when there were none. */
+    medianSeconds?: number | undefined;
+}
+
 export interface TimeZoneDto {
     /** The IANA time zone id, e.g. "America/Chicago". */
     id: string;
@@ -58417,6 +58846,8 @@ export interface VersionDto {
     releasedAt?: Date | undefined;
     /** The version's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+    /** When the record entered its current status, or `null` when no change has been recorded. */
+    statusEnteredOn?: Date | undefined;
 }
 
 export interface VisibilityDto extends CommonEnumDto {

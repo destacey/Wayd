@@ -14447,6 +14447,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get how long deployments stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current deployment workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one deployment has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a deployment's status change history, newest first.
         /// </summary>
         /// <remarks>
@@ -14949,6 +14962,115 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how long deployments stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current deployment workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one deployment has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/deployments/time-in-status"
+                    urlBuilder_.Append("api/product-management/deployments/time-in-status");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(from.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(to.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TimeInStatusReportDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -15845,6 +15967,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get how long products stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current product workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one product has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a product's status change history, newest first.
         /// </summary>
         /// <remarks>
@@ -16527,6 +16662,115 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how long products stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current product workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one product has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/time-in-status"
+                    urlBuilder_.Append("api/product-management/products/time-in-status");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(from.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(to.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TimeInStatusReportDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -20763,6 +21007,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get how long release packages stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current release package workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release package has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a package's status change history, newest first.
         /// </summary>
         /// <remarks>
@@ -21288,6 +21545,115 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how long release packages stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current release package workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release package has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/release-packages/time-in-status"
+                    urlBuilder_.Append("api/product-management/release-packages/time-in-status");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(from.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(to.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TimeInStatusReportDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -22496,6 +22862,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get how long releases stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current release workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a release's status change history, newest first.
         /// </summary>
         /// <remarks>
@@ -23060,6 +23439,115 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how long releases stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current release workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/releases/time-in-status"
+                    urlBuilder_.Append("api/product-management/releases/time-in-status");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(from.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(to.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TimeInStatusReportDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -24560,6 +25048,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get how long versions stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current version workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one version has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a version's status change history, newest first — when it was cut, how long it sat ready before shipping, who moved it.
         /// </summary>
         /// <remarks>
@@ -25103,6 +25604,115 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how long versions stay in each status, for stays that ended within a window.
+        /// </summary>
+        /// <remarks>
+        /// One row per status of the current version workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one version has spent in each status, read its status history instead.
+        /// </remarks>
+        /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+        /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TimeInStatusReportDto> GetTimeInStatusAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/versions/time-in-status"
+                    urlBuilder_.Append("api/product-management/versions/time-in-status");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("from")).Append('=').Append(System.Uri.EscapeDataString(from.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(to.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TimeInStatusReportDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -95220,6 +95830,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
         /// <summary>
+        /// When the record entered its current status, or `null` when no change has been recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusEnteredOn")]
+        public System.DateTimeOffset? StatusEnteredOn { get; set; } = default!;
+
+        /// <summary>
         /// The well-known meaning of the outcome. Metrics read this rather than the status name, so a
         /// <br/>renamed outcome still counts.
         /// </summary>
@@ -102421,6 +103037,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
+        /// <summary>
+        /// When the record entered its current status, or `null` when no change has been recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusEnteredOn")]
+        public System.DateTimeOffset? StatusEnteredOn { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProductTagDto> Tags { get; set; } = new System.Collections.ObjectModel.Collection<ProductTagDto>();
@@ -104812,6 +105434,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
         /// <summary>
+        /// When the record entered its current status, or `null` when no change has been recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusEnteredOn")]
+        public System.DateTimeOffset? StatusEnteredOn { get; set; } = default!;
+
+        /// <summary>
         /// The versions this release announces directly, outside any package.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("versions")]
@@ -104923,6 +105551,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
+
+        /// <summary>
+        /// When the record entered its current status, or `null` when no change has been recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusEnteredOn")]
+        public System.DateTimeOffset? StatusEnteredOn { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("components")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -108765,6 +109399,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset ChangedOn { get; set; } = default!;
 
         /// <summary>
+        /// When the record moved out of StatusNavigationDto StatusTransitionDto.ToStatus, or `null` while it is still there.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("leftOn")]
+        public System.DateTimeOffset? LeftOn { get; set; } = default!;
+
+        /// <summary>
+        /// The calendar time the record spent in StatusNavigationDto StatusTransitionDto.ToStatus, in whole seconds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("durationSeconds")]
+        public long DurationSeconds { get; set; } = default!;
+
+        /// <summary>
+        /// How many separate stays the record has had in StatusNavigationDto StatusTransitionDto.ToStatus, this one included.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusVisitCount")]
+        public int StatusVisitCount { get; set; } = default!;
+
+        /// <summary>
+        /// The calendar time the record has spent in StatusNavigationDto StatusTransitionDto.ToStatus across all its stays, in whole
+        /// <br/>seconds. Equal to long StatusTransitionDto.DurationSeconds when there has been only one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusTotalSeconds")]
+        public long StatusTotalSeconds { get; set; } = default!;
+
+        /// <summary>
         /// Why the change was made, where a reason was recorded.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
@@ -112400,6 +113059,99 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// How long records of one type spent in each status, over a window.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TimeInStatusReportDto
+    {
+
+        /// <summary>
+        /// Start of the window, inclusive.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        /// <summary>
+        /// End of the window, inclusive.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        /// <summary>
+        /// The workflow that governs this record type now, or `null` when none is assigned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workflow")]
+        public NavigationDto? Workflow { get; set; } = default!;
+
+        /// <summary>
+        /// One row per status: the current workflow's statuses in their workflow order, then any status
+        /// <br/>records left in the window that the current workflow no longer has.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statuses")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TimeInStatusReportRowDto> Statuses { get; set; } = new System.Collections.ObjectModel.Collection<TimeInStatusReportRowDto>();
+
+    }
+
+    /// <summary>
+    /// The stays in one status that ended within the report's window.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TimeInStatusReportRowDto
+    {
+
+        /// <summary>
+        /// The status, by the id frozen on the transitions — stable across renames.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid StatusId { get; set; } = default!;
+
+        /// <summary>
+        /// The status's current name, or for a status the workflow no longer has, the name it carried on
+        /// <br/>the latest stay in the window.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The status's category: its current one, or the one frozen on its latest stay.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the status belongs to the workflow governing this record type now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inCurrentWorkflow")]
+        public bool InCurrentWorkflow { get; set; } = default!;
+
+        /// <summary>
+        /// The number of stays that ended in the window. A record that returned counts each stay.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visits")]
+        public int Visits { get; set; } = default!;
+
+        /// <summary>
+        /// The mean length of those stays in whole seconds, or `null` when there were none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("averageSeconds")]
+        public long? AverageSeconds { get; set; } = default!;
+
+        /// <summary>
+        /// The median length of those stays in whole seconds, or `null` when there were none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("medianSeconds")]
+        public long? MedianSeconds { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TimeZoneDto
     {
@@ -115265,6 +116017,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
+
+        /// <summary>
+        /// When the record entered its current status, or `null` when no change has been recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusEnteredOn")]
+        public System.DateTimeOffset? StatusEnteredOn { get; set; } = default!;
 
     }
 

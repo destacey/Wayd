@@ -5585,6 +5585,75 @@
         ]
       }
     },
+    "/api/product-management/deployments/time-in-status": {
+      "get": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Get how long deployments stay in each status, for stays that ended within a window.",
+        "description": "One row per status of the current deployment workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one deployment has spent in each status, read its status history instead.",
+        "operationId": "Deployments_GetTimeInStatus",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeInStatusReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/deployments/{idOrKey}/status-history": {
       "get": {
         "tags": [
@@ -6243,6 +6312,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/time-in-status": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get how long products stay in each status, for stays that ended within a window.",
+        "description": "One row per status of the current product workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one product has spent in each status, read its status history instead.",
+        "operationId": "Products_GetTimeInStatus",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeInStatusReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -8595,6 +8733,75 @@
         ]
       }
     },
+    "/api/product-management/release-packages/time-in-status": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get how long release packages stay in each status, for stays that ended within a window.",
+        "description": "One row per status of the current release package workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release package has spent in each status, read its status history instead.",
+        "operationId": "ReleasePackages_GetTimeInStatus",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeInStatusReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/{idOrKey}/status-history": {
       "get": {
         "tags": [
@@ -9438,6 +9645,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/time-in-status": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Get how long releases stay in each status, for stays that ended within a window.",
+        "description": "One row per status of the current release workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release has spent in each status, read its status history instead.",
+        "operationId": "Releases_GetTimeInStatus",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeInStatusReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -10453,6 +10729,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/time-in-status": {
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Get how long versions stay in each status, for stays that ended within a window.",
+        "description": "One row per status of the current version workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one version has spent in each status, read its status history instead.",
+        "operationId": "Versions_GetTimeInStatus",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeInStatusReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -48117,6 +48462,12 @@
             ],
             "description": "The deployment's current status: the organization's name for it, its category and its well-known alias."
           },
+          "statusEnteredOn": {
+            "type": "string",
+            "description": "When the record entered its current status, or `null` when no change has been recorded.",
+            "format": "date-time",
+            "nullable": true
+          },
           "outcome": {
             "oneOf": [
               {
@@ -55606,6 +55957,12 @@
             ],
             "description": "The node's current lifecycle status."
           },
+          "statusEnteredOn": {
+            "type": "string",
+            "description": "When the record entered its current status, or `null` when no change has been recorded.",
+            "format": "date-time",
+            "nullable": true
+          },
           "tags": {
             "type": "array",
             "items": {
@@ -58208,6 +58565,12 @@
             ],
             "description": "The release's current status: the organization's name for it, its category and its well-known alias."
           },
+          "statusEnteredOn": {
+            "type": "string",
+            "description": "When the record entered its current status, or `null` when no change has been recorded.",
+            "format": "date-time",
+            "nullable": true
+          },
           "versions": {
             "type": "array",
             "items": {
@@ -58339,6 +58702,12 @@
               }
             ],
             "description": "The package's current status: the organization's name for it, its category and its well-known alias."
+          },
+          "statusEnteredOn": {
+            "type": "string",
+            "description": "When the record entered its current status, or `null` when no change has been recorded.",
+            "format": "date-time",
+            "nullable": true
           },
           "components": {
             "type": "array",
@@ -62446,7 +62815,10 @@
           "workflowId",
           "actorKind",
           "changedBySystem",
-          "changedOn"
+          "changedOn",
+          "durationSeconds",
+          "statusVisitCount",
+          "statusTotalSeconds"
         ],
         "type": "object",
         "properties": {
@@ -62514,6 +62886,27 @@
           "changedOn": {
             "type": "string",
             "format": "date-time"
+          },
+          "leftOn": {
+            "type": "string",
+            "description": "When the record moved out of StatusNavigationDto StatusTransitionDto.ToStatus, or `null` while it is still there.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "description": "The calendar time the record spent in StatusNavigationDto StatusTransitionDto.ToStatus, in whole seconds.",
+            "format": "int64"
+          },
+          "statusVisitCount": {
+            "type": "integer",
+            "description": "How many separate stays the record has had in StatusNavigationDto StatusTransitionDto.ToStatus, this one included.",
+            "format": "int32"
+          },
+          "statusTotalSeconds": {
+            "type": "integer",
+            "description": "The calendar time the record has spent in StatusNavigationDto StatusTransitionDto.ToStatus across all its stays, in whole\nseconds. Equal to long StatusTransitionDto.DurationSeconds when there has been only one.",
+            "format": "int64"
           },
           "reason": {
             "type": "string",
@@ -66324,6 +66717,97 @@
         ],
         "description": "A reason for time away, with the code a stretch of time away carries and the requests accept."
       },
+      "TimeInStatusReportDto": {
+        "required": [
+          "from",
+          "to",
+          "statuses"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start of the window, inclusive.",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "description": "End of the window, inclusive.",
+            "format": "date-time"
+          },
+          "workflow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The workflow that governs this record type now, or `null` when none is assigned.",
+            "nullable": true
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeInStatusReportRowDto"
+            },
+            "description": "One row per status: the current workflow's statuses in their workflow order, then any status\nrecords left in the window that the current workflow no longer has."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How long records of one type spent in each status, over a window."
+      },
+      "TimeInStatusReportRowDto": {
+        "required": [
+          "statusId",
+          "name",
+          "category",
+          "inCurrentWorkflow",
+          "visits"
+        ],
+        "type": "object",
+        "properties": {
+          "statusId": {
+            "type": "string",
+            "description": "The status, by the id frozen on the transitions — stable across renames.",
+            "format": "uuid"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The status's current name, or for a status the workflow no longer has, the name it carried on\nthe latest stay in the window."
+          },
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ],
+            "description": "The status's category: its current one, or the one frozen on its latest stay."
+          },
+          "inCurrentWorkflow": {
+            "type": "boolean",
+            "description": "Whether the status belongs to the workflow governing this record type now."
+          },
+          "visits": {
+            "type": "integer",
+            "description": "The number of stays that ended in the window. A record that returned counts each stay.",
+            "format": "int32"
+          },
+          "averageSeconds": {
+            "type": "integer",
+            "description": "The mean length of those stays in whole seconds, or `null` when there were none.",
+            "format": "int64",
+            "nullable": true
+          },
+          "medianSeconds": {
+            "type": "integer",
+            "description": "The median length of those stays in whole seconds, or `null` when there were none.",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The stays in one status that ended within the report's window."
+      },
       "TimeZoneDto": {
         "required": [
           "id",
@@ -69524,6 +70008,12 @@
               }
             ],
             "description": "The version's current status: the organization's name for it, its category and its well-known alias."
+          },
+          "statusEnteredOn": {
+            "type": "string",
+            "description": "When the record entered its current status, or `null` when no change has been recorded.",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false,

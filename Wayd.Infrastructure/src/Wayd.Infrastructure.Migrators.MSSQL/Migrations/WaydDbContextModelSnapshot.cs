@@ -1349,9 +1349,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("WorkflowId");
 
+                    b.HasIndex("OwnerType", "ChangedOn");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("OwnerType", "ChangedOn"), new[] { "RecordId" });
+
                     b.HasIndex("OwnerType", "RecordId", "ChangedOn");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("OwnerType", "RecordId", "ChangedOn"), new[] { "ToStatusName", "ToCategory", "ToAlias" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("OwnerType", "RecordId", "ChangedOn"), new[] { "ToStatusName", "ToCategory", "ToAlias", "ToStatusId", "Sequence", "WorkflowId" });
 
                     b.HasIndex("OwnerType", "RecordId", "Sequence")
                         .IsUnique();

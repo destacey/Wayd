@@ -209,8 +209,23 @@ public class StatusTransitionConfiguration : IEntityTypeConfiguration<StatusTran
         // failed save. A retry would mean catching 2601/2627 here and re-reading the count.
         builder.HasIndex(t => new { t.OwnerType, t.RecordId, t.Sequence }).IsUnique();
 
+        // Covers a record's history as time in status reads it, so neither the history nor the report
+        // needs a lookup into the table for the columns a stay is built from.
         builder.HasIndex(t => new { t.OwnerType, t.RecordId, t.ChangedOn })
-            .IncludeProperties(t => new { t.ToStatusName, t.ToCategory, t.ToAlias });
+            .IncludeProperties(t => new
+            {
+                t.ToStatusName,
+                t.ToCategory,
+                t.ToAlias,
+                t.ToStatusId,
+                t.Sequence,
+                t.WorkflowId,
+            });
+
+        // Finds the records of one owner type that changed status within a window — the time in status
+        // report's first step — without reading the owner type's whole history.
+        builder.HasIndex(t => new { t.OwnerType, t.ChangedOn })
+            .IncludeProperties(t => new { t.RecordId });
 
         builder.HasIndex(t => t.WorkflowId);
 

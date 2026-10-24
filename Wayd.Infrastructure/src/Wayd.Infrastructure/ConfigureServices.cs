@@ -13,6 +13,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Infrastructure.Following;
 using Wayd.Infrastructure.ConnectorModules;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
@@ -99,6 +100,8 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordCounter, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();
+
+        services.AddFollowing();
 
         // Data protection (at-rest secret encryption) must initialize before
         // persistence so the EF model can pick up the protector via SecretProtectorAccessor.

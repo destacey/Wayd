@@ -5,6 +5,7 @@ using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -16,7 +17,7 @@ namespace Wayd.Common.Application.Tests.Infrastructure;
 /// A test double for IWaydDbContext that provides in-memory collections for all DbSets.
 /// This eliminates the need for complex Moq setups in tests and is reusable across all Common domain tests.
 /// </summary>
-public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IActivityLogDbContext, IDisposable
+public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IActivityLogDbContext, IDisposable
 {
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -34,6 +35,9 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IActi
     private readonly List<WorkflowAliasName> _workflowAliasNames = [];
     private readonly List<StatusTransition> _statusTransitions = [];
 
+    // Following, for handlers that reach INotificationsDbContext.
+    private readonly List<Follow> _follows = [];
+
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
@@ -48,6 +52,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IActi
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
     public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
     public DbSet<StatusTransition> StatusTransitions => _statusTransitions.AsDbSet();
+
+    public DbSet<Follow> Follows => _follows.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;

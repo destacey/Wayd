@@ -274,6 +274,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Users.IUserService>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Roles.IRoleService>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.SystemSettings.ISystemSettingsStore>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Following.IFollowStore>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.FeatureManagement.IFeatureFlags>();
 
         // The DbContext facades are allow-listed for CORRECTNESS, like AmbientUserId below, not opaqueness.
@@ -295,6 +296,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.Persistence.IPlanningDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProductManagement.Application.IProductManagementDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IStatusWorkflowDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.INotificationsDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IActivityLogDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProjectPortfolioManagement.Application.IProjectPortfolioManagementDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.StrategicManagement.Application.IStrategicManagementDbContext>();

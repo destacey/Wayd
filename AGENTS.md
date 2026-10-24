@@ -313,7 +313,7 @@ The handler tree under `Wayd.Web.Api/Internal/Generated/WolverineHandlers/` is g
 
 ### Database
 
-One shared `WaydDbContext`; the thirteen `IXxxDbContext` interfaces are views over it, not separate contexts. Span several saves with `BaseDbContext.BeginUnitOfWork`, never a bare `Database.BeginTransactionAsync`. Details: [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md#database).
+One shared `WaydDbContext`; the fourteen `IXxxDbContext` interfaces are views over it, not separate contexts. Span several saves with `BaseDbContext.BeginUnitOfWork`, never a bare `Database.BeginTransactionAsync`. Details: [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md#database).
 
 ### Testing
 

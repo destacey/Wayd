@@ -1,5 +1,7 @@
 export { ActivityLogTimeline } from './activities'
 export { default as ContainerCard } from './container-card'
+export { default as FollowButton } from './follow-button'
+export type { FollowButtonProps } from './follow-button'
 export { default as IconMenu } from './icon-menu'
 export { default as InactiveTag } from './inactive-tag'
 export { default as LifecycleStatusTag } from './lifecycle-status-tag'

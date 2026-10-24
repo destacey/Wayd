@@ -43,6 +43,11 @@ On the hosted endpoint, the `Me_*` tools act for the caller and take no id:
 | Where am I the project manager (or sponsor, owner, member)? | `Projects_GetProjects` with `role` and no `employeeId`: a role filter defaults to the caller |
 | My projects at a glance, my project tasks | `Projects_GetMyProjectsSummary`, `Projects_GetMyProjectsTaskMetrics` |
 | Risks assigned to me | `Risks_GetMyRisks` |
+| What do I follow? Follow or unfollow this project | `Me_GetFollows`; `Me_Follow` / `Me_Unfollow` (following feature flag) |
+
+### Following
+
+`Me_Follow`, `Me_Unfollow` and `Me_GetFollowStatus` take an `ownerType` — `ppm.project`, `ppm.program` or `planning.planning-interval-objective` — and the record's UUID as `ownerId`, never its key: look the record up first. Following acts only for the caller; there is no way to make someone else a follower, so do not offer one. It grants nothing: a record the caller cannot read answers 404 rather than being followed, and drops out of `Me_GetFollows` once they lose access. Following twice and unfollowing something not followed both succeed without changing anything. Following notifies nobody yet, so do not tell the user they will be alerted.
 
 For anything else about yourself, take `employee.id` from `Me_GetProfile` and pass it to the tool's `employeeId` (or role) parameter. If `employee` is null, the account is not linked to an employee, so nothing in Wayd is recorded against the caller as a person: say so rather than substituting the user id. Without the `Me_*` tools (the npm package), use the tools above that default to the caller.
 

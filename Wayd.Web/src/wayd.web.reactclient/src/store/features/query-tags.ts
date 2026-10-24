@@ -32,6 +32,8 @@ export enum QueryTags {
   // COMMON
   ActivityLog = 'Common.ActivityLog',
   Links = 'Common.Links',
+  FollowStatus = 'Common.FollowStatus',
+  MyFollows = 'Common.MyFollows',
   HealthCheck = 'Common.HealthCheck',
   HealthChecksHealthReport = 'Common.HealthChecks.HealthReport',
   HealthChecksStatusOptions = 'Common.HealthChecks.StatusOptions',

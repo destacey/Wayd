@@ -1,5 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Following;
+using Wayd.Common.Application.Records;
+using Wayd.ProjectPortfolioManagement.Application.Programs;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
+using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.Infrastructure.Following;
 
@@ -17,6 +21,11 @@ internal static class ConfigureServices
     /// </remarks>
     internal static IServiceCollection AddFollowing(this IServiceCollection services)
     {
+        PpmFollowOwners.Register();
+
+        services.AddScoped<IRecordReadRule, ProjectReadRule>();
+        services.AddScoped<IRecordReadRule, ProgramReadRule>();
+
         services.AddScoped<IFollowStore, FollowStore>();
 
         return services;

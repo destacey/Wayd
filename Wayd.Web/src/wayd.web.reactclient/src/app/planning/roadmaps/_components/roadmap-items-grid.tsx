@@ -236,7 +236,10 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   const [updateRoadmapItemDates] = useUpdateRoadmapItemDatesMutation()
   const commitBarDates = useCallback(
     async (change: { id: string; start: number; end: number }) => {
-      const node = findNodeById(treeData, change.id) as RoadmapItemTreeNode | null
+      const node = findNodeById(
+        treeData,
+        change.id,
+      ) as RoadmapItemTreeNode | null
       if (!node) return
       try {
         // A milestone is a single instant, so its request carries `date` rather
@@ -294,10 +297,14 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   // label can follow the cursor rather than centering on the whole bar. Captured
   // in the wrapper below (outside the memoized gantt hook) and surfaced only
   // while a move drag is active.
-  const grabOffsetRef = useRef(0)
+  const [grabOffset, setGrabOffset] = useState(0)
   const onBarPointerDown = useCallback(
-    (e: React.PointerEvent, item: { id: string; start: number; end: number; kind: 'range' }, mode: 'move' | 'resize-start' | 'resize-end') => {
-      if (mode === 'move') grabOffsetRef.current = e.nativeEvent.offsetX
+    (
+      e: React.PointerEvent,
+      item: { id: string; start: number; end: number; kind: 'range' },
+      mode: 'move' | 'resize-start' | 'resize-end',
+    ) => {
+      if (mode === 'move') setGrabOffset(e.nativeEvent.offsetX)
       barDrag.start(e, item, mode)
     },
     [barDrag],
@@ -314,9 +321,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
       editable: isRoadmapManager,
       activeDrag: barDrag.active,
       onBarPointerDown,
-      // Only meaningful during a move drag; read from the ref captured above.
-      moveGrabOffset:
-        barDrag.active?.mode === 'move' ? grabOffsetRef.current : undefined,
+      moveGrabOffset: barDrag.active?.mode === 'move' ? grabOffset : undefined,
     },
   )
 
@@ -392,8 +397,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           const itemType =
             updates.itemType === 'timebox' ? 'timebox' : 'activity'
           const request:
-            | CreateRoadmapActivityRequest
-            | CreateRoadmapTimeboxRequest = {
+            CreateRoadmapActivityRequest | CreateRoadmapTimeboxRequest = {
             $type: itemType,
             roadmapId,
             parentId: draft.parentId,
@@ -719,7 +723,12 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
         const newEnd = dayjs(end)
 
         let isShift = false
-        if (originalStart && originalEnd && originalStart.isValid() && originalEnd.isValid()) {
+        if (
+          originalStart &&
+          originalEnd &&
+          originalStart.isValid() &&
+          originalEnd.isValid()
+        ) {
           const startDelta = newStart.diff(originalStart, 'day')
           const endDelta = newEnd.diff(originalEnd, 'day')
           isShift = startDelta === endDelta && startDelta !== 0
@@ -905,4 +914,3 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
 }
 
 export default RoadmapItemsGrid
-

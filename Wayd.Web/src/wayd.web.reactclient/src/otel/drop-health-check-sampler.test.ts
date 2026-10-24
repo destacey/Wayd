@@ -1,5 +1,5 @@
 import { ROOT_CONTEXT, SpanKind } from '@opentelemetry/api'
-import { AlwaysOnSampler, SamplingDecision } from '@opentelemetry/sdk-trace-base'
+import { AlwaysOnSampler, SamplingDecision } from '@opentelemetry/sdk-trace'
 import { DropHealthCheckSampler } from './drop-health-check-sampler'
 
 describe('DropHealthCheckSampler', () => {

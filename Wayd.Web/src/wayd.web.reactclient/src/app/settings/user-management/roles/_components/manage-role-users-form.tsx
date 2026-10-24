@@ -97,14 +97,18 @@ const ManageRoleUsersForm: React.FC<ManageRoleUsersFormProps> = ({
     permission: 'Permissions.UserRoles.Update',
   })
 
-  // Initialize transfer data when role users load
-  useEffect(() => {
-    if (!roleUsersData) return
-
-    const roleUserIds = roleUsersData.map((u) => u.id).sort()
-    setTargetKeys(roleUserIds)
-    setInitialTargetKeys(roleUserIds)
-  }, [roleUsersData])
+  // Re-seeded whenever the role's users arrive or refetch; moves made in
+  // between stay local until saved.
+  const [seededRoleUsersData, setSeededRoleUsersData] =
+    useState<typeof roleUsersData>()
+  if (roleUsersData !== seededRoleUsersData) {
+    setSeededRoleUsersData(roleUsersData)
+    if (roleUsersData) {
+      const roleUserIds = roleUsersData.map((u) => u.id).sort()
+      setTargetKeys(roleUserIds)
+      setInitialTargetKeys(roleUserIds)
+    }
+  }
 
   // Handle data loading errors
   useEffect(() => {

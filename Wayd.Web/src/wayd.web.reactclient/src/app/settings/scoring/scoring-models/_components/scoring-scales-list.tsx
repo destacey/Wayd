@@ -55,10 +55,10 @@ const ScoringScalesList = ({
 
   const sortedScales = useMemo(
     () =>
-      !scoringModel?.scales
+      !scoringModel.scales
         ? []
         : [...scoringModel.scales].sort((a, b) => a.order - b.order),
-    [scoringModel?.scales],
+    [scoringModel.scales],
   )
 
   const handleDeleteScale = (scale: ScoringScaleDto) => {

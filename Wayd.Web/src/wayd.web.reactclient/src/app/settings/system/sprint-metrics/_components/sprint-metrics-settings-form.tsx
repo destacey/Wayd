@@ -32,10 +32,17 @@ const SprintMetricsSettingsForm = ({
   const [updateSprintMetricsSettings, { isLoading: isSaving }] =
     useUpdateSprintMetricsSettingsMutation()
 
+  // A fresh copy of the settings replaces the form's values, so nothing is
+  // left unsaved.
+  const [loadedSettings, setLoadedSettings] = useState(settings)
+  if (settings !== loadedSettings) {
+    setLoadedSettings(settings)
+    if (settings) setIsDirty(false)
+  }
+
   useEffect(() => {
     if (!settings) return
     form.setFieldsValue({ sprintWindow: settings.sprintWindow })
-    setIsDirty(false)
   }, [settings, form])
 
   const onFinish = async (values: SprintMetricsSettingsFormValues) => {

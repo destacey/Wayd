@@ -6,6 +6,16 @@ import { withSerwist } from '@serwist/turbopack'
 const nextConfig = {
   output: 'standalone',
   reactCompiler: true,
+  // Loaded from node_modules rather than bundled: the auto-instrumentations pull in
+  // systeminformation (via the host-metrics instrumentation), whose platform-specific
+  // binary lookups Turbopack cannot resolve, and instrumentations patch modules by
+  // hooking require, which only works on unbundled packages.
+  serverExternalPackages: [
+    '@opentelemetry/api',
+    '@opentelemetry/sdk-node',
+    '@opentelemetry/sdk-trace',
+    '@opentelemetry/auto-instrumentations-node',
+  ],
   experimental: {
     // Puts the server span's traceparent into the document so browser API
     // calls can continue that trace. Client navigations use the traceresponse

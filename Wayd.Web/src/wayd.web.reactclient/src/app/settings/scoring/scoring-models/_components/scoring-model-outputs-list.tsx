@@ -103,19 +103,19 @@ const ScoringModelOutputsList = ({
 
   const sortedOutputs = useMemo(
     () =>
-      !scoringModel?.outputs
+      !scoringModel.outputs
         ? []
         : [...scoringModel.outputs].sort((a, b) => a.order - b.order),
-    [scoringModel?.outputs],
+    [scoringModel.outputs],
   )
 
   // Tokens a formula can reference: every criterion token plus every output token.
   const availableTokens = useMemo(
     () => [
-      ...(scoringModel?.criteria ?? []).map((c) => c.token),
-      ...(scoringModel?.outputs ?? []).map((o) => o.token),
+      ...(scoringModel.criteria ?? []).map((c) => c.token),
+      ...(scoringModel.outputs ?? []).map((o) => o.token),
     ],
-    [scoringModel?.criteria, scoringModel?.outputs],
+    [scoringModel.criteria, scoringModel.outputs],
   )
 
   const columns = useMemo<ColumnDef<ScoringModelOutputDto, any>[]>(() => {
@@ -229,7 +229,7 @@ const ScoringModelOutputsList = ({
   // Build a normalized weighted-sum formula from criteria that have weights:
   // (T1*w1 + T2*w2 + ...) / (w1 + w2 + ...). Scaffolding only — fully editable afterward.
   const weightedScaffold = useMemo(() => {
-    const weighted = (scoringModel?.criteria ?? []).filter(
+    const weighted = (scoringModel.criteria ?? []).filter(
       (c) => c.weight != null && c.weight > 0,
     )
     if (weighted.length < 2) return null
@@ -239,7 +239,7 @@ const ScoringModelOutputsList = ({
       .map((c) => `${c.token} * ${c.weight}`)
       .join(' + ')
     return `(${numerator}) / ${totalWeight}`
-  }, [scoringModel?.criteria])
+  }, [scoringModel.criteria])
 
   const openWeightedScaffold = () => {
     setAddInitialValues({

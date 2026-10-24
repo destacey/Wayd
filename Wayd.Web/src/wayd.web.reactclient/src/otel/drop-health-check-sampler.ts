@@ -3,7 +3,7 @@ import {
   SamplingDecision,
   type Sampler,
   type SamplingResult,
-} from '@opentelemetry/sdk-trace-base'
+} from '@opentelemetry/sdk-trace'
 import { isHealthCheckSpan } from './health-check'
 
 export class DropHealthCheckSampler implements Sampler {

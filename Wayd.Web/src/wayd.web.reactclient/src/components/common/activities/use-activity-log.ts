@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   ActivityLogDto,
   PagedResponseOfActivityLogDto,
@@ -72,12 +72,21 @@ export const useActivityLog = ({
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false)
 
-  useEffect(() => {
+  // A new first page, or a different record, restarts the accumulated rows.
+  const [syncedFirstPage, setSyncedFirstPage] = useState<{
+    data: PagedResponseOfActivityLogDto | undefined
+    idOrKey: string | number | undefined
+  }>({ data: undefined, idOrKey: undefined })
+  if (
+    syncedFirstPage.data !== query.currentData ||
+    syncedFirstPage.idOrKey !== idOrKey
+  ) {
+    setSyncedFirstPage({ data: query.currentData, idOrKey })
     if (query.currentData?.items) {
       setLoaded({ idOrKey, items: query.currentData.items })
       setPage(1)
     }
-  }, [query.currentData, idOrKey])
+  }
 
   // Accumulated rows are held against the record they were loaded for. These pages navigate between
   // records of the same kind without remounting — the sprint switcher, a link to a sibling product —

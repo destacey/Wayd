@@ -11,7 +11,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node'
 import {
   AlwaysOnSampler,
   ParentBasedSampler,
-} from '@opentelemetry/sdk-trace-base'
+} from '@opentelemetry/sdk-trace'
 import { DropHealthCheckSampler } from './otel/drop-health-check-sampler'
 
 const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT

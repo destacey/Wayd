@@ -14,14 +14,19 @@ const inter = Inter({ subsets: ['latin'] })
 
 const SsrFallback = () => null
 
+const subscribeNever = () => () => {}
+const getClientSnapshot = () => true
+const getServerSnapshot = () => false
+
 const RootLayout = ({ children }: React.PropsWithChildren) => {
-  // Suppress the server/client hydration mismatch that arises because
-  // AuthGate reads localStorage (client-only) to decide what to render.
-  // The server always produces a blank shell; we swap in the real tree
-  // after the first client render, keeping server and first-paint HTML
-  // identical.
-  const [mounted, setMounted] = React.useState(false)
-  React.useEffect(() => { setMounted(true) }, [])
+  // AuthGate reads localStorage (client-only) to decide what to render, so
+  // the server and the hydrating render both produce a blank shell; React
+  // re-renders with the client snapshot once hydration completes.
+  const mounted = React.useSyncExternalStore(
+    subscribeNever,
+    getClientSnapshot,
+    getServerSnapshot,
+  )
 
   return (
     <html lang="en">

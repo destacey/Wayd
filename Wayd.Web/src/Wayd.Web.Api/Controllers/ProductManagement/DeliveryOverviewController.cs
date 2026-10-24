@@ -1,4 +1,4 @@
-using Microsoft.FeatureManagement.Mvc;
+﻿using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.ProductManagement.Application.DeliveryOverview.Dtos;
 using Wayd.ProductManagement.Application.DeliveryOverview.Queries;
@@ -29,10 +29,12 @@ public class DeliveryOverviewController(IDispatcher dispatcher) : ControllerBase
     /// sends the start of its local day, which lands on that day in its own zone.
     /// </param>
     /// <param name="to">Any instant on the window's last day, which is inclusive.</param>
+    /// <param name="productId">The ID of the product to scope the delivery overview to. Omit for the whole catalog.</param>
     /// <param name="timeZone">
     /// The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
     /// to UTC.
     /// </param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [EndpointSummary(

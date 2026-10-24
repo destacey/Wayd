@@ -97,10 +97,10 @@ const ProjectLifecycleStagesList = ({
 
   const sortedStages = useMemo(
     () =>
-      !lifecycle?.stages
+      !lifecycle.stages
         ? []
         : [...lifecycle.stages].sort((a, b) => a.order - b.order),
-    [lifecycle?.stages],
+    [lifecycle.stages],
   )
 
   const columns = useMemo<ColumnDef<ProjectLifecycleStageDto, any>[]>(() => {

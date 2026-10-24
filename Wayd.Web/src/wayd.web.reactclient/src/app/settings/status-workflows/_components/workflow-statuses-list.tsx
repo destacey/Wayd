@@ -108,10 +108,10 @@ const WorkflowStatusesList = ({
 
   const sortedStatuses = useMemo(
     () =>
-      !statusWorkflow?.statuses
+      !statusWorkflow.statuses
         ? []
         : [...statusWorkflow.statuses].sort((a, b) => a.order - b.order),
-    [statusWorkflow?.statuses],
+    [statusWorkflow.statuses],
   )
 
   const columns = useMemo<ColumnDef<WorkflowStatusDto, any>[]>(() => {

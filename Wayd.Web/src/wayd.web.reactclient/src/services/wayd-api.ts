@@ -10234,7 +10234,7 @@ export class DeliveryOverviewClient {
     `Date` and sends `toISOString()`, which no `LocalDate` binder accepts. The caller
     sends the start of its local day, which lands on that day in its own zone.
      * @param to (optional) Any instant on the window's last day, which is inclusive.
-     * @param productId (optional) 
+     * @param productId (optional) The ID of the product to scope the delivery overview to. Omit for the whole catalog.
      * @param timeZone (optional) The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
     to UTC.
      * @return OK

@@ -72,10 +72,14 @@ public sealed class UpdateIntakeRequestCommandHandler(
         if (channel is null)
             return Result.Failure("Intake channel not found.");
 
+        // Refused before anything changes, so a failed update never leaves the tracked request half-edited.
+        if (channel.Id != intakeRequest.ChannelId && !channel.IsActive)
+            return Result.Failure("An archived channel cannot be given to a request.");
+
         IntakeRequestNeedBy? needBy = null;
         if (request.NeedBy is not null)
         {
-            var needByResult = await request.NeedBy.ToNeedBy(_dbContext, cancellationToken);
+            var needByResult = await request.NeedBy.ToNeedBy(_dbContext, intakeRequest.NeedBy?.CommittedById, cancellationToken);
             if (needByResult.IsFailure)
                 return needByResult;
             needBy = needByResult.Value;

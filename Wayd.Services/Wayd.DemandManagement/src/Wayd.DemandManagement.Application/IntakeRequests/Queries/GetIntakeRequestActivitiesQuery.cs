@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Text.Json.Nodes;
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
@@ -12,7 +13,9 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
 /// </summary>
 /// <remarks>
 /// Events carry their tier's fields — a details edit carries the description at both ends — so the history is
-/// filtered by event type in the query, never redacted afterwards.
+/// filtered by event type in the query, never redacted afterwards. A reader without the substance also gets
+/// every entry without its actor: whoever submitted a request on someone's behalf is the actor of its creation,
+/// and the submitter is substance.
 /// </remarks>
 public sealed record GetIntakeRequestActivitiesQuery : IQuery<PagedResponse<ActivityLogDto>?>
 {
@@ -59,12 +62,32 @@ public sealed class GetIntakeRequestActivitiesQueryHandler(
         if (reader.CanReview(target.DeskId))
             tiers.Add(IntakeRequestReadTier.Internal);
 
-        return await _activityLogReader.ReadEventTypes(
+        var activities = await _activityLogReader.ReadEventTypes(
             target.Id,
             nameof(IntakeRequest),
             IntakeRequestEventTiers.EventTypesIn(tiers),
             request.Page,
             request.PageSize,
             cancellationToken);
+
+        return tiers.Contains(IntakeRequestReadTier.Substance)
+            ? activities
+            : activities with { Items = [.. activities.Items.Select(WithoutActor)] };
+    }
+
+    /// <summary>
+    /// The entry with nothing that names who caused it: the employee, the client, and the actor in its payload.
+    /// </summary>
+    private static ActivityLogDto WithoutActor(ActivityLogDto entry)
+    {
+        var payload = JsonNode.Parse(entry.Payload) as JsonObject;
+        payload?.Remove("actor");
+
+        return entry with
+        {
+            Employee = null,
+            ClientId = null,
+            Payload = payload?.ToJsonString() ?? entry.Payload,
+        };
     }
 }

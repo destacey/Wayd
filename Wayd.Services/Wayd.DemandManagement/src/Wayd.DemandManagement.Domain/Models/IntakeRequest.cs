@@ -371,15 +371,18 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
         // value is captured now, so the event records the request as submitted even if it changes before the
         // first save.
         var createdTitle = request.Title;
+        var createdDeskId = request.DeskId;
+        var createdChannelId = request.ChannelId;
+        var createdRequesterId = request.RequesterId;
         var createdNeedBy = request.NeedBy?.ToDetails();
 
         request.AddPostPersistenceAction(() => request.AddDomainEvent(new IntakeRequestCreatedEvent(
             request.Id,
             request.Key,
             createdTitle,
-            request.DeskId,
-            request.ChannelId,
-            request.RequesterId,
+            createdDeskId,
+            createdChannelId,
+            createdRequesterId,
             createdNeedBy,
             actor,
             timestamp)));

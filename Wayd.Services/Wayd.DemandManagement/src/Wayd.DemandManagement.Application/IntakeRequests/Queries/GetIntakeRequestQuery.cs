@@ -39,27 +39,39 @@ public sealed class GetIntakeRequestQueryHandler(
             .Where(request.IdOrKeyFilter)
             .Where(reader.CanSeeSummary(_dbContext.IntakeDesks));
 
-        var record = await visible.FirstOrDefaultAsync(cancellationToken);
-        if (record is null)
-            return null;
-
         var summary = await visible
             .Select(IntakeRequestProjections.Summary(_dbContext))
-            .FirstAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
+        if (summary is null)
+            return null;
 
         var substance = await visible
             .Where(reader.CanSeeSubstance(_dbContext.IntakeDesks))
             .Select(IntakeRequestProjections.Substance(_dbContext))
             .FirstOrDefaultAsync(cancellationToken);
 
-        var holdsUpdate = await _currentPrincipal.HasPermission(IntakeRequestAuthorization.UpdatePermission, cancellationToken);
-
         return new IntakeRequestDetailsDto
         {
             Summary = summary,
             Substance = substance,
-            CanEdit = record.CanEdit(new IntakeRequestEditor(reader.EmployeeId, holdsUpdate, EventActor.Anonymous)),
-            CanReview = reader.CanReview(record.DeskId),
+            CanEdit = await CanEdit(visible, reader, substance is not null, cancellationToken),
+            // Every review command needs a linked employee, so the flag does too.
+            CanReview = reader.EmployeeId is not null && reader.CanReview(summary.Desk.Id),
         };
+    }
+
+    /// <summary>
+    /// Whether the reader may edit the request, by the same rules the update command applies: a linked
+    /// employee, the substance (the update carries the description), and the request's own edit lock.
+    /// </summary>
+    private async Task<bool> CanEdit(IQueryable<IntakeRequest> visible, IntakeRequestReader reader, bool canSeeSubstance, CancellationToken cancellationToken)
+    {
+        if (reader.EmployeeId is null || !canSeeSubstance)
+            return false;
+
+        var record = await visible.FirstOrDefaultAsync(cancellationToken);
+        var holdsUpdate = await _currentPrincipal.HasPermission(IntakeRequestAuthorization.UpdatePermission, cancellationToken);
+
+        return record is not null && record.CanEdit(new IntakeRequestEditor(reader.EmployeeId, holdsUpdate, EventActor.Anonymous));
     }
 }

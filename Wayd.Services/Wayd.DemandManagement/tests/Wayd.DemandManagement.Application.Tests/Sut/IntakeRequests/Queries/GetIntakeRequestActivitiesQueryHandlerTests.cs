@@ -21,13 +21,23 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
     private readonly Mock<IActivityLogReader> _activityLogReader = new();
     private IReadOnlyCollection<string>? _requestedEventTypes;
 
+    private static readonly ActivityLogDto CreatedEntry = new()
+    {
+        EventType = nameof(IntakeRequestCreatedEvent),
+        DomainArea = "DemandManagement",
+        AggregateType = nameof(IntakeRequest),
+        Employee = new() { Id = Guid.NewGuid(), Key = 7, Name = "Alice Submitter" },
+        ClientId = "claude",
+        Payload = """{"id":"x","key":1,"title":"Ask","actor":{"kind":"user","userId":"u-1","employeeId":"e-1"}}""",
+    };
+
     public GetIntakeRequestActivitiesQueryHandlerTests()
     {
         _activityLogReader
             .Setup(r => r.ReadEventTypes(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
                 It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Callback<Guid, string, IReadOnlyCollection<string>, int, int, CancellationToken>((_, _, types, _, _, _) => _requestedEventTypes = types)
-            .ReturnsAsync(new PagedResponse<ActivityLogDto>([], 0, 1, 50));
+            .ReturnsAsync(new PagedResponse<ActivityLogDto>([CreatedEntry], 1, 1, 50));
     }
 
     private GetIntakeRequestActivitiesQueryHandler CreateHandler() =>
@@ -63,6 +73,39 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         result.Should().NotBeNull();
         _requestedEventTypes.Should().Contain([nameof(IntakeRequestCreatedEvent), nameof(IntakeRequestRetitledEvent)])
             .And.NotContain([nameof(IntakeRequestDetailsUpdatedEvent), nameof(IntakeRequestParticipantAddedEvent)]);
+    }
+
+    [Fact]
+    public async Task Handle_ForASummaryReader_ReturnsEntriesWithoutTheirActor()
+    {
+        // Arrange — the actor of a creation can be the submitter, who is substance
+        var request = RequestOn(IntakeDeskVisibility.SummaryOnly);
+        SignedInAs(Guid.NewGuid());
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+
+        // Assert
+        var entry = result!.Items.Should().ContainSingle().Subject;
+        entry.Employee.Should().BeNull();
+        entry.ClientId.Should().BeNull();
+        entry.Payload.Should().NotContain("actor").And.Contain("\"title\":\"Ask\"");
+    }
+
+    [Fact]
+    public async Task Handle_ForASubstanceReader_KeepsTheActor()
+    {
+        // Arrange
+        var request = RequestOn(IntakeDeskVisibility.Open);
+        SignedInAs(Guid.NewGuid());
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+
+        // Assert
+        var entry = result!.Items.Should().ContainSingle().Subject;
+        entry.Employee.Should().NotBeNull();
+        entry.Payload.Should().Contain("actor");
     }
 
     [Fact]

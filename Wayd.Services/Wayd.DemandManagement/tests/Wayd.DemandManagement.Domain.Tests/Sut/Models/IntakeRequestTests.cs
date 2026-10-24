@@ -108,8 +108,9 @@ public sealed class IntakeRequestTests
         var sut = IntakeRequest.Create("Export invoices", "Description", null, requesterId, Guid.NewGuid(), desk,
             channel, needBy, null, EventActor.System, _dateTimeProvider.Now).Value;
 
-        // Act — retitled before the first save, as an import could
+        // Act — retitled and given another channel before the first save, as an import could
         sut.Retitle("Renamed", IntakeRequestEditor.System, _dateTimeProvider.Now);
+        sut.ChangeChannel(new IntakeChannelFaker().Generate(), IntakeRequestEditor.System, _dateTimeProvider.Now);
         sut.DomainEvents.Should().BeEmpty();
         foreach (var action in sut.PostPersistenceActions.ToList())
             action();

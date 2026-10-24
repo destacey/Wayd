@@ -145,6 +145,23 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
+    public async Task GetIntakeRequest_ForAnUpdateHolderWhoCannotReadTheDetail_CannotEdit()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeRequestQueryHandler(context, Principal(Guid.NewGuid(), holdsUpdate: true))
+            .Handle(new GetIntakeRequestQuery(new IdOrKey(scenario.OnSummaryOnly.Id)), ct);
+
+        // Assert — the update carries the description, so the DTO agrees with what the command would refuse
+        result!.Substance.Should().BeNull();
+        result.CanEdit.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task GetIntakeRequestActivities_ForASummaryReader_LeavesSubstanceEventsOutOfThePageAndTheCount()
     {
         // Arrange
@@ -171,6 +188,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         asOutsider!.Items.Select(a => a.EventType).Should().BeEquivalentTo(
             [nameof(IntakeRequestCreatedEvent), nameof(IntakeRequestRetitledEvent)]);
         asOutsider.TotalCount.Should().Be(2);
+        asOutsider.Items.Should().OnlyContain(a => a.Employee == null && a.ClientId == null && !a.Payload.Contains("\"actor\""));
         asRequester!.Items.Select(a => a.EventType).Should().Contain(nameof(IntakeRequestDetailsUpdatedEvent));
     }
 
@@ -190,11 +208,12 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         result.Reviewers.Select(r => r.Id).Should().Equal(scenario.Reviewer.Id);
     }
 
-    private static ICurrentPrincipal Principal(Guid employeeId, bool holdsReview = false)
+    private static ICurrentPrincipal Principal(Guid employeeId, bool holdsReview = false, bool holdsUpdate = false)
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
+        principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsUpdate);
         return principal.Object;
     }
 

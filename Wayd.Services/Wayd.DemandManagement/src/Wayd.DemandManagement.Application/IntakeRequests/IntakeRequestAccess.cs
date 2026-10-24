@@ -34,7 +34,8 @@ internal static class IntakeRequestAccess
     }
 
     /// <summary>
-    /// Whether the reader may see the request's substance.
+    /// Whether the reader may see the request's substance. Includes the summary rule, so it is never true for
+    /// a request the reader cannot see at all.
     /// </summary>
     public static Task<bool> CanSeeSubstance(
         this IDemandManagementDbContext dbContext,
@@ -43,6 +44,7 @@ internal static class IntakeRequestAccess
         CancellationToken cancellationToken) =>
         dbContext.IntakeRequests
             .Where(r => r.Id == id)
+            .Where(reader.CanSeeSummary(dbContext.IntakeDesks))
             .Where(reader.CanSeeSubstance(dbContext.IntakeDesks))
             .AnyAsync(cancellationToken);
 

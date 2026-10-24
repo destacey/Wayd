@@ -19,6 +19,7 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
         Guid id,
         int key,
         string name,
+        string description,
         IntakeDeskVisibility visibility,
         bool isRequesterSelectable,
         bool isOpen,
@@ -31,6 +32,7 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
         Id = id;
         Key = key;
         Name = name;
+        Description = description;
         Visibility = visibility;
         IsRequesterSelectable = isRequesterSelectable;
         IsOpen = isOpen;
@@ -43,6 +45,9 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
     public Guid Id { get; }
     public int Key { get; }
     public string Name { get; }
+
+    /// <summary>The requester-facing description of what to bring to the desk.</summary>
+    public string Description { get; }
     public IntakeDeskVisibility Visibility { get; }
     public bool IsRequesterSelectable { get; }
     public bool IsOpen { get; }

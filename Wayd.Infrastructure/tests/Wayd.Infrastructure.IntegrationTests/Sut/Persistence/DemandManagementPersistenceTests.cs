@@ -163,6 +163,31 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         entry.Payload.Should().Contain("\"reference\":\"Rule 1\"").And.Contain("\"to\":null");
     }
 
+    [Fact]
+    public async Task SaveChanges_ReplacingTheNeedByWithAnother_PersistsTheNewValue()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await using var context = _fixture.CreateContext();
+        var (desk, channel) = await SeedDeskAndChannel(context);
+        var requester = await SeedEmployee(context);
+        var from = IntakeRequestNeedBy.Create(new LocalDate(2026, 12, 31), NeedByBasis.Regulatory, "Rule 1", null, null).Value;
+        var to = IntakeRequestNeedBy.Create(new LocalDate(2027, 3, 31), NeedByBasis.Commitment, "Steering committee",
+            requester.Id, new LocalDate(2026, 9, 3)).Value;
+        var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, from,
+            null, EventActor.System, Now).Value;
+        context.IntakeRequests.Add(request);
+        await context.SaveChangesAsync(ct);
+
+        // Act
+        request.ChangeNeedBy(to, IntakeRequestEditor.System, Now.Plus(Duration.FromMinutes(1))).IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(ct);
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == request.Id, ct)).NeedBy.Should().Be(to);
+    }
+
     private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];
 
     private static async Task<(IntakeDesk Desk, IntakeChannel Channel)> SeedDeskAndChannel(WaydDbContext context)

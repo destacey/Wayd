@@ -88,6 +88,7 @@ public sealed class IntakeScenario
     {
         var request = new IntakeRequestFaker()
             .WithDeskId(desk.Id)
+            .WithChannelId(Channel().Id)
             .WithRequesterId(requester.Id)
             .WithSubmittedById(requester.Id)
             .WithParticipants(participantIds)

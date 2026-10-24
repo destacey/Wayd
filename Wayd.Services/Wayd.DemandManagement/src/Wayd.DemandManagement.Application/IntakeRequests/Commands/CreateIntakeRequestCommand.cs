@@ -30,6 +30,7 @@ public sealed class CreateIntakeRequestCommandValidator : CustomValidator<Create
         RuleFor(c => c.Description).NotEmpty();
         RuleFor(c => c.DeskId).NotEmpty();
         RuleFor(c => c.ChannelId).NotEmpty();
+        RuleFor(c => c.RequesterId).NotEqual(Guid.Empty);
         RuleFor(c => c.NeedBy!).SetValidator(new IntakeRequestNeedByInputValidator()).When(c => c.NeedBy is not null);
     }
 }
@@ -60,14 +61,17 @@ public sealed class CreateIntakeRequestCommandHandler(
         if (channel is null)
             return Result.Failure<ObjectIdAndKey>("Intake channel not found.");
 
+        if (!await _dbContext.IsActiveEmployee(employeeId.Value, cancellationToken))
+            return Result.Failure<ObjectIdAndKey>("Only an active employee can submit a request.");
+
         var requesterId = request.RequesterId ?? employeeId.Value;
-        if (!await _dbContext.IsActiveEmployee(requesterId, cancellationToken))
+        if (requesterId != employeeId.Value && !await _dbContext.IsActiveEmployee(requesterId, cancellationToken))
             return Result.Failure<ObjectIdAndKey>("The requester must be an active employee.");
 
         IntakeRequestNeedBy? needBy = null;
         if (request.NeedBy is not null)
         {
-            var needByResult = await request.NeedBy.ToNeedBy(_dbContext, cancellationToken);
+            var needByResult = await request.NeedBy.ToNeedBy(_dbContext, currentCommittedById: null, cancellationToken);
             if (needByResult.IsFailure)
                 return Result.Failure<ObjectIdAndKey>(needByResult.Error);
             needBy = needByResult.Value;

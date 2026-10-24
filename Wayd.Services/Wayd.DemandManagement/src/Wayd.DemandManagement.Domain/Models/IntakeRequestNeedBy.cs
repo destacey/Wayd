@@ -61,6 +61,9 @@ public sealed record IntakeRequestNeedBy
         Guid? committedById,
         LocalDate? committedOn)
     {
+        if (date == default)
+            return Result.Failure<IntakeRequestNeedBy>("A need-by needs its date.");
+
         if (!Enum.IsDefined(basis))
             return Result.Failure<IntakeRequestNeedBy>("The need-by basis is not recognized.");
 
@@ -69,7 +72,7 @@ public sealed record IntakeRequestNeedBy
 
         if (basis.RecordsCommitment())
         {
-            if (committedById is null || committedById == Guid.Empty || committedOn is null)
+            if (committedById is null || committedById == Guid.Empty || committedOn is null || committedOn == default(LocalDate))
                 return Result.Failure<IntakeRequestNeedBy>("A commitment needs who made it and the date it was made.");
         }
         else if (committedById is not null || committedOn is not null)

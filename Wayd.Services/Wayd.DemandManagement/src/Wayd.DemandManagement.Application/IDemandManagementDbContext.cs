@@ -35,7 +35,9 @@ public interface IDemandManagementDbContext
     /// </summary>
     /// <remarks>
     /// A query rather than a set, so the module can name and check the people its records point at but can
-    /// never change an employee.
+    /// never change an employee. It is a no-tracking query, and EF applies no-tracking to a whole query that
+    /// composes one, so never compose it into a query that loads a record a command will change: look the
+    /// employee up separately.
     /// </remarks>
     IQueryable<Employee> Employees { get; }
 

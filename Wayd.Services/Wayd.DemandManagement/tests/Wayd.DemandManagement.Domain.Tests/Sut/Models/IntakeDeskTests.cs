@@ -104,6 +104,7 @@ public sealed class IntakeDeskTests
         var created = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskCreatedEvent>().Subject;
         created.Id.Should().Be(sut.Id);
         created.Name.Should().Be("IT");
+        created.Description.Should().Be("Internal tools");
         created.Visibility.Should().Be(IntakeDeskVisibility.Private);
         created.IsRequesterSelectable.Should().BeFalse();
         created.IsOpen.Should().BeTrue();

@@ -8,6 +8,14 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// <param name="Id">The request.</param>
 public sealed record DeleteIntakeRequestCommand(Guid Id) : ICommand;
 
+public sealed class DeleteIntakeRequestCommandValidator : CustomValidator<DeleteIntakeRequestCommand>
+{
+    public DeleteIntakeRequestCommandValidator()
+    {
+        RuleFor(c => c.Id).NotEmpty();
+    }
+}
+
 public sealed class DeleteIntakeRequestCommandHandler(
     IDemandManagementDbContext dbContext,
     ICurrentPrincipal currentPrincipal,

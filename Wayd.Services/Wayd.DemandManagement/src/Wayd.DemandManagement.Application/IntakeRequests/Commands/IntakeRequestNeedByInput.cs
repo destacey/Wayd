@@ -19,14 +19,31 @@ public sealed record IntakeRequestNeedByInput(
     LocalDate? CommittedOn)
 {
     /// <summary>
-    /// Builds the request's need-by, checking that whoever made a commitment is an active employee.
+    /// Builds the request's need-by, checking that whoever made a newly named commitment is an active employee.
     /// </summary>
-    internal async Task<Result<IntakeRequestNeedBy>> ToNeedBy(IDemandManagementDbContext dbContext, CancellationToken cancellationToken)
+    /// <remarks>
+    /// A commitment the request already carries is not re-checked: updates resend the whole record, and a
+    /// commitment stays a fact about who made it after that person leaves, so re-checking would lock every
+    /// later edit of the request.
+    /// </remarks>
+    /// <param name="dbContext">The module's context.</param>
+    /// <param name="currentCommittedById">Who made the commitment the request carries now, when it carries one.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    internal async Task<Result<IntakeRequestNeedBy>> ToNeedBy(
+        IDemandManagementDbContext dbContext,
+        Guid? currentCommittedById,
+        CancellationToken cancellationToken)
     {
-        if (CommittedById is { } committedById && !await dbContext.IsActiveEmployee(committedById, cancellationToken))
+        var needBy = IntakeRequestNeedBy.Create(Date, Basis, Reference, CommittedById, CommittedOn);
+        if (needBy.IsFailure)
+            return needBy;
+
+        if (needBy.Value.CommittedById is { } committedById
+            && committedById != currentCommittedById
+            && !await dbContext.IsActiveEmployee(committedById, cancellationToken))
             return Result.Failure<IntakeRequestNeedBy>("Whoever made the commitment must be an active employee.");
 
-        return IntakeRequestNeedBy.Create(Date, Basis, Reference, CommittedById, CommittedOn);
+        return needBy;
     }
 }
 
@@ -34,7 +51,10 @@ public sealed class IntakeRequestNeedByInputValidator : CustomValidator<IntakeRe
 {
     public IntakeRequestNeedByInputValidator()
     {
+        RuleFor(n => n.Date).NotEqual(default(LocalDate));
         RuleFor(n => n.Basis).IsInEnum();
         RuleFor(n => n.Reference).NotEmpty().MaximumLength(1024);
+        RuleFor(n => n.CommittedById).NotEqual(Guid.Empty);
+        RuleFor(n => n.CommittedOn).NotEqual(default(LocalDate));
     }
 }

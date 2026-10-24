@@ -86,6 +86,28 @@ public sealed class IntakeRequestNeedByTests
     }
 
     [Fact]
+    public void Create_WithoutADate_Fails()
+    {
+        // Act — a date a client left out arrives as the default, which is no date at all
+        var result = IntakeRequestNeedBy.Create(default, NeedByBasis.Regulatory, "SOX 404", null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A need-by needs its date.");
+    }
+
+    [Fact]
+    public void Create_ForACommitmentWithoutTheDateItWasMade_Fails()
+    {
+        // Act
+        var result = IntakeRequestNeedBy.Create(Date, NeedByBasis.Commitment, "Steering committee", Guid.NewGuid(), default(LocalDate));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A commitment needs who made it and the date it was made.");
+    }
+
+    [Fact]
     public void Create_WithAnUndefinedBasis_Fails()
     {
         // Act

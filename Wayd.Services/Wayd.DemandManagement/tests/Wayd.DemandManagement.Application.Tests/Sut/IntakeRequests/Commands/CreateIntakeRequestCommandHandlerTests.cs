@@ -90,6 +90,39 @@ public sealed class CreateIntakeRequestCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ByACallerWhoseEmployeeIsInactive_Fails()
+    {
+        // Arrange — the submitter is named on the request too, so they must be active even on someone's behalf
+        _scenario.SignedInAs(_scenario.Employee(isActive: false));
+        var requester = _scenario.Employee();
+
+        // Act
+        var result = await CreateHandler().Handle(Command(_scenario.Desk().Id, _scenario.Channel().Id, requester.Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only an active employee can submit a request.");
+    }
+
+    [Fact]
+    public async Task Handle_WithACommitmentOnAnotherBasis_ReportsTheBasisRatherThanThePerson()
+    {
+        // Arrange — the shape of the need-by is checked before anyone it names is looked up
+        _scenario.SignedInAs(_scenario.Employee());
+        var needBy = new IntakeRequestNeedByInput(new LocalDate(2026, 12, 31), NeedByBasis.Regulatory, "SOX 404",
+            Guid.NewGuid(), new LocalDate(2026, 9, 3));
+
+        // Act
+        var result = await CreateHandler().Handle(Command(_scenario.Desk().Id, _scenario.Channel().Id, needBy: needBy),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a commitment records who made it and when.");
+    }
+
+    [Fact]
     public async Task Handle_WithACommitmentBySomeoneUnknown_Fails()
     {
         // Arrange

@@ -129,6 +129,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         // value is captured now, so the event records the desk as created even if it changes before the
         // first save.
         var name = desk.Name;
+        var description = desk.Description;
         var visibility = desk.Visibility;
         var isRequesterSelectable = desk.IsRequesterSelectable;
         var isOpen = desk.IsOpen;
@@ -139,6 +140,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
             desk.Id,
             desk.Key,
             name,
+            description,
             visibility,
             isRequesterSelectable,
             isOpen,

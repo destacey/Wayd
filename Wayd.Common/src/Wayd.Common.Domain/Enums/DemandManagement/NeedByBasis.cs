@@ -7,8 +7,7 @@ namespace Wayd.Common.Domain.Enums.DemandManagement;
 /// </summary>
 /// <remarks>
 /// Two requests can both say 31 December, one because a standard requires it and one because somebody
-/// picked it in a meeting; the basis is what tells a reviewer which. It replaces a discretionary flag,
-/// which answered the same question with one bit and no evidence. Its <see cref="NeedByBasisFamily"/> is
+/// picked it in a meeting; the basis is what tells a reviewer which. Its <see cref="NeedByBasisFamily"/> is
 /// derived through <see cref="NeedByBasisExtensions.Family"/>, never stored.
 /// </remarks>
 public enum NeedByBasis

@@ -41,8 +41,10 @@ public sealed class IntakeRequestNeedByRequestValidator : CustomValidator<Intake
 {
     public IntakeRequestNeedByRequestValidator()
     {
+        RuleFor(n => n.Date).NotEqual(default(LocalDate));
         RuleFor(n => n.Basis).IsInEnum();
         RuleFor(n => n.Reference).NotEmpty().MaximumLength(1024);
         RuleFor(n => n.CommittedById).NotEqual(Guid.Empty);
+        RuleFor(n => n.CommittedOn).NotEqual(default(LocalDate));
     }
 }

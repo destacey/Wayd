@@ -538,6 +538,16 @@ Every status change, with from/to, actor, timestamp and sequence. Written by Bas
 
 ---
 
+## Following
+
+A follow (`Follow`, in `Wayd.Common`, table `Notifications.Follows`) is one employee's choice to keep one record in their Following list: owner type, owner id, employee, followed instant, keyed on all three of the first so following twice is a no-op. Behind the `following` feature flag. In-app notifications (#1126) will use follows; until then following notifies nobody.
+
+Owner types are registered strings, as for status workflows: each module declares a `FollowOwnerDescriptor` (`ppm.project`, `ppm.program`, `planning.planning-interval-objective`) and an `IRecordReadRule` that says which records the caller may read and what each is called. Adding a followable record is a registration, not a schema change.
+
+**Following grants nothing.** A record can be followed only by someone who can read it through its own read rule, and a follower who loses access sees it leave their list and its count; a follow is never an input to authorization. It is also not participation: a participant is given a record and access with it, a follower chose one they could already see. Follow and unfollow are idempotent and act only for the caller — there is no adding a follower. API: `/api/me/follows` (`Me_Follow`, `Me_Unfollow`, `Me_GetFollowStatus`, `Me_GetFollows`).
+
+---
+
 ## Product Management Domain
 
 Gated by the `product-management` feature flag (disabled on first deploy). Authorization is permission-claim only — unlike PPM, no membership or leadership requirement on a record.

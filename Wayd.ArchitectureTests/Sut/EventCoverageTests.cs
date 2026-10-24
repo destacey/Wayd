@@ -11,6 +11,7 @@ using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Scoring;
@@ -213,6 +214,9 @@ public partial class EventCoverageTests
         [typeof(ExternalEmployeeBlacklistItem)] =
             "External ids a removed employee must not be re-imported from; written as part of that removal.",
         [typeof(WorkflowAliasName)] = "Lookup data rebuilt from code at startup.",
+
+        // A person's own preferences, not history of any record.
+        [typeof(Follow)] = "One person's choice to hear about a record; it changes nothing about the record.",
 
         // Not yet evented: each awaits the issue it names.
         [typeof(Strategy)] = "#951.",

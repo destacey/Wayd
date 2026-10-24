@@ -49,6 +49,7 @@ public sealed class DbContextScopeSharingTests(WaydSqlServerApiFactory factory)
         provider.GetRequiredService<IPlanningDbContext>().Should().BeSameAs(context);
         provider.GetRequiredService<IActivityLogDbContext>().Should().BeSameAs(context);
         provider.GetRequiredService<IDemandManagementDbContext>().Should().BeSameAs(context);
+        provider.GetRequiredService<INotificationsDbContext>().Should().BeSameAs(context);
     }
 
     [Fact]

@@ -1,6 +1,11 @@
 'use client'
 
-import { LifecycleStatusTag, PageActions } from '@/src/components/common'
+import {
+  FollowButton,
+  LifecycleStatusTag,
+  PageActions,
+} from '@/src/components/common'
+import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
@@ -532,6 +537,10 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                   Create Health Check
                 </Button>
               )}
+              <FollowButton
+                ownerType={FollowOwnerTypes.Project}
+                ownerId={projectData.id}
+              />
               <PageActions actionItems={actionsMenuItems} />
             </>
           ),

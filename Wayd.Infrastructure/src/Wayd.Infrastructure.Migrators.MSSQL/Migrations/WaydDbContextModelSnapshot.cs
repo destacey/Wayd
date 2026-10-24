@@ -645,6 +645,30 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("FeatureFlags", "FeatureManagement");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Following.Follow", b =>
+                {
+                    b.Property<string>("OwnerType")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("FollowedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("OwnerType", "OwnerId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId", "OwnerType", "FollowedOn");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmployeeId", "OwnerType", "FollowedOn"), new[] { "OwnerId" });
+
+                    b.ToTable("Follows", "Notifications");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Identity.OidcProvider", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8174,6 +8198,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Following.Follow", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Identity.OidcProvider", b =>

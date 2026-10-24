@@ -25,7 +25,8 @@ Each area's tables sit in their own SQL schema (`Work`, `Organization`, `Plannin
 Application code never sees `WaydDbContext` — `DatabaseContextTests` fails an Application project that
 references it. Each module reads and writes through its own interface (`IWorkDbContext`,
 `IOrganizationDbContext`, `IProjectPortfolioManagementDbContext`, …), and shared concerns have theirs
-(`IImportDbContext`, `IStatusWorkflowDbContext`, `IActivityLogDbContext`, `IFeatureManagementDbContext`). They
+(`IImportDbContext`, `IStatusWorkflowDbContext`, `INotificationsDbContext`, `IActivityLogDbContext`,
+`IFeatureManagementDbContext`). They
 sit beside `IWaydDbContext`, which exposes the database facade, the change tracker and the shared tables
 (employees, users, scoring models), and which the older module interfaces extend.
 

@@ -49,6 +49,12 @@ public class PlanningIntervalObjectiveFaker : PrivateConstructorFaker<PlanningIn
 
 public static class PlanningIntervalObjectiveFakerExtensions
 {
+    public static PlanningIntervalObjectiveFaker WithKey(this PlanningIntervalObjectiveFaker faker, int key)
+    {
+        faker.RuleFor(x => x.Key, key);
+        return faker;
+    }
+
     public static PlanningIntervalObjectiveFaker WithName(this PlanningIntervalObjectiveFaker faker, string name)
     {
         faker.RuleFor(x => x.Name, name);

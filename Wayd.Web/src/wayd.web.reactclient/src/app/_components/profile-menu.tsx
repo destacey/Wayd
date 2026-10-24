@@ -3,6 +3,7 @@
 import { Avatar, Dropdown, Grid, MenuProps, Space, Typography } from 'antd'
 import {
   BgColorsOutlined,
+  EyeOutlined,
   FileTextOutlined,
   LogoutOutlined,
   UserOutlined,
@@ -10,6 +11,7 @@ import {
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useAuth from '../../components/contexts/auth'
+import { useFeatureFlag } from '../../hooks'
 import ThemeManagerDrawer from './theme-manager-drawer'
 
 const { Text } = Typography
@@ -21,6 +23,7 @@ const ProfileMenu = () => {
   const screens = useBreakpoint()
   const isXs = !screens.sm
   const [themeDrawerOpen, setThemeDrawerOpen] = useState(false)
+  const { isEnabled: isFollowingEnabled } = useFeatureFlag('following')
 
   const handleLogout = async () => {
     try {
@@ -37,6 +40,16 @@ const ProfileMenu = () => {
       icon: <UserOutlined />,
       onClick: () => router.push('/account/profile'),
     },
+    ...(isFollowingEnabled && user?.employeeId
+      ? [
+          {
+            key: 'following',
+            label: 'Following',
+            icon: <EyeOutlined />,
+            onClick: () => router.push('/account/following'),
+          },
+        ]
+      : []),
     {
       key: 'theme',
       label: 'Theme',

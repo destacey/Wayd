@@ -30,6 +30,13 @@ public static class ProgramFakerExtensions
         return faker;
     }
 
+    public static ProgramFaker WithKey(this ProgramFaker faker, int key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
     public static ProgramFaker WithName(this ProgramFaker faker, string? name)
     {
         faker.RuleFor(x => x.Name, name);

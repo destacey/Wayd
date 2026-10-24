@@ -320,6 +320,25 @@ Every domain event drained by `SaveChanges` is captured in the activity log, and
 conventions for naming, payloads, versioning and consumption in every module. See
 [Domain Events](./domain-events.mdx).
 
+### Following
+
+A follow (`Common.Domain/Following`, table `Notifications.Follows`) is keyed by an owner type string and a
+record id, the convention status workflows use, so Common holds no module's vocabulary. Making a record
+followable is a registration in its module, not a schema change:
+
+1. Declare a `FollowOwnerDescriptor` as a static field in the module's domain project (`PpmFollowOwners`,
+   `PlanningFollowOwners`). The key is persisted — namespace it by module and never rename it.
+2. Implement `IRecordReadRule` in the module's Application project. `ReadableIds` returns the ids the caller
+   may read, by **exactly** the rule the record's own read endpoints apply, as a query the database can run;
+   `Describe` names a page of records.
+3. Register both in `Infrastructure/Following/ConfigureServices.AddFollowing`. `FollowRegistrationTests`
+   fails until every registered owner type has exactly one read rule.
+
+**Following grants nothing.** `ReadableIds` only ever narrows: never consult follows from an authorization
+check, and never widen a read because a follow exists. The Following list joins the caller's follows to each
+type's readable ids before counting, so a record the caller has lost access to leaves both the list and its
+total. Keep follows apart from participants, who are given a record and the access that goes with it.
+
 ## Connector framework
 
 Customer-configured integrations (Azure DevOps, Entra, Workday, Azure OpenAI, future Jira / GitHub connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.

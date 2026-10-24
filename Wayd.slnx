@@ -51,6 +51,7 @@
     <Project Path="Wayd.Services/Wayd.DemandManagement/src/Wayd.DemandManagement.Domain/Wayd.DemandManagement.Domain.csproj" />
   </Folder>
   <Folder Name="/Wayd.Services/Wayd.DemandManagement/tests/">
+    <Project Path="Wayd.Services/Wayd.DemandManagement/tests/Wayd.DemandManagement.Application.Tests/Wayd.DemandManagement.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.DemandManagement/tests/Wayd.DemandManagement.Domain.Tests/Wayd.DemandManagement.Domain.Tests.csproj" />
   </Folder>
   <Folder Name="/Wayd.Services/Wayd.Links/" />

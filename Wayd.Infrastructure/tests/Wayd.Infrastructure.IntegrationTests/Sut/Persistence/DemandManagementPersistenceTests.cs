@@ -163,7 +163,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         entry.Payload.Should().Contain("\"reference\":\"Rule 1\"").And.Contain("\"to\":null");
     }
 
-    private static string UniqueName(string prefix) => $"{prefix}-{Guid.CreateVersion7():N}"[..30];
+    private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];
 
     private static async Task<(IntakeDesk Desk, IntakeChannel Channel)> SeedDeskAndChannel(WaydDbContext context)
     {
@@ -182,9 +182,9 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
     {
         var employee = Employee.Create(
             new PersonName("Intake", null, "Probe"),
-            $"{Guid.CreateVersion7():N}"[..12],
+            $"{Guid.NewGuid():N}"[..12],
             Now,
-            new EmailAddress($"{Guid.CreateVersion7():N}"[..12] + "@acme.example"),
+            new EmailAddress($"{Guid.NewGuid():N}"[..12] + "@acme.example"),
             jobTitle: null,
             department: null,
             officeLocation: null,

@@ -44,6 +44,13 @@ public static class IntakeRequestFakerExtensions
         return faker;
     }
 
+    public static IntakeRequestFaker WithDeskId(this IntakeRequestFaker faker, Guid deskId)
+    {
+        faker.RuleFor(x => x.DeskId, deskId);
+
+        return faker;
+    }
+
     public static IntakeRequestFaker WithChannelId(this IntakeRequestFaker faker, Guid channelId)
     {
         faker.RuleFor(x => x.ChannelId, channelId);

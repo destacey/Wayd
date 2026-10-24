@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Wayd.Common.Domain.Employees;
 using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application;
@@ -28,6 +29,15 @@ public interface IDemandManagementDbContext
 
     /// <summary>The asks themselves, with their participants.</summary>
     DbSet<IntakeRequest> IntakeRequests { get; }
+
+    /// <summary>
+    /// The shared employee table, read-only: requesters, submitters, reviewers and participants are employees.
+    /// </summary>
+    /// <remarks>
+    /// A query rather than a set, so the module can name and check the people its records point at but can
+    /// never change an employee.
+    /// </remarks>
+    IQueryable<Employee> Employees { get; }
 
     /// <summary>
     /// Saves the tracked changes, together with the events, audit trail and activity log they produce.

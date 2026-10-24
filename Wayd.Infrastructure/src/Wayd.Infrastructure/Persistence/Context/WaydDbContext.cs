@@ -188,6 +188,8 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<IntakeDesk> IntakeDesks => Set<IntakeDesk>();
     public DbSet<IntakeRequest> IntakeRequests => Set<IntakeRequest>();
 
+    IQueryable<Employee> IDemandManagementDbContext.Employees => Employees.AsNoTracking();
+
     #endregion IDemandManagementDbContext
 
     #region IStrategicManagement

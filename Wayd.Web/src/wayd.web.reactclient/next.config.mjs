@@ -11,10 +11,16 @@ const nextConfig = {
   // binary lookups Turbopack cannot resolve, and instrumentations patch modules by
   // hooking require, which only works on unbundled packages.
   serverExternalPackages: [
+    '@opentelemetry/api',
     '@opentelemetry/sdk-node',
+    '@opentelemetry/sdk-trace',
     '@opentelemetry/auto-instrumentations-node',
   ],
   experimental: {
+    // Puts the server span's traceparent into the document so browser API
+    // calls can continue that trace. Client navigations use the traceresponse
+    // header instead; the meta tag is the full page load.
+    clientTraceMetadata: ['traceparent', 'tracestate'],
     optimizePackageImports: ['antd', '@ant-design/icons', '@ant-design/charts'],
     // typescript-eslint has no TS 7 support yet (typescript-eslint#10940), so
     // `typescript` is aliased to @typescript/typescript6 and the real TS 7

@@ -62,8 +62,12 @@ import {
   SearchClient,
   TokenResponse,
 } from './wayd-api'
-import { navigateWithFullReload } from '@/src/utils/window-utils'
+import {
+  currentBrowserTrace,
+  installBrowserTraceCapture,
+} from '@/src/otel/browser-traceparent'
 import { storeReturnUrl } from '@/src/utils/return-url'
+import { navigateWithFullReload } from '@/src/utils/window-utils'
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -373,9 +377,17 @@ axiosClient.interceptors.response.use(
 // — better to let the actual call decide than to fail eagerly here.
 axiosClient.interceptors.request.use(
   async (config) => {
+    installBrowserTraceCapture()
     const token = await getFreshAuthToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    // Browser calls to the API are a new trace unless they carry the page
+    // span. The server injects that context; this is where it leaves.
+    const trace = currentBrowserTrace()
+    if (trace && !config.headers.traceparent) {
+      config.headers.traceparent = trace.traceparent
+      if (trace.tracestate) config.headers.tracestate = trace.tracestate
     }
     return config
   },

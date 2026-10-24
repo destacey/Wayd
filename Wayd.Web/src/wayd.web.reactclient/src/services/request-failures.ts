@@ -1,3 +1,5 @@
+import { toApiError } from '@/src/utils/problem-details'
+
 /**
  * True for axios failures where no response was received: offline, DNS failure,
  * server unreachable, request timed out, request aborted. We treat these as
@@ -49,4 +51,59 @@ export function isTransientRefreshFailure(error: unknown): boolean {
   const { status } = error as { status?: unknown }
   if (typeof status !== 'number') return false
   return TRANSIENT_REFRESH_STATUSES.has(status)
+}
+
+/** How long to hold off after a 429 that does not say how long to wait. */
+export const DEFAULT_RATE_LIMIT_WAIT_MS = 5_000
+
+/** The longest hold-off honoured, so a bad header cannot stall refresh for long. */
+const MAX_RATE_LIMIT_WAIT_MS = 5 * 60_000
+
+/**
+ * How long a 429 asks the caller to wait, in milliseconds, or `undefined` for
+ * any other failure. Read from `Retry-After` (seconds) on the generated
+ * client's `ApiException`, whose `headers` keeps the names Axios lowercased.
+ */
+export function rateLimitWaitMs(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') return undefined
+  const { status, headers } = error as {
+    status?: unknown
+    headers?: Record<string, unknown>
+  }
+  if (status !== 429) return undefined
+
+  const seconds = Number(headers?.['retry-after'])
+  if (!Number.isFinite(seconds) || seconds <= 0)
+    return DEFAULT_RATE_LIMIT_WAIT_MS
+  return Math.min(seconds * 1000, MAX_RATE_LIMIT_WAIT_MS)
+}
+
+/**
+ * Remembers until when a refused request should not be sent again: after a
+ * 429, until the wait it named has passed. Times are `Date.now()` values.
+ */
+export class RateLimitPause {
+  private until = 0
+
+  /** Whether the wait from the last 429 is still running at `now`. */
+  isActive(now: number = Date.now()): boolean {
+    return now < this.until
+  }
+
+  /** Starts a pause if `error` is a 429; any other failure leaves it as it was. */
+  record(error: unknown, now: number = Date.now()): void {
+    const wait = rateLimitWaitMs(error)
+    if (wait !== undefined) this.until = now + wait
+  }
+}
+
+/**
+ * The message to show for a sign-in refused by a rate limit, or `undefined`
+ * when the failure was something else. Prefers the server's own sentence,
+ * which says how long to wait.
+ */
+export function signInRateLimitMessage(error: unknown): string | undefined {
+  const apiError = toApiError(error)
+  if (apiError.status !== 429) return undefined
+  return apiError.detail ?? 'Too many sign-in attempts. Try again shortly.'
 }

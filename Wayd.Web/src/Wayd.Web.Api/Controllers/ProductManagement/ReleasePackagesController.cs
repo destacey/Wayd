@@ -1,7 +1,9 @@
 using CsvHelper;
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
+using Wayd.Common.Application.StatusWorkflows.Queries;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Settings;
+using Wayd.ProductManagement.Domain;
 using Wayd.Web.Api.Models.ProductManagement;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
@@ -95,6 +97,31 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
         return result.Value is not null
             ? Ok(result.Value)
             : NotFound();
+    }
+
+    /// <param name="from">Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z.</param>
+    /// <param name="to">End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    [HttpGet("time-in-status")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
+    [EndpointSummary("Get how long release packages stay in each status, for stays that ended within a window.")]
+    [EndpointDescription(
+        "One row per status of the current release package workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release package has spent in each status, read its status history instead.")]
+    [McpTool("ReleasePackages_GetTimeInStatus", "Get release package time in status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TimeInStatusReportDto>> GetTimeInStatus(
+        [FromQuery] Instant from,
+        [FromQuery] Instant to,
+        CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new GetTimeInStatusReportQuery(ProductWorkflowOwners.ReleasePackage.Key, from, to), cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : Ok(result.Value);
     }
 
     [HttpGet("{idOrKey}/status-history")]

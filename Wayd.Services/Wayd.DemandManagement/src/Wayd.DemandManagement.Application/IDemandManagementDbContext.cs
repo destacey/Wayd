@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Wayd.DemandManagement.Domain.Models;
+
 namespace Wayd.DemandManagement.Application;
 
 /// <summary>
@@ -17,6 +20,15 @@ namespace Wayd.DemandManagement.Application;
 /// </remarks>
 public interface IDemandManagementDbContext
 {
+    /// <summary>Where requests come from: the company's channel vocabulary.</summary>
+    DbSet<IntakeChannel> IntakeChannels { get; }
+
+    /// <summary>The review responsibilities requests are submitted to, with their reviewers.</summary>
+    DbSet<IntakeDesk> IntakeDesks { get; }
+
+    /// <summary>The asks themselves, with their participants.</summary>
+    DbSet<IntakeRequest> IntakeRequests { get; }
+
     /// <summary>
     /// Saves the tracked changes, together with the events, audit trail and activity log they produce.
     /// </summary>

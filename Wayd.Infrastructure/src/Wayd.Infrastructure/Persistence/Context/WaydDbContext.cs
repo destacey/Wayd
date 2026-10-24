@@ -30,6 +30,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.ProductManagement.Application;
 using Wayd.StrategicManagement.Application;
 using Wayd.DemandManagement.Application;
+using Wayd.DemandManagement.Domain.Models;
 using Wayd.StrategicManagement.Domain.Models;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain.Models;
@@ -173,6 +174,14 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<ScoringModel> ScoringModels => Set<ScoringModel>();
 
     #endregion IProjectPortfolioManagementDbContext
+
+    #region IDemandManagementDbContext
+
+    public DbSet<IntakeChannel> IntakeChannels => Set<IntakeChannel>();
+    public DbSet<IntakeDesk> IntakeDesks => Set<IntakeDesk>();
+    public DbSet<IntakeRequest> IntakeRequests => Set<IntakeRequest>();
+
+    #endregion IDemandManagementDbContext
 
     #region IStrategicManagement
 

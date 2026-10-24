@@ -611,8 +611,20 @@ Unset, MCP clients cannot sign in with OAuth: the authorization endpoint answers
 |---|---|---|
 | `RateLimitSettings:OAuthAuthorize` | 30 per 60 s | `GET /oauth/authorize` |
 | `RateLimitSettings:OAuthToken` | 60 per 60 s | `POST /oauth/token` |
+| `RateLimitSettings:AuthSignIn` | 30 per 60 s | `POST /api/auth/login` and `POST /api/auth/exchange`, counted together |
+| `RateLimitSettings:AuthRefresh` | 120 per 60 s | `POST /api/auth/refresh-token` |
+| `RateLimitSettings:AuthProviders` | 60 per 60 s | `GET /api/auth/providers` |
+| `RateLimitSettings:AuthSetup` | 5 per 900 s | `POST /api/auth/setup` |
 
-Each has `PermitLimit` and `WindowSeconds`. Limits are held in memory, so every replica counts separately.
+Each has `PermitLimit` and `WindowSeconds`, set like any other setting: `RateLimitSettings__AuthSignIn__PermitLimit=60` as an environment variable. In Azure a changed environment variable starts a new revision, so there it means no release rather than no restart.
+
+**Endpoints that share a setting share a window.** Sign-in and the identity-provider exchange draw from one budget, so a password spray cannot switch endpoints for a fresh one; refresh has its own, because every signed-in browser calls it and it must never spend the sign-in budget. The client keeps the session when a refresh answers 429, rather than signing the user out.
+
+**An IPv6 caller is counted by its /64**, the block one subscriber is usually given, so changing the low bits of an address does not buy a fresh window. An IPv4 caller is counted by its address.
+
+**The sign-in limit slows password spraying; account lockout stops guessing.** Five wrong passwords lock an account for 15 minutes whatever address they came from, and the sign-in limit caps how many accounts one address can try. An office whose people all sign in from one address shares one window, so raise `AuthSignIn` if a busy morning sees 429s.
+
+**Limits are held in memory, so every replica counts separately.** With Azure's default of up to three replicas, a caller whose requests are spread across all of them can reach up to three times a limit. That is acceptable for stopping floods; a limit that must hold exactly, such as a quota, would need a store shared by every replica.
 
 **The caller address is the proxy's unless forwarded headers are on.** Behind a proxy every request appears to come from it, so a per-address limit becomes one limit shared by everyone, and the sessions list records the proxy's address. `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` makes ASP.NET Core trust `X-Forwarded-For` and `X-Forwarded-Proto` from any sender, which is safe only where the proxy is the sole way in, as Container Apps ingress is; Terraform sets it in Azure. Self-hosted behind a proxy that can be bypassed, configure `ForwardedHeadersOptions` with the proxy's address instead.
 

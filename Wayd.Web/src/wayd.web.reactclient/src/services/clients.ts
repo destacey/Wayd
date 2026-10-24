@@ -69,6 +69,7 @@ import {
 } from '@/src/otel/browser-traceparent'
 import { storeReturnUrl } from '@/src/utils/return-url'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
+import { isNetworkError, isTransientRefreshFailure } from './request-failures'
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -186,31 +187,6 @@ const axiosClient = axios.create({
   timeout: 30000, // 30 second timeout
 })
 
-/**
- * True for axios failures where no response was received: offline, DNS failure,
- * server unreachable, request timed out, request aborted. We treat these as
- * "couldn't ask the server" rather than "server said no" — the distinction
- * matters when deciding whether a failed refresh proves the session is bad.
- *
- * Axios sets `response` only when the server actually responded; for transport
- * failures it sets `code` to ERR_NETWORK / ECONNABORTED / ERR_CANCELED. We
- * accept both signals because some axios errors get reshaped by interceptors
- * before reaching us.
- */
-function isNetworkError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const e = error as { response?: unknown; code?: string; message?: string }
-  if (e.response) return false
-  if (
-    e.code === 'ERR_NETWORK' ||
-    e.code === 'ECONNABORTED' ||
-    e.code === 'ERR_CANCELED'
-  ) {
-    return true
-  }
-  return e.message === 'Network Error'
-}
-
 function redirectToLoginWithReturnUrl(): void {
   if (typeof window === 'undefined') return
   storeReturnUrl()
@@ -305,22 +281,23 @@ axiosClient.interceptors.response.use(
         } catch (refreshError) {
           // The refresh attempt itself failed. Two distinct cases:
           //
-          // 1. Server reachable, refresh rejected (4xx/5xx): the session is
-          //    invalid. Wipe storage and hard-navigate to /login so AuthGate
+          // 1. Server reachable, refresh rejected (any other 4xx, or a 500,
+          //    which refresh answers for a token it cannot validate): the
+          //    session is invalid. Wipe storage and hard-navigate to /login so AuthGate
           //    re-renders unauthenticated. We also remember the current page
           //    (storeReturnUrl) so the user lands back where they were.
           //
-          // 2. Network error (offline, server unreachable, request aborted):
-          //    no proof the session is bad — we just couldn't ask. Wiping
-          //    storage here would log out a user every time their wifi
-          //    blipped. Leave storage intact and reject the caller with the
-          //    original 401, not the refresh-call error — the caller asked
-          //    about their endpoint, not /refresh-token, so surfacing the
-          //    refresh URL/message would be misleading. A future request can
-          //    re-attempt the refresh once the network recovers.
-          if (isNetworkError(refreshError)) {
+          // 2. Transient (unreachable, rate limited, server error — see
+          //    isTransientRefreshFailure): no proof the session is bad — we
+          //    just couldn't get an answer. Wiping storage here would log out a
+          //    user every time their wifi blipped. Leave storage intact and
+          //    reject the caller with the original 401, not the refresh-call
+          //    error — the caller asked about their endpoint, not
+          //    /refresh-token, so surfacing the refresh URL/message would be
+          //    misleading. A future request can re-attempt the refresh.
+          if (isTransientRefreshFailure(refreshError)) {
             console.warn(
-              'Token refresh on 401 unreachable; leaving session intact:',
+              'Token refresh on 401 failed transiently; leaving session intact:',
               refreshError,
             )
             return Promise.reject(error)

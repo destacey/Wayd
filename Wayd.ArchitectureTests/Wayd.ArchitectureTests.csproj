@@ -56,6 +56,8 @@
         <ProjectReference Include="..\Wayd.Services\Wayd.StrategicManagement\src\Wayd.StrategicManagement.Application\Wayd.StrategicManagement.Application.csproj" />
         <ProjectReference Include="..\Wayd.Services\Wayd.ProjectPortfolioManagement\src\Wayd.ProjectPortfolioManagement.Domain\Wayd.ProjectPortfolioManagement.Domain.csproj" />
         <ProjectReference Include="..\Wayd.Services\Wayd.ProjectPortfolioManagement\src\Wayd.ProjectPortfolioManagement.Application\Wayd.ProjectPortfolioManagement.Application.csproj" />
+        <ProjectReference Include="..\Wayd.Services\Wayd.DemandManagement\src\Wayd.DemandManagement.Domain\Wayd.DemandManagement.Domain.csproj" />
+        <ProjectReference Include="..\Wayd.Services\Wayd.DemandManagement\src\Wayd.DemandManagement.Application\Wayd.DemandManagement.Application.csproj" />
     </ItemGroup>
 
 </Project>

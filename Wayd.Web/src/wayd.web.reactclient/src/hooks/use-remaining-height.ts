@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { findScrollParent } from '@/src/utils/scroll-parent'
 
 /**
  * Returns the remaining viewport height below the top of the referenced element,
@@ -95,19 +96,4 @@ export function useRemainingHeight(
   }, [])
 
   return [callbackRef, height]
-}
-
-/**
- * Walks up the DOM tree to find the nearest ancestor with scrollable overflow.
- */
-function findScrollParent(element: HTMLElement): HTMLElement | null {
-  let current = element.parentElement
-  while (current) {
-    const { overflowY } = getComputedStyle(current)
-    if (overflowY === 'auto' || overflowY === 'scroll') {
-      return current
-    }
-    current = current.parentElement
-  }
-  return null
 }

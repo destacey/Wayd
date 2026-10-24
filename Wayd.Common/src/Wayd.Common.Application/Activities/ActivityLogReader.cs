@@ -9,12 +9,30 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
 {
     private readonly IActivityLogDbContext _dbContext = dbContext;
 
-    public async Task<PagedResponse<ActivityLogDto>> Read(
+    public Task<PagedResponse<ActivityLogDto>> Read(
         Guid aggregateId,
         string? aggregateType = null,
         int page = 1,
         int pageSize = 50,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        Read(aggregateId, aggregateType, eventTypes: null, page, pageSize, cancellationToken);
+
+    public Task<PagedResponse<ActivityLogDto>> ReadEventTypes(
+        Guid aggregateId,
+        string aggregateType,
+        IReadOnlyCollection<string> eventTypes,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default) =>
+        Read(aggregateId, aggregateType, eventTypes, page, pageSize, cancellationToken);
+
+    private async Task<PagedResponse<ActivityLogDto>> Read(
+        Guid aggregateId,
+        string? aggregateType,
+        IReadOnlyCollection<string>? eventTypes,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
     {
         var pageNumber = Math.Max(1, page);
         var take = Math.Clamp(pageSize, 1, 100);
@@ -42,6 +60,12 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
         var query = _dbContext.ActivityLogs
             .AsNoTracking()
             .Where(a => own.Select(o => o.Id).Concat(related.Select(r => r.Id)).Contains(a.Id));
+
+        if (eventTypes is not null)
+        {
+            var types = eventTypes.ToArray();
+            query = query.Where(a => types.Contains(a.EventType));
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 

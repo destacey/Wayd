@@ -26,8 +26,15 @@ public static class AuthenticatedClientExtensions
     /// permissions from their roles on each request rather than from the token's claims, so the role is
     /// what has to be right.
     /// </remarks>
+    public static Task<AuthenticatedClient> CreateAuthenticatedClient(
+        this WaydSqlServerApiFactory factory, params string[] permissions) =>
+        factory.CreateAuthenticatedClient(employeeId: null, permissions);
+
+    /// <summary>
+    /// A signed-in client whose user is linked to the employee, for endpoints that act as an employee.
+    /// </summary>
     public static async Task<AuthenticatedClient> CreateAuthenticatedClient(
-        this WaydSqlServerApiFactory factory, params string[] permissions)
+        this WaydSqlServerApiFactory factory, Guid? employeeId, params string[] permissions)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var suffix = Guid.NewGuid().ToString("N");
@@ -58,6 +65,7 @@ public static class AuthenticatedClientExtensions
                 Password = Password,
                 MustChangePassword = false,
                 RoleNames = [roleName],
+                EmployeeId = employeeId,
             }, cancellationToken);
             if (created.IsFailure)
                 throw new InvalidOperationException($"Could not create the test user: {created.Error}");

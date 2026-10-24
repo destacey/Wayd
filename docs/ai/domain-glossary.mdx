@@ -148,6 +148,19 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Strategic Theme** | A high-level organizational priority guiding investment decisions. States: Proposed → Active → Archived. Only Proposed deletable. Cross-domain: tags Projects and Programs in PPM (not strategic initiatives). |
 | **Effective Themes** | A project's own strategic themes when it has any, otherwise its program's. The two sets replace each other, never combine. Used wherever a project's work is attributed to themes. |
 
+## Demand Management
+
+| Term | Definition |
+|------|-----------|
+| **Intake Request** | One ask for delivery capacity that is not yet a project or work item, shown as a Request. On exactly one desk, chosen by the requester. API only — no screens yet. |
+| **Intake Desk** | A review responsibility: what demand it accepts, who reviews it and how much of its requests others read. Not a team or a department. None are seeded. |
+| **Desk Visibility** | Open (everyone reads the whole request), Summary Only (everyone reads the summary; the substance stays with the desk and the request's own people) or Private (only they know the request exists). Set per desk. |
+| **Read Tier** | Summary, Substance or Internal: the slices a request is read in, granted separately. The DTOs and the request's history are built per tier. |
+| **Intake Channel** | Where a request came from. Company-defined, referenced by id; eight are seeded. Not the desk. |
+| **Need-By Basis** | What makes a need-by date that date: Regulatory, Contractual, External Event (fixed for us), Commitment or Requester Preference (we chose it). Always with a reference; a commitment also records who made it and when. |
+| **Participant** | Someone given access to one request beyond its requester and submitter: reads it and may reply, never changes it or sees internal notes. Access, not a notification list. |
+| **Expected Benefits** | The requester's prose on what gets better, and for whom, if the ask is delivered. Named for the project field it seeds. |
+
 ## Status Workflows
 
 | Term | Definition |

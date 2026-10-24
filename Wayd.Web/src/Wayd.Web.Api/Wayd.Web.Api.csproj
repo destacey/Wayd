@@ -52,6 +52,8 @@
         <ProjectReference
             Include="..\..\..\Wayd.Integrations\src\Wayd.Integrations.AzureDevOps\Wayd.Integrations.AzureDevOps.csproj" />
         <ProjectReference
+            Include="..\..\..\Wayd.Services\Wayd.DemandManagement\src\Wayd.DemandManagement.Application\Wayd.DemandManagement.Application.csproj" />
+        <ProjectReference
             Include="..\..\..\Wayd.Services\Wayd.Links\src\Wayd.Links\Wayd.Links.csproj" />
         <ProjectReference
             Include="..\..\..\Wayd.Services\Wayd.Organization\src\Wayd.Organization.Application\Wayd.Organization.Application.csproj" />

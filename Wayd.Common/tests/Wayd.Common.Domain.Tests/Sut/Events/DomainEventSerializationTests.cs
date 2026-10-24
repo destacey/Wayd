@@ -3,12 +3,14 @@ using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.AppIntegration;
+using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
@@ -334,6 +336,82 @@ public sealed class DomainEventSerializationTests
         roundTripped.IntegrationState.InternalId.Should().Be(original.IntegrationState.InternalId);
         roundTripped.IntegrationState.IsActive.Should().Be(original.IntegrationState.IsActive);
         roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void IntakeRequestCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — the nested need-by record with LocalDates, an enum and nullable ids
+        var needBy = new IntakeRequestNeedByDetails(new LocalDate(2026, 12, 31), NeedByBasis.Commitment, "Steering committee",
+            Guid.NewGuid(), new LocalDate(2026, 9, 3));
+        var original = new IntakeRequestCreatedEvent(Guid.NewGuid(), 42, "Export invoices", Guid.NewGuid(), Guid.NewGuid(),
+            Guid.NewGuid(), needBy, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+        roundTripped.NeedBy.Should().Be(needBy);
+    }
+
+    [Fact]
+    public void IntakeRequestNeedByChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — both ends, the second one cleared
+        var from = new IntakeRequestNeedByDetails(new LocalDate(2026, 12, 31), NeedByBasis.Regulatory, "PCI DSS 4.0", null, null);
+        var original = new IntakeRequestNeedByChangedEvent(Guid.NewGuid(), 42, from, null, EventActor.System,
+            Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.From.Should().Be(from);
+        roundTripped.To.Should().BeNull();
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void IntakeDeskCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — an enum and a list of reviewer ids
+        var original = new IntakeDeskCreatedEvent(Guid.NewGuid(), 3, "IT", "Internal tools", IntakeDeskVisibility.Private,
+            true, true, false, [Guid.NewGuid(), Guid.NewGuid()], EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeRequestParticipantAddedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — the resulting participant set
+        var original = new IntakeRequestParticipantAddedEvent(Guid.NewGuid(), 42, Guid.NewGuid(), [Guid.NewGuid(), Guid.NewGuid()],
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeRequestParticipantRemovedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — the resulting participant set, here empty
+        var original = new IntakeRequestParticipantRemovedEvent(Guid.NewGuid(), 42, Guid.NewGuid(), [],
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
     }
 
     [Fact]

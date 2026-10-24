@@ -7,7 +7,7 @@
 set -euo pipefail
 
 types='feat|fix|docs|refactor|test|perf|chore|ci|build'
-scopes='activities|agents|api|app-integration|client|data-generation|database|delivery|docker|events|identity|imports|infrastructure|links|mcp|organization|planning|ppm|products|scoring|settings|skills|status-workflows|strategic-management|work'
+scopes='activities|agents|api|app-integration|client|data-generation|database|delivery|demand-management|docker|events|identity|imports|infrastructure|links|mcp|organization|planning|ppm|products|scoring|settings|skills|status-workflows|strategic-management|work'
 
 # The subject is the first line that is neither blank nor a comment git strips before committing.
 subject="$(grep -v '^#' "$1" | sed '/^[[:space:]]*$/d' | head -n 1)"

@@ -25,4 +25,26 @@ public interface IActivityLogReader : IScopedService
         int page = 1,
         int pageSize = 50,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads the aggregate's activity entries of the given event types only, newest first, with pagination.
+    /// </summary>
+    /// <remarks>
+    /// For a record whose history is read in tiers: the filter runs in the query, so the page and the total
+    /// count only ever cover what the reader may see. Filtering a page afterwards would show short pages and
+    /// a total that discloses how many entries were withheld.
+    /// </remarks>
+    /// <param name="aggregateId">The aggregate root identifier.</param>
+    /// <param name="aggregateType">The aggregate type name.</param>
+    /// <param name="eventTypes">The event type names the reader may see.</param>
+    /// <param name="page">1-indexed page number.</param>
+    /// <param name="pageSize">Number of items per page.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<PagedResponse<ActivityLogDto>> ReadEventTypes(
+        Guid aggregateId,
+        string aggregateType,
+        IReadOnlyCollection<string> eventTypes,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default);
 }

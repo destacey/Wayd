@@ -25,6 +25,7 @@ using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -77,6 +78,10 @@ public partial class EventCoverageTests
         typeof(StatusWorkflow),
         typeof(SystemSettingsSection),
         typeof(WorkflowAssignment),
+
+        // Demand Management
+        typeof(IntakeDesk),
+        typeof(IntakeRequest),
 
         // Organization
         typeof(EmployeeCapacity),
@@ -219,6 +224,7 @@ public partial class EventCoverageTests
         [typeof(EstimationScale)] = "#952.",
         [typeof(ExpenditureCategory)] = "#952.",
         [typeof(FeatureFlag)] = "#952.",
+        [typeof(IntakeChannel)] = "#1120, which adds the first changes to a channel.",
         [typeof(Link)] = "#952.",
         [typeof(ProductTagCategory)] = "#952.",
         [typeof(ProductType)] = "#952.",

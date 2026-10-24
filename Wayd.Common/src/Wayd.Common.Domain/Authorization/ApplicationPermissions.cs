@@ -26,6 +26,13 @@ public static class ApplicationAction
     public const string Clean = nameof(Clean);
     public const string Run = nameof(Run);
 
+    /// <summary>
+    /// Judging a record on behalf of a review group: deciding, routing and the notes only reviewers see.
+    /// Granted per resource but exercised per group, so a holder reviews only where they are a member,
+    /// unless the domain's <see cref="Administer"/> waives the membership.
+    /// </summary>
+    public const string Review = nameof(Review);
+
     // Specific
     public const string ManageTeamMemberships = nameof(ManageTeamMemberships);
     public const string ManageProjectWorkItems = nameof(ManageProjectWorkItems);
@@ -77,6 +84,8 @@ public static class ApplicationResource
     public const string PpmStrategicThemes = nameof(PpmStrategicThemes);
     public const string StrategicInitiatives = nameof(StrategicInitiatives);
     public const string ProjectLifecycles = nameof(ProjectLifecycles);
+
+    public const string IntakeRequests = nameof(IntakeRequests);
 
     public const string Products = nameof(Products);
     public const string ProductTypes = nameof(ProductTypes);
@@ -227,6 +236,21 @@ public static class ApplicationPermissions
         new("Create Links", ApplicationAction.Create, ApplicationResource.Links, LinksCategory),
         new("Update Links", ApplicationAction.Update, ApplicationResource.Links, LinksCategory),
         new("Delete Links", ApplicationAction.Delete, ApplicationResource.Links, LinksCategory),
+    ];
+
+    private const string DemandManagementCategory = "Demand Management";
+    private static readonly ApplicationPermission[] _demandManagement =
+    [
+        // Business users need View and Create. A requester edits their own request while it is still
+        // proposed without Update, and what View reveals is narrowed by the request's desk visibility.
+        new("View Intake Requests", ApplicationAction.View, ApplicationResource.IntakeRequests, DemandManagementCategory),
+        new("Create Intake Requests", ApplicationAction.Create, ApplicationResource.IntakeRequests, DemandManagementCategory),
+        new("Update Intake Requests", ApplicationAction.Update, ApplicationResource.IntakeRequests, DemandManagementCategory),
+        new("Delete Intake Requests", ApplicationAction.Delete, ApplicationResource.IntakeRequests, DemandManagementCategory),
+        // Exercised only on the desks the holder reviews on; Administer waives that membership.
+        new("Review Intake Requests", ApplicationAction.Review, ApplicationResource.IntakeRequests, DemandManagementCategory),
+        // Manages desks, channels and tag axes, and reviews on every desk. Never substitutes for Review.
+        new("Administer Demand Management", ApplicationAction.Administer, ApplicationResource.IntakeRequests, DemandManagementCategory),
     ];
 
     private const string OrganizationCategory = "Organization";
@@ -465,6 +489,7 @@ public static class ApplicationPermissions
         .Union(_imports)
         .Union(_identity)
         .Union(_appIntegration)
+        .Union(_demandManagement)
         .Union(_healthChecks)
         .Union(_links)
         .Union(_organization)

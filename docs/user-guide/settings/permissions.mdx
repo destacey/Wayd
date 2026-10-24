@@ -28,6 +28,7 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Run` | Trigger an operation — for example running or requeuing a [background job](./index.mdx#background-jobs) |
 | `Manage` | Create, update and delete in one permission — used for planning interval objectives |
 | `Search` / `Export` | Search or export users |
+| `Review` | Review records for a review group, only where you belong to it (see [Intake review](#intake-review-desk-membership)) |
 | `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator)) |
 
 Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems` and `Permissions.Teams.ManageTeamMemberships`.
@@ -58,6 +59,7 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Integrations | `Connectors` | `View` |
 | Health | `HealthChecks` | `View`, `Create`, `Update` |
 | Links | `Links` | `View`, `Create`, `Update`, `Delete` |
+| Demand Management | `IntakeRequests` | `View`, `Create`, `Update`, `Delete`, `Review`, `Administer` (see [Intake review](#intake-review-desk-membership)) |
 | Organization | `Employees` | `View`, `Create`, `Update`, `Delete`, `Import` |
 | Organization | `EmployeeTimeAway` | `Administer` (see [Time away](#time-away-the-person-and-their-managers)) |
 | Organization | `Teams` | `View`, `Create`, `Update`, `Administer`, `ManageTeamMemberships`, `Delete`, `Import` |
@@ -162,6 +164,14 @@ The seeded **Admin** role includes this permission.
 `Permissions.Iterations.Administer` waives the membership for every team's sprints, the way the [PPM Administrator](#ppm-administrator) permission waives leadership. Like it, it never substitutes for the `Update` permission. The seeded **Admin** role includes both.
 
 Viewing sprints needs only `Permissions.Iterations.View`.
+
+## Intake review: desk membership
+
+Reviewing an [intake request](../demand-management/index.mdx) — changing its status, assigning its reviewer, moving it to another desk, recording what it became, applying tags, scoring it, and reading or writing internal notes — needs `Permissions.IntakeRequests.Review` **and** being a reviewer on the request's desk. Desk reviewers are a list named on each desk, never derived from teams or departments.
+
+`Permissions.IntakeRequests.Administer` waives the desk membership, and also manages desks and channels. It never substitutes for the `Review` permission. The seeded **Admin** role includes both.
+
+Being a reviewer on any desk lets you read the full detail of requests on every desk, because a triage reviewer cannot route a request they cannot read. Most people need only `View` and `Create`: a requester can edit their own request while it is still proposed without `Update`. What `View` reveals depends on the desk's [visibility](../demand-management/index.mdx#who-can-see-a-request).
 
 ## Allocations: team membership
 

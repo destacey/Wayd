@@ -73,6 +73,18 @@ export const definitions: [string, McpToolDefinition][] = [
     annotations: { title: 'Get deployment status history', ...readsOnly },
   }],
 
+  ['Deployments_GetTimeInStatus', {
+    name: 'Deployments_GetTimeInStatus',
+    description: `Get how long deployments stay in each status, for stays that ended within a window. One row per status of the current deployment workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one deployment has spent in each status, read its status history instead.`,
+    inputSchema: {"type":"object","properties":{"from":{"type":"string","format":"date-time","description":"Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z."},"to":{"type":"string","format":"date-time","description":"End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z."}},"required":[]},
+    method: 'get',
+    pathTemplate: '/api/product-management/deployments/time-in-status',
+    executionParameters: [{"name":"from","in":"query"},{"name":"to","in":"query"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get deployment time in status', ...readsOnly },
+  }],
+
   ['Deployments_Start', {
     name: 'Deployments_Start',
     description: `Record a deployment beginning. **Supply exactly one of versionId or packageId — never both, never neither.** The request is refused otherwise. Where a package exists it is the unit that shipped, so deploy the package rather than each component version: one pipeline run counts once, not once per service.

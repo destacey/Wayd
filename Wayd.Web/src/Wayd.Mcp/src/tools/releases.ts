@@ -78,6 +78,18 @@ export const definitions: [string, McpToolDefinition][] = [
     annotations: { title: 'Get release status history', ...readsOnly },
   }],
 
+  ['Releases_GetTimeInStatus', {
+    name: 'Releases_GetTimeInStatus',
+    description: `Get how long releases stay in each status, for stays that ended within a window. One row per status of the current release workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one release has spent in each status, read its status history instead.`,
+    inputSchema: {"type":"object","properties":{"from":{"type":"string","format":"date-time","description":"Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z."},"to":{"type":"string","format":"date-time","description":"End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z."}},"required":[]},
+    method: 'get',
+    pathTemplate: '/api/product-management/releases/time-in-status',
+    executionParameters: [{"name":"from","in":"query"},{"name":"to","in":"query"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get release time in status', ...readsOnly },
+  }],
+
   ['Releases_Plan', {
     name: 'Releases_Plan',
     description: `Draft a release — the announcement, before it carries anything. ${NOT_A_VERSION} Contents are attached afterwards with Releases_SetContents, because an announcement is commonly drafted before anyone knows which versions will make it. The product is optional and usually names a product *line* rather than a leaf; leave it empty for a release spanning product lines. Unlike a version, a release is not restricted to releasable product types.`,

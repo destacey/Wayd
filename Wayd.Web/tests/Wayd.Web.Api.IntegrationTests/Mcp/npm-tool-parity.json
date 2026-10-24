@@ -252,6 +252,21 @@
       ]
     },
     {
+      "name": "Deployments_GetTimeInStatus",
+      "title": "Get deployment time in status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "from",
+        "to"
+      ],
+      "required": []
+    },
+    {
       "name": "Deployments_RollBack",
       "title": "Record deployment rollback",
       "annotations": {
@@ -1595,6 +1610,21 @@
       "required": []
     },
     {
+      "name": "Products_GetTimeInStatus",
+      "title": "Get product time in status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "from",
+        "to"
+      ],
+      "required": []
+    },
+    {
       "name": "Products_LinkExternally",
       "title": "Link a product externally",
       "annotations": {
@@ -2603,6 +2633,21 @@
       ]
     },
     {
+      "name": "ReleasePackages_GetTimeInStatus",
+      "title": "Get release package time in status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "from",
+        "to"
+      ],
+      "required": []
+    },
+    {
       "name": "ReleasePackages_MarkReleased",
       "title": "Mark a package released",
       "annotations": {
@@ -2755,6 +2800,21 @@
       "required": [
         "idOrKey"
       ]
+    },
+    {
+      "name": "Releases_GetTimeInStatus",
+      "title": "Get release time in status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "from",
+        "to"
+      ],
+      "required": []
     },
     {
       "name": "Releases_MarkReleased",
@@ -4468,6 +4528,21 @@
       "required": [
         "idOrKey"
       ]
+    },
+    {
+      "name": "Versions_GetTimeInStatus",
+      "title": "Get version time in status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "from",
+        "to"
+      ],
+      "required": []
     },
     {
       "name": "Versions_GetVersion",

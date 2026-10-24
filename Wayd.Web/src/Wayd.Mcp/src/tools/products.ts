@@ -83,6 +83,18 @@ Each product reports \`isReleasable\`, flattened from its type, which is what de
     annotations: { title: 'Get product status history', ...readsOnly },
   }],
 
+  ['Products_GetTimeInStatus', {
+    name: 'Products_GetTimeInStatus',
+    description: `Get how long products stay in each status, for stays that ended within a window. One row per status of the current product workflow, in workflow order, with the number of stays that ended in the window and their average and median length in seconds. A status from before a workflow reassignment is listed after them under the name it had then. Stays still open, and stays that began or ended with a workflow reassignment, are not counted. Calendar time, not working days. For how long one product has spent in each status, read its status history instead.`,
+    inputSchema: {"type":"object","properties":{"from":{"type":"string","format":"date-time","description":"Start of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-08-01T00:00:00Z."},"to":{"type":"string","format":"date-time","description":"End of the window, inclusive. A full ISO-8601 instant, not a plain date — 2026-09-30T23:59:59Z."}},"required":[]},
+    method: 'get',
+    pathTemplate: '/api/product-management/products/time-in-status',
+    executionParameters: [{"name":"from","in":"query"},{"name":"to","in":"query"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get product time in status', ...readsOnly },
+  }],
+
   ['Products_GetStatusOptions', {
     name: 'Products_GetStatusOptions',
     description: `Get the statuses a product can be moved to, in the order an administrator laid the lifecycle out rather than alphabetically. **Call this before Products_ChangeStatus**: that tool needs a status UUID, statuses are per-organization configuration with no fixed list, and any id outside this workflow is refused.

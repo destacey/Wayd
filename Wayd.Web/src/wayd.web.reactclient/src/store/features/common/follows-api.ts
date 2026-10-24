@@ -6,6 +6,7 @@ import {
   FollowStatusDto,
   FollowView,
   PagedResponseOfFollowedRecordDto,
+  SortDirection,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -34,6 +35,7 @@ export interface GetMyFollowsRequest {
   view?: FollowView
   search?: string
   sort: FollowSort
+  direction: SortDirection
 }
 
 /** How many followed records each page of the list loads. */
@@ -81,6 +83,7 @@ export const followsApi = apiSlice.injectEndpoints({
             queryArg.sort,
             pageParam,
             FollowsPageSize,
+            queryArg.direction,
           )
           return { data }
         } catch (error) {

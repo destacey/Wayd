@@ -3,7 +3,12 @@
 import { Select, Tag } from 'antd'
 import { FollowCountsDto } from '@/src/services/wayd-api'
 import styles from '../following.module.css'
-import { FollowingFilter, followViews, viewCount } from './following-filters'
+import {
+  FollowingFilter,
+  followViews,
+  typeLabel,
+  viewCount,
+} from './following-filters'
 
 export interface FollowingFilterBarProps {
   counts: FollowCountsDto
@@ -37,7 +42,7 @@ const FollowingFilterBar = ({
         { value: Everything, label: `Everything (${counts.total})` },
         ...counts.types.map((type) => ({
           value: type.ownerType,
-          label: `${type.displayName} (${type.count})`,
+          label: `${typeLabel(type.ownerType, type.displayName)} (${type.count})`,
         })),
       ]}
     />

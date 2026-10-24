@@ -94,7 +94,8 @@ describe('FollowedRecordDetail', () => {
     expect(
       screen.getByRole('heading', { name: 'Compliance dashboard' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('COMPDB · Project')).toBeInTheDocument()
+    expect(screen.getByText('Project')).toBeInTheDocument()
+    expect(screen.getByText('COMPDB')).toBeInTheDocument()
     expect(screen.getByText('Healthy')).toBeInTheDocument()
     expect(screen.getByText('Project Owner')).toBeInTheDocument()
     expect(screen.getByText('Sofia Marchetti')).toBeInTheDocument()
@@ -177,7 +178,7 @@ describe('FollowedRecordDetail', () => {
     expect(screen.queryByText('Progress')).not.toBeInTheDocument()
   })
 
-  it('links to the record, once', () => {
+  it('opens the record from its name, with no separate button beside the list', () => {
     render(
       <FollowedRecordDetail
         ownerType="ppm.project"
@@ -187,10 +188,32 @@ describe('FollowedRecordDetail', () => {
       />,
     )
 
+    expect(screen.getAllByRole('link')).toHaveLength(1)
+    expect(
+      screen.getByRole('link', { name: 'Compliance dashboard' }),
+    ).toHaveAttribute('href', '/ppm/projects/COMPDB')
+    expect(
+      screen.queryByRole('button', { name: 'Open Project' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps full-width Open and Unfollow buttons pinned on the phone view', () => {
+    render(
+      <FollowedRecordDetail
+        ownerType="ppm.project"
+        ownerId="p-1"
+        typeName="Project"
+        asView
+        onBack={jest.fn()}
+        onUnfollowed={jest.fn()}
+      />,
+    )
+
     expect(screen.getByRole('link', { name: 'Open Project' })).toHaveAttribute(
       'href',
       '/ppm/projects/COMPDB',
     )
+    expect(screen.getAllByRole('button', { name: 'Unfollow' })).toHaveLength(1)
   })
 
   it('unfollows and moves on', async () => {

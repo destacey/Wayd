@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, EyeFilled } from '@ant-design/icons'
 import {
   Alert,
   Badge,
@@ -8,6 +8,8 @@ import {
   Flex,
   Progress,
   Skeleton,
+  Tag,
+  Tooltip,
   Typography,
 } from 'antd'
 import dayjs from 'dayjs'
@@ -147,36 +149,39 @@ const FollowedRecordDetail = ({
   const record = detail.record
   const href = followedRecordHref(record)
 
-  const actions = (
-    <>
-      {href ? (
-        <Link href={href}>
-          <Button type="primary" block={asView}>
-            Open {typeName}
-          </Button>
-        </Link>
-      ) : null}
-      <Button
-        danger
-        loading={isUnfollowing}
-        onClick={onUnfollow}
-        block={asView}
-      >
-        Unfollow
-      </Button>
-    </>
-  )
-
   return (
     <div className={asView ? styles.mobileDetail : undefined}>
       <div className={styles.detailSection}>
         {back}
-        <Text type="secondary">
-          {record.key} · {typeName}
-          {record.parentName ? ` · ${record.parentName}` : ''}
-        </Text>
+        <div className={styles.detailHeader}>
+          <Flex gap="small" align="center" wrap>
+            <Tag className={styles.typeTag}>{typeName}</Tag>
+            <Text type="secondary">
+              {record.key}
+              {record.parentName ? ` · ${record.parentName}` : ''}
+            </Text>
+          </Flex>
+          {/* Beside the list, unfollowing is the same eye as on the record's
+              own page. The phone view pins a full-width bar instead. */}
+          {asView ? null : (
+            <Tooltip title="Stop following" placement="topRight">
+              <Button
+                icon={<EyeFilled />}
+                aria-label="Unfollow"
+                loading={isUnfollowing}
+                onClick={onUnfollow}
+              />
+            </Tooltip>
+          )}
+        </div>
         <Title level={4} style={{ margin: '4px 0 8px' }}>
-          {record.name}
+          {href ? (
+            <Link href={href} className={styles.titleLink}>
+              {record.name}
+            </Link>
+          ) : (
+            record.name
+          )}
         </Title>
         <Flex gap="small" align="center" wrap>
           <LifecycleStatusTag
@@ -260,10 +265,19 @@ const FollowedRecordDetail = ({
       </div>
 
       {asView ? (
-        <div className={styles.stickyActions}>{actions}</div>
-      ) : (
-        <div className={styles.detailActions}>{actions}</div>
-      )}
+        <div className={styles.stickyActions}>
+          {href ? (
+            <Link href={href}>
+              <Button type="primary" block>
+                Open {typeName}
+              </Button>
+            </Link>
+          ) : null}
+          <Button danger block loading={isUnfollowing} onClick={onUnfollow}>
+            Unfollow
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }

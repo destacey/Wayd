@@ -4,6 +4,7 @@ import {
   FollowSort,
   HealthStatus,
   LifecycleCategory,
+  SortDirection,
 } from '@/src/services/wayd-api'
 import FollowedRecordsList, {
   FollowedRecordsListProps,
@@ -37,18 +38,21 @@ const props = (
   onSearchChange: jest.fn(),
   sort: FollowSort.LastChanged,
   onSortChange: jest.fn(),
+  direction: SortDirection.Descending,
+  onDirectionChange: jest.fn(),
   selectedId: undefined,
   onSelect: jest.fn(),
   ...overrides,
 })
 
 describe('FollowedRecordsList', () => {
-  it('shows each record with its key, parent, status and when it last changed', () => {
+  it('shows each record with its kind, key, parent, status and when it last changed', () => {
     render(
       <FollowedRecordsList
         {...props({
           records: [
             record(1, {
+              ownerType: 'planning.planning-interval-objective',
               name: 'Launch checkout',
               key: '7',
               parentName: 'PI 2026.1',
@@ -63,7 +67,9 @@ describe('FollowedRecordsList', () => {
     )
 
     const option = screen.getByRole('option', { name: /Launch checkout/ })
-    expect(option).toHaveTextContent('7 · PI 2026.1 · changed 2 hours ago')
+    expect(option).toHaveTextContent(
+      'PI Objective · 7 · PI 2026.1 · changed 2 hours ago',
+    )
     expect(option).toHaveTextContent('In Progress')
     expect(screen.getByLabelText('Unhealthy')).toBeInTheDocument()
   })
@@ -142,6 +148,24 @@ describe('FollowedRecordsList', () => {
     })
 
     expect(onSearchChange).toHaveBeenCalledWith('pay')
+  })
+
+  it('flips the order between newest and oldest first', () => {
+    const onDirectionChange = jest.fn()
+    const { rerender } = render(
+      <FollowedRecordsList {...props({ onDirectionChange })} />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /^Newest first/ }))
+    expect(onDirectionChange).toHaveBeenCalledWith(SortDirection.Ascending)
+
+    rerender(
+      <FollowedRecordsList
+        {...props({ onDirectionChange, direction: SortDirection.Ascending })}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /^Oldest first/ }))
+    expect(onDirectionChange).toHaveBeenLastCalledWith(SortDirection.Descending)
   })
 
   it('says when nothing matches', () => {

@@ -1,13 +1,21 @@
 'use client'
 
-import { Alert, Grid, Spin } from 'antd'
+import { Alert, Grid, Spin, Splitter } from 'antd'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 import { PageTitle, WaydEmpty } from '@/src/components/common'
 import useAuth from '@/src/components/contexts/auth'
 import { requireFeatureFlag } from '@/src/components/hoc'
-import { useDebounce, useDocumentTitle } from '@/src/hooks'
-import { FollowedRecordDto, FollowSort } from '@/src/services/wayd-api'
+import {
+  useDebounce,
+  useDocumentTitle,
+  useLocalStorageState,
+} from '@/src/hooks'
+import {
+  FollowedRecordDto,
+  FollowSort,
+  SortDirection,
+} from '@/src/services/wayd-api'
 import {
   useGetMyFollowCountsQuery,
   useGetMyFollowsInfiniteQuery,
@@ -19,6 +27,7 @@ import {
   FollowingFilter,
   LowCountThreshold,
   recordId,
+  typeLabel,
 } from './_components/following-filters'
 import FollowingRail from './_components/following-rail'
 import styles from './following.module.css'
@@ -27,6 +36,15 @@ const { useBreakpoint } = Grid
 
 /** The query parameter that opens one record's detail on a phone. */
 const RecordParam = 'record'
+
+/** The list's share of the width it splits with the detail, as a percentage. */
+const DefaultListPercent = 40
+
+/** Clamp a stored share so a bad value cannot hide either pane. */
+const listShare = (percent: number) =>
+  Number.isFinite(percent)
+    ? Math.min(Math.max(percent, 25), 70)
+    : DefaultListPercent
 
 const parseRecord = (value: string | null) => {
   const separator = value?.lastIndexOf(':') ?? -1
@@ -54,7 +72,14 @@ const FollowingContent = () => {
   const [filter, setFilter] = useState<FollowingFilter>({})
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<FollowSort>(FollowSort.LastChanged)
+  const [direction, setDirection] = useState<SortDirection>(
+    SortDirection.Descending,
+  )
   const [picked, setPicked] = useState<string>()
+  const [listPercent, setListPercent] = useLocalStorageState(
+    'wayd.following.listPercent',
+    DefaultListPercent,
+  )
   const debouncedSearch = useDebounce(search.trim(), 300)
 
   const counts = useGetMyFollowCountsQuery(undefined, {
@@ -66,6 +91,7 @@ const FollowingContent = () => {
       view: filter.view,
       search: debouncedSearch || undefined,
       sort,
+      direction,
     },
     { skip: !user?.employeeId },
   )
@@ -73,8 +99,10 @@ const FollowingContent = () => {
   const records = list.data?.pages.flatMap((page) => page.items) ?? []
   const totalCount = list.data?.pages[0]?.totalCount ?? 0
   const typeName = (ownerType: string) =>
-    counts.data?.types.find((t) => t.ownerType === ownerType)?.displayName ??
-    'Record'
+    typeLabel(
+      ownerType,
+      counts.data?.types.find((t) => t.ownerType === ownerType)?.displayName,
+    )
 
   // On a phone the selection lives in the URL, so the browser's back button
   // returns to the list. Elsewhere it is local state, falling back to the first
@@ -156,6 +184,8 @@ const FollowingContent = () => {
         onSearchChange={setSearch}
         sort={sort}
         onSortChange={setSort}
+        direction={direction}
+        onDirectionChange={setDirection}
         selectedId={selectedId}
         onSelect={onSelect}
       />
@@ -204,6 +234,30 @@ const FollowingContent = () => {
     </div>
   )
 
+  // A draggable divider between list and detail; the chosen share is kept for next time.
+  const split = (
+    <Splitter
+      className={styles.split}
+      onResizeEnd={([list, detail]) => {
+        if (list > 0 && detail > 0) {
+          setListPercent(Math.round((list / (list + detail)) * 100))
+        }
+      }}
+    >
+      {/* antd panels scroll by default, which would stop the detail sticking to the page. */}
+      <Splitter.Panel
+        defaultSize={`${listShare(listPercent)}%`}
+        min={280}
+        style={{ overflow: 'visible' }}
+      >
+        {listPane}
+      </Splitter.Panel>
+      <Splitter.Panel min={360} style={{ overflow: 'visible' }}>
+        {detailPane}
+      </Splitter.Panel>
+    </Splitter>
+  )
+
   // ≥1200px with enough records: rail, list, detail.
   if (isWide && !lowCount) {
     return (
@@ -215,8 +269,7 @@ const FollowingContent = () => {
             onChange={onFilterChange}
           />
         </div>
-        {listPane}
-        {detailPane}
+        {split}
       </div>
     )
   }
@@ -231,10 +284,7 @@ const FollowingContent = () => {
           onChange={onFilterChange}
         />
       )}
-      <div className={`${styles.panes} ${styles.twoPanes}`}>
-        {listPane}
-        {detailPane}
-      </div>
+      {split}
     </>
   )
 }

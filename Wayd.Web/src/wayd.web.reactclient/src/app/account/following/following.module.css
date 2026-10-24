@@ -19,14 +19,23 @@
   min-width: 0;
 }
 
-/* ≥1200px: rail, list, detail. */
+/* ≥1200px: the rail beside the list and detail split. */
 .threePanes {
-  grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: 260px minmax(0, 1fr);
 }
 
-/* 768–1199px, and wide pages in low-count mode: list and detail. */
-.twoPanes {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+/* List and detail, divided by a draggable bar. Panels stretch to the taller
+ * pane so the detail can stick while the list scrolls the page. */
+.split {
+  min-width: 0;
+}
+
+.split > :global(.ant-splitter-panel):first-child {
+  padding-inline-end: var(--ant-margin-xs);
+}
+
+.split > :global(.ant-splitter-panel):last-child {
+  padding-inline-start: var(--ant-margin-xs);
 }
 
 .pane {
@@ -166,6 +175,20 @@
   white-space: nowrap;
 }
 
+/* The kind of record leads the second line, a shade stronger so the eye can
+ * run down the list by type. */
+.rowType {
+  color: var(--ant-color-text);
+}
+
+.typeTag {
+  margin-inline-end: 0;
+}
+
+.sortControl {
+  flex: none;
+}
+
 .listFooter {
   padding: var(--ant-padding-xs) var(--ant-padding-sm);
   color: var(--ant-color-text-secondary);
@@ -194,12 +217,28 @@
   font-size: var(--ant-font-size-sm);
 }
 
-.detailActions {
+.detailHeader {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--ant-margin-sm);
-  padding: var(--ant-padding);
+}
+
+/* The record's name opens it: plain text until pointed at or focused. */
+.titleLink {
+  color: inherit;
+}
+
+.titleLink:hover,
+.titleLink:focus-visible {
+  color: var(--ant-color-link);
+  text-decoration: underline;
+}
+
+.titleLink:focus-visible {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: 2px;
+  border-radius: var(--ant-border-radius-sm);
 }
 
 /* <768px: the detail is its own view, with its actions pinned to the bottom. */
@@ -235,6 +274,7 @@
   .listHeader :global(.ant-input-affix-wrapper),
   .listHeader :global(.ant-input-search-btn),
   .listHeader :global(.ant-select),
+  .listHeader :global(.ant-btn),
   .filterBar :global(.ant-select) {
     min-height: 44px;
   }

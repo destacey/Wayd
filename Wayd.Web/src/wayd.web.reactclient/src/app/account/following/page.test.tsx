@@ -38,6 +38,7 @@ jest.mock('next/navigation', () => ({
 const mockUseCounts = jest.fn()
 const mockUseFollows = jest.fn()
 jest.mock('@/src/store/features/common/follows-api', () => ({
+  ...jest.requireActual('@/src/store/features/common/follows-api'),
   useGetMyFollowCountsQuery: (...args: unknown[]) => mockUseCounts(...args),
   useGetMyFollowsInfiniteQuery: (...args: unknown[]) => mockUseFollows(...args),
 }))

@@ -1,12 +1,25 @@
 'use client'
 
-import { Alert, Badge, Input, Select, Spin } from 'antd'
+import {
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+} from '@ant-design/icons'
+import { Alert, Badge, Button, Input, Select, Space, Spin, Tooltip } from 'antd'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LifecycleStatusTag } from '@/src/components/common'
-import { FollowedRecordDto, FollowSort } from '@/src/services/wayd-api'
+import {
+  FollowedRecordDto,
+  FollowSort,
+  SortDirection,
+} from '@/src/services/wayd-api'
 import styles from '../following.module.css'
-import { healthBadgeStatus, healthLabel, recordId } from './following-filters'
+import {
+  healthBadgeStatus,
+  healthLabel,
+  recordId,
+  typeLabel,
+} from './following-filters'
 import { formatTimeAgo } from './time-ago'
 
 export interface FollowedRecordsListProps {
@@ -21,6 +34,8 @@ export interface FollowedRecordsListProps {
   onSearchChange: (search: string) => void
   sort: FollowSort
   onSortChange: (sort: FollowSort) => void
+  direction: SortDirection
+  onDirectionChange: (direction: SortDirection) => void
   selectedId: string | undefined
   onSelect: (record: FollowedRecordDto) => void
 }
@@ -51,6 +66,8 @@ const FollowedRecordRow = ({ record, selected, onSelect }: RowProps) => (
     <span className={styles.rowBody}>
       <span className={styles.rowName}>{record.name}</span>
       <span className={styles.rowMeta}>
+        <span className={styles.rowType}>{typeLabel(record.ownerType)}</span>
+        {' · '}
         {record.key}
         {record.parentName ? ` · ${record.parentName}` : ''}
         {' · '}
@@ -89,6 +106,8 @@ const FollowedRecordsList = ({
   onSearchChange,
   sort,
   onSortChange,
+  direction,
+  onDirectionChange,
   selectedId,
   onSelect,
 }: FollowedRecordsListProps) => {
@@ -98,6 +117,7 @@ const FollowedRecordsList = ({
   // since the header above the list wraps differently at each width.
   const [scrollMargin, setScrollMargin] = useState(0)
   const hasRecords = records.length > 0
+  const descending = direction === SortDirection.Descending
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -138,16 +158,42 @@ const FollowedRecordsList = ({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
         />
-        <Select
-          aria-label="Sort"
-          value={sort}
-          onChange={onSortChange}
-          style={{ minWidth: 130 }}
-          options={[
-            { value: FollowSort.LastChanged, label: 'Changed' },
-            { value: FollowSort.Followed, label: 'Followed' },
-          ]}
-        />
+        <Space.Compact className={styles.sortControl}>
+          <Select
+            aria-label="Sort by"
+            value={sort}
+            onChange={onSortChange}
+            popupMatchSelectWidth={false}
+            style={{ minWidth: 140 }}
+            options={[
+              { value: FollowSort.LastChanged, label: 'Last changed' },
+              { value: FollowSort.Followed, label: 'Date followed' },
+            ]}
+          />
+          <Tooltip title={descending ? 'Newest first' : 'Oldest first'}>
+            <Button
+              aria-label={
+                descending
+                  ? 'Newest first. Switch to oldest first'
+                  : 'Oldest first. Switch to newest first'
+              }
+              icon={
+                descending ? (
+                  <SortDescendingOutlined />
+                ) : (
+                  <SortAscendingOutlined />
+                )
+              }
+              onClick={() =>
+                onDirectionChange(
+                  descending
+                    ? SortDirection.Ascending
+                    : SortDirection.Descending,
+                )
+              }
+            />
+          </Tooltip>
+        </Space.Compact>
       </div>
       {isError ? (
         <Alert type="error" title="Could not load what you follow." />

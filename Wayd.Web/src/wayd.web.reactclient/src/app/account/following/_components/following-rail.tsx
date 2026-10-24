@@ -2,7 +2,12 @@
 
 import { FollowCountsDto } from '@/src/services/wayd-api'
 import styles from '../following.module.css'
-import { FollowingFilter, followViews, viewCount } from './following-filters'
+import {
+  FollowingFilter,
+  followViews,
+  typeLabel,
+  viewCount,
+} from './following-filters'
 
 export interface FollowingRailProps {
   counts: FollowCountsDto
@@ -48,7 +53,7 @@ const FollowingRail = ({ counts, filter, onChange }: FollowingRailProps) => {
       {counts.types.map((type) => (
         <RailItem
           key={type.ownerType}
-          label={type.displayName}
+          label={typeLabel(type.ownerType, type.displayName)}
           count={type.count}
           selected={noView && filter.ownerType === type.ownerType}
           onSelect={() => onChange({ ownerType: type.ownerType })}

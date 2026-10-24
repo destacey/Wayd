@@ -31,6 +31,7 @@ public sealed class FollowRegistrationTests
         services.AddScoped(_ => new Mock<IProjectPortfolioManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IPlanningDbContext>().Object);
         services.AddScoped(_ => new Mock<ICurrentPrincipal>().Object);
+        services.AddScoped(_ => new Mock<IDateTimeProvider>().Object);
 
         services.AddFollowing();
 

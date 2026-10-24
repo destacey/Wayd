@@ -338,7 +338,7 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
 
         // Assert
         Assert.Equal(Enum.GetValues<McpToolset>(), tools.Where(t => t.Toolset is not null).Select(t => t.Toolset!.Value).Distinct().Order());
-        Assert.Equal(["Me_Follow", "Me_GetAllocations", "Me_GetFollowStatus", "Me_GetFollows", "Me_GetProfile", "Me_GetTeamMemberships", "Me_GetWorkItems", "Me_Unfollow", SkillTools.Name], tools.Where(t => t.Toolset is null).Select(t => t.Tool.ProtocolTool.Name));
+        Assert.Equal(["Me_Follow", "Me_GetAllocations", "Me_GetFollowCounts", "Me_GetFollowStatus", "Me_GetFollowedRecord", "Me_GetFollows", "Me_GetProfile", "Me_GetTeamMemberships", "Me_GetWorkItems", "Me_Unfollow", SkillTools.Name], tools.Where(t => t.Toolset is null).Select(t => t.Tool.ProtocolTool.Name));
     }
 
     [Fact]

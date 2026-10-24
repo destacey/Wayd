@@ -1,5 +1,13 @@
 import { getMyFollowsClient } from '@/src/services/clients'
-import { FollowGroupDto, FollowStatusDto } from '@/src/services/wayd-api'
+import {
+  FollowCountsDto,
+  FollowedRecordDetailDto,
+  FollowSort,
+  FollowStatusDto,
+  FollowView,
+  PagedResponseOfFollowedRecordDto,
+  SortDirection,
+} from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -21,11 +29,17 @@ export interface FollowTarget {
   ownerId: string
 }
 
+/** What narrows the Following list; paging is handled by the infinite query. */
 export interface GetMyFollowsRequest {
   ownerType?: string
-  page?: number
-  pageSize?: number
+  view?: FollowView
+  search?: string
+  sort: FollowSort
+  direction: SortDirection
 }
+
+/** How many followed records each page of the list loads. */
+export const FollowsPageSize = 50
 
 const statusTag = ({ ownerType, ownerId }: FollowTarget) => ({
   type: QueryTags.FollowStatus,
@@ -50,13 +64,26 @@ export const followsApi = apiSlice.injectEndpoints({
       providesTags: (result, error, target) => [statusTag(target)],
     }),
 
-    getMyFollows: builder.query<FollowGroupDto[], GetMyFollowsRequest>({
-      queryFn: async ({ ownerType, page, pageSize }) => {
+    getMyFollows: builder.infiniteQuery<
+      PagedResponseOfFollowedRecordDto,
+      GetMyFollowsRequest,
+      number
+    >({
+      infiniteQueryOptions: {
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) =>
+          lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined,
+      },
+      queryFn: async ({ queryArg, pageParam }) => {
         try {
           const data = await getMyFollowsClient().getFollows(
-            ownerType,
-            page,
-            pageSize,
+            queryArg.ownerType,
+            queryArg.view,
+            queryArg.search,
+            queryArg.sort,
+            pageParam,
+            FollowsPageSize,
+            queryArg.direction,
           )
           return { data }
         } catch (error) {
@@ -65,6 +92,38 @@ export const followsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: [QueryTags.MyFollows],
+    }),
+
+    getMyFollowCounts: builder.query<FollowCountsDto, void>({
+      queryFn: async () => {
+        try {
+          const data = await getMyFollowsClient().getFollowCounts()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: [QueryTags.MyFollows],
+    }),
+
+    getFollowedRecord: builder.query<FollowedRecordDetailDto, FollowTarget>({
+      queryFn: async ({ ownerType, ownerId }) => {
+        try {
+          const data = await getMyFollowsClient().getFollowedRecord(
+            ownerType,
+            ownerId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, target) => [
+        statusTag(target),
+        QueryTags.MyFollows,
+      ],
     }),
 
     follow: builder.mutation<null, FollowTarget>({
@@ -143,7 +202,9 @@ export const followsApi = apiSlice.injectEndpoints({
 
 export const {
   useGetFollowStatusQuery,
-  useGetMyFollowsQuery,
+  useGetMyFollowsInfiniteQuery,
+  useGetMyFollowCountsQuery,
+  useGetFollowedRecordQuery,
   useFollowMutation,
   useUnfollowMutation,
 } = followsApi

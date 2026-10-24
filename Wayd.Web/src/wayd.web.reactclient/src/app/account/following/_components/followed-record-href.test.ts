@@ -1,4 +1,4 @@
-import { FollowedRecordDto } from '@/src/services/wayd-api'
+import { FollowedRecordDto, LifecycleCategory } from '@/src/services/wayd-api'
 import { followedRecordHref } from './followed-record-href'
 
 const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
@@ -6,6 +6,8 @@ const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   id: 'id-1',
   key: 'APOLLO',
   name: 'Moon landing',
+  statusName: 'Active',
+  lifecycle: LifecycleCategory.Active,
   followedOn: new Date('2026-10-23T09:30:00Z'),
   ...overrides,
 })
@@ -21,12 +23,14 @@ describe('followedRecordHref', () => {
       '/planning/planning-intervals/26/objectives/7',
     ],
   ])('links a %s to its own page', (ownerType, key, parentKey, expected) => {
+    // Act & Assert
     expect(followedRecordHref(record({ ownerType, key, parentKey }))).toBe(
       expected,
     )
   })
 
   it('gives no link for an objective without its planning interval', () => {
+    // Act & Assert
     expect(
       followedRecordHref(
         record({
@@ -39,6 +43,7 @@ describe('followedRecordHref', () => {
   })
 
   it('gives no link for an owner type the client has no page for', () => {
+    // Act & Assert
     expect(
       followedRecordHref(record({ ownerType: 'demand.intake-request' })),
     ).toBeNull()

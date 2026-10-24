@@ -1,0 +1,334 @@
+/*
+ * The Following page. Panes are sized by their content and the page scrolls;
+ * the rail and detail stick in place beside the list. No pane has a viewport
+ * height: on phones the browser chrome makes 100vh wrong.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin);
+  padding: var(--ant-padding-lg);
+  min-width: 0;
+}
+
+/* Everything below the title, keeping the page's spacing between its parts. */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin);
+  min-width: 0;
+}
+
+.panes {
+  display: grid;
+  gap: var(--ant-margin);
+  align-items: start;
+  min-width: 0;
+}
+
+/* ≥1200px: the rail beside the list and detail split. */
+.threePanes {
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+/* List and detail, divided by a draggable bar. Panels stretch to the taller
+ * pane so the detail can stick while the list scrolls the page. */
+.split {
+  min-width: 0;
+}
+
+.split > :global(.ant-splitter-panel):first-child {
+  padding-inline-end: var(--ant-margin-xs);
+}
+
+.split > :global(.ant-splitter-panel):last-child {
+  padding-inline-start: var(--ant-margin-xs);
+}
+
+.pane {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  min-width: 0;
+}
+
+/* The rail and detail stay in view while the list scrolls the page. */
+.sticky {
+  position: sticky;
+  top: var(--ant-margin);
+  /* No taller than the visible scroll area, or its lower part would stay out
+   * of reach for as long as the list is taller still. The page measures that
+   * area into the variable; the shell's own height is the fallback. */
+  max-height: calc(
+    var(--following-view-height, 100dvh) - 2 * var(--ant-margin)
+  );
+  overflow-y: auto;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.rail {
+  padding: var(--ant-padding-sm);
+}
+
+.railHeading {
+  margin: var(--ant-margin-xs) var(--ant-margin-xs) var(--ant-margin-xxs);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.railItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ant-margin-xs);
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  border: 0;
+  border-radius: var(--ant-border-radius);
+  background: transparent;
+  color: var(--ant-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.railItem:hover {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.railItem:focus-visible {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: 1px;
+}
+
+.railItemSelected,
+.railItemSelected:hover {
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary);
+}
+
+.railCount {
+  color: var(--ant-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.railNote {
+  margin: var(--ant-margin-sm) var(--ant-margin-xs) var(--ant-margin-xxs);
+  padding-top: var(--ant-padding-sm);
+  border-top: 1px solid var(--ant-color-border-secondary);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+}
+
+.listHeader {
+  display: flex;
+  gap: var(--ant-margin-xs);
+  padding: var(--ant-padding-sm);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  min-height: 60px;
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  border: 0;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--ant-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--ant-color-fill-quaternary);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: -2px;
+}
+
+.rowSelected,
+.rowSelected:hover {
+  background: var(--ant-color-primary-bg);
+  border-left-color: var(--ant-color-primary);
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName {
+  display: block;
+  overflow: hidden;
+  font-weight: var(--ant-font-weight-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  display: block;
+  overflow: hidden;
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The kind of record leads the second line, a shade stronger so the eye can
+ * run down the list by type. */
+.rowType {
+  color: var(--ant-color-text);
+}
+
+.typeTag {
+  margin-inline-end: 0;
+}
+
+.sortControl {
+  flex: none;
+}
+
+.listFooter {
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.detailSection {
+  padding: var(--ant-padding);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.detailSection:last-child {
+  border-bottom: 0;
+}
+
+.detailFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ant-margin) var(--ant-margin-lg);
+}
+
+.factLabel {
+  display: block;
+  margin-bottom: var(--ant-margin-xxs);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ant-margin-sm);
+}
+
+/* The record's name opens it: plain text until pointed at or focused. */
+.titleLink {
+  color: inherit;
+}
+
+.titleLink:hover,
+.titleLink:focus-visible {
+  color: var(--ant-color-link);
+  text-decoration: underline;
+}
+
+.titleLink:focus-visible {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: 2px;
+  border-radius: var(--ant-border-radius-sm);
+}
+
+/* <768px: the detail is its own view, with its actions pinned to the bottom. */
+.mobileDetail {
+  padding-bottom: 0;
+}
+
+.stickyActions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: var(--ant-margin-sm);
+  padding: var(--ant-padding-sm) 0;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-bg-layout);
+}
+
+.stickyActions > * {
+  flex: 1;
+}
+
+.backRow {
+  margin: 0 0 var(--ant-margin-xs) calc(-1 * var(--ant-padding-xs));
+}
+
+@media (max-width: 767px) {
+  .page {
+    padding: var(--ant-padding-sm);
+  }
+
+  /* Touch targets of at least 44px for every control on the phone views. */
+  .backRow :global(.ant-btn),
+  .listHeader :global(.ant-input-affix-wrapper),
+  .listHeader :global(.ant-input-search-btn),
+  .listHeader :global(.ant-select),
+  .listHeader :global(.ant-btn),
+  .filterBar :global(.ant-select) {
+    min-height: 44px;
+  }
+
+  .listHeader :global(.ant-btn-icon-only) {
+    min-width: 44px;
+  }
+
+  /* At 320px the search gives way rather than pushing the page sideways. */
+  .listHeader :global(.ant-input-search) {
+    min-width: 0;
+  }
+
+  .filterBar :global(.ant-tag-checkable) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: var(--ant-padding-sm);
+  }
+
+  .detailFacts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Touch targets of at least 44px. */
+  .row {
+    min-height: 64px;
+  }
+
+  .stickyActions :global(.ant-btn) {
+    min-height: 44px;
+  }
+}

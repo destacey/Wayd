@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Records;
+using Wayd.Common.Domain.Enums;
 using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Common.Application.Tests.Infrastructure;
@@ -13,6 +14,11 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
 
     public string OwnerType { get; } = ownerType;
 
+    /// <summary>The aggregate type a test logs this type's activity under.</summary>
+    public const string ActivityType = "Test";
+
+    public string ActivityAggregateType => ActivityType;
+
     /// <summary>Whether the caller holds this type's view permission. When false, nothing is readable.</summary>
     public bool CanView { get; set; } = true;
 
@@ -21,9 +27,18 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
 
     public IReadOnlyCollection<Guid> LastDescribedIds { get; private set; } = [];
 
-    public FakeRecord Add(string key, string name, string? parentKey = null, string? parentName = null)
+    /// <summary>The search the last call to <see cref="Readable"/> was given.</summary>
+    public string? LastSearch { get; private set; }
+
+    public FakeRecord Add(
+        string key,
+        string name,
+        string? parentKey = null,
+        string? parentName = null,
+        HealthStatus? health = null,
+        LifecycleCategory lifecycle = LifecycleCategory.Active)
     {
-        var record = new FakeRecord(Guid.NewGuid(), key, name, parentKey, parentName);
+        var record = new FakeRecord(Guid.NewGuid(), key, name, parentKey, parentName, health, lifecycle);
         _records.Add(record);
         return record;
     }
@@ -34,10 +49,20 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
     /// <summary>Deletes a record, leaving any follows of it behind.</summary>
     public void Delete(Guid id) => _records.RemoveAll(r => r.Id == id);
 
-    public Task<IQueryable<Guid>?> ReadableIds(CancellationToken cancellationToken)
+    public Task<IQueryable<RecordFacts>?> Readable(string? search, CancellationToken cancellationToken)
     {
-        IQueryable<Guid>? readable = CanView
-            ? _records.AsDbSet().Where(r => !_hidden.Contains(r.Id)).Select(r => r.Id)
+        LastSearch = search;
+
+        IQueryable<RecordFacts>? readable = CanView
+            ? _records.AsDbSet()
+                .Where(r => !_hidden.Contains(r.Id))
+                .Where(r => search == null || r.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || r.Key == search)
+                .Select(r => new RecordFacts
+                {
+                    Id = r.Id,
+                    IsUnhealthy = r.Health == HealthStatus.Unhealthy,
+                    IsClosed = r.Lifecycle == LifecycleCategory.Completed || r.Lifecycle == LifecycleCategory.Canceled,
+                })
             : null;
 
         return Task.FromResult(readable);
@@ -52,11 +77,28 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
 
         IReadOnlyDictionary<Guid, RecordSummary> summaries = _records
             .Where(r => ids.Contains(r.Id))
-            .ToDictionary(r => r.Id, r => new RecordSummary(r.Key, r.Name, r.ParentKey, r.ParentName));
+            .ToDictionary(r => r.Id, r => new RecordSummary
+            {
+                Key = r.Key,
+                Name = r.Name,
+                ParentKey = r.ParentKey,
+                ParentName = r.ParentName,
+                StatusName = r.Lifecycle.ToString(),
+                Lifecycle = r.Lifecycle,
+                Health = r.Health,
+                People = [new RecordPerson("Owner", "Avery Chen", null)],
+            });
 
         return Task.FromResult(summaries);
     }
 }
 
 /// <summary>A record of a <see cref="FakeRecordReadRule"/>.</summary>
-public sealed record FakeRecord(Guid Id, string Key, string Name, string? ParentKey, string? ParentName);
+public sealed record FakeRecord(
+    Guid Id,
+    string Key,
+    string Name,
+    string? ParentKey,
+    string? ParentName,
+    HealthStatus? Health,
+    LifecycleCategory Lifecycle);

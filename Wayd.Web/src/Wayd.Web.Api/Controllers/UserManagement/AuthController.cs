@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.Bootstrap;
 using Wayd.Common.Application.Identity.Tokens;
+using Wayd.Infrastructure.RateLimiting;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.UserManagement.Users;
 
@@ -25,6 +27,7 @@ public class AuthController(
     private readonly ICurrentUser _currentUser = currentUser;
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthSignIn)]
     [HttpPost("login")]
     [EndpointSummary("Authenticate with username and password.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -36,6 +39,7 @@ public class AuthController(
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthRefresh)]
     [HttpPost("refresh-token")]
     [EndpointSummary("Refresh an expired JWT token.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -103,6 +107,7 @@ public class AuthController(
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthSignIn)]
     [HttpPost("exchange")]
     [EndpointSummary("Exchange an external identity-provider token (e.g., Microsoft Entra ID) for a Wayd JWT.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -114,6 +119,7 @@ public class AuthController(
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthProviders)]
     [HttpGet("providers")]
     [EndpointSummary("List the authentication providers enabled on this deployment.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -128,6 +134,7 @@ public class AuthController(
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthSetup)]
     [HttpPost("setup")]
     [EndpointSummary("Create the first admin user using the one-time bootstrap token.")]
     [ProducesResponseType(StatusCodes.Status200OK)]

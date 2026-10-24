@@ -725,16 +725,28 @@ export class MyFollowsClient {
     }
 
     /**
-     * List the records you follow, grouped by kind.
+     * List the records you follow.
      * @param ownerType (optional) 
+     * @param view (optional) 
+     * @param search (optional) 
+     * @param sort (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
+     * @param direction (optional) 
      * @return OK
      */
-    getFollows(ownerType?: string | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<FollowGroupDto[]> {
+    getFollows(ownerType?: string | null | undefined, view?: FollowView | null | undefined, search?: string | null | undefined, sort?: FollowSort | undefined, page?: number | undefined, pageSize?: number | undefined, direction?: SortDirection | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfFollowedRecordDto> {
         let url_ = this.baseUrl + "/api/me/follows?";
         if (ownerType !== undefined && ownerType !== null)
             url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
+        if (view !== undefined && view !== null)
+            url_ += "view=" + encodeURIComponent("" + view) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (sort === null)
+            throw new globalThis.Error("The parameter 'sort' cannot be null.");
+        else if (sort !== undefined)
+            url_ += "sort=" + encodeURIComponent("" + sort) + "&";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -743,6 +755,10 @@ export class MyFollowsClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (direction === null)
+            throw new globalThis.Error("The parameter 'direction' cannot be null.");
+        else if (direction !== undefined)
+            url_ += "direction=" + encodeURIComponent("" + direction) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -765,7 +781,7 @@ export class MyFollowsClient {
         });
     }
 
-    protected processGetFollows(response: AxiosResponse): Promise<FollowGroupDto[]> {
+    protected processGetFollows(response: AxiosResponse): Promise<PagedResponseOfFollowedRecordDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -780,7 +796,7 @@ export class MyFollowsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<FollowGroupDto[]>(result200);
+            return Promise.resolve<PagedResponseOfFollowedRecordDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -800,7 +816,138 @@ export class MyFollowsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<FollowGroupDto[]>(null as any);
+        return Promise.resolve<PagedResponseOfFollowedRecordDto>(null as any);
+    }
+
+    /**
+     * Count the records you follow, by kind and by what needs a look.
+     * @return OK
+     */
+    getFollowCounts( cancelToken?: CancelToken): Promise<FollowCountsDto> {
+        let url_ = this.baseUrl + "/api/me/follows/counts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetFollowCounts(_response);
+        });
+    }
+
+    protected processGetFollowCounts(response: AxiosResponse): Promise<FollowCountsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<FollowCountsDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FollowCountsDto>(null as any);
+    }
+
+    /**
+     * Get a record you follow, with what has happened since you followed it.
+     * @return OK
+     */
+    getFollowedRecord(ownerType: string, ownerId: string, cancelToken?: CancelToken): Promise<FollowedRecordDetailDto> {
+        let url_ = this.baseUrl + "/api/me/follows/{ownerType}/{ownerId}/record";
+        if (ownerType === undefined || ownerType === null)
+            throw new globalThis.Error("The parameter 'ownerType' must be defined.");
+        url_ = url_.replace("{ownerType}", encodeURIComponent("" + ownerType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetFollowedRecord(_response);
+        });
+    }
+
+    protected processGetFollowedRecord(response: AxiosResponse): Promise<FollowedRecordDetailDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<FollowedRecordDetailDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FollowedRecordDetailDto>(null as any);
     }
 
     /**
@@ -53797,7 +53944,36 @@ export interface FeatureFlagListDto {
     isSystem: boolean;
 }
 
-/** A record the caller follows. */
+/** How many records the caller follows and can still read, by owner type and by "needs a look" view. */
+export interface FollowCountsDto {
+    /** Every readable followed record. */
+    total: number;
+    /** One entry per owner type the caller can read, ordered by display name, including types with none followed. */
+    types: FollowTypeCountDto[];
+    /** One entry per FollowView, across every owner type. */
+    views: FollowViewCountDto[];
+}
+
+/** One followed record in full: the list's facts plus what its detail shows and what has happened to it since the caller followed it. */
+export interface FollowedRecordDetailDto {
+    /** The record as the list shows it. */
+    record: FollowedRecordDto;
+    /** How far the record has got, 0 to 100, for an owner type that tracks it. Null otherwise. */
+    progress?: number | undefined;
+    /** Who leads the record and in what role: a project's or program's owners then managers, an objective's
+team. Empty when no one does. */
+    people: RecordPerson[];
+    /** When the record starts, or null. */
+    start?: string | undefined;
+    /** When the record ends or is due, or null. */
+    end?: string | undefined;
+    /** The record's activity since the caller followed it, newest first, at most `ChangeLimit` entries. */
+    changesSinceFollowed: ActivityLogDto[];
+    /** Whether more activity since following exists than List&lt;ActivityLogDto&gt; FollowedRecordDetailDto.ChangesSinceFollowed holds. */
+    hasMoreChanges: boolean;
+}
+
+/** A record the caller follows, as a list shows it. */
 export interface FollowedRecordDto {
     /** The record's owner type, such as `ppm.project`. */
     ownerType: string;
@@ -53807,24 +53983,28 @@ export interface FollowedRecordDto {
     key: string;
     /** The record's name or title. */
     name: string;
-    /** The key of the record this one is addressed under, such as a planning interval objective's
-planning interval. Null when the owner type does not nest. */
+    /** The key of the record this one is addressed under, such as a planning interval objective's planning
+interval. Null when the owner type does not nest. */
     parentKey?: string | undefined;
     /** The name of the parent record. Null when there is none. */
     parentName?: string | undefined;
+    /** The record's status as its own pages name it. */
+    statusName: string;
+    /** Where the status sits in the record's lifecycle. */
+    lifecycle: LifecycleCategory;
+    /** The record's current health, or null when it has none. */
+    health?: HealthStatus | undefined;
     /** When the caller started following the record. */
     followedOn: Date;
+    /** When the record last changed: the newest entry its Activity section lists, its own or one naming it as
+related. Null when it has no recorded activity. */
+    lastChangedOn?: Date | undefined;
 }
 
-/** The caller's follows of one kind of record, one page at a time. */
-export interface FollowGroupDto {
-    /** The owner type of every record in the group, such as `ppm.project`. */
-    ownerType: string;
-    /** What to call this kind of record, such as "Project". */
-    displayName: string;
-    /** One page of the followed records the caller can still read, most recently followed first. The
-total counts only those records. */
-    follows: PagedResponseOfFollowedRecordDto;
+/** The order the Following list is shown in. */
+export enum FollowSort {
+    LastChanged = "LastChanged",
+    Followed = "Followed",
 }
 
 /** Whether the caller follows a record. */
@@ -53833,6 +54013,30 @@ export interface FollowStatusDto {
     isFollowing: boolean;
     /** When the caller started following the record; null when they do not follow it. */
     followedOn?: Date | undefined;
+}
+
+/** How many records of one owner type the caller follows. */
+export interface FollowTypeCountDto {
+    /** The owner type, such as `ppm.project`. */
+    ownerType: string;
+    /** What to call this kind of record, such as "Project". */
+    displayName: string;
+    /** How many readable records of this type the caller follows. */
+    count: number;
+}
+
+export enum FollowView {
+    Unhealthy = "Unhealthy",
+    ChangedRecently = "ChangedRecently",
+    Closed = "Closed",
+}
+
+/** How many followed records fall in one "needs a look" view. */
+export interface FollowViewCountDto {
+    /** The view. */
+    view: FollowView;
+    /** How many readable followed records it holds. */
+    count: number;
 }
 
 export interface ForecastDependencyInfluenceDto {
@@ -54969,6 +55173,13 @@ export enum KpiTrend {
     Improving = "Improving",
     Worsening = "Worsening",
     Stable = "Stable",
+}
+
+export enum LifecycleCategory {
+    NotStarted = "NotStarted",
+    Active = "Active",
+    Completed = "Completed",
+    Canceled = "Canceled",
 }
 
 export interface LifecycleNavigationDto {
@@ -56783,6 +56994,16 @@ export interface ReclassifyWorkflowStatusRequest {
     alias: number;
 }
 
+/** A person leading a record, or the team owning it, and the role they hold. */
+export interface RecordPerson {
+    /** The role as the record's own pages name it, such as "Project Manager" or "Team". */
+    role: string;
+    /** The person's or team's name. */
+    name: string;
+    /** The employee's id when the holder is a person; null for a team. */
+    employeeId?: string | undefined;
+}
+
 export interface RecordProjectScoreRequest {
     ratings: CriterionRatingRequest[];
 }
@@ -57601,6 +57822,12 @@ export enum SizingMethod {
 export interface SkippedUser {
     userId: string;
     reason: string;
+}
+
+/** Which way a list runs along its sort key. */
+export enum SortDirection {
+    Ascending = "Ascending",
+    Descending = "Descending",
 }
 
 /** A sprint's corrected actual dates. Both values are replaced; omit one to revert it to the sprint's default. */

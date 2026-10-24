@@ -1,157 +1,152 @@
-using Wayd.Common.Application.Records;
 using Wayd.Common.Application.Following.Dtos;
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Following;
 
 namespace Wayd.Common.Application.Following.Queries;
 
 /// <summary>
-/// The records the caller follows and can still read, grouped by owner type and paged within each group.
+/// One page of the records the caller follows and can still read, across owner types or for one, optionally
+/// narrowed to a "needs a look" view and a search.
 /// </summary>
 /// <remarks>
-/// With <see cref="OwnerType"/> set, returns at most that one group, at the requested page; without it,
-/// the requested page of every group. A group with nothing readable in it is left out, so the list never
-/// hints at records the caller has lost access to. Fails for an owner type that cannot be followed.
+/// Readability is applied before anything is counted or paged: a total that included unreadable follows would
+/// say how many records the caller cannot see. The owner types are combined in one query, so a page of
+/// "everything" is filtered, sorted and paged by the database. Fails for an owner type that cannot be followed.
 /// <para>
 /// Not <see cref="IRequireLinkedEmployee"/>: a caller with no employee follows nothing, so the answer is an
-/// empty list.
-/// </para>
-/// <para>
-/// One count and one page query per owner type, each the caller's follows joined to what the owner type
-/// says they may read, so the cost grows with the number of owner types rather than the number of
-/// follows. Readability is applied before counting: a total that included unreadable follows would say
-/// how many records the caller cannot see.
+/// empty page.
 /// </para>
 /// </remarks>
-public sealed record GetMyFollowsQuery(string? OwnerType = null, int PageNumber = 1, int PageSize = 20)
-    : IQuery<Result<List<FollowGroupDto>>>;
+public sealed record GetMyFollowsQuery(
+    string? OwnerType = null,
+    FollowView? View = null,
+    string? Search = null,
+    FollowSort Sort = FollowSort.LastChanged,
+    int PageNumber = 1,
+    int PageSize = 50)
+    : IQuery<Result<PagedResponse<FollowedRecordDto>>>;
 
-/// <summary>Bounds the paging a caller may ask for.</summary>
+/// <summary>Bounds the paging and search a caller may ask for.</summary>
 public sealed class GetMyFollowsQueryValidator : CustomValidator<GetMyFollowsQuery>
 {
     /// <summary>The largest page a caller may ask for.</summary>
     public const int MaxPageSize = 100;
 
+    /// <summary>The longest search a caller may send.</summary>
+    public const int MaxSearchLength = 128;
+
     public GetMyFollowsQueryValidator()
     {
         RuleFor(q => q.OwnerType).MaximumLength(FollowOwnerDescriptor.KeyMaxLength);
+        RuleFor(q => q.View).IsInEnum();
+        RuleFor(q => q.Sort).IsInEnum();
+        RuleFor(q => q.Search).MaximumLength(MaxSearchLength);
         RuleFor(q => q.PageNumber).GreaterThanOrEqualTo(1);
         RuleFor(q => q.PageSize).InclusiveBetween(1, MaxPageSize);
     }
 }
 
-/// <summary>Reads the caller's readable follows, one count and one page per owner type.</summary>
+/// <summary>Reads one page of the caller's readable follows and describes the records on it.</summary>
 public sealed class GetMyFollowsQueryHandler(
     INotificationsDbContext notificationsDbContext,
+    IActivityLogDbContext activityLogDbContext,
     IEnumerable<IRecordReadRule> readRules,
-    ICurrentPrincipal currentPrincipal)
-    : IQueryHandler<GetMyFollowsQuery, Result<List<FollowGroupDto>>>
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider)
+    : IQueryHandler<GetMyFollowsQuery, Result<PagedResponse<FollowedRecordDto>>>
 {
     private readonly INotificationsDbContext _notificationsDbContext = notificationsDbContext;
+    private readonly IActivityLogDbContext _activityLogDbContext = activityLogDbContext;
     private readonly IEnumerable<IRecordReadRule> _readRules = readRules;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<Result<List<FollowGroupDto>>> Handle(GetMyFollowsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResponse<FollowedRecordDto>>> Handle(GetMyFollowsQuery request, CancellationToken cancellationToken)
     {
-        List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners;
-        if (request.OwnerType is null)
+        var owners = FollowReadRules.Select(_readRules, request.OwnerType);
+        if (owners.IsFailure)
         {
-            owners = [.. FollowOwners.All
-                .Select(d => FollowReadRules.Resolve(_readRules, d.Key))
-                .Where(r => r.IsSuccess)
-                .Select(r => r.Value)];
+            return Result.Failure<PagedResponse<FollowedRecordDto>>(owners.Error);
         }
-        else
-        {
-            var resolved = FollowReadRules.Resolve(_readRules, request.OwnerType);
-            if (resolved.IsFailure)
-            {
-                return Result.Failure<List<FollowGroupDto>>(resolved.Error);
-            }
 
-            owners = [resolved.Value];
-        }
+        var empty = new PagedResponse<FollowedRecordDto>([], 0, request.PageNumber, request.PageSize);
 
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
         {
-            return new List<FollowGroupDto>();
+            return empty;
         }
 
-        var groups = new List<FollowGroupDto>();
-        foreach (var (descriptor, readRule) in owners)
+        var search = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim();
+        var rows = await FollowedRows.Build(
+            _notificationsDbContext.Follows,
+            _activityLogDbContext.ActivityLogs,
+            employeeId.Value,
+            owners.Value,
+            search,
+            cancellationToken);
+        if (rows is null)
         {
-            var group = await ReadGroup(descriptor, readRule, employeeId.Value, request.PageNumber, request.PageSize, cancellationToken);
-            if (group is not null)
-            {
-                groups.Add(group);
-            }
+            return empty;
         }
 
-        return groups;
-    }
+        var filtered = rows.In(request.View, _dateTimeProvider.Now);
 
-    private async Task<FollowGroupDto?> ReadGroup(
-        FollowOwnerDescriptor descriptor,
-        IRecordReadRule readRule,
-        Guid employeeId,
-        int pageNumber,
-        int pageSize,
-        CancellationToken cancellationToken)
-    {
-        // A type the caller cannot read at all contributes nothing, and its follows are never even counted.
-        var readable = await readRule.ReadableIds(cancellationToken);
-        if (readable is null)
-        {
-            return null;
-        }
-
-        var ownerType = descriptor.Key;
-        var follows = _notificationsDbContext.Follows
-            .Where(f => f.EmployeeId == employeeId && f.OwnerType == ownerType && readable.Contains(f.OwnerId));
-
-        var totalCount = await follows.CountAsync(cancellationToken);
+        var totalCount = await filtered.CountAsync(cancellationToken);
         if (totalCount == 0)
         {
-            return null;
+            return empty;
         }
 
-        var page = await follows
-            .OrderByDescending(f => f.FollowedOn)
-            .ThenBy(f => f.OwnerId)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(f => new { f.OwnerId, f.FollowedOn })
+        // Records with no activity sort after every record that has some, newest follow first among them.
+        var ordered = request.Sort == FollowSort.Followed
+            ? filtered.OrderByDescending(r => r.FollowedOn).ThenBy(r => r.OwnerId)
+            : filtered
+                .OrderByDescending(r => r.LastChangedOn.HasValue)
+                .ThenByDescending(r => r.LastChangedOn)
+                .ThenByDescending(r => r.FollowedOn)
+                .ThenBy(r => r.OwnerId);
+
+        var page = await ordered
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var summaries = page.Count > 0
-            ? await readRule.Describe([.. page.Select(f => f.OwnerId)], cancellationToken)
-            : new Dictionary<Guid, RecordSummary>();
+        var summaries = await Describe(page, owners.Value, cancellationToken);
 
         // A record deleted between the page query and Describe is dropped rather than shown unnamed.
         var items = page
-            .Where(f => summaries.ContainsKey(f.OwnerId))
-            .Select(f =>
-            {
-                var summary = summaries[f.OwnerId];
-                return new FollowedRecordDto
-                {
-                    OwnerType = ownerType,
-                    Id = f.OwnerId,
-                    Key = summary.Key,
-                    Name = summary.Name,
-                    ParentKey = summary.ParentKey,
-                    ParentName = summary.ParentName,
-                    FollowedOn = f.FollowedOn,
-                };
-            })
+            .Where(r => summaries.ContainsKey((r.OwnerType, r.OwnerId)))
+            .Select(r => FollowedRecordDto.Create(r.OwnerType, r.OwnerId, r.FollowedOn, r.LastChangedOn, summaries[(r.OwnerType, r.OwnerId)]))
             .ToList();
 
-        return new FollowGroupDto
+        return new PagedResponse<FollowedRecordDto>(items, totalCount, request.PageNumber, request.PageSize);
+    }
+
+    private static async Task<Dictionary<(string OwnerType, Guid Id), RecordSummary>> Describe(
+        List<FollowedRow> page,
+        List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
+        CancellationToken cancellationToken)
+    {
+        var summaries = new Dictionary<(string, Guid), RecordSummary>();
+
+        foreach (var group in page.GroupBy(r => r.OwnerType, StringComparer.OrdinalIgnoreCase))
         {
-            OwnerType = ownerType,
-            DisplayName = descriptor.DisplayName,
-            Follows = new PagedResponse<FollowedRecordDto>(items, totalCount, pageNumber, pageSize),
-        };
+            var readRule = owners
+                .First(o => string.Equals(o.Descriptor.Key, group.Key, StringComparison.OrdinalIgnoreCase))
+                .ReadRule;
+            var described = await readRule.Describe([.. group.Select(r => r.OwnerId)], cancellationToken);
+
+            foreach (var row in group)
+            {
+                if (described.TryGetValue(row.OwnerId, out var summary))
+                {
+                    summaries[(row.OwnerType, row.OwnerId)] = summary;
+                }
+            }
+        }
+
+        return summaries;
     }
 }

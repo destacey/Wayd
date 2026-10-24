@@ -30,12 +30,34 @@ internal static class FollowReadRules
     }
 
     /// <summary>
+    /// Every registered owner type that a module answers for, ordered by display name; or just the one
+    /// named, failing when it cannot be followed.
+    /// </summary>
+    public static Result<List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)>> Select(
+        IEnumerable<IRecordReadRule> readRules, string? ownerType)
+    {
+        if (ownerType is not null)
+        {
+            var resolved = Resolve(readRules, ownerType);
+            return resolved.IsFailure
+                ? Result.Failure<List<(FollowOwnerDescriptor, IRecordReadRule)>>(resolved.Error)
+                : new List<(FollowOwnerDescriptor, IRecordReadRule)> { resolved.Value };
+        }
+
+        return FollowOwners.All
+            .Select(d => Resolve(readRules, d.Key))
+            .Where(r => r.IsSuccess)
+            .Select(r => r.Value)
+            .ToList();
+    }
+
+    /// <summary>
     /// Whether the caller may read the record, through its owner type's own read rule.
     /// </summary>
     public static async Task<bool> CanRead(IRecordReadRule readRule, Guid ownerId, CancellationToken cancellationToken)
     {
-        var readable = await readRule.ReadableIds(cancellationToken);
+        var readable = await readRule.Readable(null, cancellationToken);
 
-        return readable is not null && await readable.AnyAsync(id => id == ownerId, cancellationToken);
+        return readable is not null && await readable.AnyAsync(r => r.Id == ownerId, cancellationToken);
     }
 }

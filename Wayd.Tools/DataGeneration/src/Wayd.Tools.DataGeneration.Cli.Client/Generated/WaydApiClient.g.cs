@@ -1630,14 +1630,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// List the records you follow, grouped by kind.
+        /// List the records you follow.
         /// </summary>
         /// <remarks>
-        /// Returns one group per kind of record you follow — projects, programs, planning interval objectives — each with its `displayName` and one page of `follows`, most recently followed first. Each follow carries the record's `id`, `key`, `name` and, for an objective, `parentKey` and `parentName` (its planning interval). A record you can no longer read is left out of its group and its total, and a kind with nothing readable is left out entirely. Pass `ownerType` to page through one kind — `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`, and any other value returns 400; without it, `page` and `pageSize` (at most 100) apply to every group. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for completed or canceled) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default; records with no activity last) or `Followed`. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FollowGroupDto>> GetFollowsAsync(string? ownerType = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfFollowedRecordDto> GetFollowsAsync(string? ownerType = null, FollowView? view = null, string? search = null, FollowSort? sort = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Count the records you follow, by kind and by what needs a look.
+        /// </summary>
+        /// <remarks>
+        /// Returns the `total` you follow and can still read, a count per kind of record you can read (`types`, each with `ownerType`, `displayName` and `count`, including kinds you follow none of), and a count per view (`views`: `Unhealthy`, `ChangedRecently`, `Closed`). Records you can no longer read are not counted. Requires the following feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<FollowCountsDto> GetFollowCountsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a record you follow, with what has happened since you followed it.
+        /// </summary>
+        /// <remarks>
+        /// Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role` and `name`: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<FollowedRecordDetailDto> GetFollowedRecordAsync(string ownerType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -1724,14 +1746,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// List the records you follow, grouped by kind.
+        /// List the records you follow.
         /// </summary>
         /// <remarks>
-        /// Returns one group per kind of record you follow — projects, programs, planning interval objectives — each with its `displayName` and one page of `follows`, most recently followed first. Each follow carries the record's `id`, `key`, `name` and, for an objective, `parentKey` and `parentName` (its planning interval). A record you can no longer read is left out of its group and its total, and a kind with nothing readable is left out entirely. Pass `ownerType` to page through one kind — `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`, and any other value returns 400; without it, `page` and `pageSize` (at most 100) apply to every group. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for completed or canceled) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default; records with no activity last) or `Followed`. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FollowGroupDto>> GetFollowsAsync(string? ownerType = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfFollowedRecordDto> GetFollowsAsync(string? ownerType = null, FollowView? view = null, string? search = null, FollowSort? sort = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1750,6 +1772,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (ownerType != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("ownerType")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ownerType, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (view != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("view")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(view, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (search != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("search")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(search, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (sort != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("sort")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(sort, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (page != null)
                     {
@@ -1786,7 +1820,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<FollowGroupDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<PagedResponseOfFollowedRecordDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -1802,6 +1836,200 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Count the records you follow, by kind and by what needs a look.
+        /// </summary>
+        /// <remarks>
+        /// Returns the `total` you follow and can still read, a count per kind of record you can read (`types`, each with `ownerType`, `displayName` and `count`, including kinds you follow none of), and a count per view (`views`: `Unhealthy`, `ChangedRecently`, `Closed`). Records you can no longer read are not counted. Requires the following feature flag; returns 404 when it is off.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<FollowCountsDto> GetFollowCountsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/me/follows/counts"
+                    urlBuilder_.Append("api/me/follows/counts");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<FollowCountsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a record you follow, with what has happened since you followed it.
+        /// </summary>
+        /// <remarks>
+        /// Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role` and `name`: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<FollowedRecordDetailDto> GetFollowedRecordAsync(string ownerType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (ownerType == null)
+                throw new System.ArgumentNullException("ownerType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/me/follows/{ownerType}/{ownerId}/record"
+                    urlBuilder_.Append("api/me/follows/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/record");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<FollowedRecordDetailDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -98966,7 +99194,94 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A record the caller follows.
+    /// How many records the caller follows and can still read, by owner type and by "needs a look" view.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FollowCountsDto
+    {
+
+        /// <summary>
+        /// Every readable followed record.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("total")]
+        public int Total { get; set; } = default!;
+
+        /// <summary>
+        /// One entry per owner type the caller can read, ordered by display name, including types with none followed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("types")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<FollowTypeCountDto> Types { get; set; } = new System.Collections.ObjectModel.Collection<FollowTypeCountDto>();
+
+        /// <summary>
+        /// One entry per FollowView, across every owner type.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("views")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<FollowViewCountDto> Views { get; set; } = new System.Collections.ObjectModel.Collection<FollowViewCountDto>();
+
+    }
+
+    /// <summary>
+    /// One followed record in full: the list's facts plus what its detail shows and what has happened to it since
+    /// <br/>the caller followed it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FollowedRecordDetailDto
+    {
+
+        /// <summary>
+        /// The record as the list shows it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("record")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public FollowedRecordDto Record { get; set; } = new FollowedRecordDto();
+
+        /// <summary>
+        /// How far the record has got, 0 to 100, for an owner type that tracks it. Null otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progress")]
+        public double? Progress { get; set; } = default!;
+
+        /// <summary>
+        /// Who leads the record and in what role: a project's or program's owners then managers, an objective's
+        /// <br/>team. Empty when no one does.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("people")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<RecordPerson> People { get; set; } = new System.Collections.ObjectModel.Collection<RecordPerson>();
+
+        /// <summary>
+        /// When the record starts, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? Start { get; set; } = default!;
+
+        /// <summary>
+        /// When the record ends or is due, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        /// <summary>
+        /// The record's activity since the caller followed it, newest first, at most `ChangeLimit` entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("changesSinceFollowed")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ActivityLogDto> ChangesSinceFollowed { get; set; } = new System.Collections.ObjectModel.Collection<ActivityLogDto>();
+
+        /// <summary>
+        /// Whether more activity since following exists than List&amp;lt;ActivityLogDto&amp;gt; FollowedRecordDetailDto.ChangesSinceFollowed holds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hasMoreChanges")]
+        public bool HasMoreChanges { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A record the caller follows, as a list shows it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class FollowedRecordDto
@@ -99001,8 +99316,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The key of the record this one is addressed under, such as a planning interval objective's
-        /// <br/>planning interval. Null when the owner type does not nest.
+        /// The key of the record this one is addressed under, such as a planning interval objective's planning
+        /// <br/>interval. Null when the owner type does not nest.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentKey")]
         public string? ParentKey { get; set; } = default!;
@@ -99014,42 +99329,54 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? ParentName { get; set; } = default!;
 
         /// <summary>
+        /// The record's status as its own pages name it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string StatusName { get; set; } = default!;
+
+        /// <summary>
+        /// Where the status sits in the record's lifecycle.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lifecycle")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LifecycleCategory>))]
+        public LifecycleCategory Lifecycle { get; set; } = default!;
+
+        /// <summary>
+        /// The record's current health, or null when it has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("health")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<HealthStatus>))]
+        public HealthStatus? Health { get; set; } = default!;
+
+        /// <summary>
         /// When the caller started following the record.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("followedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset FollowedOn { get; set; } = default!;
 
+        /// <summary>
+        /// When the record last changed, from its activity; null when it has no recorded activity.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lastChangedOn")]
+        public System.DateTimeOffset? LastChangedOn { get; set; } = default!;
+
     }
 
     /// <summary>
-    /// The caller's follows of one kind of record, one page at a time.
+    /// The order the Following list is shown in.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class FollowGroupDto
+    public enum FollowSort
     {
 
-        /// <summary>
-        /// The owner type of every record in the group, such as `ppm.project`.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("ownerType")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string OwnerType { get; set; } = default!;
+        [System.Runtime.Serialization.EnumMember(Value = @"LastChanged")]
+        LastChanged = 0,
 
-        /// <summary>
-        /// What to call this kind of record, such as "Project".
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("displayName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string DisplayName { get; set; } = default!;
-
-        /// <summary>
-        /// One page of the followed records the caller can still read, most recently followed first. The
-        /// <br/>total counts only those records.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("follows")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public PagedResponseOfFollowedRecordDto Follows { get; set; } = new PagedResponseOfFollowedRecordDto();
+        [System.Runtime.Serialization.EnumMember(Value = @"Followed")]
+        Followed = 1,
 
     }
 
@@ -99071,6 +99398,73 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("followedOn")]
         public System.DateTimeOffset? FollowedOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How many records of one owner type the caller follows.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FollowTypeCountDto
+    {
+
+        /// <summary>
+        /// The owner type, such as `ppm.project`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownerType")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string OwnerType { get; set; } = default!;
+
+        /// <summary>
+        /// What to call this kind of record, such as "Project".
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("displayName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string DisplayName { get; set; } = default!;
+
+        /// <summary>
+        /// How many readable records of this type the caller follows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("count")]
+        public int Count { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum FollowView
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Unhealthy")]
+        Unhealthy = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ChangedRecently")]
+        ChangedRecently = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Closed")]
+        Closed = 2,
+
+    }
+
+    /// <summary>
+    /// How many followed records fall in one "needs a look" view.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FollowViewCountDto
+    {
+
+        /// <summary>
+        /// The view.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("view")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FollowView>))]
+        public FollowView View { get; set; } = default!;
+
+        /// <summary>
+        /// How many readable followed records it holds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("count")]
+        public int Count { get; set; } = default!;
 
     }
 
@@ -102032,6 +102426,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Stable")]
         Stable = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum LifecycleCategory
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NotStarted")]
+        NotStarted = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
+        Completed = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Canceled")]
+        Canceled = 3,
 
     }
 
@@ -107448,6 +107860,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("alias")]
         public int Alias { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A person leading a record, or the team owning it, and the role they hold.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecordPerson
+    {
+
+        /// <summary>
+        /// The role as the record's own pages name it, such as "Project Manager" or "Team".
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Role { get; set; } = default!;
+
+        /// <summary>
+        /// The person's or team's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The employee's id when the holder is a person; null for a team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
+        public System.Guid? EmployeeId { get; set; } = default!;
 
     }
 

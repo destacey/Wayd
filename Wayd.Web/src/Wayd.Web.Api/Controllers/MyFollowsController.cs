@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Following;
 using Wayd.Common.Application.Following.Commands;
 using Wayd.Common.Application.Following.Dtos;
 using Wayd.Common.Application.Following.Queries;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Web.Api.Extensions;
 
@@ -29,24 +31,59 @@ public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [EndpointSummary("List the records you follow, grouped by kind.")]
+    [EndpointSummary("List the records you follow.")]
     [EndpointDescription(
-        $"Returns one group per kind of record you follow — projects, programs, planning interval objectives — each with its `displayName` and one page of `follows`, most recently followed first. Each follow carries the record's `id`, `key`, `name` and, for an objective, `parentKey` and `parentName` (its planning interval). A record you can no longer read is left out of its group and its total, and a kind with nothing readable is left out entirely. Pass `ownerType` to page through one kind — {OwnerTypeValues}, and any other value returns 400; without it, `page` and `pageSize` (at most 100) apply to every group. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.")]
+        $"Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` ({OwnerTypeValues}; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for completed or canceled) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default; records with no activity last) or `Followed`. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.")]
     [McpTool("Me_GetFollows", "List what I follow")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<List<FollowGroupDto>>> GetFollows(
+    public async Task<ActionResult<PagedResponse<FollowedRecordDto>>> GetFollows(
         [FromQuery] string? ownerType,
+        [FromQuery] FollowView? view,
+        [FromQuery] string? search,
+        [FromQuery] FollowSort sort = FollowSort.LastChanged,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var result = await _dispatcher.Send(new GetMyFollowsQuery(ownerType, page, pageSize), cancellationToken);
+        var result = await _dispatcher.Send(new GetMyFollowsQuery(ownerType, view, search, sort, page, pageSize), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("counts")]
+    [EndpointSummary("Count the records you follow, by kind and by what needs a look.")]
+    [EndpointDescription(
+        "Returns the `total` you follow and can still read, a count per kind of record you can read (`types`, each with `ownerType`, `displayName` and `count`, including kinds you follow none of), and a count per view (`views`: `Unhealthy`, `ChangedRecently`, `Closed`). Records you can no longer read are not counted. Requires the following feature flag; returns 404 when it is off.")]
+    [McpTool("Me_GetFollowCounts", "Count what I follow")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<FollowCountsDto>> GetFollowCounts(CancellationToken cancellationToken)
+    {
+        return Ok(await _dispatcher.Send(new GetMyFollowCountsQuery(), cancellationToken));
+    }
+
+    [HttpGet("{ownerType}/{ownerId:guid}/record")]
+    [EndpointSummary("Get a record you follow, with what has happened since you followed it.")]
+    [EndpointDescription(
+        $"Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role` and `name`: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. {OwnerTypes} Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.")]
+    [McpTool("Me_GetFollowedRecord", "Get a record I follow")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<FollowedRecordDetailDto>> GetFollowedRecord(string ownerType, Guid ownerId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetFollowedRecordQuery(ownerType, ownerId), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+
+        return result.Value is not null
+            ? Ok(result.Value)
+            : NotFound();
     }
 
     [HttpGet("{ownerType}/{ownerId:guid}")]

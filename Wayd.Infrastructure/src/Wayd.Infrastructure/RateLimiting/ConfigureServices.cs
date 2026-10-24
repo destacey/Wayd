@@ -24,7 +24,7 @@ internal static class ConfigureServices
         services.AddOptions<RateLimitSettings>()
             .Bind(config.GetSection(RateLimitSettings.SectionName))
             .Validate(
-                s => new[] { s.OAuthAuthorize, s.OAuthToken }.All(l => l.PermitLimit > 0 && l.WindowSeconds > 0),
+                s => s.All().All(l => l.PermitLimit > 0 && l.WindowSeconds > 0),
                 $"Every limit in '{RateLimitSettings.SectionName}' needs a PermitLimit and WindowSeconds above zero.")
             .ValidateOnStart();
 
@@ -41,6 +41,10 @@ internal static class ConfigureServices
 
             options.AddPolicy(RateLimitPolicies.OAuthAuthorize, context => PerClientAddress(context, s => s.OAuthAuthorize));
             options.AddPolicy(RateLimitPolicies.OAuthToken, context => PerClientAddress(context, s => s.OAuthToken));
+            options.AddPolicy(RateLimitPolicies.AuthSignIn, context => PerClientAddress(context, s => s.AuthSignIn));
+            options.AddPolicy(RateLimitPolicies.AuthRefresh, context => PerClientAddress(context, s => s.AuthRefresh));
+            options.AddPolicy(RateLimitPolicies.AuthProviders, context => PerClientAddress(context, s => s.AuthProviders));
+            options.AddPolicy(RateLimitPolicies.AuthSetup, context => PerClientAddress(context, s => s.AuthSetup));
         });
     }
 
@@ -58,7 +62,7 @@ internal static class ConfigureServices
     private static RateLimitPartition<string> PerClientAddress(HttpContext context, Func<RateLimitSettings, FixedWindowLimit> select)
     {
         var limit = select(context.RequestServices.GetRequiredService<IOptionsMonitor<RateLimitSettings>>().CurrentValue);
-        var address = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var address = ClientAddressKey.For(context.Connection.RemoteIpAddress);
 
         return RateLimitPartition.GetFixedWindowLimiter($"{address}|{limit.PermitLimit}|{limit.WindowSeconds}", _ => new FixedWindowRateLimiterOptions
         {

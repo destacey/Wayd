@@ -157,13 +157,11 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             services.AddSingleton<IOAuthClientResolver>(OAuthClients);
         });
 
-        // Every test shares one caller address, so the OAuth endpoints' production limits would throttle the suite.
+        // Every test shares one caller address, so the production limits would throttle the suite.
         // A test of the limits themselves lowers them on a host of its own.
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-        [
-            new KeyValuePair<string, string?>("RateLimitSettings:OAuthAuthorize:PermitLimit", "100000"),
-            new KeyValuePair<string, string?>("RateLimitSettings:OAuthToken:PermitLimit", "100000"),
-        ]));
+            new[] { "OAuthAuthorize", "OAuthToken", "AuthSignIn", "AuthRefresh", "AuthProviders", "AuthSetup" }
+                .Select(limit => new KeyValuePair<string, string?>($"RateLimitSettings:{limit}:PermitLimit", "100000"))));
     }
 
     /// <summary>

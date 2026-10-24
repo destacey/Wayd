@@ -67,11 +67,12 @@ export const followsApi = apiSlice.injectEndpoints({
       providesTags: [QueryTags.MyFollows],
     }),
 
-    follow: builder.mutation<void, FollowTarget>({
+    follow: builder.mutation<null, FollowTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
           await getMyFollowsClient().follow(ownerType, ownerId)
-          return { data: undefined }
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -86,8 +87,9 @@ export const followsApi = apiSlice.injectEndpoints({
             'getFollowStatus',
             target,
             (draft) => {
+              // followedOn waits for the refetch: a Date in an action fails Redux's
+              // serializability check.
               draft.isFollowing = true
-              draft.followedOn = new Date()
             },
           ),
         )
@@ -103,11 +105,12 @@ export const followsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    unfollow: builder.mutation<void, FollowTarget>({
+    unfollow: builder.mutation<null, FollowTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
           await getMyFollowsClient().unfollow(ownerType, ownerId)
-          return { data: undefined }
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }

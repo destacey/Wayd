@@ -41,10 +41,10 @@ one artifact and a version number, it is a *version*. If it is what the pipeline
 
 | Record | Read | Lifecycle |
 | --- | --- | --- |
-| Version | `Versions_GetVersions`, `Versions_GetVersion`, `Versions_GetStatusHistory`, `Versions_GetActivities` | `Versions_Plan`, `Versions_Update`, `Versions_Cut`, `Versions_MarkReleased`, `Versions_Withdraw`, `Versions_Revert`, `Versions_CorrectDates`, `Versions_MoveTargetDate`, `Versions_Delete` |
-| Release package | `ReleasePackages_GetReleasePackages`, `ReleasePackages_GetReleasePackage`, `ReleasePackages_GetStatusHistory`, `ReleasePackages_GetActivities` | `ReleasePackages_Assemble`, `ReleasePackages_SetManifest`, `ReleasePackages_MarkReleased`, `ReleasePackages_Withdraw`, `ReleasePackages_CorrectDates`, `ReleasePackages_Delete` |
-| Release | `Releases_GetReleases`, `Releases_GetRelease`, `Releases_GetStatusHistory`, `Releases_GetActivities` | `Releases_Plan`, `Releases_Update`, `Releases_SetContents`, `Releases_MarkReleased`, `Releases_Withdraw`, `Releases_Revert`, `Releases_CorrectDates`, `Releases_MoveTargetDate`, `Releases_Delete` |
-| Deployment | `Deployments_GetDeployments`, `Deployments_GetDeployment`, `Deployments_GetStatusHistory`, `Deployments_GetActivities` | `Deployments_Start`, `Deployments_Succeed`, `Deployments_Fail`, `Deployments_RollBack`, `Deployments_Delete` |
+| Version | `Versions_GetVersions`, `Versions_GetVersion`, `Versions_GetStatusHistory`, `Versions_GetTimeInStatus`, `Versions_GetActivities` | `Versions_Plan`, `Versions_Update`, `Versions_Cut`, `Versions_MarkReleased`, `Versions_Withdraw`, `Versions_Revert`, `Versions_CorrectDates`, `Versions_MoveTargetDate`, `Versions_Delete` |
+| Release package | `ReleasePackages_GetReleasePackages`, `ReleasePackages_GetReleasePackage`, `ReleasePackages_GetStatusHistory`, `ReleasePackages_GetTimeInStatus`, `ReleasePackages_GetActivities` | `ReleasePackages_Assemble`, `ReleasePackages_SetManifest`, `ReleasePackages_MarkReleased`, `ReleasePackages_Withdraw`, `ReleasePackages_CorrectDates`, `ReleasePackages_Delete` |
+| Release | `Releases_GetReleases`, `Releases_GetRelease`, `Releases_GetStatusHistory`, `Releases_GetTimeInStatus`, `Releases_GetActivities` | `Releases_Plan`, `Releases_Update`, `Releases_SetContents`, `Releases_MarkReleased`, `Releases_Withdraw`, `Releases_Revert`, `Releases_CorrectDates`, `Releases_MoveTargetDate`, `Releases_Delete` |
+| Deployment | `Deployments_GetDeployments`, `Deployments_GetDeployment`, `Deployments_GetStatusHistory`, `Deployments_GetTimeInStatus`, `Deployments_GetActivities` | `Deployments_Start`, `Deployments_Succeed`, `Deployments_Fail`, `Deployments_RollBack`, `Deployments_Delete` |
 
 Environments, rollout and delivery measures belong to the **wayd-products** skill.
 
@@ -166,6 +166,21 @@ The `*_GetStatusHistory` tools cover status moves only. `Releases_GetActivities`
 everything recorded on the record — contents and manifest changes, date corrections and target moves
 included. Each entry's `payload` is a JSON string carrying both the old and new value, so a moved
 target date shows where it moved from. Check `hasNextPage` before concluding something never happened.
+
+### Answering "how long has this been sitting there?"
+
+Each `*_GetStatusHistory` entry carries `durationSeconds` — the time the record spent in that entry's
+`toStatus` — and `leftOn`, plus `statusVisitCount` and `statusTotalSeconds` for every stay in that
+status. The entry with no `leftOn` is the current status, measured to the moment of
+the request. The record's own read (`Versions_GetVersion` and the like) carries `statusEnteredOn`, so
+the time in its current status is now minus that. All calendar time, not working days.
+
+For how long a record type *typically* spends in each status — "how long do versions sit in Ready?" —
+call `*_GetTimeInStatus` with a `from` and `to` (full ISO-8601 instants). Each row gives the number of
+stays that **ended** in the window and their `averageSeconds` and `medianSeconds`; a stay still open is
+not counted, so a terminal status usually shows no figures. Rows with `inCurrentWorkflow: false` are statuses
+from before a workflow reassignment; stays the reassignment itself ended or began are not counted. Quote the median alongside the average — one outlier moves the
+average alone.
 
 ### Answering "what is cut but not yet shipped?"
 

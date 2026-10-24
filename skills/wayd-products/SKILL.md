@@ -17,7 +17,7 @@ When the user approves, do exactly what they approved. An option you offered tha
 
 | Area | Read | Change |
 | --- | --- | --- |
-| Products | `Products_GetProducts`, `Products_GetProduct`, `Products_GetStatusOptions`, `Products_GetStatusHistory`, `Products_GetActivities` | `Products_Create`, `Products_Update` (name and description only), `Products_Retype`, `Products_Reparent`, `Products_ChangeStatus`, `Products_LinkExternally` (external identifier), `Products_Tag`, `Products_Untag`, `Products_Delete` |
+| Products | `Products_GetProducts`, `Products_GetProduct`, `Products_GetStatusOptions`, `Products_GetStatusHistory`, `Products_GetTimeInStatus`, `Products_GetActivities` | `Products_Create`, `Products_Update` (name and description only), `Products_Retype`, `Products_Reparent`, `Products_ChangeStatus`, `Products_LinkExternally` (external identifier), `Products_Tag`, `Products_Untag`, `Products_Delete` |
 | Dependencies | `Products_GetDependencies` | `Products_AddDependency`, `Products_UpdateDependency`, `Products_ChangeDependencyTerms`, `Products_EndDependency`, `Products_RemoveDependency` |
 | Product types | `ProductTypes_GetProductTypes` | `ProductTypes_Create`, `ProductTypes_Update`, `ProductTypes_SetActive`, `ProductTypes_Delete` |
 | Tag axes and tags | `ProductTagCategories_GetProductTagCategories` | `ProductTagCategories_Create`, `ProductTagCategories_Update`, `ProductTagCategories_SetActive`, `ProductTagCategories_Delete`, `ProductTagCategories_Reorder`, `ProductTagCategories_AddTag`, `ProductTagCategories_RenameTag`, `ProductTagCategories_SetTagActive`, `ProductTagCategories_DeleteTag` |
@@ -109,6 +109,13 @@ For what changed on a product, `Products_GetStatusHistory` covers status moves a
 activity entry's `payload` carries the value before and after. A `Baseline` entry marks where tracking
 began for a product that already existed; nothing before it is recorded. Check `hasNextPage` before
 concluding something never happened.
+
+Each status history entry carries `durationSeconds` — how long the product stayed in that entry's
+`toStatus` — with `statusVisitCount` and `statusTotalSeconds` covering every stay there, and the entry
+with no `leftOn` is its current status. `Products_GetProduct` carries
+`statusEnteredOn`. For how long products typically stay in each status, `Products_GetTimeInStatus`
+takes a `from`/`to` window and returns, per status, the stays that ended in it with their average and
+median length in seconds.
 
 ---
 

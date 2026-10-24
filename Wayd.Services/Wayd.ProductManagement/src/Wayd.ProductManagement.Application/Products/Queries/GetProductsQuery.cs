@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -20,10 +21,13 @@ public sealed record GetProductsQuery(
     IReadOnlyCollection<StatusCategory>? StatusCategories = null,
     IReadOnlyCollection<Guid>? TagIds = null) : IQuery<IReadOnlyCollection<ProductDto>>;
 
-public sealed class GetProductsQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetProductsQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetProductsQuery, IReadOnlyCollection<ProductDto>>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<IReadOnlyCollection<ProductDto>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
     {
@@ -56,7 +60,7 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
 
         return await products
             .ProjectToType<ProductDto>(
-                ProductDto.CreateTypeAdapterConfig(_productManagementDbContext))
+                ProductDto.CreateTypeAdapterConfig(_productManagementDbContext, _statusWorkflowDbContext))
             .OrderBy(p => p.Name)
             // Key last, so an MCP caller's offset slices the same list on every call.
             .ThenBy(p => p.Key)

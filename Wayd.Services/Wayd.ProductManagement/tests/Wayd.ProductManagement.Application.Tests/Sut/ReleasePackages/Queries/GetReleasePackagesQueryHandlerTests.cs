@@ -1,4 +1,9 @@
 ﻿using FluentAssertions;
+using NodaTime;
+using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.ReleasePackages.Queries;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
 
@@ -15,7 +20,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ReleasePackages.Queries;
 /// </remarks>
 public sealed class GetReleasePackagesQueryHandlerTests : ProductCommandTestBase
 {
-    private GetReleasePackagesQueryHandler CreateSut() => new(DbContext);
+    private GetReleasePackagesQueryHandler CreateSut() => new(DbContext, DbContext);
 
     [Fact]
     public async Task Handle_FilteringByRelease_ReturnsOnlyPackagesNamingThatRelease()
@@ -101,5 +106,32 @@ public sealed class GetReleasePackagesQueryHandlerTests : ProductCommandTestBase
 
         // Assert
         result.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Handle_ReportsWhenEachPackageEnteredItsCurrentStatus()
+    {
+        // Arrange — one package withdrawn three days after it was planned, one never moved. A decoy row
+        // under another owner type shares the withdrawn package's id and its latest sequence.
+        var product = SeedProduct("Wayd API");
+        var withdrawnOn = Now + Duration.FromDays(3);
+
+        var withdrawn = SeedReleasePackage(product.Id, "2026.09.1");
+        withdrawn.Withdraw("Pulled", Status("Withdrawn", StatusCategory.Removed, ProductStatusAlias.None), EventActor.System, withdrawnOn);
+        var planned = SeedReleasePackage(product.Id, "2026.04.1");
+
+        DbContext.AddStatusTransitions(withdrawn.DrainStatusTransitions());
+        DbContext.AddStatusTransitions(planned.DrainStatusTransitions());
+        DbContext.AddStatusTransition(new StatusTransition(
+            "test.elsewhere", withdrawn.Id, null, Status(), EventActor.System, Now + Duration.FromDays(9), 1));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetReleasePackagesQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Single(p => p.Id == withdrawn.Id).StatusEnteredOn.Should().Be(withdrawnOn);
+        result.Single(p => p.Id == planned.Id).StatusEnteredOn.Should().Be(Now);
     }
 }

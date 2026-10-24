@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Deployments.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -22,16 +23,19 @@ public sealed record GetDeploymentQuery : IQuery<DeploymentDto?>
     public Expression<Func<Deployment, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetDeploymentQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetDeploymentQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetDeploymentQuery, DeploymentDto?>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<DeploymentDto?> Handle(GetDeploymentQuery query, CancellationToken cancellationToken)
     {
         return await _productManagementDbContext.Deployments
             .Where(query.IdOrKeyFilter)
-            .ProjectToType<DeploymentDto>(DeploymentDto.CreateTypeAdapterConfig())
+            .ProjectToType<DeploymentDto>(DeploymentDto.CreateTypeAdapterConfig(_statusWorkflowDbContext))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

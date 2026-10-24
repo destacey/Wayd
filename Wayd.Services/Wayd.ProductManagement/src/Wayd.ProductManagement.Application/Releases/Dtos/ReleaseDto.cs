@@ -1,5 +1,7 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.ProductManagement.Domain;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Releases.Dtos;
@@ -38,6 +40,16 @@ public sealed record ReleaseDto
     /// <summary>The release's current status: the organization's name for it, its category and its well-known alias.</summary>
     public StatusNavigationDto Status { get; init; } = default!;
 
+    /// <summary>
+    /// When the record entered its current status, or <c>null</c> when no change has been recorded.
+    /// </summary>
+    /// <remarks>
+    /// The instant rather than a duration, so a cached response does not go stale: the time in the
+    /// current status is now minus this. Read from the record's latest transition, which its transition
+    /// count addresses exactly.
+    /// </remarks>
+    public Instant? StatusEnteredOn { get; init; }
+
     /// <summary>The versions this release announces directly, outside any package.</summary>
     public IReadOnlyCollection<ReleaseVersionDto> Versions { get; init; } = [];
 
@@ -57,7 +69,8 @@ public sealed record ReleaseDto
     /// reader wants is the version number and the package version, which live on the records.
     /// </para>
     /// </remarks>
-    public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
+    public static TypeAdapterConfig CreateTypeAdapterConfig(
+        IProductManagementDbContext dbContext, IStatusWorkflowDbContext statusWorkflowDbContext)
     {
         var config = new TypeAdapterConfig();
 
@@ -89,6 +102,12 @@ public sealed record ReleaseDto
                 .FirstOrDefault());
 
         config.NewConfig<Release, ReleaseDto>()
+            .Map(dto => dto.StatusEnteredOn, r => statusWorkflowDbContext.StatusTransitions
+                .Where(t => t.OwnerType == ProductWorkflowOwners.Release.Key
+                    && t.RecordId == r.Id
+                    && t.Sequence == r.StatusTransitionCount - 1)
+                .Select(t => (Instant?)t.ChangedOn)
+                .FirstOrDefault())
             .Map(dto => dto.Product, r => r.ProductId == null
                 ? null
                 : dbContext.Products

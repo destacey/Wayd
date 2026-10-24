@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Products.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -22,17 +23,20 @@ public sealed record GetProductQuery : IQuery<ProductDto?>
     public Expression<Func<Product, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetProductQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetProductQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetProductQuery, ProductDto?>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<ProductDto?> Handle(GetProductQuery query, CancellationToken cancellationToken)
     {
         return await _productManagementDbContext.Products
             .Where(query.IdOrKeyFilter)
             .ProjectToType<ProductDto>(
-                ProductDto.CreateTypeAdapterConfig(_productManagementDbContext))
+                ProductDto.CreateTypeAdapterConfig(_productManagementDbContext, _statusWorkflowDbContext))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

@@ -192,7 +192,7 @@ public sealed class VersionLookupTests(SqlServerDbContextFixture fixture)
         var dto = await reader.Versions
             .AsNoTracking()
             .Where(r => r.Id == version.Id)
-            .ProjectToType<VersionDto>()
+            .ProjectToType<VersionDto>(VersionDto.CreateTypeAdapterConfig(reader))
             .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
@@ -205,5 +205,6 @@ public sealed class VersionLookupTests(SqlServerDbContextFixture fixture)
         dto.Status.Name.Should().Be(version.StatusName, "the status is flattened across four columns");
         dto.Status.Category.Should().Be(version.StatusCategory);
         dto.Status.Alias.Should().Be(version.StatusAliasValue);
+        dto.StatusEnteredOn.Should().Be(Timestamp, "the latest transition is read from the shared log");
     }
 }

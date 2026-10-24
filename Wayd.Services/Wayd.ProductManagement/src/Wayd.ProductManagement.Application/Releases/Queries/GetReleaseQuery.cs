@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -22,16 +23,19 @@ public sealed record GetReleaseQuery : IQuery<ReleaseDto?>
     public Expression<Func<Release, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetReleaseQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetReleaseQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetReleaseQuery, ReleaseDto?>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<ReleaseDto?> Handle(GetReleaseQuery query, CancellationToken cancellationToken)
     {
         return await _productManagementDbContext.Releases
             .Where(query.IdOrKeyFilter)
-            .ProjectToType<ReleaseDto>(ReleaseDto.CreateTypeAdapterConfig(_productManagementDbContext))
+            .ProjectToType<ReleaseDto>(ReleaseDto.CreateTypeAdapterConfig(_productManagementDbContext, _statusWorkflowDbContext))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

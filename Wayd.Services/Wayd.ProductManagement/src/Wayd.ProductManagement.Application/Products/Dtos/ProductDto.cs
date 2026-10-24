@@ -1,6 +1,8 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.ProductManagement.Domain;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -49,6 +51,16 @@ public sealed record ProductDto
     /// </summary>
     public StatusNavigationDto Status { get; init; } = default!;
 
+    /// <summary>
+    /// When the record entered its current status, or <c>null</c> when no change has been recorded.
+    /// </summary>
+    /// <remarks>
+    /// The instant rather than a duration, so a cached response does not go stale: the time in the
+    /// current status is now minus this. Read from the record's latest transition, which its transition
+    /// count addresses exactly.
+    /// </remarks>
+    public Instant? StatusEnteredOn { get; init; }
+
     public IReadOnlyCollection<ProductTagDto> Tags { get; init; } = [];
 
     /// <summary>
@@ -69,7 +81,8 @@ public sealed record ProductDto
     /// navigation to traverse.
     /// </para>
     /// </remarks>
-    public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
+    public static TypeAdapterConfig CreateTypeAdapterConfig(
+        IProductManagementDbContext dbContext, IStatusWorkflowDbContext statusWorkflowDbContext)
     {
         var config = new TypeAdapterConfig();
 
@@ -81,6 +94,12 @@ public sealed record ProductDto
                 .FirstOrDefault()!);
 
         config.NewConfig<Product, ProductDto>()
+            .Map(dto => dto.StatusEnteredOn, p => statusWorkflowDbContext.StatusTransitions
+                .Where(t => t.OwnerType == ProductWorkflowOwners.Product.Key
+                    && t.RecordId == p.Id
+                    && t.Sequence == p.StatusTransitionCount - 1)
+                .Select(t => (Instant?)t.ChangedOn)
+                .FirstOrDefault())
             .Map(dto => dto.Type, p => NavigationDto.Create(p.ProductType!.Id, p.ProductType.Key, p.ProductType.Name))
             .Map(dto => dto.IsReleasable, p => p.ProductType!.IsReleasable)
             .Map(dto => dto.Status, p => new StatusNavigationDto

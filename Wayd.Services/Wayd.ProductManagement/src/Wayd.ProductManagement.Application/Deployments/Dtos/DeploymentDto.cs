@@ -1,7 +1,9 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Domain;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Deployments.Dtos;
@@ -52,6 +54,16 @@ public sealed record DeploymentDto
     public StatusNavigationDto Status { get; init; } = default!;
 
     /// <summary>
+    /// When the record entered its current status, or <c>null</c> when no change has been recorded.
+    /// </summary>
+    /// <remarks>
+    /// The instant rather than a duration, so a cached response does not go stale: the time in the
+    /// current status is now minus this. Read from the record's latest transition, which its transition
+    /// count addresses exactly.
+    /// </remarks>
+    public Instant? StatusEnteredOn { get; init; }
+
+    /// <summary>
     /// The well-known meaning of the outcome. Metrics read this rather than the status name, so a
     /// renamed outcome still counts.
     /// </summary>
@@ -79,11 +91,17 @@ public sealed record DeploymentDto
     /// environment is not, so it maps by convention.
     /// </para>
     /// </remarks>
-    public static TypeAdapterConfig CreateTypeAdapterConfig()
+    public static TypeAdapterConfig CreateTypeAdapterConfig(IStatusWorkflowDbContext statusWorkflowDbContext)
     {
         var config = new TypeAdapterConfig();
 
         config.NewConfig<Deployment, DeploymentDto>()
+            .Map(dto => dto.StatusEnteredOn, d => statusWorkflowDbContext.StatusTransitions
+                .Where(t => t.OwnerType == ProductWorkflowOwners.Deployment.Key
+                    && t.RecordId == d.Id
+                    && t.Sequence == d.StatusTransitionCount - 1)
+                .Select(t => (Instant?)t.ChangedOn)
+                .FirstOrDefault())
             .Map(dto => dto.Version, d => d.Version != null
                 ? NavigationDto.Create(d.Version.Id, d.Version.Key, d.Version.Number)
                 : null)

@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -24,10 +25,13 @@ public sealed record GetReleasePackagesQuery(
     Guid? ContainingProductId = null,
     Guid? ContainingVersionId = null) : IQuery<IReadOnlyCollection<ReleasePackageDto>>;
 
-public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetReleasePackagesQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetReleasePackagesQuery, IReadOnlyCollection<ReleasePackageDto>>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<IReadOnlyCollection<ReleasePackageDto>> Handle(
         GetReleasePackagesQuery query, CancellationToken cancellationToken)
@@ -56,7 +60,7 @@ public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext p
 
         return await packages
             .ProjectToType<ReleasePackageDto>(
-                ReleasePackageDto.CreateTypeAdapterConfig(_productManagementDbContext))
+                ReleasePackageDto.CreateTypeAdapterConfig(_productManagementDbContext, _statusWorkflowDbContext))
             .OrderByDescending(p => p.ReleasedAt == null)
             .ThenByDescending(p => p.ReleasedAt)
             // Key last, so an MCP caller's offset slices the same list on every call.

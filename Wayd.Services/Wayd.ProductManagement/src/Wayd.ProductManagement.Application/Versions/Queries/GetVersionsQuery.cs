@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -17,10 +18,13 @@ public sealed record GetVersionsQuery(
     Guid? ProductId = null,
     IReadOnlyCollection<StatusCategory>? StatusCategories = null) : IQuery<IReadOnlyCollection<VersionDto>>;
 
-public sealed class GetVersionsQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetVersionsQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetVersionsQuery, IReadOnlyCollection<VersionDto>>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<IReadOnlyCollection<VersionDto>> Handle(
         GetVersionsQuery query, CancellationToken cancellationToken)
@@ -38,7 +42,7 @@ public sealed class GetVersionsQueryHandler(IProductManagementDbContext productM
         }
 
         var ordered = versions
-            .ProjectToType<VersionDto>()
+            .ProjectToType<VersionDto>(VersionDto.CreateTypeAdapterConfig(_statusWorkflowDbContext))
             .OrderByDescending(r => r.ReleasedAt == null)
             .ThenByDescending(r => r.ReleasedAt);
 

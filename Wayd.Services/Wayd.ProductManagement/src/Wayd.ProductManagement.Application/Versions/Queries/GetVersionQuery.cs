@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Versions.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -25,16 +26,19 @@ public sealed record GetVersionQuery : IQuery<VersionDto?>
     public Expression<Func<Version, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetVersionQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetVersionQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetVersionQuery, VersionDto?>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<VersionDto?> Handle(GetVersionQuery query, CancellationToken cancellationToken)
     {
         return await _productManagementDbContext.Versions
             .Where(query.IdOrKeyFilter)
-            .ProjectToType<VersionDto>()
+            .ProjectToType<VersionDto>(VersionDto.CreateTypeAdapterConfig(_statusWorkflowDbContext))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

@@ -1,5 +1,6 @@
-﻿using Wayd.Common.Application.StatusWorkflows.Dtos;
+﻿using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Deployments.Dtos;
 
@@ -19,10 +20,13 @@ public sealed record GetDeploymentsQuery(
     EnvironmentCategory? EnvironmentCategory = null,
     Instant? StartedOnOrAfter = null) : IQuery<IReadOnlyCollection<DeploymentDto>>;
 
-public sealed class GetDeploymentsQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetDeploymentsQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetDeploymentsQuery, IReadOnlyCollection<DeploymentDto>>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<IReadOnlyCollection<DeploymentDto>> Handle(
         GetDeploymentsQuery query, CancellationToken cancellationToken)
@@ -55,7 +59,7 @@ public sealed class GetDeploymentsQueryHandler(IProductManagementDbContext produ
         }
 
         return await deployments
-            .ProjectToType<DeploymentDto>(DeploymentDto.CreateTypeAdapterConfig())
+            .ProjectToType<DeploymentDto>(DeploymentDto.CreateTypeAdapterConfig(_statusWorkflowDbContext))
             .OrderByDescending(d => d.StartedAt)
             // Key last, so an MCP caller's offset slices the same list on every call.
             .ThenByDescending(d => d.Key)

@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.StatusWorkflows.Enums;
+﻿using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 
 namespace Wayd.ProductManagement.Application.Releases.Queries;
@@ -24,10 +25,13 @@ public sealed record GetReleasesQuery(
     IReadOnlyCollection<StatusCategory>? StatusCategories = null,
     Guid? ContainingVersionId = null) : IQuery<IReadOnlyCollection<ReleaseDto>>;
 
-public sealed class GetReleasesQueryHandler(IProductManagementDbContext productManagementDbContext)
+public sealed class GetReleasesQueryHandler(
+    IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext)
     : IQueryHandler<GetReleasesQuery, IReadOnlyCollection<ReleaseDto>>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
 
     public async Task<IReadOnlyCollection<ReleaseDto>> Handle(
         GetReleasesQuery query, CancellationToken cancellationToken)
@@ -59,7 +63,7 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
         }
 
         var ordered = releases
-            .ProjectToType<ReleaseDto>(ReleaseDto.CreateTypeAdapterConfig(_productManagementDbContext))
+            .ProjectToType<ReleaseDto>(ReleaseDto.CreateTypeAdapterConfig(_productManagementDbContext, _statusWorkflowDbContext))
             .OrderByDescending(r => r.ReleasedDate == null)
             .ThenByDescending(r => r.ReleasedDate);
 

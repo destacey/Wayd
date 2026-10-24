@@ -55,7 +55,10 @@ public sealed record FollowedRecordDto
     /// <summary>When the caller started following the record.</summary>
     public required Instant FollowedOn { get; init; }
 
-    /// <summary>When the record last changed, from its activity; null when it has no recorded activity.</summary>
+    /// <summary>
+    /// When the record last changed: the newest entry its Activity section lists, its own or one naming it as
+    /// related. Null when it has no recorded activity.
+    /// </summary>
     public Instant? LastChangedOn { get; init; }
 
     /// <summary>

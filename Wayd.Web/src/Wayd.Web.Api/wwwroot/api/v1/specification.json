@@ -250,7 +250,7 @@
           "MyFollows"
         ],
         "summary": "List the records you follow.",
-        "description": "Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for completed or canceled) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending.`page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.",
+        "description": "Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyFollows_GetFollows",
         "parameters": [
           {
@@ -403,7 +403,7 @@
           "MyFollows"
         ],
         "summary": "Get a record you follow, with what has happened since you followed it.",
-        "description": "Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role` and `name`: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
+        "description": "Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
         "operationId": "MyFollows_GetFollowedRecord",
         "parameters": [
           {
@@ -50336,7 +50336,7 @@
           },
           "lastChangedOn": {
             "type": "string",
-            "description": "When the record last changed, from its activity; null when it has no recorded activity.",
+            "description": "When the record last changed: the newest entry its Activity section lists, its own or one naming it as\nrelated. Null when it has no recorded activity.",
             "format": "date-time",
             "nullable": true
           }

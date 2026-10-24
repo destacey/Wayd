@@ -40,6 +40,9 @@ public sealed class ProjectReadRule(
     public string OwnerType => PpmFollowOwners.Project.Key;
 
     /// <inheritdoc/>
+    public string ActivityAggregateType => "Project";
+
+    /// <inheritdoc/>
     /// <remarks>
     /// A search matches the name anywhere, or the key exactly: the key is a converted value, which SQL can
     /// compare but not search within.
@@ -56,7 +59,10 @@ public sealed class ProjectReadRule(
 
         if (search is not null)
         {
-            var key = Regex.IsMatch(search.ToUpperInvariant(), ProjectKey.Regex) ? new ProjectKey(search) : null;
+            // Upper-cased invariantly before ProjectKey sees it: its own culture-sensitive ToUpper would turn
+            // "pi" into "Pİ" under tr-TR and throw on a key that just passed the pattern.
+            var upper = search.ToUpperInvariant();
+            var key = Regex.IsMatch(upper, ProjectKey.Regex) ? new ProjectKey(upper) : null;
             projects = key is null
                 ? projects.Where(p => p.Name.Contains(search))
                 : projects.Where(p => p.Name.Contains(search) || p.Key == key);

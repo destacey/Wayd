@@ -13,17 +13,25 @@ namespace Wayd.Common.Application.Following;
 /// </remarks>
 internal sealed class FollowedRow
 {
+    /// <summary>The registered owner type of the followed record.</summary>
     public string OwnerType { get; init; } = default!;
 
+    /// <summary>The followed record's id.</summary>
     public Guid OwnerId { get; init; }
 
+    /// <summary>When the caller started following the record.</summary>
     public Instant FollowedOn { get; init; }
 
-    /// <summary>The newest activity on the record, or null when it has none.</summary>
+    /// <summary>
+    /// The newest entry the record's Activity section lists — its own or one naming it as related — or null
+    /// when it has none.
+    /// </summary>
     public Instant? LastChangedOn { get; init; }
 
+    /// <summary>Whether the record's current health is red.</summary>
     public bool IsUnhealthy { get; init; }
 
+    /// <summary>Whether the record has finished, whatever the outcome.</summary>
     public bool IsClosed { get; init; }
 }
 
@@ -63,6 +71,13 @@ internal static class FollowedRows
             }
 
             var ownerType = descriptor.Key;
+            var activityType = readRule.ActivityAggregateType;
+            var related = activity.SelectMany(
+                a => a.RelatedAggregates,
+                (a, r) => new { a.Timestamp, r.AggregateId, r.AggregateType });
+
+            // The same entries the record's Activity section lists: its own, and those that name it as a
+            // related record, so "last changed" never trails the changes its detail shows.
             var rows =
                 from f in follows
                 where f.EmployeeId == employeeId && f.OwnerType == ownerType
@@ -72,7 +87,13 @@ internal static class FollowedRows
                     OwnerType = f.OwnerType,
                     OwnerId = f.OwnerId,
                     FollowedOn = f.FollowedOn,
-                    LastChangedOn = activity.Where(a => a.AggregateId == f.OwnerId).Max(a => (Instant?)a.Timestamp),
+                    LastChangedOn = activity
+                        .Where(a => a.AggregateId == f.OwnerId && a.AggregateType == activityType)
+                        .Select(a => (Instant?)a.Timestamp)
+                        .Concat(related
+                            .Where(x => x.AggregateId == f.OwnerId && x.AggregateType == activityType)
+                            .Select(x => (Instant?)x.Timestamp))
+                        .Max(),
                     IsUnhealthy = r.IsUnhealthy,
                     IsClosed = r.IsClosed,
                 };

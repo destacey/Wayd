@@ -5,7 +5,9 @@ using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Following;
 using Wayd.Common.Application.Following.Queries;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Records;
+using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
@@ -83,6 +85,53 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
         byLastChanged.Value.TotalCount.Should().Be(2, "each seeded employee's creation is recorded in the activity log");
         byLastChanged.Value.Items.Should().OnlyContain(i => i.LastChangedOn != null);
         searched.Value.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetMyFollows_ShouldSortBothWays_OnTheRecordsOwnAndRelatedActivityOnly_InSql()
+    {
+        // Arrange — two followed employees. One has a later entry logged under another aggregate type that
+        // shares its id, which must not count; the other is named as related by a later entry, which must.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        RegisterOwners();
+        var follower = await SeedEmployee();
+        var shadowed = await SeedEmployee();
+        var related = await SeedEmployee();
+        var relatedOn = Instant.FromUtc(2099, 1, 1, 0, 0);
+        await using (var seed = fixture.CreateContext())
+        {
+            var store = new FollowStore(seed);
+            await store.Add(Follow.Create(EmployeeOwner.Key, shadowed.Id, follower.Id, Timestamp).Value, cancellationToken);
+            await store.Add(Follow.Create(EmployeeOwner.Key, related.Id, follower.Id, Timestamp.Plus(Duration.FromHours(1))).Value, cancellationToken);
+
+            seed.ActivityLogs.Add(new ActivityLogEntry(
+                Guid.NewGuid(), "TestChangedEvent", ActivityCategory.Updated, "Test", "Project", shadowed.Id,
+                EventActor.System, Instant.FromUtc(2099, 1, 2, 0, 0), 0, null, "{}"));
+            seed.ActivityLogs.Add(new ActivityLogEntry(
+                Guid.NewGuid(), "TestChangedEvent", ActivityCategory.Updated, "Test", "Team", Guid.CreateVersion7(),
+                EventActor.System, relatedOn, 0, null, "{}",
+                relatedAggregates: [new AggregateReference("Employee", related.Id)]));
+            await seed.SaveChangesAsync(cancellationToken);
+        }
+
+        await using var context = fixture.CreateContext();
+        var principal = Principal(follower.Id);
+        var handler = new GetMyFollowsQueryHandler(
+            context, context, ReadRules(context, principal.Object, readable: [shadowed.Id, related.Id], unhealthy: []), principal.Object, Clock());
+
+        // Act
+        var changedNewest = await handler.Handle(new GetMyFollowsQuery(), cancellationToken);
+        var changedOldest = await handler.Handle(new GetMyFollowsQuery(Direction: SortDirection.Ascending), cancellationToken);
+        var followedOldest = await handler.Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed, Direction: SortDirection.Ascending), cancellationToken);
+
+        // Assert
+        changedNewest.IsSuccess.Should().BeTrue(changedNewest.IsFailure ? changedNewest.Error : null);
+        changedNewest.Value.Items.Select(i => i.Id).Should().Equal(related.Id, shadowed.Id);
+        changedNewest.Value.Items[0].LastChangedOn.Should().Be(relatedOn);
+        changedNewest.Value.Items[1].LastChangedOn.Should().NotBeNull()
+            .And.Subject.Should().Match<Instant?>(changed => changed < relatedOn, "the later entry under another type does not count");
+        changedOldest.Value.Items.Select(i => i.Id).Should().Equal(shadowed.Id, related.Id);
+        followedOldest.Value.Items.Select(i => i.Id).Should().Equal(shadowed.Id, related.Id);
     }
 
     [Fact]
@@ -205,6 +254,8 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
     private sealed class EmployeeReadRule(WaydDbContext context, Guid[] readable, Guid[] unhealthy) : IRecordReadRule
     {
         public string OwnerType => EmployeeOwner.Key;
+
+        public string ActivityAggregateType => "Employee";
 
         public Task<IQueryable<RecordFacts>?> Readable(string? search, CancellationToken cancellationToken)
         {

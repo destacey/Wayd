@@ -92,6 +92,31 @@ public sealed class GetMyFollowsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldCountTheRecordsOwnAndRelatedActivity_ButNotAnotherTypeSharingItsId()
+    {
+        // Arrange
+        var shadowed = _gadgets.Add("G-1", "Sprocket");
+        var related = _widgets.Add("W-1", "Lever");
+        SeedFollow(GadgetType, shadowed.Id, 1);
+        SeedFollow(WidgetType, related.Id, 2);
+        _dbContext.ActivityLogs.Add(new ActivityLogEntry(
+            Guid.NewGuid(), "OtherChangedEvent", ActivityCategory.Updated, "Other", "Other", shadowed.Id, EventActor.System, Now, 0, null, "{}"));
+        _dbContext.ActivityLogs.Add(new ActivityLogEntry(
+            Guid.NewGuid(), "OtherChangedEvent", ActivityCategory.Updated, "Other", "Other", Guid.NewGuid(), EventActor.System,
+            Now.Minus(Duration.FromHours(1)), 0, null, "{}",
+            relatedAggregates: [new AggregateReference(FakeRecordReadRule.ActivityType, related.Id)]));
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Items.Select(i => i.Key).Should().Equal("W-1", "G-1");
+        result.Value.Items[0].LastChangedOn.Should().Be(Now.Minus(Duration.FromHours(1)));
+        result.Value.Items[1].LastChangedOn.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Handle_ShouldListRecordsWithoutActivityFirst_ThenLeastRecentlyChanged_WhenAscending()
     {
         // Arrange

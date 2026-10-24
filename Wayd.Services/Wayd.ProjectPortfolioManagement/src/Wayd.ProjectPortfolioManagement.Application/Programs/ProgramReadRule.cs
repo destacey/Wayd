@@ -38,6 +38,9 @@ public sealed class ProgramReadRule(
     public string OwnerType => PpmFollowOwners.Program.Key;
 
     /// <inheritdoc/>
+    public string ActivityAggregateType => "Program";
+
+    /// <inheritdoc/>
     /// <remarks>A search matches the name anywhere, or the key exactly.</remarks>
     public async Task<IQueryable<RecordFacts>?> Readable(string? search, CancellationToken cancellationToken)
     {

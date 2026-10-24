@@ -52940,7 +52940,8 @@ interval. Null when the owner type does not nest. */
     health?: HealthStatus | undefined;
     /** When the caller started following the record. */
     followedOn: Date;
-    /** When the record last changed, from its activity; null when it has no recorded activity. */
+    /** When the record last changed: the newest entry its Activity section lists, its own or one naming it as
+related. Null when it has no recorded activity. */
     lastChangedOn?: Date | undefined;
 }
 

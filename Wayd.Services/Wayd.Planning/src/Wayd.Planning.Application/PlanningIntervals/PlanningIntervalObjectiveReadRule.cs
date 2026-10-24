@@ -37,6 +37,9 @@ public sealed class PlanningIntervalObjectiveReadRule(
     /// <inheritdoc/>
     public string OwnerType => PlanningFollowOwners.PlanningIntervalObjective.Key;
 
+    /// <inheritdoc/>
+    public string ActivityAggregateType => "PlanningIntervalObjective";
+
     /// <summary>Where each objective status sits in its lifecycle. Missed is an outcome of finishing, so Completed.</summary>
     public static LifecycleCategory LifecycleOf(ObjectiveStatus status) => status switch
     {

@@ -80,7 +80,12 @@ public sealed class GetFollowedRecordQueryHandler(
         }
 
         // Newest first, so the entries since following are a prefix of the first page.
-        var activity = await _activityLogReader.Read(row.OwnerId, page: 1, pageSize: ChangeLimit, cancellationToken: cancellationToken);
+        var activity = await _activityLogReader.Read(
+            row.OwnerId,
+            resolved.Value.ReadRule.ActivityAggregateType,
+            page: 1,
+            pageSize: ChangeLimit,
+            cancellationToken: cancellationToken);
         var changes = activity.Items.Where(a => a.Timestamp >= row.FollowedOn).ToList();
 
         return new FollowedRecordDetailDto

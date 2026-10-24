@@ -79,7 +79,7 @@ public sealed class GetFollowedRecordQueryHandlerTests
         detail.People.Should().Equal(new Wayd.Common.Application.Records.RecordPerson("Owner", "Avery Chen", null));
         detail.ChangesSinceFollowed.Should().Equal(after, atFollow);
         detail.HasMoreChanges.Should().BeFalse();
-        _activityLogReader.Verify(r => r.Read(gadget.Id, null, 1, GetFollowedRecordQueryHandler.ChangeLimit, It.IsAny<CancellationToken>()), Times.Once);
+        _activityLogReader.Verify(r => r.Read(gadget.Id, FakeRecordReadRule.ActivityType, 1, GetFollowedRecordQueryHandler.ChangeLimit, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

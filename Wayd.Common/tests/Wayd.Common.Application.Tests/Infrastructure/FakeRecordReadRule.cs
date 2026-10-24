@@ -14,6 +14,11 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
 
     public string OwnerType { get; } = ownerType;
 
+    /// <summary>The aggregate type a test logs this type's activity under.</summary>
+    public const string ActivityType = "Test";
+
+    public string ActivityAggregateType => ActivityType;
+
     /// <summary>Whether the caller holds this type's view permission. When false, nothing is readable.</summary>
     public bool CanView { get; set; } = true;
 

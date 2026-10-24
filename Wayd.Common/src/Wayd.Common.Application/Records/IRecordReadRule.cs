@@ -35,6 +35,13 @@ public interface IRecordReadRule
     string OwnerType { get; }
 
     /// <summary>
+    /// The aggregate type this record's activity is logged under, the same one its own Activity endpoint
+    /// reads. Records of different modules can share an id (a replicated projection keeps its source's id),
+    /// so the activity log is only ever read by id and type together.
+    /// </summary>
+    string ActivityAggregateType { get; }
+
+    /// <summary>
     /// The records of this owner type the current caller may read, optionally narrowed to those matching a
     /// search, or <c>null</c> when they may read none — for example, when they lack the type's view permission.
     /// </summary>

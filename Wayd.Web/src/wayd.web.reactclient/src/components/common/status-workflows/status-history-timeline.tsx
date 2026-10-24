@@ -4,6 +4,7 @@ import { Empty, Flex, Skeleton, Timeline, Typography } from 'antd'
 import dayjs from 'dayjs'
 import { FC } from 'react'
 import { StatusCategory, StatusTransitionDto } from '@/src/services/wayd-api'
+import { formatTimeInStatus } from './time-in-status'
 import WorkflowStatusTag from './workflow-status-tag'
 
 const { Text } = Typography
@@ -39,8 +40,25 @@ const timelineColor = (category: StatusCategory): TimelineColor => {
  */
 const changedByLabel = (entry: StatusTransitionDto): string => {
   if (entry.changedBy) return entry.changedBy.name
-  if (entry.changedByUser) return entry.changedByUser.name ?? entry.changedByUser.userName
+  if (entry.changedByUser)
+    return entry.changedByUser.name ?? entry.changedByUser.userName
   return entry.changedBySystem ? 'System' : 'Unknown'
+}
+
+/**
+ * How long the record stayed in the status this entry moved it into. The current status has no
+ * `leftOn`, and its figure was measured when the history was read.
+ */
+const timeInStatusLabel = (entry: StatusTransitionDto): string => {
+  const duration = formatTimeInStatus(entry.durationSeconds)
+  const label = entry.leftOn
+    ? `${duration} in ${entry.toStatus.name}`
+    : `In ${entry.toStatus.name} for ${duration}`
+  // A record that came back to a status shows the total beside each stay, so the time it has spent
+  // there overall does not have to be added up by hand.
+  return entry.statusVisitCount > 1
+    ? `${label} (${formatTimeInStatus(entry.statusTotalSeconds)} across ${entry.statusVisitCount} stays)`
+    : label
 }
 
 const StatusHistoryTimeline: FC<StatusHistoryTimelineProps> = ({
@@ -82,6 +100,7 @@ const StatusHistoryTimeline: FC<StatusHistoryTimelineProps> = ({
           {dayjs(entry.changedOn).format('MMM D, YYYY h:mm A')} by{' '}
           {changedByLabel(entry)}
         </Text>
+        <Text type="secondary">{timeInStatusLabel(entry)}</Text>
         {entry.reason && <Text>{entry.reason}</Text>}
       </Flex>
     ),

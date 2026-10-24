@@ -12,7 +12,11 @@ import { DatePicker, Flex, Select, Skeleton, Space } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC, useEffect, useState } from 'react'
 import { DeploymentsGrid } from '../deployments/_components'
-import { DeliveryMetricTiles, UnavailableMetrics } from './_components'
+import {
+  DeliveryMetricTiles,
+  TimeInStatusReport,
+  UnavailableMetrics,
+} from './_components'
 
 const { RangePicker } = DatePicker
 
@@ -98,6 +102,11 @@ const DeliveryMetricsPage: FC = () => {
             <UnavailableMetrics unavailable={metrics.unavailable ?? []} />
           </>
         )}
+
+        <TimeInStatusReport
+          from={range[0].toISOString()}
+          to={range[1].toISOString()}
+        />
 
         <DeploymentsGrid
           deployments={deployments ?? []}

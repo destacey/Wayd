@@ -286,6 +286,7 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           tags: (
             <StatusHistoryTag
               status={release.status}
+              enteredOn={release.statusEnteredOn}
               onOpenHistory={() =>
                 router.replace(`?section=${ReleaseSections.StatusHistory}`, {
                   scroll: false,

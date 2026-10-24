@@ -322,6 +322,7 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           tags: (
             <StatusHistoryTag
               status={version.status}
+              enteredOn={version.statusEnteredOn}
               onOpenHistory={() =>
                 router.replace(`?section=${VersionSections.StatusHistory}`, {
                   scroll: false,

@@ -417,6 +417,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Flex gap="small" align="center" wrap>
               <StatusHistoryTag
                 status={product.status}
+                enteredOn={product.statusEnteredOn}
                 onOpenHistory={() =>
                   router.replace(`?section=${ProductSections.StatusHistory}`, {
                     scroll: false,

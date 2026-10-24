@@ -79,6 +79,9 @@ const entry = (
   workflowId,
   actorKind: { id: 0, name: 'User' },
   changedBySystem: false,
+  durationSeconds: 0,
+  statusVisitCount: 1,
+  statusTotalSeconds: 0,
   changedOn: new Date(Date.UTC(2026, 4, sequence + 1, 10)),
 })
 

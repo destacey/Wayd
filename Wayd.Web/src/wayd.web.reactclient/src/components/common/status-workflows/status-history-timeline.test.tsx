@@ -18,6 +18,9 @@ const transition = (
     actorKind: { id: 0, name: 'User' },
     changedBySystem: false,
     changedOn: '2026-04-01T09:00:00Z',
+    durationSeconds: 0,
+    statusVisitCount: 1,
+    statusTotalSeconds: 0,
     ...overrides,
   }) as StatusTransitionDto
 
@@ -44,6 +47,68 @@ describe('StatusHistoryTimeline', () => {
 
     // Assert
     expect(screen.getByText('Nothing recorded.')).toBeInTheDocument()
+  })
+
+  it('reports how long a past status was held', () => {
+    // Arrange — Active from 1 March to 1 June.
+    const transitions = [
+      transition({
+        leftOn: new Date('2026-06-01T00:00:00Z'),
+        durationSeconds: 92 * 24 * 60 * 60,
+      }),
+    ]
+
+    // Act
+    render(
+      <StatusHistoryTimeline transitions={transitions} isLoading={false} />,
+    )
+
+    // Assert
+    expect(screen.getByText('92 days in Active')).toBeInTheDocument()
+  })
+
+  it('reports the current status as still running', () => {
+    // Arrange — no leftOn: the record is still in this status.
+    const transitions = [
+      transition({
+        toStatus: {
+          id: '22222222-2222-2222-2222-222222222222',
+          name: 'Sunset',
+          category: StatusCategory.Active,
+          alias: 0,
+        },
+        durationSeconds: 41 * 24 * 60 * 60 + 3600,
+      }),
+    ]
+
+    // Act
+    render(
+      <StatusHistoryTimeline transitions={transitions} isLoading={false} />,
+    )
+
+    // Assert
+    expect(screen.getByText('In Sunset for 41 days')).toBeInTheDocument()
+  })
+
+  it('totals the stays in a status the record returned to', () => {
+    // Arrange — the second of two stays in Active: 6 days now, 10 days in all.
+    const transitions = [
+      transition({
+        durationSeconds: 6 * 24 * 60 * 60,
+        statusVisitCount: 2,
+        statusTotalSeconds: 10 * 24 * 60 * 60,
+      }),
+    ]
+
+    // Act
+    render(
+      <StatusHistoryTimeline transitions={transitions} isLoading={false} />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText('In Active for 6 days (10 days across 2 stays)'),
+    ).toBeInTheDocument()
   })
 
   it('renders both sides of a transition', () => {

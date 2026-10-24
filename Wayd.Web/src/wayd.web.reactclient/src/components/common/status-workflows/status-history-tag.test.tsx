@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StatusCategory, StatusNavigationDto } from '@/src/services/wayd-api'
 import StatusHistoryTag from './status-history-tag'
@@ -82,5 +82,60 @@ describe('StatusHistoryTag', () => {
     const tooltip = await screen.findByRole('tooltip')
     expect(tooltip).toHaveTextContent('completed successfully')
     expect(tooltip).not.toHaveTextContent('Click to view')
+  })
+
+  it('shows how long the record has been in the status', () => {
+    // Arrange — entered 41 days and a few hours ago.
+    const enteredOn = new Date(Date.now() - (41 * 24 + 5) * 60 * 60 * 1000)
+
+    // Act
+    render(<StatusHistoryTag status={status} enteredOn={enteredOn} />)
+
+    // Assert
+    expect(screen.getByText('for 41 days')).toBeInTheDocument()
+  })
+
+  it('shows the time in status for an instant that arrived as a string', () => {
+    // Arrange — as the API delivers it.
+    const enteredOn = new Date(
+      Date.now() - 3 * 24 * 60 * 60 * 1000,
+    ).toISOString()
+
+    // Act
+    render(<StatusHistoryTag status={status} enteredOn={enteredOn} />)
+
+    // Assert
+    expect(screen.getByText('for 3 days')).toBeInTheDocument()
+  })
+
+  it('shows no time in status when the entry instant is unknown', () => {
+    // Arrange / Act
+    render(<StatusHistoryTag status={status} />)
+
+    // Assert
+    expect(screen.queryByText(/^for /)).not.toBeInTheDocument()
+  })
+
+  it('keeps the time in status current while the page stays open', () => {
+    // Arrange — mounted, then a status entered two hours after the page opened.
+    jest.useFakeTimers()
+    try {
+      const { rerender } = render(
+        <StatusHistoryTag status={status} enteredOn={new Date(Date.now())} />,
+      )
+      jest.advanceTimersByTime(3 * 60 * 60 * 1000)
+      const enteredOn = new Date(Date.now() - 2 * 60 * 60 * 1000)
+
+      // Act
+      rerender(<StatusHistoryTag status={status} enteredOn={enteredOn} />)
+      act(() => {
+        jest.advanceTimersByTime(60_000)
+      })
+
+      // Assert
+      expect(screen.getByText('for 2 hours')).toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 })

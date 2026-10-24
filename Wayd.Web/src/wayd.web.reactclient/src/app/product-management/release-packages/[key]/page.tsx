@@ -282,6 +282,7 @@ const ReleasePackageDetailsPage = (props: {
           tags: (
             <StatusHistoryTag
               status={releasePackage.status}
+              enteredOn={releasePackage.statusEnteredOn}
               onOpenHistory={() =>
                 router.replace(
                   `?section=${ReleasePackageSections.StatusHistory}`,

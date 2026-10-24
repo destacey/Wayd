@@ -134,6 +134,9 @@ describe('WaydWorkflowDiagram', () => {
         workflowId: 'wf-1',
         actorKind: { id: 0, name: 'User' },
         changedBySystem: false,
+        durationSeconds: 0,
+        statusVisitCount: 1,
+        statusTotalSeconds: 0,
         changedOn: new Date('2026-05-01T10:00:00Z'),
       },
       {
@@ -153,6 +156,9 @@ describe('WaydWorkflowDiagram', () => {
         workflowId: 'wf-1',
         actorKind: { id: 0, name: 'User' },
         changedBySystem: false,
+        durationSeconds: 0,
+        statusVisitCount: 1,
+        statusTotalSeconds: 0,
         changedOn: new Date('2026-05-02T10:00:00Z'),
       },
     ])

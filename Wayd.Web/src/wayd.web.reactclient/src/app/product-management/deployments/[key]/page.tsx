@@ -229,6 +229,7 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           tags: (
             <StatusHistoryTag
               status={deployment.status}
+              enteredOn={deployment.statusEnteredOn}
               onOpenHistory={() =>
                 router.replace(`?section=${DeploymentSections.StatusHistory}`, {
                   scroll: false,

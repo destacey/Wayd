@@ -521,6 +521,8 @@ Migrates every record of an owner type onto the target workflow. Records move fi
 
 Every status change, with from/to, actor, timestamp and sequence. Written by BaseDbContext draining the aggregate during SaveChanges. OwnerType + RecordId identifies the record; RecordId is deliberately not a foreign key, so nothing cascades to it: every Product Management delete removes the record's transitions itself in the same save (StatusHistoryRemoval.Stage).
 
+Time in status is calculated from these rows, never stored. Each transition starts a stay in its To status that ends at the record's next transition, or at now (IDateTimeProvider) for the current status; calendar time only. Status history entries carry durationSeconds and leftOn, plus statusVisitCount and statusTotalSeconds (every stay in that status), and each Product Management record read carries statusEnteredOn (its latest transition's ChangedOn). The per-owner-type report (GET {records}/time-in-status?from&to) counts stays that ended inside the inclusive window and gives each status's visit count, average and median, listing statuses from before a workflow reassignment under their frozen names. Stays that began or ended with a reassignment (a change of WorkflowId between consecutive transitions) are excluded, because the reassignment set their length.
+
 ---
 
 ## Product Management Domain

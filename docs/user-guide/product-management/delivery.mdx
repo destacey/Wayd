@@ -172,6 +172,12 @@ happened, **who** made it, and a **reason** where one was given, as on a withdra
 Each entry reports the status names **as they were at the time**, so renaming a status does not
 rewrite what past entries read as.
 
+Each entry also says **how long the version stayed** in the status it moved into — "9 days in Ready" —
+measured to the next change. The newest entry is still running and reads "In Released for 41 days".
+The status tag in the header carries the same figure for the current status. Times are calendar time,
+not working days, and a version that returns to a status gets a separate entry for each stay, with the
+total beside each: "In Ready for 6 days (10 days across 2 stays)".
+
 Switch the section to **Diagram** to see the version's workflow drawn, with its current status and the
 moves it has made highlighted, and each move labelled with the action that makes it. Releases,
 release packages and deployments have the same switch. See
@@ -435,6 +441,9 @@ A **deployment** is one version or package reaching one environment, with a star
 | Failed | Did not reach its environment |
 | Rolled Back | Reached its environment and was reverted |
 
+Status history, including how long the deployment spent in each status, works as it does
+[for a version](#version-status-history).
+
 ### Starting a Deployment
 
 **Start Deployment** records a deployment beginning. A deployment carries **either a version or a
@@ -592,6 +601,32 @@ That is the right answer for the total, but it means a product that ships exclus
 shows no deployments at all when the measures are scoped to it. Read the unscoped figures for an
 organization that delivers mainly through packages.
 
+### Time in Status
+
+The **Time in status** table shows how long versions, releases, release packages, deployments or
+products stay in each status, chosen with the selector beside it. For each status of the current
+workflow, in workflow order, it gives the number of **stays** that ended in the window and their
+**average** and **median** length.
+
+- A stay counts when the record **left** the status inside the window, even if it entered before the
+  window opened. A stay still running has no final length, so it is not counted — which is why a
+  terminal status such as Released usually shows no figures: records rarely leave it.
+- A record that returns to a status counts once per stay.
+- A stay that began or ended with a [workflow reassignment](../settings/status-workflows.mdx#changing-which-workflow-is-used)
+  is not counted. A reassignment ends every open stay at the same moment and starts the next one
+  there, so those lengths measure the reassignment rather than the status.
+- A status from before a [workflow reassignment](../settings/status-workflows.mdx#changing-which-workflow-is-used), or since removed,
+  is listed after the current statuses under the name it had then, marked **(earlier)**.
+- A status with no stays ending in the window shows **—** for its average and median.
+- Times are calendar time, not working days.
+- The product filter does not apply to this table: it covers every record of the chosen type.
+- The selector lists only the record types you can view: versions, packages and deployments need
+  `Permissions.Delivery.View`, releases `Permissions.Releases.View`, and products
+  `Permissions.Products.View`. With none of them the table is not shown.
+
+Read the median alongside the average: one version that sat in Ready for months pulls the average up
+while the median stays put.
+
 ### Lead Time for Changes — not yet available
 
 Needs a link from a deployment back to the change it carried, such as a commit or a work item.
@@ -707,6 +742,9 @@ drafting an announcement is not the person recording that the pipeline ran.
 | Releases | `Permissions.Releases.*` | View, Create, Update, Delete, [Import](./bulk-import.mdx#releases-import) |
 | Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update, Delete, [Import](./bulk-import.mdx#environments-import) |
 | Delivery metrics | `Permissions.DeliveryMetrics.*` | View |
+
+The [Time in Status](#time-in-status) table on the metrics page also needs view access to the record
+type it shows.
 
 **Delete is its own grant**, separate from `Update`, because it erases the record and its status
 history. The terminal actions — withdrawing, retiring, recording an outcome — are all `Update` and keep

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+      <IsPackable>false</IsPackable>
+      <IsTestProject>true</IsTestProject>
+      <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <PackageReference Include="Bogus" />
+      <PackageReference Include="FluentAssertions" />
+      <PackageReference Include="NodaTime" />
+      <PackageReference Include="NodaTime.Testing" />
+      <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Wayd.Common\tests\Wayd.Tests.Shared\Wayd.Tests.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Wayd.DemandManagement.Domain\Wayd.DemandManagement.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

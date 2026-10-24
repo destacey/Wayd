@@ -80,6 +80,7 @@ public partial class EventCoverageTests
 
         // Demand Management
         typeof(IntakeDesk),
+        typeof(IntakeRequest),
 
         // Organization
         typeof(EmployeeCapacity),

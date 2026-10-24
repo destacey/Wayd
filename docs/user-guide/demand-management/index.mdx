@@ -27,17 +27,13 @@ graph TD
     subgraph "Work Management"
         WI["Work Item"]
     end
-    subgraph "Strategic Management"
-        ST["Strategic Theme"]
-    end
 
     Req -->|is on| Desk
-    ST -.->|tags| Req
     Req -.->|may become| Proj
     Req -.->|may become| WI
 ```
 
-A request can be tagged with [strategic themes](../strategic-management/index.mdx) to show what it supports. Recording what a request became, as a new project, scope added to an existing project or work items that deliver it, comes later.
+Recording what a request became, as a new project, scope added to an existing project or work items that deliver it, comes later.
 
 ## Key Concepts
 
@@ -50,10 +46,8 @@ An **intake request**, shown as a **Request**, is one ask: a business need, cust
 - **Requester** — The employee the request is for, who may differ from the person who entered it
 - **Desk** — Where it is reviewed. Every request is on exactly one desk
 - **Channel** — Where it came from
-- **Value statement** — The requester's own account of why it matters
-- **Product** — Optional. An IT, internal tooling or data request names none
+- **Expected benefits** — What gets better, and for whom, if the request is delivered. Optional
 - **Need-by date** — Optional, and always with its basis (see below)
-- **Strategic themes** — Optional
 - **Assigned reviewer** — Optional. Ownership, never an approver
 
 :::warning[Titles are visible beyond the desk]
@@ -88,8 +82,8 @@ A *fixed* date moves only if the world moves. A *chosen* date has an owner, so i
 
 A request is read in three tiers:
 
-- **Summary** — Number, title, desk, status, requester, product, tags, need-by date and basis
-- **Substance** — Description, value statement, evidence, replies, score and ratings
+- **Summary** — Number, title, desk, status, requester, channel, assigned reviewer, tags, and the need-by date with its basis and reference
+- **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, evidence, replies, score and ratings
 - **Internal** — Internal notes and triage reasoning, for reviewers only
 
 Each desk sets how much of that reaches the rest of the company:

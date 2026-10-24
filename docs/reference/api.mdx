@@ -149,6 +149,16 @@ x-api-key: your-personal-access-token
 
 PATs inherit the permissions of the user who created them. See [Your Profile](../getting-started/your-profile.mdx#personal-access-tokens) for details on creating and managing tokens.
 
+## Rate limits
+
+Requests are rate limited, and a refused request gets `429 Too Many Requests`:
+
+- **Per user.** Every signed-in user has one budget across the whole API, shared by their session, their personal access tokens and their MCP connections. By default a user can make 200 requests at once, then 5 per second. Creating more tokens does not raise it.
+- **Per address**, on the endpoints anyone can call before signing in: login, token exchange, refresh, the provider list, first-run setup, and the OAuth authorization and token endpoints MCP clients use.
+- **CSV imports**: at most two submissions in flight per user.
+
+A refusal carries `Retry-After` with the seconds to wait, except an import refused for having too many in flight, which can go again once one of the others finishes. Under `/api` the body is problem details whose `detail` says how long to wait; `POST /oauth/token` answers with OAuth's error object (`temporarily_unavailable`), and `GET /oauth/authorize` with a page. Wait and send the request again: a refused request was never handled, so resending it repeats nothing. An operator can change the limits; see [Rate limits](../contributing/configuration.mdx#rate-limits).
+
 ## API Areas
 
 | Area | Base Route | Description |

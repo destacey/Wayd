@@ -160,8 +160,13 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         // Every test shares one caller address, so the production limits would throttle the suite.
         // A test of the limits themselves lowers them on a host of its own.
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-            new[] { "OAuthAuthorize", "OAuthToken", "AuthSignIn", "AuthRefresh", "AuthProviders", "AuthSetup" }
-                .Select(limit => new KeyValuePair<string, string?>($"RateLimitSettings:{limit}:PermitLimit", "100000"))));
+            new[] { "OAuthAuthorize", "OAuthToken", "AuthSignIn", "AuthRefresh", "AuthProviders", "AuthSetup", "Imports" }
+                .Select(limit => new KeyValuePair<string, string?>($"RateLimitSettings:{limit}:PermitLimit", "100000"))
+                .Concat(
+                [
+                    new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokenLimit", "100000"),
+                    new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokensPerPeriod", "100000"),
+                ])));
     }
 
     /// <summary>

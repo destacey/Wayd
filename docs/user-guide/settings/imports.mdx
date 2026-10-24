@@ -201,6 +201,7 @@ kind it is.
 | `ImportId` | Optional. At most 128 characters, trimmed, and unique within the file compared **case-insensitively** (`abc` and `ABC` collide). Blank uses the row's position, counting from one. |
 | `submissionGroupId` | Optional query parameter, any GUID you choose, recorded on the run. An empty GUID is rejected rather than filed as a group. |
 | `validateOnly` | Optional query parameter on every import endpoint. `true` submits the file as a [preflight](#checking-a-file-first). A preflight is capped at 10,000 rows wherever the import itself accepts more (employees), because it holds its database locks for the whole file instead of releasing them chunk by chunk the way a real run does; product dependencies are cheap enough per row to check 50,000 at a time. `POST /api/imports/{id}/apply` imports a finished preflight's rows for real and answers the same way a submission does. |
+| Files at once | Two per person. A third file sent while two of yours are still being submitted is refused with 429; send it again once one of them has answered. The web app sends one file at a time, so this affects only scripts and agents. |
 | The post's wait | 5 seconds by default (`Imports:ResponseWaitSeconds`). A run that finishes within it comes back `200`; otherwise `202` with the run still queued or running and a `Location` to follow. |
 
 **While a run is applied**

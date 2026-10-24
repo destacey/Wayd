@@ -217,9 +217,9 @@ public static class ConfigureServices
             //.UseHttpsRedirection() // TODO: we don't currently need this because we are using docker.  Add a config setting to enable this when needed.
             .UseRouting()
             .UseCorsPolicy()
-            .UseRateLimiting()
             .UseAuthentication()
             .UseAuthorization()
+            .UseRateLimiting()
             .UseUserActivityTracking()
             .UseRequestLogging(config) // TODO: we currently don't log 403 logs because it is lower in the middleware pipeline. It should be above UseRouting, but then we don't get user information.
             .UseHangfireDashboard(config);
@@ -228,7 +228,7 @@ public static class ConfigureServices
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        app.MapControllers().RequireAuthorization();
+        app.MapControllers().RequireAuthorization().LimitImportSubmissions();
         app.MapHub<PlanningPokerHub>("/hubs/planning-poker");
         app.MapHub<StoryMapHub>("/hubs/story-maps");
 

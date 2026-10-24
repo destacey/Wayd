@@ -66,14 +66,32 @@ const detail = (
   ...overrides,
 })
 
+const returns = (data: FollowedRecordDetailDto | undefined, error?: unknown) =>
+  mockUseGetFollowedRecordQuery.mockReturnValue({
+    data,
+    isLoading: false,
+    isError: error !== undefined,
+    error,
+    refetch: jest.fn(),
+  })
+
+const renderDetail = (
+  props: Partial<React.ComponentProps<typeof FollowedRecordDetail>> = {},
+) =>
+  render(
+    <FollowedRecordDetail
+      ownerType="ppm.project"
+      ownerId="p-1"
+      typeName="Project"
+      onUnfollowed={jest.fn()}
+      {...props}
+    />,
+  )
+
 describe('FollowedRecordDetail', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockUseGetFollowedRecordQuery.mockReturnValue({
-      data: detail(),
-      isLoading: false,
-      isError: false,
-    })
+    returns(detail())
     mockUseGetProjectQuery.mockReturnValue({
       data: { stages: [{ name: 'Plan' }, { name: 'Build' }] },
       isLoading: false,
@@ -82,15 +100,10 @@ describe('FollowedRecordDetail', () => {
   })
 
   it('shows where the record stands, who owns it and what has happened since following it', () => {
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        onUnfollowed={jest.fn()}
-      />,
-    )
+    // Arrange & Act
+    renderDetail()
 
+    // Assert
     expect(
       screen.getByRole('heading', { name: 'Compliance dashboard' }),
     ).toBeInTheDocument()
@@ -107,15 +120,10 @@ describe('FollowedRecordDetail', () => {
   })
 
   it('shows a project its stages, loaded from the project itself', () => {
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        onUnfollowed={jest.fn()}
-      />,
-    )
+    // Arrange & Act
+    renderDetail()
 
+    // Assert
     expect(mockUseGetProjectQuery).toHaveBeenCalledWith('COMPDB')
     expect(screen.getByTestId('stage-timeline')).toHaveTextContent(
       'Plan, Build',
@@ -124,8 +132,9 @@ describe('FollowedRecordDetail', () => {
   })
 
   it('shows an objective its progress, and asks for no project', () => {
-    mockUseGetFollowedRecordQuery.mockReturnValue({
-      data: detail({
+    // Arrange
+    returns(
+      detail({
         record: {
           ...detail().record,
           ownerType: 'planning.planning-interval-objective',
@@ -135,19 +144,16 @@ describe('FollowedRecordDetail', () => {
         },
         progress: 40,
       }),
-      isLoading: false,
-      isError: false,
-    })
-
-    render(
-      <FollowedRecordDetail
-        ownerType="planning.planning-interval-objective"
-        ownerId="o-1"
-        typeName="Planning Interval Objective"
-        onUnfollowed={jest.fn()}
-      />,
     )
 
+    // Act
+    renderDetail({
+      ownerType: 'planning.planning-interval-objective',
+      ownerId: 'o-1',
+      typeName: 'PI Objective',
+    })
+
+    // Assert
     expect(screen.getByRole('progressbar')).toHaveAttribute(
       'aria-valuenow',
       '40',
@@ -156,59 +162,58 @@ describe('FollowedRecordDetail', () => {
   })
 
   it('shows no progress for a record that tracks none, which the API sends as null', () => {
-    mockUseGetFollowedRecordQuery.mockReturnValue({
-      data: detail({
+    // Arrange
+    returns(
+      detail({
         record: { ...detail().record, ownerType: 'ppm.program', key: '7' },
         progress: null as unknown as undefined,
       }),
-      isLoading: false,
-      isError: false,
-    })
-
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.program"
-        ownerId="pr-1"
-        typeName="Program"
-        onUnfollowed={jest.fn()}
-      />,
     )
 
+    // Act
+    renderDetail({
+      ownerType: 'ppm.program',
+      ownerId: 'pr-1',
+      typeName: 'Program',
+    })
+
+    // Assert
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(screen.queryByText('Progress')).not.toBeInTheDocument()
   })
 
   it('opens the record from its name, with no separate button beside the list', () => {
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        onUnfollowed={jest.fn()}
-      />,
-    )
+    // Arrange & Act
+    renderDetail()
 
+    // Assert
     expect(screen.getAllByRole('link')).toHaveLength(1)
     expect(
       screen.getByRole('link', { name: 'Compliance dashboard' }),
     ).toHaveAttribute('href', '/ppm/projects/COMPDB')
     expect(
-      screen.queryByRole('button', { name: 'Open Project' }),
+      screen.queryByRole('link', { name: 'Open Project' }),
     ).not.toBeInTheDocument()
   })
 
-  it('keeps full-width Open and Unfollow buttons pinned on the phone view', () => {
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        asView
-        onBack={jest.fn()}
-        onUnfollowed={jest.fn()}
-      />,
-    )
+  it('links to all the activity when there is more than it shows', () => {
+    // Arrange
+    returns(detail({ hasMoreChanges: true }))
 
+    // Act
+    renderDetail()
+
+    // Assert
+    expect(
+      screen.getByRole('link', { name: 'See all activity' }),
+    ).toHaveAttribute('href', '/ppm/projects/COMPDB')
+  })
+
+  it('pins Open and Unfollow on the phone view, Open as a real link', () => {
+    // Arrange & Act
+    renderDetail({ asView: true, onBack: jest.fn() })
+
+    // Assert
     expect(screen.getByRole('link', { name: 'Open Project' })).toHaveAttribute(
       'href',
       '/ppm/projects/COMPDB',
@@ -217,20 +222,16 @@ describe('FollowedRecordDetail', () => {
   })
 
   it('unfollows and moves on', async () => {
+    // Arrange
     const onUnfollowed = jest.fn()
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        onUnfollowed={onUnfollowed}
-      />,
-    )
+    renderDetail({ onUnfollowed })
 
+    // Act
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Unfollow' }))
     })
 
+    // Assert
     expect(mockUnfollow).toHaveBeenCalledWith({
       ownerType: 'ppm.project',
       ownerId: 'p-1',
@@ -239,61 +240,70 @@ describe('FollowedRecordDetail', () => {
   })
 
   it('explains a failed unfollow and stays', async () => {
+    // Arrange
     mockUnfollow.mockResolvedValue({ error: { status: 400, detail: 'Nope.' } })
     const onUnfollowed = jest.fn()
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        onUnfollowed={onUnfollowed}
-      />,
-    )
+    renderDetail({ onUnfollowed })
 
+    // Act
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Unfollow' }))
     })
 
+    // Assert
     expect(mockMessage.error).toHaveBeenCalledWith('Nope.')
     expect(onUnfollowed).not.toHaveBeenCalled()
   })
 
-  it('offers a way back when shown as its own view', () => {
-    const onBack = jest.fn()
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        asView
-        onBack={onBack}
-        onUnfollowed={jest.fn()}
-      />,
-    )
+  it('moves focus to the record when asked to', () => {
+    // Arrange & Act
+    renderDetail({ autoFocus: true })
 
+    // Assert
+    expect(
+      screen.getByRole('link', { name: 'Compliance dashboard' }),
+    ).toHaveFocus()
+  })
+
+  it('offers a way back when shown as its own view', () => {
+    // Arrange
+    const onBack = jest.fn()
+    renderDetail({ asView: true, onBack })
+
+    // Act
     fireEvent.click(screen.getByRole('button', { name: /Back to the list/ }))
 
+    // Assert
     expect(onBack).toHaveBeenCalled()
   })
 
   it('says so when the record has left the list', () => {
-    mockUseGetFollowedRecordQuery.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: true,
-    })
+    // Arrange
+    returns(undefined, { status: 404 })
 
-    render(
-      <FollowedRecordDetail
-        ownerType="ppm.project"
-        ownerId="p-1"
-        typeName="Project"
-        onUnfollowed={jest.fn()}
-      />,
-    )
+    // Act
+    renderDetail()
 
+    // Assert
     expect(
       screen.getByText('This record is no longer in your list.'),
+    ).toBeInTheDocument()
+  })
+
+  it('reports a failure to load as a failure, with a retry, not as a record that has gone', () => {
+    // Arrange
+    returns(undefined, { status: 500 })
+
+    // Act
+    renderDetail()
+
+    // Assert
+    expect(screen.getByText('Could not load this record.')).toBeInTheDocument()
+    expect(
+      screen.queryByText('This record is no longer in your list.'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
     ).toBeInTheDocument()
   })
 })

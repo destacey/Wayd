@@ -1,11 +1,12 @@
 'use client'
+'use no memo'
 
 import {
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from '@ant-design/icons'
 import { Alert, Badge, Button, Input, Select, Space, Spin, Tooltip } from 'antd'
-import { useWindowVirtualizer } from '@tanstack/react-virtual'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LifecycleStatusTag } from '@/src/components/common'
 import {
@@ -13,13 +14,9 @@ import {
   FollowSort,
   SortDirection,
 } from '@/src/services/wayd-api'
+import { findScrollParent } from '@/src/utils/scroll-parent'
 import styles from '../following.module.css'
-import {
-  healthBadgeStatus,
-  healthLabel,
-  recordId,
-  typeLabel,
-} from './following-filters'
+import { healthBadgeStatus, healthLabel, recordId } from './following-filters'
 import { formatTimeAgo } from './time-ago'
 
 export interface FollowedRecordsListProps {
@@ -36,37 +33,48 @@ export interface FollowedRecordsListProps {
   onSortChange: (sort: FollowSort) => void
   direction: SortDirection
   onDirectionChange: (direction: SortDirection) => void
+  /** What to call a record's kind, such as "Project". */
+  typeName: (ownerType: string) => string
   selectedId: string | undefined
   onSelect: (record: FollowedRecordDto) => void
 }
 
 const RowHeight = 64
 
-/** When fewer than this many loaded rows remain below the window, the next page loads. */
+/** When fewer than this many loaded rows remain below the view, the next page loads. */
 const LoadAhead = 10
+
+/**
+ * The viewport assumed before the scroll container is measured, so the first
+ * rows render on the first paint (and in tests, where nothing has a size).
+ */
+const InitialRect = { width: 0, height: 800 }
 
 interface RowProps {
   record: FollowedRecordDto
+  typeName: string
   selected: boolean
   onSelect: (record: FollowedRecordDto) => void
 }
 
-const FollowedRecordRow = ({ record, selected, onSelect }: RowProps) => (
+const FollowedRecordRow = ({
+  record,
+  typeName,
+  selected,
+  onSelect,
+}: RowProps) => (
   <button
     type="button"
-    role="option"
-    aria-selected={selected}
+    aria-current={selected || undefined}
     className={`${styles.row} ${selected ? styles.rowSelected : ''}`}
     onClick={() => onSelect(record)}
   >
-    <Badge
-      status={healthBadgeStatus(record.health)}
-      aria-label={healthLabel(record.health)}
-    />
+    <Badge status={healthBadgeStatus(record.health)} />
+    <span className={styles.visuallyHidden}>{healthLabel(record.health)}.</span>
     <span className={styles.rowBody}>
       <span className={styles.rowName}>{record.name}</span>
       <span className={styles.rowMeta}>
-        <span className={styles.rowType}>{typeLabel(record.ownerType)}</span>
+        <span className={styles.rowType}>{typeName}</span>
         {' · '}
         {record.key}
         {record.parentName ? ` · ${record.parentName}` : ''}
@@ -90,9 +98,9 @@ const FollowedRecordRow = ({ record, selected, onSelect }: RowProps) => (
  * The followed records, one row each. Selecting a row is the only thing a row
  * does; what can be done with a record lives in its detail.
  *
- * Virtualised against the window rather than a fixed-height box, so the list
- * scrolls with the page on every screen size, and the next page loads as the
- * end comes into view.
+ * Virtualised against the element the page scrolls in — the app shell's
+ * content area, not the window — so the list scrolls with the page on every
+ * screen size, and the next page loads as the end comes into view.
  */
 const FollowedRecordsList = ({
   records,
@@ -108,53 +116,83 @@ const FollowedRecordsList = ({
   onSortChange,
   direction,
   onDirectionChange,
+  typeName,
   selectedId,
   onSelect,
 }: FollowedRecordsListProps) => {
+  const rootRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  // Where the list starts on the page, which the window virtualizer needs to
-  // know which rows are in view. Measured after layout, and again on resize,
-  // since the header above the list wraps differently at each width.
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
+  // Where the list starts within the scroll container's content, which the
+  // virtualizer needs to know which rows are in view. Re-measured whenever the
+  // content resizes, since what sits above the list changes height with the
+  // width, the filter row and the counts.
   const [scrollMargin, setScrollMargin] = useState(0)
   const hasRecords = records.length > 0
   const descending = direction === SortDirection.Descending
 
   useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const container = findScrollParent(root)
+    setScrollElement(container)
+    if (!container) return
+
     const measure = () => {
-      if (listRef.current) {
-        setScrollMargin(
-          listRef.current.getBoundingClientRect().top + window.scrollY,
-        )
-      }
+      if (!listRef.current) return
+      const top =
+        listRef.current.getBoundingClientRect().top -
+        container.getBoundingClientRect().top +
+        container.scrollTop
+      setScrollMargin((current) => (current === top ? current : top))
     }
     measure()
+
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? undefined
+        : new ResizeObserver(measure)
+    observer?.observe(container.firstElementChild ?? container)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
   }, [hasRecords])
 
-  const virtualizer = useWindowVirtualizer({
+  // eslint-disable-next-line react-hooks/incompatible-library -- the rule flags TanStack Virtual as compiler-incompatible; this component opts out of the compiler with 'use no memo', so there is no cached instance to go stale
+  const virtualizer = useVirtualizer({
     count: records.length,
+    getScrollElement: () => scrollElement,
     estimateSize: () => RowHeight,
     overscan: 8,
     scrollMargin,
+    initialRect: InitialRect,
   })
 
   const items = virtualizer.getVirtualItems()
   const lastIndex = items.length > 0 ? items[items.length - 1].index : -1
 
+  // Not after a failure: retrying on every render would loop. The footer offers
+  // a retry instead.
   useEffect(() => {
-    if (hasMore && !isLoadingMore && lastIndex >= records.length - LoadAhead) {
+    if (
+      hasMore &&
+      !isLoadingMore &&
+      !isError &&
+      lastIndex >= records.length - LoadAhead
+    ) {
       onLoadMore()
     }
-  }, [hasMore, isLoadingMore, lastIndex, records.length, onLoadMore])
+  }, [hasMore, isLoadingMore, isError, lastIndex, records.length, onLoadMore])
 
   return (
-    <div>
+    <div ref={rootRef}>
       <div className={styles.listHeader}>
         <Input.Search
           allowClear
           aria-label="Filter by name or key"
-          placeholder={`Filter these ${totalCount}`}
+          placeholder="Filter by name or key"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
         />
@@ -195,16 +233,16 @@ const FollowedRecordsList = ({
           </Tooltip>
         </Space.Compact>
       </div>
-      {isError ? (
-        <Alert type="error" title="Could not load what you follow." />
-      ) : isLoading ? (
+      {isLoading ? (
         <Spin style={{ display: 'block', padding: 24 }} />
-      ) : records.length === 0 ? (
+      ) : isError && !hasRecords ? (
+        <Alert type="error" title="Could not load what you follow." />
+      ) : !hasRecords ? (
         <div className={styles.listFooter}>Nothing matches.</div>
       ) : (
         <div
           ref={listRef}
-          role="listbox"
+          role="list"
           aria-label="Records you follow"
           style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
         >
@@ -213,6 +251,9 @@ const FollowedRecordsList = ({
             return (
               <div
                 key={recordId(record)}
+                role="listitem"
+                aria-setsize={totalCount}
+                aria-posinset={item.index + 1}
                 data-index={item.index}
                 ref={virtualizer.measureElement}
                 style={{
@@ -225,6 +266,7 @@ const FollowedRecordsList = ({
               >
                 <FollowedRecordRow
                   record={record}
+                  typeName={typeName(record.ownerType)}
                   selected={recordId(record) === selectedId}
                   onSelect={onSelect}
                 />
@@ -233,11 +275,22 @@ const FollowedRecordsList = ({
           })}
         </div>
       )}
-      <div className={styles.listFooter}>
-        {isLoadingMore
-          ? 'Loading more…'
-          : `${records.length} of ${totalCount} shown`}
-      </div>
+      {hasRecords ? (
+        <div className={styles.listFooter} aria-live="polite">
+          {isLoadingMore ? (
+            'Loading more…'
+          ) : isError ? (
+            <>
+              Could not load more.{' '}
+              <Button type="link" size="small" onClick={onLoadMore}>
+                Try again
+              </Button>
+            </>
+          ) : (
+            `${records.length} of ${totalCount} shown`
+          )}
+        </div>
+      ) : null}
     </div>
   )
 }

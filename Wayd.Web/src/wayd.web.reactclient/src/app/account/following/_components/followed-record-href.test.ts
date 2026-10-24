@@ -23,12 +23,14 @@ describe('followedRecordHref', () => {
       '/planning/planning-intervals/26/objectives/7',
     ],
   ])('links a %s to its own page', (ownerType, key, parentKey, expected) => {
+    // Act & Assert
     expect(followedRecordHref(record({ ownerType, key, parentKey }))).toBe(
       expected,
     )
   })
 
   it('gives no link for an objective without its planning interval', () => {
+    // Act & Assert
     expect(
       followedRecordHref(
         record({
@@ -41,6 +43,7 @@ describe('followedRecordHref', () => {
   })
 
   it('gives no link for an owner type the client has no page for', () => {
+    // Act & Assert
     expect(
       followedRecordHref(record({ ownerType: 'demand.intake-request' })),
     ).toBeNull()

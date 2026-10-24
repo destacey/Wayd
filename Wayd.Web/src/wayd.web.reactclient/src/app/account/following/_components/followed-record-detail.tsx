@@ -14,6 +14,8 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import { ActivityLogTimeline } from '@/src/components/common/activities'
 import { LifecycleStatusTag, PersonAvatar } from '@/src/components/common'
@@ -26,7 +28,7 @@ import {
   useUnfollowMutation,
 } from '@/src/store/features/common/follows-api'
 import { useGetProjectQuery } from '@/src/store/features/ppm/projects-api'
-import { formatCalendarDate } from '@/src/utils'
+import { formatCalendarDate, toCalendarDate } from '@/src/utils/calendar-date'
 import { toApiError } from '@/src/utils/problem-details'
 import styles from '../following.module.css'
 import { followedRecordHref } from './followed-record-href'
@@ -43,6 +45,8 @@ export interface FollowedRecordDetailProps {
   /** Shown full-screen with a back control and a pinned action bar. */
   asView?: boolean
   onBack?: () => void
+  /** Moves keyboard focus to the record's name once it loads. */
+  autoFocus?: boolean
   /** Called once the record is unfollowed, so the page can move on. */
   onUnfollowed: () => void
 }
@@ -96,13 +100,29 @@ const FollowedRecordDetail = ({
   ownerId,
   typeName,
   asView = false,
+  autoFocus = false,
   onBack,
   onUnfollowed,
 }: FollowedRecordDetailProps) => {
   const messageApi = useMessage()
   const target = { ownerType: ownerType as FollowOwnerType, ownerId }
-  const { data: detail, isLoading, isError } = useGetFollowedRecordQuery(target)
+  const router = useRouter()
+  const {
+    data: detail,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetFollowedRecordQuery(target)
   const [unfollow, { isLoading: isUnfollowing }] = useUnfollowMutation()
+  const titleLinkRef = useRef<HTMLAnchorElement>(null)
+  const hasDetail = !!detail
+
+  // After an unfollow moves the pane to the next record, carry keyboard focus
+  // there rather than dropping it on the page.
+  useEffect(() => {
+    if (autoFocus && hasDetail) titleLinkRef.current?.focus()
+  }, [autoFocus, hasDetail])
 
   const onUnfollow = async () => {
     const response = await unfollow(target)
@@ -133,15 +153,31 @@ const FollowedRecordDetail = ({
     )
   }
 
+  // The API answers 404 for a record that is no longer followed or readable;
+  // anything else is a failure to load, not a record that has gone.
+  const isGone =
+    !isError || (error !== undefined && toApiError(error).status === 404)
   if (isError || !detail) {
     return (
       <div className={styles.detailSection}>
         {back}
-        <Alert
-          type="info"
-          title="This record is no longer in your list."
-          description="You may have stopped following it, or you can no longer see it."
-        />
+        {isGone ? (
+          <Alert
+            type="info"
+            title="This record is no longer in your list."
+            description="You may have stopped following it, or you can no longer see it."
+          />
+        ) : (
+          <Alert
+            type="error"
+            title="Could not load this record."
+            action={
+              <Button size="small" onClick={() => refetch()}>
+                Try again
+              </Button>
+            }
+          />
+        )}
       </div>
     )
   }
@@ -176,7 +212,7 @@ const FollowedRecordDetail = ({
         </div>
         <Title level={4} style={{ margin: '4px 0 8px' }}>
           {href ? (
-            <Link href={href} className={styles.titleLink}>
+            <Link href={href} ref={titleLinkRef} className={styles.titleLink}>
               {record.name}
             </Link>
           ) : (
@@ -235,7 +271,7 @@ const FollowedRecordDetail = ({
         )}
         <Fact label="Dates">{dateRange(detail)}</Fact>
         <Fact label="Following since">
-          {dayjs(record.followedOn).format('D MMM YYYY')}
+          {formatCalendarDate(toCalendarDate(dayjs(record.followedOn)))}
         </Fact>
         <Fact label="Last change">
           {record.lastChangedOn
@@ -258,20 +294,28 @@ const FollowedRecordDetail = ({
           <Text type="secondary">Nothing yet.</Text>
         )}
         {detail.hasMoreChanges && href ? (
-          <Link href={href}>
-            See all activity on the {typeName.toLowerCase()}
-          </Link>
+          <Link href={href}>See all activity</Link>
         ) : null}
       </div>
 
       {asView ? (
         <div className={styles.stickyActions}>
           {href ? (
-            <Link href={href}>
-              <Button type="primary" block>
-                Open {typeName}
-              </Button>
-            </Link>
+            // A real link, so it opens in a new tab like any other; a plain
+            // click still navigates within the app.
+            <Button
+              type="primary"
+              block
+              href={href}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
+                  return
+                e.preventDefault()
+                router.push(href)
+              }}
+            >
+              Open {typeName}
+            </Button>
           ) : null}
           <Button danger block loading={isUnfollowing} onClick={onUnfollow}>
             Unfollow

@@ -17,8 +17,10 @@ const counts: FollowCountsDto = {
 
 describe('FollowingRail', () => {
   it('lists every type and view with its count', () => {
+    // Arrange & Act
     render(<FollowingRail counts={counts} filter={{}} onChange={jest.fn()} />)
 
+    // Assert
     expect(
       screen.getByRole('button', { name: 'Everything 47' }),
     ).toHaveAttribute('aria-pressed', 'true')
@@ -40,6 +42,7 @@ describe('FollowingRail', () => {
   })
 
   it('selects a type on its own, clearing any view', () => {
+    // Arrange
     const onChange = jest.fn()
     render(
       <FollowingRail
@@ -49,12 +52,15 @@ describe('FollowingRail', () => {
       />,
     )
 
+    // Act
     fireEvent.click(screen.getByRole('button', { name: 'Project 28' }))
 
+    // Assert
     expect(onChange).toHaveBeenCalledWith({ ownerType: 'ppm.project' })
   })
 
   it('selects a view on its own, clearing any type', () => {
+    // Arrange
     const onChange = jest.fn()
     render(
       <FollowingRail
@@ -64,12 +70,15 @@ describe('FollowingRail', () => {
       />,
     )
 
+    // Act
     fireEvent.click(screen.getByRole('button', { name: 'Health is red 2' }))
 
+    // Assert
     expect(onChange).toHaveBeenCalledWith({ view: FollowView.Unhealthy })
   })
 
   it('marks only the selected view, not the type underneath it', () => {
+    // Arrange & Act
     render(
       <FollowingRail
         counts={counts}
@@ -78,6 +87,7 @@ describe('FollowingRail', () => {
       />,
     )
 
+    // Assert
     expect(
       screen.getByRole('button', { name: 'Closed or done 9' }),
     ).toHaveAttribute('aria-pressed', 'true')

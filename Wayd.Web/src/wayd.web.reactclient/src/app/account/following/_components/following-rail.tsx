@@ -42,7 +42,11 @@ const FollowingRail = ({ counts, filter, onChange }: FollowingRailProps) => {
   const noView = filter.view === undefined
 
   return (
-    <nav className={styles.rail} aria-label="Filter what you follow">
+    <div
+      role="group"
+      className={styles.rail}
+      aria-label="Filter what you follow"
+    >
       <div className={styles.railHeading}>Type</div>
       <RailItem
         label="Everything"
@@ -72,7 +76,7 @@ const FollowingRail = ({ counts, filter, onChange }: FollowingRailProps) => {
       <p className={styles.railNote}>
         Closed records are the ones worth pruning, so they get their own view.
       </p>
-    </nav>
+    </div>
   )
 }
 

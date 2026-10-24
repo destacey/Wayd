@@ -12,6 +12,14 @@
   min-width: 0;
 }
 
+/* Everything below the title, keeping the page's spacing between its parts. */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin);
+  min-width: 0;
+}
+
 .panes {
   display: grid;
   gap: var(--ant-margin);
@@ -49,6 +57,22 @@
 .sticky {
   position: sticky;
   top: var(--ant-margin);
+  /* No taller than the visible scroll area, or its lower part would stay out
+   * of reach for as long as the list is taller still. The page measures that
+   * area into the variable; the shell's own height is the fallback. */
+  max-height: calc(
+    var(--following-view-height, 100dvh) - 2 * var(--ant-margin)
+  );
+  overflow-y: auto;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .rail {
@@ -277,6 +301,15 @@
   .listHeader :global(.ant-btn),
   .filterBar :global(.ant-select) {
     min-height: 44px;
+  }
+
+  .listHeader :global(.ant-btn-icon-only) {
+    min-width: 44px;
+  }
+
+  /* At 320px the search gives way rather than pushing the page sideways. */
+  .listHeader :global(.ant-input-search) {
+    min-width: 0;
   }
 
   .filterBar :global(.ant-tag-checkable) {

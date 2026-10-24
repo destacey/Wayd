@@ -15,10 +15,12 @@ describe('formatTimeAgo', () => {
     [21 * 24 * 60 * 60, '3 weeks ago'],
     [400 * 24 * 60 * 60, 'last year'],
   ])('describes %i seconds ago as "%s"', (seconds, expected) => {
+    // Act & Assert
     expect(formatTimeAgo(ago(seconds), now)).toBe(expected)
   })
 
   it('accepts the ISO string an API response actually carries', () => {
+    // Act & Assert
     expect(formatTimeAgo('2026-10-24T10:00:00Z', now)).toBe('2 hours ago')
   })
 })

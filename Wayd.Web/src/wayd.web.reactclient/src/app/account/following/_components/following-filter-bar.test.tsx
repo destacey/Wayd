@@ -14,6 +14,7 @@ const counts: FollowCountsDto = {
 
 describe('FollowingFilterBar', () => {
   it('combines a view with the chosen type', () => {
+    // Arrange
     const onChange = jest.fn()
     render(
       <FollowingFilterBar
@@ -23,8 +24,10 @@ describe('FollowingFilterBar', () => {
       />,
     )
 
+    // Act
     fireEvent.click(screen.getByText('Changed this week (4)'))
 
+    // Assert
     expect(onChange).toHaveBeenCalledWith({
       ownerType: 'ppm.project',
       view: FollowView.ChangedRecently,
@@ -32,6 +35,7 @@ describe('FollowingFilterBar', () => {
   })
 
   it('clears a view when its chip is unchecked, keeping the type', () => {
+    // Arrange
     const onChange = jest.fn()
     render(
       <FollowingFilterBar
@@ -41,8 +45,10 @@ describe('FollowingFilterBar', () => {
       />,
     )
 
+    // Act
     fireEvent.click(screen.getByText('Closed or done (3)'))
 
+    // Assert
     expect(onChange).toHaveBeenCalledWith({
       ownerType: 'ppm.project',
       view: undefined,
@@ -50,10 +56,12 @@ describe('FollowingFilterBar', () => {
   })
 
   it('shows the type select with counts', () => {
+    // Arrange & Act
     render(
       <FollowingFilterBar counts={counts} filter={{}} onChange={jest.fn()} />,
     )
 
+    // Assert
     expect(screen.getByText('Everything (12)')).toBeInTheDocument()
   })
 })

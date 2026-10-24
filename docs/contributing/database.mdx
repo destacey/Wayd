@@ -25,9 +25,14 @@ Each area's tables sit in their own SQL schema (`Work`, `Organization`, `Plannin
 Application code never sees `WaydDbContext` — `DatabaseContextTests` fails an Application project that
 references it. Each module reads and writes through its own interface (`IWorkDbContext`,
 `IOrganizationDbContext`, `IProjectPortfolioManagementDbContext`, …), and shared concerns have theirs
-(`IImportDbContext`, `IStatusWorkflowDbContext`, `IActivityLogDbContext`, `IFeatureManagementDbContext`). Twelve
-such interfaces sit beside `IWaydDbContext`, which exposes the shared tables (employees, users, scoring
-models) and which most module interfaces extend.
+(`IImportDbContext`, `IStatusWorkflowDbContext`, `IActivityLogDbContext`, `IFeatureManagementDbContext`). They
+sit beside `IWaydDbContext`, which exposes the database facade, the change tracker and the shared tables
+(employees, users, scoring models), and which the older module interfaces extend.
+
+A new module's interface does not extend `IWaydDbContext`. It exposes only the module's own sets, plus a
+narrow read-only set when a handler needs another module's data that no copy provides, so a handler cannot
+reach past the module. `IDemandManagementDbContext` is the first, and `DemandManagementBoundaryTests` fails
+the build if that module references `IWaydDbContext` or another module.
 
 They are **views over one context, not separate contexts**: a handler that takes two of them gets one change
 tracker and one save. Keeping that true takes two things, and either alone breaks it:

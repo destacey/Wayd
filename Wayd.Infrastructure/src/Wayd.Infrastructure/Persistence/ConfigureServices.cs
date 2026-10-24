@@ -7,6 +7,7 @@ using Wayd.Planning.Application.Persistence;
 using Wayd.ProductManagement.Application;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.StrategicManagement.Application;
+using Wayd.DemandManagement.Application;
 using Wayd.Work.Application.Persistence;
 using Wolverine.EntityFrameworkCore;
 using Serilog;
@@ -127,6 +128,7 @@ internal static class ConfigureServices
     {
         services.AddScoped<IWaydDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IAppIntegrationDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IDemandManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IFeatureManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IImportDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<ILinksDbContext>(sp => sp.GetRequiredService<WaydDbContext>());

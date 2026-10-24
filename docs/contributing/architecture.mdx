@@ -61,6 +61,7 @@ build's test run rather than a review. Run it after changing a project reference
 | `CrossProjectDependencyTests` | The layer and service-isolation rules above |
 | `DatabaseContextTests` | Domain projects never reference EF Core or a context; Application projects use the `IXxxDbContext` interfaces, never `WaydDbContext`; contexts and entity configurations live in Infrastructure |
 | `CqrsPatternTests` | Commands and queries are public sealed records named `*Command` / `*Query`; handlers are public and named `*Handler`; each command or query has exactly one handler (Wolverine silently combines duplicates); handlers never inject another handler; command handlers return `Result`; only the dispatch seams touch Wolverine's `IMessageBus`, and only the `SaveChanges` drain touches `IEventPublisher` |
+| `DemandManagementBoundaryTests` | Demand Management reaches the database only through `IDemandManagementDbContext`, which does not extend `IWaydDbContext`, and references no other module — see [One context, many interfaces](./database.mdx#one-context-many-interfaces) |
 | `ServiceLayeringTests` | The service and saga tiers in [Services and sagas](#services-and-sagas) |
 | `TransactionScopeTests` | Only the context opens a transaction, and nothing turns on a retrying execution strategy — see [What a save commits](./domain-events.mdx#what-a-save-commits) |
 | `EventCoverageTests` | An evented aggregate changes only through events — see [Domain Events](./domain-events.mdx#an-evented-aggregate-changes-only-through-events) |
@@ -87,6 +88,7 @@ Wayd/
     Wayd.ProductManagement/  # Product catalog, versions, releases, deployments
     Wayd.ProjectPortfolioManagement/  # Portfolios, programs, projects, tasks
     Wayd.StrategicManagement/   # Visions, strategies, strategic themes
+    Wayd.DemandManagement/      # Intake desks, channels and intake requests
     Wayd.AppIntegration/ # Integration configuration and the sync runners
     Wayd.Links/          # Cross-entity relationships
 

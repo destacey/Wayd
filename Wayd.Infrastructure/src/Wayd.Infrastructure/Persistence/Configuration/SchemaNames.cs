@@ -7,6 +7,7 @@ internal static class SchemaNames
     public static string AppIntegration = "AppIntegrations";
     public static string Auditing = "Auditing";
     public static string Delivery = "Delivery";
+    public static string DemandManagement = "DemandManagement";
     public static string FeatureManagement = "FeatureManagement";
     public static string Health = "Health";
     public static string Identity = "Identity";

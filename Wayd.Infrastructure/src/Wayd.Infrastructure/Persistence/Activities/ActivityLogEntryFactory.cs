@@ -106,6 +106,8 @@ internal static partial class ActivityLogEntryFactory
             return "AppIntegration";
         if (@namespace.Contains("Work"))
             return "Work";
+        if (@namespace.Contains("DemandManagement"))
+            return "DemandManagement";
         if (@namespace.Contains("StrategicManagement"))
             return "StrategicManagement";
         if (@namespace.Contains("StatusWorkflow"))

@@ -21,7 +21,7 @@ not. Startup turns it on in Development and warns elsewhere. The command timeout
 for its own scope with `WithCommandTimeout`, never globally. See
 [configuration.mdx](../docs/contributing/configuration.mdx#database).
 
-**`IWaydDbContext` and the twelve module `IXxxDbContext` interfaces are views over that one context, not separate contexts.** They constrain what each module can see; they are not persistence boundaries, and they overlap by design (`IPlanningDbContext : IWaydDbContext`). Keeping that true takes two things working together, and either alone leaves it broken:
+**`IWaydDbContext` and the module `IXxxDbContext` interfaces are views over that one context, not separate contexts.** They constrain what each module can see; they are not persistence boundaries. The older ones overlap by design (`IPlanningDbContext : IWaydDbContext`); a new module's does not extend `IWaydDbContext` and exposes only the module's own sets, so its boundary is checked by the compiler rather than kept by convention (`IDemandManagementDbContext`, held there by `DemandManagementBoundaryTests`). Keeping that true takes two things working together, and either alone leaves it broken:
 
 1. `AddDomainDbContexts` registers each as a **factory** (`sp => sp.GetRequiredService<WaydDbContext>()`). `AddScoped<IFoo, WaydDbContext>()` reads as an alias but is a distinct service descriptor, so it hands out a separate context per interface.
 2. Each is **allow-listed for service location** in `WolverineConfiguration`, or codegen inline-constructs its own and never consults the container at all.

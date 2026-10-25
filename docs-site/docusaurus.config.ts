@@ -33,7 +33,23 @@ const config: Config = {
       onBrokenMarkdownLinks: "throw",
     },
   },
-  themes: ["@docusaurus/theme-mermaid"],
+  themes: [
+    "@docusaurus/theme-mermaid",
+    [
+      // Builds the search index at build time, so search works on GitHub Pages
+      // with no external service.
+      "@easyops-cn/docusaurus-search-local",
+      {
+        hashed: true,
+        docsDir: "../docs",
+        docsRouteBasePath: "docs",
+        indexBlog: false,
+        indexPages: false,
+        highlightSearchTermsOnTargetPage: true,
+        explicitSearchResultPath: true,
+      },
+    ],
+  ],
 
   plugins: [
     [

@@ -24,6 +24,10 @@ npm run build
 
 Generates static content into the `build` directory.
 
+## Search
+
+Search comes from [`@easyops-cn/docusaurus-search-local`](https://github.com/easyops-cn/docusaurus-search-local), which builds the index (`build/search-index.json`) during `npm run build`. The index does not exist under `npm start`, so try search with `npm run build && npm run serve`.
+
 ## Deployment
 
 The site is automatically deployed to GitHub Pages via the `deploy-docs.yml` GitHub Actions workflow when changes are pushed to `main` in the `docs/` or `docs-site/` directories.

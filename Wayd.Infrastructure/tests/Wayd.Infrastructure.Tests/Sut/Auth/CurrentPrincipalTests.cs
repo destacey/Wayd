@@ -1,5 +1,8 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth;
 
 namespace Wayd.Infrastructure.Tests.Sut.Auth;
@@ -8,9 +11,16 @@ public sealed class CurrentPrincipalTests
 {
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<IUserService> _userService = new();
+    private readonly HttpContextAccessor _httpContextAccessor = new();
 
     private CurrentPrincipal CreateSut() =>
-        new(_currentUser.Object, _userService.Object);
+        new(_currentUser.Object, _userService.Object, _httpContextAccessor);
+
+    private void GivenTokenScope(string scope) =>
+        _httpContextAccessor.HttpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(TokenScopes.ClaimType, scope)], "Test")),
+        };
 
     private void GivenUserWithPermissions(string userId, params string[] permissions)
     {
@@ -232,5 +242,110 @@ public sealed class CurrentPrincipalTests
 
         // Assert
         _userService.Verify(s => s.GetEmployeeIdAsync("user-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HasPermission_ForReadScopedToken_AllowsAViewPermissionTheUserHolds()
+    {
+        // Arrange
+        GivenUserWithPermissions("user-1", "Permissions.Projects.View", "Permissions.Projects.Update");
+        GivenTokenScope(TokenScopes.Read);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.HasPermission("Permissions.Projects.View", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HasPermission_ForReadScopedToken_DeniesAWritePermissionTheUserHolds()
+    {
+        // Arrange
+        GivenUserWithPermissions("user-1", "Permissions.Projects.View", "Permissions.Projects.Update");
+        GivenTokenScope(TokenScopes.Read);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.HasPermission("Permissions.Projects.Update", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HasPermission_ForWriteScopedToken_AllowsAWritePermissionTheUserHolds()
+    {
+        // Arrange
+        GivenUserWithPermissions("user-1", "Permissions.Projects.Update");
+        GivenTokenScope(TokenScopes.Write);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.HasPermission("Permissions.Projects.Update", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HoldsPermission_ForReadScopedToken_AnswersWhatTheUserHolds()
+    {
+        // Arrange
+        GivenUserWithPermissions("user-1", "Permissions.IntakeRequests.Review");
+        GivenTokenScope(TokenScopes.Read);
+        var sut = CreateSut();
+
+        // Act
+        var holds = await sut.HoldsPermission("Permissions.IntakeRequests.Review", TestContext.Current.CancellationToken);
+        var may = await sut.HasPermission("Permissions.IntakeRequests.Review", TestContext.Current.CancellationToken);
+
+        // Assert
+        holds.Should().BeTrue();
+        may.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HoldsPermission_ForUserWithoutPermission_ReturnsFalse()
+    {
+        // Arrange
+        GivenUserWithPermissions("user-1", "Permissions.Projects.View");
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.HoldsPermission("Permissions.Projects.Update", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(TokenScopes.Read, true)]
+    [InlineData(TokenScopes.Write, false)]
+    public void IsReadOnly_AnswersWhetherTheRequestsTokenIsLimitedToReading(string scope, bool expected)
+    {
+        // Arrange
+        GivenTokenScope(scope);
+        var sut = CreateSut();
+
+        // Act
+        var result = sut.IsReadOnly;
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void IsReadOnly_WithoutARequest_IsFalse()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Act
+        var result = sut.IsReadOnly;
+
+        // Assert
+        result.Should().BeFalse();
     }
 }

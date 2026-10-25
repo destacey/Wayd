@@ -1,11 +1,14 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NodaTime;
 using Wayd.Common.Application.Dtos;
 using Wayd.Planning.Application.Roadmaps.Dtos;
+using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Web.Api.Mcp;
 
@@ -28,6 +31,35 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Mcp", "npm-tool-parity.json")))!.AsObject();
 
     private readonly WaydApiFactory _factory = factory;
+
+    [Fact]
+    public void Actions_AreReadOnlyToolsExactlyWhenAReadOnlyTokenMayCallThem()
+    {
+        // Arrange — a read-only token is offered only read-only tools, and may call an action sent with anything but
+        // GET only when the action is marked as changing nothing; the two must agree, or the token is offered a tool
+        // the API refuses, or refused one it should be offered
+        var actions = _factory.Services.GetRequiredService<IApiDescriptionGroupCollectionProvider>().ApiDescriptionGroups.Items
+            .SelectMany(g => g.Items)
+            .Select(d => (
+                Name: d.ActionDescriptor.DisplayName,
+                Method: d.HttpMethod ?? "GET",
+                Tool: d.ActionDescriptor.EndpointMetadata.OfType<McpToolAttribute>().FirstOrDefault(),
+                Marked: d.ActionDescriptor.EndpointMetadata.OfType<ReadOnlyOperationAttribute>().Any()))
+            .ToList();
+
+        // Act
+        var markedGets = actions.Where(a => a.Marked && HttpMethods.IsGet(a.Method)).Select(a => a.Name).ToList();
+        var disagreeing = actions
+            .Where(a => a.Tool is not null && !HttpMethods.IsGet(a.Method))
+            .Where(a => McpToolAnnotationDefaults.For(a.Method, a.Tool!).ReadOnlyHint != a.Marked)
+            .Select(a => a.Name)
+            .ToList();
+
+        // Assert
+        Assert.Empty(markedGets);
+        Assert.Empty(disagreeing);
+        Assert.Contains(actions, a => a.Marked);
+    }
 
     [Fact]
     public async Task GetTools_OffersEveryToolTheNpmServerOffers()

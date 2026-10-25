@@ -21,6 +21,7 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
     public GetImportProcessRowsQueryHandlerTests()
     {
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
 
     public void Dispose() => _db.Dispose();
@@ -115,6 +116,7 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         var process = AddPartlyRejectedRun();
 
         // Act

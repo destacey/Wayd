@@ -728,6 +728,7 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
         return principal.Object;
     }
@@ -737,7 +738,9 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(TeamAllocationAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        principal.Setup(p => p.HoldsPermission(TeamAllocationAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.HasPermission(TeamAllocationAuthorization.AdministratorPermission, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        principal.Setup(p => p.HoldsPermission(TeamAllocationAuthorization.AdministratorPermission, It.IsAny<CancellationToken>())).ReturnsAsync(false);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         return principal.Object;
     }

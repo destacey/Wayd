@@ -37,7 +37,9 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal.Setup(p => p.HasPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var result = await Get();
@@ -51,6 +53,7 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var result = await Get();
@@ -65,6 +68,7 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var result = await Get();
@@ -78,6 +82,7 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         // Act
         var result = await Get();
@@ -91,7 +96,9 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     {
         // Arrange — the list widens to what they may see; an upload form must not offer these
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var result = await Get();
@@ -106,8 +113,11 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _principal.Setup(p => p.HasPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var result = await Get();

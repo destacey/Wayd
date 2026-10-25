@@ -57,6 +57,39 @@ public class GetProjectsQueryHandlerTests : IDisposable
         return project;
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task Handle_ForAProjectTheCallerManages_OffersToManageItOnlyWhenTheirTokenMayWrite(bool readOnly, bool expected)
+    {
+        // Arrange — leadership comes from the caller's role, which a token's scope does not narrow on its own
+        AddProject("Mine", new() { [ProjectRole.Manager] = [_employeeId] });
+        _currentPrincipalMock.Setup(p => p.IsReadOnly).Returns(readOnly);
+
+        // Act
+        var result = await _handler.Handle(new GetProjectsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.CanManageProject.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Handle_RoleFilterWithAReadOnlyToken_StillUsesThePrincipalsEmployee()
+    {
+        // Arrange — the role filter reads who the caller is, which a read-only token keeps
+        var mine = AddProject("Mine", new() { [ProjectRole.Manager] = [_employeeId] });
+        AddProject("Theirs", new() { [ProjectRole.Manager] = [_otherEmployeeId] });
+        _currentPrincipalMock.Setup(p => p.IsReadOnly).Returns(true);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProjectsQuery(RoleFilter: [ProjectMemberRole.Manager]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.Id.Should().Be(mine.Id);
+    }
+
     [Fact]
     public async Task Handle_RoleFilterWithoutEmployeeId_ShouldUseThePrincipalsEmployee()
     {

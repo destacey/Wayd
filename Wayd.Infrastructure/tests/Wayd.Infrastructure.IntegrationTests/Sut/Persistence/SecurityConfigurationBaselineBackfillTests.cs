@@ -6,6 +6,7 @@ using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Identity;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Events;
@@ -60,21 +61,22 @@ public sealed class SecurityConfigurationBaselineBackfillTests(SqlServerDbContex
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var (token, created) = await Seed(ct, async context =>
+        var (token, _) = await Seed(ct, async context =>
         {
             var user = await SeedUser(context, ct);
             return PersonalAccessToken.Create("Build agent", "abcd1234", $"hash-{Guid.NewGuid():N}", user.Id,
-                Now.Plus(Duration.FromDays(30)), "[\"Permissions.Projects.View\"]", EventActor.System, Now).Value;
+                Now.Plus(Duration.FromDays(30)), TokenScope.Read, EventActor.System, Now).Value;
         });
-        var createdEvent = (PersonalAccessTokenCreatedEvent)created;
 
         // Act
         await RunBackfill(ct);
 
-        // Assert
+        // Assert — the migration predates scopes and wrote the first generation, copying the stored column
+#pragma warning disable CS0618 // the migration writes the frozen generation
         await AssertBaseline(token, (recordCreatedOn, timestamp) => new PersonalAccessTokenBaselinedEvent(
-            token.Id, createdEvent.UserId, createdEvent.Name, createdEvent.ExpiresAt, createdEvent.Scopes,
+            token.Id, token.UserId, token.Name, token.ExpiresAt, token.Scopes,
             recordCreatedOn, null, timestamp), ct);
+#pragma warning restore CS0618
     }
 
     [Fact]
@@ -86,7 +88,7 @@ public sealed class SecurityConfigurationBaselineBackfillTests(SqlServerDbContex
         {
             var user = await SeedUser(context, ct);
             var pat = PersonalAccessToken.Create("Old agent", "efgh5678", $"hash-{Guid.NewGuid():N}", user.Id,
-                Now.Plus(Duration.FromDays(30)), null, EventActor.System, Now).Value;
+                Now.Plus(Duration.FromDays(30)), TokenScope.Write, EventActor.System, Now).Value;
             pat.Revoke(user.Id, EventActor.System, Now);
             return pat;
         });

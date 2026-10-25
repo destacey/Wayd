@@ -16,6 +16,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionR
         using var activity = AuthTelemetry.StartCheck(requirement.Permission);
 
         var allowed = context.User?.GetUserId() is { } userId
+            && TokenScopeAccess.Permits(context.User, requirement.Permission)
             && await _userService.HasPermissionAsync(userId, requirement.Permission);
 
         if (allowed)

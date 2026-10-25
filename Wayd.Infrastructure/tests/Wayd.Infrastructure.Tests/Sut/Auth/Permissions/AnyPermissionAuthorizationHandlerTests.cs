@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Wayd.Common.Application.Identity.Users;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.OpenTelemetry;
 
@@ -79,6 +80,26 @@ public sealed class AnyPermissionAuthorizationHandlerTests
             Times.Never);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HandleRequirementAsync_WhenReadScoped_SucceedsOnlyThroughAPermissionTheScopeAllows(bool holdsView)
+    {
+        // Arrange — the user holds the write permission either way
+        const string update = "Permissions.Projects.Update";
+        const string view = "Permissions.Projects.View";
+        _userService.Setup(s => s.HasPermissionAsync("user-1", update, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _userService.Setup(s => s.HasPermissionAsync("user-1", view, It.IsAny<CancellationToken>())).ReturnsAsync(holdsView);
+        var context = ScopedContext("user-1", TokenScopes.Read, new AnyPermissionRequirement([update, view]));
+
+        // Act
+        await new AnyPermissionAuthorizationHandler(_userService.Object).HandleAsync(context);
+
+        // Assert
+        context.HasSucceeded.Should().Be(holdsView);
+        _userService.Verify(s => s.HasPermissionAsync("user-1", update, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private static AuthorizationHandlerContext Context(string userId, IAuthorizationRequirement requirement) =>
         new(
             [requirement],
@@ -102,4 +123,11 @@ public sealed class AnyPermissionAuthorizationHandlerTests
         ActivitySource.AddActivityListener(listener);
         return listener;
     }
+
+    private static AuthorizationHandlerContext ScopedContext(string userId, string scope, IAuthorizationRequirement requirement) =>
+        new(
+            [requirement],
+            new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim(ClaimTypes.NameIdentifier, userId), new Claim(TokenScopes.ClaimType, scope)], "Test")),
+            null);
 }

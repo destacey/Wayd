@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Events;
+﻿using Wayd.Common.Domain.Authorization;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared;
@@ -30,7 +31,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -55,7 +56,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.AsExpired(_now.Minus(Duration.FromDays(1))).Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -69,7 +70,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
+        var result = PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -82,7 +83,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -95,7 +96,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -119,7 +120,7 @@ public sealed class PersonalAccessTokenTests
     {
         // Arrange
         var expiresAt = _now.Plus(Duration.FromDays(1));
-        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, Actor, _now).Value;
+        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, TokenScope.Write, Actor, _now).Value;
         var futureTime = _now.Plus(Duration.FromDays(2));
 
         // Act
@@ -274,7 +275,7 @@ public sealed class PersonalAccessTokenTests
     {
         // Arrange
         var expiresAt = _now.Plus(Duration.FromDays(1));
-        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, Actor, _now).Value;
+        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, TokenScope.Write, Actor, _now).Value;
 
         // Act & Assert
         token.IsExpiredAt(_now).Should().BeFalse();
@@ -296,34 +297,16 @@ public sealed class PersonalAccessTokenTests
     }
 
     [Fact]
-    public void Create_WithNullScopes_ShouldSucceed()
-    {
-        // Arrange
-        var name = "Test Token";
-        var tokenHash = "hash12345678";
-        var tokenIdentifier = "hash1234";
-        var userId = "user123";
-        var expiresAt = _now.Plus(Duration.FromDays(365));
-
-        // Act
-        var result = PersonalAccessToken.Create(name, tokenIdentifier, tokenHash, userId, expiresAt, null, Actor, _now);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Scopes.Should().BeNull();
-    }
-
-    [Fact]
     public void Create_RaisesCreatedEvent_WithoutTokenMaterial()
     {
         // Arrange
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var token = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now).Value;
+        var token = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now).Value;
 
         // Assert
-        var created = token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenCreatedEvent>().Subject;
+        var created = token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenCreatedEventV2>().Subject;
         created.Id.Should().Be(token.Id);
         created.UserId.Should().Be(fakePat.UserId);
         created.Name.Should().Be(token.Name);
@@ -439,5 +422,36 @@ public sealed class PersonalAccessTokenTests
         deleted.Id.Should().Be(token.Id);
         deleted.UserId.Should().Be(token.UserId);
         deleted.Name.Should().Be(token.Name);
+    }
+
+    [Theory]
+    [InlineData(TokenScope.Read, "wayd:read")]
+    [InlineData(TokenScope.Write, "wayd:write")]
+    public void Create_StoresTheScope_AndRecordsItOnTheCreatedEvent(TokenScope scope, string stored)
+    {
+        // Arrange
+        var fakePat = _tokenFaker.Generate();
+
+        // Act
+        var token = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, scope, Actor, _now).Value;
+
+        // Assert
+        token.Scopes.Should().Be(stored);
+        token.Scope.Should().Be(scope);
+        token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenCreatedEventV2>()
+            .Which.Scope.Should().Be(scope);
+    }
+
+    [Fact]
+    public void Scope_ForATokenFromBeforeScopes_IsWrite()
+    {
+        // Arrange
+        var token = _tokenFaker.WithScopes(null).Generate();
+
+        // Act
+        var scope = token.Scope;
+
+        // Assert
+        scope.Should().Be(TokenScope.Write);
     }
 }

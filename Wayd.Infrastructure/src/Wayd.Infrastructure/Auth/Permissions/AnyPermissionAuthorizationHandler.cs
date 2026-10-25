@@ -20,7 +20,8 @@ internal class AnyPermissionAuthorizationHandler(IUserService userService) : Aut
 
         foreach (var permission in requirement.Permissions)
         {
-            if (await _userService.HasPermissionAsync(userId, permission))
+            if (TokenScopeAccess.Permits(context.User, permission)
+                && await _userService.HasPermissionAsync(userId, permission))
             {
                 context.Succeed(requirement);
                 AuthTelemetry.SetResult(activity, true);

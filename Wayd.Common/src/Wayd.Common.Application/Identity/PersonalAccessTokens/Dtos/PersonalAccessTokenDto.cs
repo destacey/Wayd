@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Identity;
 
 namespace Wayd.Common.Application.Identity.PersonalAccessTokens.Dtos;
@@ -17,7 +18,9 @@ public sealed record PersonalAccessTokenDto
     public bool IsActive { get; init; }
     public bool IsExpired { get; init; }
     public bool IsRevoked { get; init; }
-    public string? Scopes { get; init; }
+
+    /// <summary>How much of its owner's access the token may use.</summary>
+    public TokenScope Scope { get; init; }
 
     /// <summary>
     /// EF-translatable projection from a <see cref="PersonalAccessToken"/> to this DTO,
@@ -38,6 +41,8 @@ public sealed record PersonalAccessTokenDto
             IsRevoked = token.RevokedAt.HasValue,
             IsExpired = token.ExpiresAt <= now,
             IsActive = !(token.ExpiresAt <= now) && !token.RevokedAt.HasValue,
-            Scopes = token.Scopes,
+            // Spelled out rather than read from PersonalAccessToken.Scope, which EF cannot translate. A token from
+            // before scopes has none and keeps its owner's full access.
+            Scope = token.Scopes == TokenScopes.Read ? TokenScope.Read : TokenScope.Write,
         };
 }

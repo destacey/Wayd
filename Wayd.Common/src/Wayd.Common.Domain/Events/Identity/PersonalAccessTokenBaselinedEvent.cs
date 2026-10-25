@@ -8,6 +8,11 @@ namespace Wayd.Common.Domain.Events.Identity;
 /// was recorded. Carries that event's payload, describing the token as it stood at <see cref="DomainEvent.Timestamp"/>.
 /// Also listed on the owning user's Activity, as the creation event is.
 /// </summary>
+/// <remarks>
+/// Frozen at its published shape; <see cref="PersonalAccessTokenBaselinedEventV2"/> replaced it alongside the creation
+/// event. Kept so every payload written as this type still deserializes into it.
+/// </remarks>
+[Obsolete("Superseded by PersonalAccessTokenBaselinedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record PersonalAccessTokenBaselinedEvent : BaselineEvent<PersonalAccessTokenBaselinedEvent, PersonalAccessTokenCreatedEvent>, IRelatedAggregateEvent
 {
     public PersonalAccessTokenBaselinedEvent(Guid id, string userId, string name, Instant expiresAt, string? scopes, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)

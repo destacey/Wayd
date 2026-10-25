@@ -138,6 +138,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
     [HttpPost("{id}/evaluate")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
+    [ReadOnlyOperation]
     [EndpointSummary("Evaluate (test) a scoring model against supplied criterion values.")]
     [ProducesResponseType(typeof(ScoringModelEvaluationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

@@ -80,7 +80,11 @@ internal sealed class RateLimitTierResolver(
     /// Reads the tier from the user's permissions, or null when they could not be read. A user who no longer exists gets
     /// the standard tier; their request is refused by whatever needs the user, not here.
     /// </summary>
-    /// <remarks>A cancelled request is let through as cancelled, so the client disconnect is handled as one.</remarks>
+    /// <remarks>
+    /// A cancelled request is let through as cancelled, so the client disconnect is handled as one. The user's own
+    /// permission decides, whatever the scope of the token the request carries: the tier is how much traffic the user
+    /// may send, not what they may do, so a read-only token shares its user's budget.
+    /// </remarks>
     private async Task<RateLimitTier?> Read(string userId, CancellationToken cancellationToken)
     {
         try

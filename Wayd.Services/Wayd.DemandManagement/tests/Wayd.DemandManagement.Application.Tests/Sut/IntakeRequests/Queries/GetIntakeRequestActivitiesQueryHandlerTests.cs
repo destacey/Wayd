@@ -47,6 +47,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
     {
         _principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         _principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
+        _principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
     }
 
     private IntakeRequest RequestOn(IntakeDeskVisibility visibility, params Guid[] reviewerIds)

@@ -124,6 +124,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string permission, CancellationToken _) => permissions.Contains(permission));
+        principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string permission, CancellationToken _) => permissions.Contains(permission));
         return principal.Object;
     }
 

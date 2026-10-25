@@ -77,6 +77,7 @@ public class AuthController(
 
     [Authorize]
     [HttpPost("sessions")]
+    [ReadOnlyOperation]
     [EndpointSummary("List the calling user's active sessions.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

@@ -127,8 +127,9 @@ public class PersonalAccessTokenAuthenticationHandler : AuthenticationHandler<Au
                 claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
             }
 
-            // TODO: In Phase 2, filter claims based on token scopes
-            // For now, the user gets all their normal permissions
+            // Narrows every permission check for the request (TokenScopeAccess); the user's permissions are still read
+            // from the database, so a scope never grants one they lack.
+            claims.Add(new Claim(TokenScopes.ClaimType, matchingToken.Scope.ToScopeString()));
 
             var identity = new ClaimsIdentity(claims, Scheme.Name);
             var principal = new ClaimsPrincipal(identity);

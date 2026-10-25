@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Common.Application.Identity;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.Identity;
@@ -53,7 +54,7 @@ public sealed class LastSeenWriterTests(SqlServerDbContextFixture fixture)
             $"hash-{Guid.NewGuid():N}",
             user.Id,
             Now.Plus(Duration.FromDays(30)),
-            null,
+            TokenScope.Write,
             EventActor.User(user.Id),
             Now.Minus(Duration.FromDays(1))).Value;
 

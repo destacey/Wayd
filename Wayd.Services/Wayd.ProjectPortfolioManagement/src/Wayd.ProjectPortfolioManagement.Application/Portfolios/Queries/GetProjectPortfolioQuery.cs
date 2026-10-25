@@ -27,9 +27,7 @@ public sealed class GetProjectPortfolioQueryHandler(
     {
         // A per-request config is needed so CanManagePortfolio reflects the caller; the global mapping has
         // no actor and would always report false.
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        var isPpmAdministrator = await _currentPrincipal.HasPermission(
-            PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
+        var (employeeId, isPpmAdministrator) = await _currentPrincipal.ResolveManagementHint(cancellationToken);
 
         var config = ProjectPortfolioDetailsDto.CreateTypeAdapterConfig(employeeId, isPpmAdministrator);
 

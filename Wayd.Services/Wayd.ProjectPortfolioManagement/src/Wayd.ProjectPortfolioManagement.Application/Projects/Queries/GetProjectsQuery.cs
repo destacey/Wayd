@@ -106,10 +106,8 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
         }
 
         var now = _dateTimeProvider.Now;
-        var isPpmAdministrator = await _currentPrincipal.HasPermission(
-            PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
-        var config = ProjectListDto.CreateTypeAdapterConfig(
-            now, await _currentPrincipal.GetEmployeeId(cancellationToken), isPpmAdministrator);
+        var (hintEmployeeId, isPpmAdministrator) = await _currentPrincipal.ResolveManagementHint(cancellationToken);
+        var config = ProjectListDto.CreateTypeAdapterConfig(now, hintEmployeeId, isPpmAdministrator);
         var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
 
         var ordered = projects

@@ -406,6 +406,7 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
         return principal.Object;
     }

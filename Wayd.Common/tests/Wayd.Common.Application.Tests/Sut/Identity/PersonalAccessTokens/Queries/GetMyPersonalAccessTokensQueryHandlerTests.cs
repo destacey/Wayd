@@ -3,6 +3,7 @@ using NodaTime;
 using Wayd.Common.Application.Identity.PersonalAccessTokens.Queries;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
 
@@ -123,5 +124,28 @@ public class GetMyPersonalAccessTokensQueryHandlerTests
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         result.Value.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData("wayd:read", TokenScope.Read)]
+    [InlineData("wayd:write", TokenScope.Write)]
+    [InlineData(null, TokenScope.Write)]
+    public async Task Handle_ReportsEachTokensScope_WithATokenFromBeforeScopesAsWrite(string? stored, TokenScope expected)
+    {
+        // Arrange
+        _dbContext.PersonalAccessTokens.Add(
+            new PersonalAccessTokenFaker(Now)
+                .WithUserId(UserId)
+                .WithExpiresAt(Now.Plus(Duration.FromDays(30)))
+                .WithScopes(stored)
+                .Generate());
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetMyPersonalAccessTokensQuery(),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Should().ContainSingle().Which.Scope.Should().Be(expected);
     }
 }

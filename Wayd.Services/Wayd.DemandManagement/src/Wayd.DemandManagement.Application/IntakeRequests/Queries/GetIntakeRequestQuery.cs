@@ -54,9 +54,9 @@ public sealed class GetIntakeRequestQueryHandler(
         {
             Summary = summary,
             Substance = substance,
-            CanEdit = await CanEdit(visible, reader, substance is not null, cancellationToken),
+            CanEdit = !_currentPrincipal.IsReadOnly && await CanEdit(visible, reader, substance is not null, cancellationToken),
             // Every review command needs a linked employee, so the flag does too.
-            CanReview = reader.EmployeeId is not null && reader.CanReview(summary.Desk.Id),
+            CanReview = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.CanReview(summary.Desk.Id),
         };
     }
 

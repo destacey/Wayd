@@ -185,6 +185,22 @@ public class TimeAwayAuthorizationTests : IDisposable
         manageable.Should().BeEquivalentTo([_director.Id, _peer.Id]);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EmployeesWithManageableTimeAway_WithAReadOnlyToken_IsNobody(bool administrator)
+    {
+        // Arrange — the director manages the peer by who they are, which a token's scope does not narrow on its own
+        var principal = TestPrincipal.LinkedTo(_director.Id, timeAwayAdministrator: administrator, readOnly: true);
+
+        // Act
+        var manageable = await principal.EmployeesWithManageableTimeAway(
+            _dbContext, [_director.Id, _peer.Id], TestContext.Current.CancellationToken);
+
+        // Assert
+        manageable.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task EmployeesWithManageableTimeAway_ForACallerLinkedToNoEmployee_IsNobody()
     {

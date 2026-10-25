@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Identity;
 
 namespace Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
@@ -6,13 +7,16 @@ namespace Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
 /// <summary>
 /// Command to create a new personal access token.
 /// </summary>
-public sealed record CreatePersonalAccessTokenCommand(string Name, Instant ExpiresAt) : ICommand<CreatePersonalAccessTokenResult>;
+/// <param name="Name">The user-friendly name for the token, unique among the user's active tokens.</param>
+/// <param name="ExpiresAt">When the token stops working.</param>
+/// <param name="Scope">How much of the user's access the token may use.</param>
+public sealed record CreatePersonalAccessTokenCommand(string Name, Instant ExpiresAt, TokenScope Scope = TokenScopes.Default) : ICommand<CreatePersonalAccessTokenResult>;
 
 /// <summary>
 /// The newly created personal access token, including its plaintext value.
 /// This is the only time the plaintext token is returned; store it now, as it cannot be retrieved later.
 /// </summary>
-public sealed record CreatePersonalAccessTokenResult(Guid Id, string Name, string Token, Instant ExpiresAt);
+public sealed record CreatePersonalAccessTokenResult(Guid Id, string Name, string Token, Instant ExpiresAt, TokenScope Scope);
 
 public sealed class CreatePersonalAccessTokenCommandValidator : CustomValidator<CreatePersonalAccessTokenCommand>
 {
@@ -39,6 +43,9 @@ public sealed class CreatePersonalAccessTokenCommandValidator : CustomValidator<
             .MaximumLength(100)
             .MustAsync(BeUniqueTokenName)
                 .WithMessage("You already have a token with this name.");
+
+        RuleFor(x => x.Scope)
+            .IsInEnum();
 
         RuleFor(x => x.ExpiresAt)
             .Must(BeValidExpirationDate)
@@ -102,7 +109,7 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
                 tokenHash: tokenHash,
                 userId: userId,
                 expiresAt: request.ExpiresAt,
-                scopes: null,
+                scope: request.Scope,
                 actor: EventActor.User(userId, _currentUser.GetEmployeeId()),
                 timestamp: now
             );
@@ -118,11 +125,11 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Personal access token created. UserId: {UserId}, TokenId: {TokenId}, TokenName: {TokenName}, ExpiresAt: {ExpiresAt}",
-                userId, token.Id, token.Name, token.ExpiresAt);
+                "Personal access token created. UserId: {UserId}, TokenId: {TokenId}, TokenName: {TokenName}, ExpiresAt: {ExpiresAt}, Scope: {Scope}",
+                userId, token.Id, token.Name, token.ExpiresAt, token.Scope);
 
             // Return the result with the plaintext token (ONLY time it's visible!)
-            return Result.Success(new CreatePersonalAccessTokenResult(token.Id, token.Name, plaintextToken, token.ExpiresAt));
+            return Result.Success(new CreatePersonalAccessTokenResult(token.Id, token.Name, plaintextToken, token.ExpiresAt, token.Scope));
         }
         catch (Exception ex)
         {

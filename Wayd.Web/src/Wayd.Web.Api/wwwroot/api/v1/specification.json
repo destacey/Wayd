@@ -51419,6 +51419,30 @@
         "additionalProperties": false,
         "description": "How many records the caller follows and can still read, by owner type and by \"needs a look\" view."
       },
+      "FollowedHealthCheckDto": {
+        "required": [
+          "id",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The health check's id.",
+            "format": "uuid"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ],
+            "description": "The health status, by code and display name."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A followed record's current health check, in the shape the record's own lists use for it."
+      },
       "FollowedRecordDetailDto": {
         "required": [
           "record",
@@ -51515,6 +51539,12 @@
             "description": "The name of the parent record. Null when there is none.",
             "nullable": true
           },
+          "parentId": {
+            "type": "string",
+            "description": "The id of the parent record, for the endpoints the record is reached through — an objective's health\nchecks live under its planning interval. Null when there is none.",
+            "format": "uuid",
+            "nullable": true
+          },
           "statusName": {
             "type": "string",
             "description": "The record's status as its own pages name it."
@@ -51534,6 +51564,15 @@
               }
             ],
             "description": "The record's current health, or null when it has none.",
+            "nullable": true
+          },
+          "healthCheck": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FollowedHealthCheckDto"
+              }
+            ],
+            "description": "The health check HealthStatus? FollowedRecordDto.Health comes from, with its id for reading the rest of it — who reported\nit, when, and the note. Null when the record has no current health.",
             "nullable": true
           },
           "followedOn": {

@@ -102187,6 +102187,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A followed record's current health check, in the shape the record's own lists use for it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FollowedHealthCheckDto
+    {
+
+        /// <summary>
+        /// The health check's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The health status, by code and display name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
+
+    }
+
+    /// <summary>
     /// One followed record in full: the list's facts plus what its detail shows and what has happened to it since
     /// <br/>the caller followed it.
     /// </summary>
@@ -102293,6 +102316,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? ParentName { get; set; } = default!;
 
         /// <summary>
+        /// The id of the parent record, for the endpoints the record is reached through — an objective's health
+        /// <br/>checks live under its planning interval. Null when there is none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentId")]
+        public System.Guid? ParentId { get; set; } = default!;
+
+        /// <summary>
         /// The record's status as its own pages name it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusName")]
@@ -102313,6 +102343,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("health")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<HealthStatus>))]
         public HealthStatus? Health { get; set; } = default!;
+
+        /// <summary>
+        /// The health check HealthStatus? FollowedRecordDto.Health comes from, with its id for reading the rest of it — who reported
+        /// <br/>it, when, and the note. Null when the record has no current health.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("healthCheck")]
+        public FollowedHealthCheckDto? HealthCheck { get; set; } = default!;
 
         /// <summary>
         /// When the caller started following the record.

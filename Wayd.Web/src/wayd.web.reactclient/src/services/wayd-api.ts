@@ -54296,6 +54296,14 @@ export interface FollowCountsDto {
     views: FollowViewCountDto[];
 }
 
+/** A followed record's current health check, in the shape the record's own lists use for it. */
+export interface FollowedHealthCheckDto {
+    /** The health check's id. */
+    id: string;
+    /** The health status, by code and display name. */
+    status: SimpleNavigationDto;
+}
+
 /** One followed record in full: the list's facts plus what its detail shows and what has happened to it since the caller followed it. */
 export interface FollowedRecordDetailDto {
     /** The record as the list shows it. */
@@ -54330,12 +54338,18 @@ interval. Null when the owner type does not nest. */
     parentKey?: string | undefined;
     /** The name of the parent record. Null when there is none. */
     parentName?: string | undefined;
+    /** The id of the parent record, for the endpoints the record is reached through — an objective's health
+checks live under its planning interval. Null when there is none. */
+    parentId?: string | undefined;
     /** The record's status as its own pages name it. */
     statusName: string;
     /** Where the status sits in the record's lifecycle. */
     lifecycle: LifecycleCategory;
     /** The record's current health, or null when it has none. */
     health?: HealthStatus | undefined;
+    /** The health check HealthStatus? FollowedRecordDto.Health comes from, with its id for reading the rest of it — who reported
+it, when, and the note. Null when the record has no current health. */
+    healthCheck?: FollowedHealthCheckDto | undefined;
     /** When the caller started following the record. */
     followedOn: Date;
     /** When the record last changed: the newest entry its Activity section lists, its own or one naming it as

@@ -2,7 +2,6 @@ import {
   FollowCountsDto,
   FollowedRecordDto,
   FollowView,
-  HealthStatus,
 } from '@/src/services/wayd-api'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 
@@ -45,33 +44,3 @@ export const typeLabel = (ownerType: string, displayName?: string) =>
 /** Identifies a followed record across owner types. */
 export const recordId = (record: Pick<FollowedRecordDto, 'ownerType' | 'id'>) =>
   `${record.ownerType}:${record.id}`
-
-/** The antd Badge status for a record's health. */
-export const healthBadgeStatus = (
-  health: HealthStatus | undefined,
-): 'success' | 'warning' | 'error' | 'default' => {
-  switch (health) {
-    case HealthStatus.Healthy:
-      return 'success'
-    case HealthStatus.AtRisk:
-      return 'warning'
-    case HealthStatus.Unhealthy:
-      return 'error'
-    default:
-      return 'default'
-  }
-}
-
-/** What to call a record's health in text. */
-export const healthLabel = (health: HealthStatus | undefined): string => {
-  switch (health) {
-    case HealthStatus.Healthy:
-      return 'Healthy'
-    case HealthStatus.AtRisk:
-      return 'At risk'
-    case HealthStatus.Unhealthy:
-      return 'Unhealthy'
-    default:
-      return 'No health check'
-  }
-}

@@ -6,6 +6,20 @@ import {
 } from '@/src/services/wayd-api'
 import FollowedRecordDetail from './followed-record-detail'
 
+jest.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
+  useGetProjectHealthCheckQuery: () => ({ data: undefined, isLoading: false }),
+}))
+
+jest.mock(
+  '@/src/store/features/planning/pi-objective-health-checks-api',
+  () => ({
+    useGetObjectiveHealthCheckQuery: () => ({
+      data: undefined,
+      isLoading: false,
+    }),
+  }),
+)
+
 const mockMessage = { error: jest.fn(), success: jest.fn() }
 jest.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
@@ -51,6 +65,7 @@ const detail = (
     statusName: 'Active',
     lifecycle: LifecycleCategory.Active,
     health: HealthStatus.Healthy,
+    healthCheck: { id: 'hc-1', status: { id: 1, name: 'Healthy' } },
     followedOn: new Date('2026-10-24T09:00:00Z'),
     lastChangedOn: new Date(Date.now() - 24 * 60 * 60 * 1000),
   },

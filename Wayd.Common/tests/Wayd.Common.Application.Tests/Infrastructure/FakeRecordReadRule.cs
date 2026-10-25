@@ -87,6 +87,9 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
                 StatusName = r.Lifecycle.ToString(),
                 Lifecycle = r.Lifecycle,
                 Health = r.Health,
+                // The record's own id stands in for its current health check's and its parent's.
+                HealthCheckId = r.Health is null ? null : r.Id,
+                ParentId = r.ParentKey is null ? null : r.Id,
                 People = [new RecordPerson("Owner", "Avery Chen", null)],
             });
 

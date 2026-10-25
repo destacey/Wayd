@@ -99,7 +99,7 @@ public sealed class ProjectReadRule(
                 Health = p.HealthChecks
                     .Where(h => h.Expiration > now)
                     .OrderByDescending(h => h.ReportedOn)
-                    .Select(h => (HealthStatus?)h.Status)
+                    .Select(h => new { h.Id, h.Status })
                     .FirstOrDefault(),
                 Leads = p.Roles
                     .Where(r => r.Role == ProjectRole.Owner || r.Role == ProjectRole.Manager)
@@ -116,7 +116,8 @@ public sealed class ProjectReadRule(
                 Name = p.Name,
                 StatusName = p.Status.GetDisplayName(),
                 Lifecycle = LifecycleCategories<ProjectStatus>.Of(p.Status),
-                Health = p.Health,
+                Health = p.Health?.Status,
+                HealthCheckId = p.Health?.Id,
                 // Owners before managers, each by name.
                 People = [.. p.Leads
                     .OrderBy(l => l.Role == ProjectRole.Owner ? 0 : 1)

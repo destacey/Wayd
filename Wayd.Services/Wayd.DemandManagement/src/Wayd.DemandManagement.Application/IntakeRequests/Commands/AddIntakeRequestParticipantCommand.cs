@@ -1,4 +1,3 @@
-using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
@@ -49,18 +48,13 @@ public sealed class AddIntakeRequestParticipantCommandHandler(
         if (intakeRequest is null)
             return Result.Failure(IntakeRequestAccess.NotFoundError);
 
-        if (!reader.CanReview(intakeRequest.DeskId))
-        {
-            var isRequesterOrSubmitter = intakeRequest.RequesterId == employeeId || intakeRequest.SubmittedById == employeeId;
-            var desk = await _dbContext.IntakeDesks
-                .Where(d => d.Id == intakeRequest.DeskId)
-                .Select(d => new { d.Visibility, d.RequesterMayAddParticipants })
-                .FirstAsync(cancellationToken);
-            var deskAllows = desk.Visibility != IntakeDeskVisibility.Private || desk.RequesterMayAddParticipants;
-
-            if (!isRequesterOrSubmitter || !deskAllows)
-                return Result.Failure("Only the desk's reviewers, or the requester where the desk allows it, can add participants.");
-        }
+        var desk = await _dbContext.IntakeDesks
+            .Where(d => d.Id == intakeRequest.DeskId)
+            .Select(d => new { d.Visibility, d.RequesterMayAddParticipants })
+            .FirstAsync(cancellationToken);
+        var people = new IntakeRequestPeople(intakeRequest.DeskId, intakeRequest.RequesterId, intakeRequest.SubmittedById);
+        if (!reader.CanAddParticipants(people, desk.Visibility, desk.RequesterMayAddParticipants))
+            return Result.Failure("Only the desk's reviewers, or the requester where the desk allows it, can add participants.");
 
         if (!await _dbContext.IsActiveEmployee(request.EmployeeId, cancellationToken))
             return Result.Failure("A participant must be an active employee.");

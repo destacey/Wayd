@@ -9,9 +9,11 @@ audience: [user, agent]
 
 Demand Management holds **what people are asking for before anyone has decided to do it**. A project in [PPM](../ppm/index.mdx) is a response already being shaped, and a work item in [Work Management](../work-management/index.mdx) is work a team has taken on. A request sits upstream of both: it is the ask itself, and it may never become either.
 
-:::caution[In development]
-Demand Management is being built and has no screens yet; its endpoints are under `/api/demand-management`. It is gated by the **Demand Management** feature flag, which is disabled when first deployed. Leave it off until this page describes a usable feature.
+:::info[Feature flag]
+Demand Management is gated by the **Demand Management** feature flag, which is disabled when first deployed. Until it is on, the menu section, its pages and its endpoints are absent.
 :::
+
+People can submit, browse and follow requests today. Reviewing them, with statuses, a review workflow and moving a request to another desk, comes later.
 
 ## How Demand Management Connects Across Wayd
 
@@ -77,6 +79,63 @@ A date on its own tells a reviewer nothing. Two requests can both say 31 Decembe
 | Requester preference | We chose it | A free note |
 
 A *fixed* date moves only if the world moves. A *chosen* date has an owner, so it can be renegotiated rather than silently missed. Clearing the date clears its basis and reference with it.
+
+## Using Demand Management
+
+**Demand Management** sits next to PPM in the main menu, and holds:
+
+- **Submit a Request** — Raise a new request. Shown to people who can create requests and whose account is linked to an employee record
+- **My Requests** — The requests you asked for, and those you submitted on someone else's behalf
+- **Requests** — Every request you can see, on every desk
+
+### Submitting a request
+
+The first question is where the request goes, and it is asked only when more than one desk is taking requests. Each desk is offered by its own description of what kind of ask it takes, with its name and its reviewers beneath. When only one desk is open, the form shows which desk the request goes to and asks nothing about it. When none is open, the page says so and nothing can be submitted.
+
+The rest of the form is the same for every desk:
+
+- **Who is this request for?** — You, unless you are submitting it on someone else's behalf. Either way, both of you can follow it
+- **Title** — The form reminds you that everyone who can view requests sees the title, even on a desk that keeps the detail to itself
+- **Description** and **Expected benefits** — The ask in full, and what gets better if it is delivered
+- **Where did this come from?** — The [channel](#channels)
+- **Need by** — Optional. Once you give a date, the form asks what makes it that date, with the bases grouped as *Fixed for us* and *We chose it*. Choosing a basis asks only what that basis needs: what the date rests on, and for a commitment, who made it and when. A preview shows the date as reviewers will see it. Clearing the date clears the rest
+
+Submitting opens the new request.
+
+:::note
+Submitting needs your account to be linked to an employee record, because every request names employees as its requester and submitter. If yours is not linked, the page says so; ask an administrator to link it.
+:::
+
+### Finding requests
+
+**Requests** lists every request you can see, across desks, with its number, title, desk, requester, channel and need-by date and basis. Search and filter it to check whether someone has already asked for the same thing before you submit. Requests on a private desk you are not part of never appear, so the list and its count cover only what you can see.
+
+**My Requests** shows the same columns, limited to requests you asked for or submitted.
+
+### The request page
+
+Opening a request shows its number and title. The panel opened from the header lists its desk, channel, requester and assigned reviewer and, where you can read them, who submitted it and where it came from.
+
+- **Details** — The description, the expected benefits and the need-by date. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
+- **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
+- **Activity** — The request's history, limited to what you can read
+
+**Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or someone with the Update permission. The desk cannot be changed here.
+
+**Add Participant** appears when you can give someone access: a reviewer on the request's desk, or its requester or submitter unless the desk is private and does not allow it. Only a reviewer on the desk can remove a participant, and removing one takes away their access from then on; what they have already read stays read.
+
+### Setting up a desk
+
+An administrator creates a desk from **Create Desk** on the **Requests** page, giving it:
+
+- A **name**, which is what reviewers and administrators call it
+- **What to bring here**, the description requesters choose by. Describe the kind of ask it takes rather than the group behind it
+- Its **visibility** — see [Who Can See a Request](#who-can-see-a-request)
+- Whether **requesters can choose it**, and whether it is **open to new requests**
+- On a private desk, whether **requesters may add participants**
+- Its **reviewers**. A desk with no reviewers has nobody to look at what arrives
+
+Changing a desk after it is created comes later.
 
 ## Who Can See a Request
 

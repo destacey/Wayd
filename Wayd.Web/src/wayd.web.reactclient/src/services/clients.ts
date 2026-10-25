@@ -62,6 +62,10 @@ import {
   OAuthAuthorizationRequestsClient,
   SearchClient,
   TokenResponse,
+  IntakeChannelsClient,
+  IntakeDesksClient,
+  IntakeEmployeeOptionsClient,
+  IntakeRequestsClient,
 } from './wayd-api'
 import {
   currentBrowserTrace,
@@ -487,6 +491,15 @@ export const getDeliveryMetricsClient = () =>
   new DeliveryMetricsClient('', axiosClient)
 export const getDeliveryOverviewClient = () =>
   new DeliveryOverviewClient('', axiosClient)
+
+// DEMAND MANAGEMENT
+export const getIntakeChannelsClient = () =>
+  new IntakeChannelsClient('', axiosClient)
+export const getIntakeDesksClient = () => new IntakeDesksClient('', axiosClient)
+export const getIntakeEmployeeOptionsClient = () =>
+  new IntakeEmployeeOptionsClient('', axiosClient)
+export const getIntakeRequestsClient = () =>
+  new IntakeRequestsClient('', axiosClient)
 
 // PPM
 export const getExpenditureCategoriesClient = () =>

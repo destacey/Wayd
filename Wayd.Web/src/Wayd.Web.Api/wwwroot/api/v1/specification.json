@@ -39443,13 +39443,43 @@
         ]
       }
     },
+    "/api/demand-management/employee-options": {
+      "get": {
+        "tags": [
+          "IntakeEmployeeOptions"
+        ],
+        "summary": "Get the active employees a request can name, by name only.",
+        "description": "For choosing a requester, a participant or whoever made a commitment, without the View permission on employees.",
+        "operationId": "IntakeEmployeeOptions_GetEmployeeOptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeNavigationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-requests": {
       "get": {
         "tags": [
           "IntakeRequests"
         ],
         "summary": "Get the intake requests you can see, as summaries.",
-        "description": "Requests on a private desk are absent for anyone outside it rather than listed as redacted rows.",
+        "description": "Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.",
         "operationId": "IntakeRequests_GetIntakeRequests",
         "parameters": [
           {
@@ -39461,6 +39491,15 @@
               "nullable": true
             },
             "x-position": 1
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 2
           }
         ],
         "responses": {
@@ -39995,6 +40034,35 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/NeedByBasisDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/need-by-basis-families": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the need-by basis families, with their codes and names.",
+        "operationId": "IntakeRequests_GetNeedByBasisFamilies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NeedByBasisFamilyDto"
                   }
                 }
               }
@@ -46794,6 +46862,26 @@
             "properties": {
               "code": {
                 "$ref": "#/components/schemas/NeedByBasis"
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "One value of a closed set of options, carrying the stable `code` that endpoints\nfiltering on the set accept."
+      },
+      "CommonEnumDtoOfNeedByBasisFamily": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "required": [
+              "code"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/NeedByBasisFamily"
               }
             },
             "additionalProperties": false
@@ -54470,7 +54558,8 @@
         "required": [
           "summary",
           "canEdit",
-          "canReview"
+          "canReview",
+          "canAddParticipants"
         ],
         "type": "object",
         "properties": {
@@ -54498,6 +54587,10 @@
           "canReview": {
             "type": "boolean",
             "description": "Whether the reader may review the request: Review on its desk, or Administer."
+          },
+          "canAddParticipants": {
+            "type": "boolean",
+            "description": "Whether the reader may give someone access to the request as a participant: a reviewer on its desk, or\nits requester or submitter unless the desk is private and does not allow it."
           }
         },
         "additionalProperties": false,
@@ -56046,6 +56139,18 @@
           "ChosenByUs"
         ],
         "type": "string"
+      },
+      "NeedByBasisFamilyDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfNeedByBasisFamily"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ],
+        "description": "One need-by basis family: its code, its name, and what it means for the date."
       },
       "NotificationDto": {
         "required": [
@@ -75311,6 +75416,9 @@
     },
     {
       "name": "IntakeDesks"
+    },
+    {
+      "name": "IntakeEmployeeOptions"
     },
     {
       "name": "IntakeRequests"

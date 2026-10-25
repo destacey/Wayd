@@ -57,7 +57,28 @@ public sealed class GetIntakeRequestQueryHandler(
             CanEdit = await CanEdit(visible, reader, substance is not null, cancellationToken),
             // Every review command needs a linked employee, so the flag does too.
             CanReview = reader.EmployeeId is not null && reader.CanReview(summary.Desk.Id),
+            CanAddParticipants = await CanAddParticipants(visible, reader, cancellationToken),
         };
+    }
+
+    /// <summary>
+    /// Whether the reader may add participants, by the rule the add command applies.
+    /// </summary>
+    private async Task<bool> CanAddParticipants(IQueryable<IntakeRequest> visible, IntakeRequestReader reader, CancellationToken cancellationToken)
+    {
+        if (reader.EmployeeId is null)
+            return false;
+
+        var people = await visible
+            .Select(r => new IntakeRequestPeople(r.DeskId, r.RequesterId, r.SubmittedById))
+            .FirstAsync(cancellationToken);
+        var desk = await _dbContext.IntakeDesks
+            .AsNoTracking()
+            .Where(d => d.Id == people.DeskId)
+            .Select(d => new { d.Visibility, d.RequesterMayAddParticipants })
+            .FirstAsync(cancellationToken);
+
+        return reader.CanAddParticipants(people, desk.Visibility, desk.RequesterMayAddParticipants);
     }
 
     /// <summary>

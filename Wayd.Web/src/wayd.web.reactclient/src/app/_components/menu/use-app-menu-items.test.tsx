@@ -59,7 +59,9 @@ describe('useAppMenuItems', () => {
   it('includes the Projects Dashboard when the account is linked to an employee', () => {
     const { result } = renderHook(() => useAppMenuItems())
 
-    expect(keysOf(result.current.menuItems)).toContain('ppm.dashboards.projects')
+    expect(keysOf(result.current.menuItems)).toContain(
+      'ppm.dashboards.projects',
+    )
   })
 
   it('keeps the Projects Dashboard when the account has no linked employee', () => {
@@ -90,6 +92,73 @@ describe('useAppMenuItems', () => {
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('product')
     expect(keys).toContain('product.products')
+  })
+
+  it('omits Demand Management while its feature flag is off', () => {
+    // Arrange — every flag is off by default
+
+    // Act
+    const { result } = renderHook(() => useAppMenuItems())
+
+    // Assert
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).not.toContain('demand')
+    expect(keys).not.toContain('demand.requests')
+  })
+
+  it('includes Demand Management for someone who can view requests once the flag is on', () => {
+    // Arrange
+    mockFlags['demand-management'] = true
+    mockClaims.held = new Set(['Permissions.IntakeRequests.View'])
+
+    // Act
+    const { result } = renderHook(() => useAppMenuItems())
+
+    // Assert
+    expect(keysOf(result.current.menuItems)).toContain('demand.requests')
+  })
+
+  it('offers Submit a Request to a linked employee who can create requests', () => {
+    // Arrange
+    mockFlags['demand-management'] = true
+    mockClaims.held = new Set([
+      'Permissions.IntakeRequests.View',
+      'Permissions.IntakeRequests.Create',
+    ])
+
+    // Act
+    const { result } = renderHook(() => useAppMenuItems())
+
+    // Assert
+    expect(keysOf(result.current.menuItems)).toContain('demand.submit')
+    expect(keysOf(result.current.menuItems)).toContain('demand.my-requests')
+  })
+
+  it('withholds Submit a Request and My Requests from an account with no linked employee', () => {
+    // Arrange — submitting needs an employee to be the submitter
+    mockFlags['demand-management'] = true
+    mockAuth.employeeId = null
+
+    // Act
+    const { result } = renderHook(() => useAppMenuItems())
+
+    // Assert
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('demand.requests')
+    expect(keys).not.toContain('demand.submit')
+    expect(keys).not.toContain('demand.my-requests')
+  })
+
+  it('withholds Demand Management from someone who cannot view requests', () => {
+    // Arrange
+    mockFlags['demand-management'] = true
+    mockClaims.held = new Set(['Permissions.Projects.View'])
+
+    // Act
+    const { result } = renderHook(() => useAppMenuItems())
+
+    // Assert
+    expect(keysOf(result.current.menuItems)).not.toContain('demand')
   })
 
   it('omits Versions while the Product Management flag is off', () => {
@@ -235,11 +304,15 @@ describe('useAppMenuItems', () => {
     mockFlags['product-management'] = true
     mockFlags['planning-poker'] = true
     mockFlags['story-maps'] = true
+    mockFlags['demand-management'] = true
 
     const { result } = renderHook(() => useAppMenuItems())
 
     const mismatches: string[] = []
-    const walk = (items: ItemType<MenuItemType>[], parentKey: string | null) => {
+    const walk = (
+      items: ItemType<MenuItemType>[],
+      parentKey: string | null,
+    ) => {
       for (const item of items) {
         if (item == null || item.key == null) continue
         const key = String(item.key)

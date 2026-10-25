@@ -144,6 +144,16 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         return Ok(bases);
     }
 
+    [HttpGet("need-by-basis-families")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [EndpointSummary("Get the need-by basis families, with their codes and names.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<NeedByBasisFamilyDto>>> GetNeedByBasisFamilies(CancellationToken cancellationToken)
+    {
+        var families = await _dispatcher.Send(new GetNeedByBasisFamiliesQuery(), cancellationToken);
+        return Ok(families);
+    }
+
     private ActionResult NoContentOrError(Result result) =>
         result.IsSuccess
             ? NoContent()

@@ -39789,6 +39789,35 @@
         ]
       }
     },
+    "/api/demand-management/intake-requests/need-by-basis-families": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the need-by basis families, with their codes and names.",
+        "operationId": "IntakeRequests_GetNeedByBasisFamilies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NeedByBasisFamilyDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/azure-devops/{id}/sync-organization": {
       "post": {
         "tags": [
@@ -46575,6 +46604,26 @@
             "properties": {
               "code": {
                 "$ref": "#/components/schemas/NeedByBasis"
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "One value of a closed set of options, carrying the stable `code` that endpoints\nfiltering on the set accept."
+      },
+      "CommonEnumDtoOfNeedByBasisFamily": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "required": [
+              "code"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/NeedByBasisFamily"
               }
             },
             "additionalProperties": false
@@ -55793,6 +55842,18 @@
           "ChosenByUs"
         ],
         "type": "string"
+      },
+      "NeedByBasisFamilyDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfNeedByBasisFamily"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ],
+        "description": "One need-by basis family: its code, its name, and what it means for the date."
       },
       "OAuthAuthorizationDecisionResponse": {
         "required": [

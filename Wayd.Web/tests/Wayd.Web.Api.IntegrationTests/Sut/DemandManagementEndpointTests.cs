@@ -158,8 +158,11 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         // Act
         var visibilities = await viewer.Client.GetFromJsonAsync<JsonElement>($"{Desks}/visibilities", ct);
         var bases = await viewer.Client.GetFromJsonAsync<JsonElement>($"{Requests}/need-by-bases", ct);
+        var families = await viewer.Client.GetFromJsonAsync<JsonElement>($"{Requests}/need-by-basis-families", ct);
 
         // Assert
+        families.EnumerateArray().Select(f => (f.GetProperty("code").GetString(), f.GetProperty("name").GetString()))
+            .Should().Equal(("FixedForUs", "Fixed for us"), ("ChosenByUs", "We chose it"));
         visibilities.EnumerateArray().Select(v => v.GetProperty("code").GetString())
             .Should().Equal("Open", "SummaryOnly", "Private");
         bases.EnumerateArray().Single(b => b.GetProperty("code").GetString() == "Commitment")

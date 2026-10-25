@@ -1,8 +1,25 @@
-import { isNetworkError, isTransientRefreshFailure } from './request-failures'
+import {
+  DEFAULT_RATE_LIMIT_WAIT_MS,
+  isNetworkError,
+  isTransientRefreshFailure,
+  RateLimitPause,
+  signInRateLimitMessage,
+  rateLimitWaitMs,
+} from './request-failures'
 import { ApiException } from './wayd-api'
 
-const apiException = (status: number) =>
-  new ApiException('An unexpected server error occurred.', status, '', {}, null)
+const apiException = (
+  status: number,
+  headers: Record<string, string> = {},
+  response = '',
+) =>
+  new ApiException(
+    'An unexpected server error occurred.',
+    status,
+    response,
+    headers,
+    null,
+  )
 
 describe('isNetworkError', () => {
   it.each(['ERR_NETWORK', 'ECONNABORTED', 'ERR_CANCELED'])(
@@ -125,4 +142,132 @@ describe('isTransientRefreshFailure', () => {
       expect(result).toBe(false)
     },
   )
+})
+
+describe('rateLimitWaitMs', () => {
+  it('reads the wait from Retry-After, in seconds', () => {
+    // Arrange
+    const error = apiException(429, { 'retry-after': '12' })
+
+    // Act
+    const wait = rateLimitWaitMs(error)
+
+    // Assert
+    expect(wait).toBe(12_000)
+  })
+
+  it.each<Record<string, string>>([
+    {},
+    { 'retry-after': '0' },
+    { 'retry-after': 'soon' },
+  ])(
+    'holds off for the default when a 429 names no usable wait (%p)',
+    (headers) => {
+      // Arrange
+      const error = apiException(429, headers)
+
+      // Act
+      const wait = rateLimitWaitMs(error)
+
+      // Assert
+      expect(wait).toBe(DEFAULT_RATE_LIMIT_WAIT_MS)
+    },
+  )
+
+  it('caps a long wait at five minutes', () => {
+    // Arrange
+    const error = apiException(429, { 'retry-after': '86400' })
+
+    // Act
+    const wait = rateLimitWaitMs(error)
+
+    // Assert
+    expect(wait).toBe(5 * 60_000)
+  })
+
+  it.each([401, 500, 503])('is undefined for a %i', (status) => {
+    // Arrange
+    const error = apiException(status, { 'retry-after': '12' })
+
+    // Act
+    const wait = rateLimitWaitMs(error)
+
+    // Assert
+    expect(wait).toBeUndefined()
+  })
+})
+
+describe('signInRateLimitMessage', () => {
+  it("uses the server's sentence, which says how long to wait", () => {
+    // Arrange
+    const error = apiException(
+      429,
+      {},
+      JSON.stringify({
+        status: 429,
+        detail: 'Too many requests. Try again in 9 seconds.',
+      }),
+    )
+
+    // Act
+    const message = signInRateLimitMessage(error)
+
+    // Assert
+    expect(message).toBe('Too many requests. Try again in 9 seconds.')
+  })
+
+  it('falls back to a general message for a 429 with no body', () => {
+    // Arrange
+    const error = apiException(429)
+
+    // Act
+    const message = signInRateLimitMessage(error)
+
+    // Assert
+    expect(message).toBe('Too many sign-in attempts. Try again shortly.')
+  })
+
+  it('is undefined for any other failure, so the caller keeps its own message', () => {
+    // Arrange
+    const error = { status: 401, detail: 'Invalid email or password.' }
+
+    // Act
+    const message = signInRateLimitMessage(error)
+
+    // Assert
+    expect(message).toBeUndefined()
+  })
+})
+
+describe('RateLimitPause', () => {
+  it('holds off until the wait a 429 named has passed', () => {
+    // Arrange
+    const pause = new RateLimitPause()
+
+    // Act
+    pause.record(apiException(429, { 'retry-after': '10' }), 1_000)
+
+    // Assert
+    expect(pause.isActive(10_999)).toBe(true)
+    expect(pause.isActive(11_000)).toBe(false)
+  })
+
+  it('is not started by any other failure', () => {
+    // Arrange
+    const pause = new RateLimitPause()
+
+    // Act
+    pause.record(apiException(503, { 'retry-after': '10' }), 1_000)
+
+    // Assert
+    expect(pause.isActive(1_001)).toBe(false)
+  })
+
+  it('is inactive before anything is refused', () => {
+    // Act
+    const active = new RateLimitPause().isActive()
+
+    // Assert
+    expect(active).toBe(false)
+  })
 })

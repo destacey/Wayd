@@ -92,7 +92,10 @@ public static class McpServerSetup
                 await next(context);
             }));
 
-        app.MapMcp(Path).RequireAuthorization(McpAuthentication.Policy);
+        // A tool call that reaches the API is counted once, by the request it makes there (ApiPipeline), not again as
+        // the MCP message carrying it. The protocol's own messages and the tools that serve static content (skills,
+        // import file formats) are cheap and not counted.
+        app.MapMcp(Path).RequireAuthorization(McpAuthentication.Policy).DisableRateLimiting();
         app.MapWaydAuthorizationServerMetadata();
         app.MapWaydAuthorizationServer();
 

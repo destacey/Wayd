@@ -21,6 +21,8 @@ internal static class ConfigureServices
                 policy.AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials()
+                    // Not a header browsers expose by default; the client reads it to wait out a rate limit.
+                    .WithExposedHeaders(Microsoft.Net.Http.Headers.HeaderNames.RetryAfter)
                     .WithOrigins(origins.ToArray())
                     .SetIsOriginAllowedToAllowWildcardSubdomains())
         );

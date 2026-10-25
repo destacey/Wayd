@@ -45,6 +45,7 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
         response.Headers.RetryAfter.Should().NotBeNull();
         response.Headers.RetryAfter!.Delta.Should().BePositive();
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
     }
 
     [Fact]

@@ -49,7 +49,11 @@ public sealed class WaydSeedClient : IDisposable
         SubmissionGroupId = submissionGroupId;
 
         var root = baseUrl.TrimEnd('/') + "/";
-        _httpClient = new HttpClient { BaseAddress = new Uri(root) };
+        _httpClient = new HttpClient(new RateLimitRetryHandler(new HttpClientHandler()))
+        {
+            BaseAddress = new Uri(root),
+            Timeout = RateLimitRetryHandler.ClientTimeout,
+        };
         _httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
 
         _rolesClient = new TeamMemberRolesClient(root, _httpClient);

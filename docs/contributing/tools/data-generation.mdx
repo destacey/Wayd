@@ -802,6 +802,10 @@ completion and reads its row outcomes back before the next area writes anything,
 are where the created ids are. It polls every half second and gives up after ten minutes, saying the import
 runner may not be processing the queue.
 
+Every request waits out the API's rate limit rather than failing: a `429` is sent again after its
+`Retry-After` (at most 30 seconds per wait, six attempts in all, inside a five-minute request timeout), so a large seed slows to the seeding
+account's [per-user limit](../configuration.mdx#rate-limits) instead of stopping partway.
+
 Each row is submitted under an `ImportId` set to the generator's own handle for that record — a
 portfolio's name, a project's key — so the ids come back keyed the way the next file already refers to
 them, with no second mapping to keep in step.

@@ -349,9 +349,11 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         // Act
         var response = await browser.GetAsync(url, TestContext.Current.CancellationToken);
 
-        // Assert
+        // Assert — a page for the person in the browser, not problem details
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.NotNull(response.Headers.RetryAfter);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("Too many requests. Try again in ", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -987,9 +989,14 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         // Act
         var response = await client.PostAsync(AuthorizationServerMetadata.TokenPath, new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);
 
-        // Assert
+        // Assert — OAuth's error object, which an OAuth client parses, never cached
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.NotNull(response.Headers.RetryAfter);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+        var error = await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        Assert.Equal("temporarily_unavailable", error.GetProperty("error").GetString());
+        Assert.StartsWith("Too many requests. Try again in ", error.GetProperty("error_description").GetString());
     }
 
     [Fact]

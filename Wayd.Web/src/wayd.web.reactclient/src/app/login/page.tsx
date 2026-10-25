@@ -21,6 +21,7 @@ import {
 } from '@/src/components/contexts/auth/oidc-client-registry'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
 import { takeReturnUrl } from '@/src/utils/return-url'
+import { signInRateLimitMessage } from '@/src/services/request-failures'
 
 const pulseAnimation = `
 @keyframes pulse {
@@ -417,6 +418,7 @@ function LocalLoginTab() {
       navigateWithFullReload(takeReturnUrl() ?? '/')
     } catch (err: any) {
       const message =
+        signInRateLimitMessage(err) ||
         err?.detail ||
         err?.response?.data?.message ||
         err?.message ||
@@ -579,7 +581,8 @@ export default function LoginPage() {
         console.error('[Login] OIDC sign-in failed:', error)
         clearChosenProvider()
         setExchangeError(
-          'Unable to complete sign-in. Please try again.',
+          signInRateLimitMessage(error) ??
+            'Unable to complete sign-in. Please try again.',
         )
         setExchangeFailed(true)
       }

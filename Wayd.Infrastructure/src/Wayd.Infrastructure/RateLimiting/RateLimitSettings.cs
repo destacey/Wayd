@@ -30,6 +30,12 @@ public static class RateLimitPolicies
 
     /// <summary>First-run setup, which checks the one-time bootstrap token and so is held tightest.</summary>
     public const string AuthSetup = "auth-setup";
+
+    /// <summary>
+    /// CSV import submissions, held to a number in flight per user: one reads and validates a whole file inside the
+    /// request, so its cost is the file, not the request.
+    /// </summary>
+    public const string Imports = "imports";
 }
 
 /// <summary>The limits behind <see cref="RateLimitPolicies"/>, read from <see cref="SectionName"/> and applied without a restart.</summary>
@@ -59,17 +65,65 @@ public sealed class RateLimitSettings
     /// <summary>Requests per caller address to first-run setup.</summary>
     public FixedWindowLimit AuthSetup { get; set; } = new() { PermitLimit = 5, WindowSeconds = 900 };
 
+    /// <summary>
+    /// Requests per signed-in user to every endpoint, on top of any endpoint's own limit. A burst covers a page that
+    /// loads many things at once; the steady rate is far above a person clicking and caps a runaway script or agent.
+    /// </summary>
+    public TokenBucketLimit PerUser { get; set; } = new() { TokenLimit = 200, TokensPerPeriod = 5, PeriodSeconds = 1 };
+
+    /// <summary>CSV import submissions per signed-in user in flight at once.</summary>
+    public ConcurrencyLimit Imports { get; set; } = new() { PermitLimit = 2 };
+
     /// <summary>Every limit, so startup validation cannot miss one.</summary>
-    internal IEnumerable<FixedWindowLimit> All() =>
-        [OAuthAuthorize, OAuthToken, AuthSignIn, AuthRefresh, AuthProviders, AuthSetup];
+    internal IEnumerable<IRateLimit> All() =>
+        [OAuthAuthorize, OAuthToken, AuthSignIn, AuthRefresh, AuthProviders, AuthSetup, PerUser, Imports];
+}
+
+/// <summary>A limit in <see cref="RateLimitSettings"/>, which the host refuses to start with unless it is valid.</summary>
+public interface IRateLimit
+{
+    /// <summary>Whether every number in the limit is above zero; zero would refuse every request.</summary>
+    bool IsValid();
 }
 
 /// <summary>A number of requests allowed in each fixed window of time.</summary>
-public sealed class FixedWindowLimit
+public sealed class FixedWindowLimit : IRateLimit
 {
     /// <summary>How many requests are allowed in each window.</summary>
     public int PermitLimit { get; set; }
 
     /// <summary>How long each window lasts, in seconds.</summary>
     public int WindowSeconds { get; set; }
+
+    /// <inheritdoc />
+    public bool IsValid() => PermitLimit > 0 && WindowSeconds > 0;
+}
+
+/// <summary>
+/// A bucket of requests that refills at a steady rate: a caller may spend the whole bucket at once, then only as fast
+/// as it refills.
+/// </summary>
+public sealed class TokenBucketLimit : IRateLimit
+{
+    /// <summary>How many requests the bucket holds, which is the largest burst allowed.</summary>
+    public int TokenLimit { get; set; }
+
+    /// <summary>How many requests are added back each period, up to <see cref="TokenLimit"/>.</summary>
+    public int TokensPerPeriod { get; set; }
+
+    /// <summary>How long each refill period lasts, in seconds.</summary>
+    public int PeriodSeconds { get; set; }
+
+    /// <inheritdoc />
+    public bool IsValid() => TokenLimit > 0 && TokensPerPeriod > 0 && PeriodSeconds > 0;
+}
+
+/// <summary>A number of requests allowed in flight at once.</summary>
+public sealed class ConcurrencyLimit : IRateLimit
+{
+    /// <summary>How many requests may run at the same time.</summary>
+    public int PermitLimit { get; set; }
+
+    /// <inheritdoc />
+    public bool IsValid() => PermitLimit > 0;
 }

@@ -18,11 +18,21 @@ public static class AuthorizationServerEndpoints
         app.MapGet(AuthorizationServerMetadata.AuthorizePath, Authorize)
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicies.OAuthAuthorize)
+            .WithMetadata(new RateLimitRejection((context, retryAfter, _) =>
+                ErrorPage(context, RateLimitRejection.Describe(retryAfter), StatusCodes.Status429TooManyRequests).ExecuteAsync(context)))
             .ExcludeFromDescription();
 
         app.MapPost(AuthorizationServerMetadata.TokenPath, Token)
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicies.OAuthToken)
+            .WithMetadata(new RateLimitRejection((context, retryAfter, _) =>
+            {
+                // OAuth clients parse the RFC 6749 §5.2 error object, not problem details.
+                NeverCache(context);
+                return Results.Json(
+                    new TokenOutcome.Refused("temporarily_unavailable", RateLimitRejection.Describe(retryAfter)),
+                    statusCode: StatusCodes.Status429TooManyRequests).ExecuteAsync(context);
+            }))
             .ExcludeFromDescription();
 
         return app;
@@ -45,9 +55,7 @@ public static class AuthorizationServerEndpoints
     {
         var outcome = await server.Token(context.Request, context.RequestAborted);
 
-        // RFC 6749 §5.1: a response carrying tokens, or saying why none were issued, must never be cached.
-        context.Response.Headers.CacheControl = "no-store";
-        context.Response.Headers.Pragma = "no-cache";
+        NeverCache(context);
 
         return outcome switch
         {
@@ -55,6 +63,13 @@ public static class AuthorizationServerEndpoints
             TokenOutcome.Refused refused => Results.Json(refused, statusCode: StatusCodes.Status400BadRequest),
             _ => throw new InvalidOperationException($"Unhandled token outcome {outcome.GetType().Name}."),
         };
+    }
+
+    /// <summary>RFC 6749 §5.1: a response carrying tokens, or saying why none were issued, must never be cached.</summary>
+    private static void NeverCache(HttpContext context)
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Headers.Pragma = "no-cache";
     }
 
     /// <summary>

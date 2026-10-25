@@ -69,7 +69,11 @@ import {
 } from '@/src/otel/browser-traceparent'
 import { storeReturnUrl } from '@/src/utils/return-url'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
-import { isNetworkError, isTransientRefreshFailure } from './request-failures'
+import {
+  isNetworkError,
+  isTransientRefreshFailure,
+  RateLimitPause,
+} from './request-failures'
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -204,7 +208,14 @@ function redirectToLoginWithReturnUrl(): void {
 // this from a refresh-attempt failure: no tokens means "not a session" (don't
 // wipe state, just reject), whereas a failure means "session invalidated by
 // the server" (clear it).
+//
+// After a refresh is refused with 429, no refresh is sent again until the
+// wait it named has passed: the refresh limit is shared by everyone behind one
+// address, and every request with an expired token would otherwise spend it
+// again. A refresh asked for in the meantime fails as a 429 too, which callers
+// already treat as transient.
 let inFlightRefresh: Promise<TokenResponse> | null = null
+const refreshPause = new RateLimitPause()
 
 function refreshOnce(): Promise<TokenResponse> | null {
   if (inFlightRefresh) return inFlightRefresh
@@ -213,11 +224,22 @@ function refreshOnce(): Promise<TokenResponse> | null {
   const refreshToken = getAuthRefreshToken()
   if (!currentToken || !refreshToken) return null
 
+  if (refreshPause.isActive()) {
+    return Promise.reject({
+      status: 429,
+      message: 'Token refresh paused by a rate limit.',
+    })
+  }
+
   inFlightRefresh = getAuthClient()
     .refreshToken({ token: currentToken, refreshToken })
     .then((tokenResponse) => {
       storeAuth(tokenResponse)
       return tokenResponse
+    })
+    .catch((error: unknown) => {
+      refreshPause.record(error)
+      throw error
     })
     .finally(() => {
       inFlightRefresh = null
@@ -324,13 +346,16 @@ axiosClient.interceptors.response.use(
     // error with its endpoint context. Real server errors stay loud.
     //
     // A 400 or 422 is the server refusing the input, which the form that sent
-    // it shows to the user. Logged as an error, Next's dev overlay reports
-    // every rejected form as a crash.
+    // it shows to the user, and a 429 is the caller's own rate limit, which
+    // passes once its wait does. Logged as an error, Next's dev overlay reports
+    // each as a crash.
     const status = error.response?.status
     if (isNetworkError(error)) {
       console.warn('API unreachable:', error.config?.url)
     } else if (status === 400 || status === 422) {
       console.warn('API refused the request:', status, error.config?.url)
+    } else if (status === 429) {
+      console.warn('API rate limit reached:', error.config?.url)
     } else {
       console.error('API Error:', error.message, error.config?.url)
     }

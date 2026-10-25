@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 // --- Mocks ---
@@ -48,6 +48,7 @@ jest.mock('@/src/store/features/common/auth-providers-api', () => ({
 import LoginPage from './page'
 import { UserManager } from 'oidc-client-ts'
 import { getAuthClient, storeAuth } from '@/src/services/clients'
+import { ApiException } from '@/src/services/wayd-api'
 
 const entraProvider = {
   name: 'MicrosoftEntraId',
@@ -262,5 +263,110 @@ describe('LoginPage return to the requested page', () => {
     // Assert
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(RETURN_PATH))
     expect(storeAuth).toHaveBeenCalledWith({ token: 't' })
+  })
+})
+
+describe('LoginPage rate-limited sign-in', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('tells the user how long to wait, rather than reporting a server fault', async () => {
+    // Arrange — the shape the generated client throws for a 429 the endpoint does not document
+    mockUseGetAuthProvidersQuery.mockReturnValue({
+      data: { local: true, oidc: [] },
+      isLoading: false,
+    })
+    const refused = new ApiException(
+      'An unexpected server error occurred.',
+      429,
+      JSON.stringify({
+        status: 429,
+        title: 'Too Many Requests',
+        detail: 'Too many requests. Try again in 42 seconds.',
+      }),
+      { 'retry-after': '42' },
+      null,
+    )
+    jest.mocked(getAuthClient).mockReturnValue({
+      login: jest.fn().mockRejectedValue(refused),
+    } as never)
+    render(<LoginPage />)
+
+    // Act
+    fireEvent.change(screen.getByPlaceholderText('Email'), {
+      target: { value: 'pat@acme.example' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Password'), {
+      target: { value: 'correct horse' },
+    })
+    // In act: jest.setup stubs MessageChannel, so React commits the handler's
+    // state updates, made after the awaited sign-in, only inside act.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    })
+
+    // Assert
+    expect(
+      await screen.findByText('Too many requests. Try again in 42 seconds.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('An unexpected server error occurred.'),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe('LoginPage rate-limited identity-provider sign-in', () => {
+  afterEach(() => {
+    window.history.replaceState(null, '', '/')
+    jest.mocked(sessionStorage.getItem).mockReset()
+  })
+
+  it('tells the user how long to wait when the exchange is refused', async () => {
+    // Arrange — back from the provider, with the exchange refused by its limit
+    jest.clearAllMocks()
+    window.history.replaceState(null, '', '/login?code=c1&state=s1')
+    mockUseGetAuthProvidersQuery.mockReturnValue({
+      data: { local: false, oidc: [entraProvider] },
+      isLoading: false,
+    })
+    jest
+      .mocked(sessionStorage.getItem)
+      .mockImplementation((key) =>
+        key === 'wayd.oidc.chosenProvider' ? entraProvider.name : null,
+      )
+    jest.mocked(UserManager).mockImplementationOnce(
+      () =>
+        ({
+          signinRedirectCallback: jest
+            .fn()
+            .mockResolvedValue({ access_token: 'entra-token' }),
+        }) as never,
+    )
+    const refused = new ApiException(
+      'An unexpected server error occurred.',
+      429,
+      JSON.stringify({
+        status: 429,
+        detail: 'Too many requests. Try again in 17 seconds.',
+      }),
+      { 'retry-after': '17' },
+      null,
+    )
+    jest.mocked(getAuthClient).mockReturnValue({
+      exchange: jest.fn().mockRejectedValue(refused),
+    } as never)
+
+    // Act — in act, for the reason given on the password sign-in test
+    await act(async () => {
+      render(<LoginPage />)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    // Assert
+    expect(
+      await screen.findByText('Too many requests. Try again in 17 seconds.'),
+    ).toBeInTheDocument()
+    expect(storeAuth).not.toHaveBeenCalled()
   })
 })

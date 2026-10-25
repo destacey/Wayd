@@ -605,20 +605,43 @@ Unset, MCP clients cannot sign in with OAuth: the authorization endpoint answers
 
 ## Rate limits
 
-`RateLimitSettings` holds the limits of the API's rate-limited endpoints, each a fixed window per caller address. Changes take effect without a restart, from each caller's next window; a limit with a `PermitLimit` or `WindowSeconds` of zero or less stops the host at startup. A refused request gets 429 with `Retry-After`.
+`RateLimitSettings` holds two kinds of limit, and a request must pass both:
 
-| Setting | Default | Endpoint |
+- **Per user**, across every endpoint: a signed-in user's requests, whatever credential they come with.
+- **Per endpoint**, for the endpoints that name a policy: the anonymous sign-in and OAuth endpoints, counted per caller address, and CSV import submissions, counted per user.
+
+Changes take effect without a restart, from each caller's next window. A limit with any number at zero or below stops the host at startup.
+
+| Setting | Default | Limits |
 |---|---|---|
-| `RateLimitSettings:OAuthAuthorize` | 30 per 60 s | `GET /oauth/authorize` |
-| `RateLimitSettings:OAuthToken` | 60 per 60 s | `POST /oauth/token` |
-| `RateLimitSettings:AuthSignIn` | 30 per 60 s | `POST /api/auth/login` and `POST /api/auth/exchange`, counted together |
-| `RateLimitSettings:AuthRefresh` | 120 per 60 s | `POST /api/auth/refresh-token` |
-| `RateLimitSettings:AuthProviders` | 60 per 60 s | `GET /api/auth/providers` |
-| `RateLimitSettings:AuthSetup` | 5 per 900 s | `POST /api/auth/setup` |
+| `RateLimitSettings:PerUser` | a burst of 200, then 5 per second | Every request from a signed-in user |
+| `RateLimitSettings:Imports` | 2 at a time | CSV import submissions in flight per user (every action marked `[CsvImport]`) |
+| `RateLimitSettings:OAuthAuthorize` | 30 per 60 s | `GET /oauth/authorize`, per address |
+| `RateLimitSettings:OAuthToken` | 60 per 60 s | `POST /oauth/token`, per address |
+| `RateLimitSettings:AuthSignIn` | 30 per 60 s | `POST /api/auth/login` and `POST /api/auth/exchange`, counted together, per address |
+| `RateLimitSettings:AuthRefresh` | 120 per 60 s | `POST /api/auth/refresh-token`, per address |
+| `RateLimitSettings:AuthProviders` | 60 per 60 s | `GET /api/auth/providers`, per address |
+| `RateLimitSettings:AuthSetup` | 5 per 900 s | `POST /api/auth/setup`, per address |
 
-Each has `PermitLimit` and `WindowSeconds`, set like any other setting: `RateLimitSettings__AuthSignIn__PermitLimit=60` as an environment variable. In Azure a changed environment variable starts a new revision, so there it means no release rather than no restart.
+`PerUser` has `TokenLimit` (the burst), `TokensPerPeriod` and `PeriodSeconds` (the steady rate). `Imports` has `PermitLimit`. The rest each have `PermitLimit` and `WindowSeconds`. Set them like any other setting, such as `RateLimitSettings__PerUser__TokenLimit=400` as an environment variable. In Azure a changed environment variable starts a new revision, so there it means no release rather than no restart.
 
-**Endpoints that share a setting share a window.** Sign-in and the identity-provider exchange draw from one budget, so a password spray cannot switch endpoints for a fresh one; refresh has its own, because every signed-in browser calls it and it must never spend the sign-in budget. The client keeps the session when a refresh answers 429, rather than signing the user out.
+**The per-user limit counts the user, not the token.** A user's web session, personal access tokens and MCP connections draw from one bucket, so minting more tokens buys no more room. Anonymous requests are not counted here; the anonymous endpoints have their own per-address limits. Size the burst above the request count of the heaviest page, which loads many things at once.
+
+**The limiter runs after authorization**, because that is where the user becomes known: the API has no default authentication scheme, so each authorization policy authenticates with its own. A request with a bad credential is therefore refused with 401 before any limit counts it.
+
+**A hosted MCP tool call is counted once**, by the API request it makes through the pipeline (`ApiPipeline`). The `/mcp` endpoint itself is exempt, so connecting and listing tools cost nothing. A refused call reaches the agent as a tool error that says how long to wait.
+
+**SignalR is counted at negotiate.** The negotiate call and the connection request are ordinary signed-in requests; messages over an open WebSocket are not limited.
+
+**An import is limited by how many are in flight, not how often.** A submission reads and validates its whole file inside the request, so its cost is the file. The web app submits one file at a time. `POST /api/imports/{id}/apply` sends no file and is not in this policy, though the per-user limit still counts it.
+
+**A refused request gets 429 with `Retry-After`** in seconds, when the limit knows the wait. An import refused for having too many in flight has none, since the wait is however long the other submission takes. The API answers with problem details whose `detail` says how long to wait. `POST /oauth/token` answers with OAuth's error object (`temporarily_unavailable`), and `GET /oauth/authorize` with a page, because their clients read those. An endpoint picks its own format by carrying `RateLimitRejection` metadata. CORS exposes `Retry-After` to the web app.
+
+**What a refused caller does.** The web app keeps the session when a refresh answers 429 and sends no refresh until `Retry-After` has passed, and the sign-in page shows the server's message. Any other call the per-user limit refuses fails like any other error, and the page shows its error state. `wayd-data seed` waits out a 429 and sends the request again.
+
+**A refusal by an endpoint policy also spends from the per-user bucket, twice.** The middleware takes a token from the user's bucket before asking the endpoint's policy, and a token bucket does not give it back when the policy refuses; it then tries once more through its waiting path. A script that keeps retrying a refused import therefore drains its per-user budget twice as fast. Every refusal is logged as a warning naming the caller and the path.
+
+**Endpoints that share a setting share a window.** Sign-in and the identity-provider exchange draw from one budget, so a password spray cannot switch endpoints for a fresh one; refresh has its own, because every signed-in browser calls it and it must never spend the sign-in budget.
 
 **An IPv6 caller is counted by its /64**, the block one subscriber is usually given, so changing the low bits of an address does not buy a fresh window. An IPv4 caller is counted by its address.
 

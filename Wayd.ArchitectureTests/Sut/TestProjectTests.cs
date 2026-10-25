@@ -54,7 +54,7 @@ public class TestProjectTests
 
         // Assert
         invalidTestProjects.Should().BeEmpty(
-            "All test projects should end with '.Tests' or '.IntegrationTests' (except shared test utilities like Wayd.Tests.Shared, Wayd.Tests.Containers and *.TestData faker libraries). Invalid projects: {0}",
+            "All test projects should end with '.Tests' or '.IntegrationTests' (except shared test utilities like Wayd.Tests.Shared, Wayd.Tests.Containers and Wayd.TestData.Core). Invalid projects: {0}",
             string.Join(", ", invalidTestProjects));
     }
 
@@ -243,7 +243,7 @@ public class TestProjectTests
         {
             var projectName = Path.GetFileNameWithoutExtension(testProject);
             (projectName.EndsWith(".Tests") || ProjectConventions.IsExemptSupportProject(projectName)).Should().BeTrue(
-                "Test project {0} should end with '.Tests', or be a shared/*.TestData support project", projectName);
+                "Test project {0} should end with '.Tests', or be a shared support project", projectName);
         }
     }
 
@@ -308,7 +308,7 @@ public class TestProjectTests
             var projectContent = File.ReadAllText(testProjectPath);
             var projectName = Path.GetFileNameWithoutExtension(testProjectPath);
 
-            // Shared utilities and *.TestData faker libraries reference no test framework.
+            // Shared utilities and Wayd.TestData.Core reference no test framework.
             if (ProjectConventions.IsExemptSupportProject(projectName))
             {
                 continue;
@@ -323,7 +323,7 @@ public class TestProjectTests
 
         // Assert
         projectsMissingXUnit.Should().BeEmpty(
-            "All test projects should use xUnit as the testing framework (except shared utilities and *.TestData faker libraries). Projects missing xUnit: {0}",
+            "All test projects should use xUnit as the testing framework (except shared utilities and Wayd.TestData.Core). Projects missing xUnit: {0}",
             string.Join(", ", projectsMissingXUnit));
     }
 

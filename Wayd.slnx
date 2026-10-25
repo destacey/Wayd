@@ -67,7 +67,6 @@
     <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.Application.Tests/Wayd.Organization.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.Domain.Tests/Wayd.Organization.Domain.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.IntegrationTests/Wayd.Organization.IntegrationTests.csproj" />
-    <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.TestData/Wayd.Organization.TestData.csproj" />
   </Folder>
   <Folder Name="/Wayd.Services/Wayd.Planning/" />
   <Folder Name="/Wayd.Services/Wayd.Planning/src/">

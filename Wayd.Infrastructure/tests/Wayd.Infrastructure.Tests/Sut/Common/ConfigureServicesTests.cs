@@ -31,7 +31,6 @@ public sealed class ConfigureServicesTests
     [InlineData("Wayd.Integrations.AzureDevOps", true)]
     [InlineData("Wayd.Tests.Shared", false)]
     [InlineData("Wayd.TestData.Core", false)]
-    [InlineData("Wayd.Organization.TestData", false)]
     [InlineData("Wayd.Work.Application.Tests", false)]
     [InlineData("Wayd.Web.Api.IntegrationTests", false)]
     [InlineData("Wayd.ArchitectureTests", false)]

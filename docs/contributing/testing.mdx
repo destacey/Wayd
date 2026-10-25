@@ -147,10 +147,7 @@ Pass `TestContext.Current.CancellationToken` to **every** method that accepts a 
 
 Domain fakers generate realistic test data with Bogus. They live in **each model's own test project**, under a `Data/` folder. Only the `PrivateConstructorFaker<T>` base class lives centrally, in `Wayd.TestData.Core` (namespace `Wayd.TestData.Core`). Test projects reach it transitively through their `Wayd.Tests.Shared` reference, so no extra project reference is needed.
 
-Two intentional exceptions to the colocation rule — reuse these rather than duplicating or relocating them:
-
-- **Cross-cutting fakers** for types no single domain owns live in `Wayd.Tests.Shared/Data/`: `FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`, `UserFaker`.
-- **Organization** publishes its fakers from a dedicated `Wayd.Organization.TestData` project (`TeamFaker`, `TeamMembershipFaker`, and the rest), because several test projects consume them.
+One intentional exception to the colocation rule: **cross-cutting fakers** for types no single domain owns live in `Wayd.Tests.Shared/Data/` — `FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`, `UserFaker`. Reuse these rather than duplicating or relocating them.
 
 ```csharp
 var faker = new ScoringModelFaker();

@@ -15,19 +15,13 @@ public static class ProjectConventions
     ///   <item><description><c>Wayd.Tests.Containers</c> — how integration suites start their SQL Server
     ///   container. Referenced only by integration projects, so the unit projects never depend on
     ///   Testcontainers.</description></item>
-    ///   <item><description>Test-data / faker libraries whose name contains a <c>TestData</c> segment —
-    ///   Bogus-only, e.g. <c>Wayd.Organization.TestData</c> (suffix) and <c>Wayd.TestData.Core</c> (mid-name).
-    ///   They are consumed by test projects (and the wayd-data dev tool) but contain no tests and reference no
-    ///   test framework, and they live under <c>tests/</c> to signal they are test-only.</description></item>
+    ///   <item><description><c>Wayd.TestData.Core</c> — the Bogus-only <c>PrivateConstructorFaker&lt;T&gt;</c>
+    ///   base. It contains no tests and references no test framework. Domain fakers live in each domain's own
+    ///   <c>Domain.Tests</c> project, so no other faker library is exempt.</description></item>
     /// </list>
     /// </summary>
     public static bool IsExemptSupportProject(string projectName) =>
         projectName == "Wayd.Tests.Shared" ||
         projectName == "Wayd.Tests.Containers" ||
-        IsTestDataLibrary(projectName);
-
-    /// <summary>True for a Bogus-only test-data/faker library, identified by a <c>TestData</c> name segment.</summary>
-    public static bool IsTestDataLibrary(string projectName) =>
-        projectName.EndsWith(".TestData", StringComparison.Ordinal) ||
-        projectName.Contains(".TestData.", StringComparison.Ordinal);
+        projectName == "Wayd.TestData.Core";
 }

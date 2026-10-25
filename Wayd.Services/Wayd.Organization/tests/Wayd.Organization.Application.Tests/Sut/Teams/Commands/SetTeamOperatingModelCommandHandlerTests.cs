@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 using Moq;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;

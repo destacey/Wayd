@@ -7,7 +7,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Events;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Queries;
 

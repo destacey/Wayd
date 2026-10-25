@@ -13,7 +13,7 @@ using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.HolidayCalendars.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.Application.Tests.Sut.HolidayCalendars.Commands;

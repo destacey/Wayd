@@ -10,7 +10,7 @@ using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 
 namespace Wayd.Organization.Application.Tests.Sut.EmployeeCapacities.Queries;
 

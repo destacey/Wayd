@@ -267,6 +267,40 @@ public sealed class NotificationStoreIntegrationTests(SqlServerDbContextFixture 
         (await reader.Notifications.CountAsync(n => n.RecipientEmployeeId == blake.Id && n.ReadOn == null, cancellationToken)).Should().Be(1);
     }
 
+    [Fact]
+    public async Task DeleteOlderThan_ShouldDeleteTheOldestBatchBeforeTheCutoffOnly()
+    {
+        // Arrange — the sweep's cutoff is far in the past here, so other tests' rows are never older.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var avery = await NotificationTestData.SeedEmployee(fixture);
+        var cutoff = Instant.FromUtc(1990, 1, 1, 0, 0);
+        var ownerId = Guid.CreateVersion7();
+        await using (var seed = fixture.CreateContext())
+        {
+            var seeder = new NotificationStore(seed);
+            foreach (var days in new[] { 30, 20, 10 })
+            {
+                await seeder.Add([New(Guid.CreateVersion7(), ownerId, avery.Id, occurredOn: cutoff - Duration.FromDays(days))], cancellationToken);
+            }
+
+            await seeder.Add([New(Guid.CreateVersion7(), ownerId, avery.Id, occurredOn: cutoff)], cancellationToken);
+        }
+
+        await using var context = fixture.CreateContext();
+        var store = new NotificationStore(context);
+
+        // Act
+        var first = await store.DeleteOlderThan(cutoff, 2, cancellationToken);
+        var second = await store.DeleteOlderThan(cutoff, 2, cancellationToken);
+
+        // Assert
+        first.Should().Be(2);
+        second.Should().Be(1);
+        await using var reader = fixture.CreateContext();
+        var remaining = await reader.Notifications.Where(n => n.OwnerId == ownerId).Select(n => n.OccurredOn).ToListAsync(cancellationToken);
+        remaining.Should().Equal(cutoff);
+    }
+
     private static Notification New(
         Guid eventId,
         Guid ownerId,

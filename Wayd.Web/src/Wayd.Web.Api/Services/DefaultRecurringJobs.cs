@@ -9,8 +9,9 @@ namespace Wayd.Web.Api.Services;
 /// Schedules the maintenance a deployment depends on, so that it runs without an admin having to know it
 /// exists. Today that is the import stall sweep — the only thing that ends a run whose worker died before
 /// it could record the failure, and the only thing that republishes a run whose message never arrived —
-/// and the import retention sweep, the only thing that discards the copy of each uploaded file once its
-/// run is old enough that nobody will retry it.
+/// the import retention sweep, the only thing that discards the copy of each uploaded file once its
+/// run is old enough that nobody will retry it, and the notification retention sweep, the only thing that
+/// keeps notifications from growing without end.
 /// </summary>
 /// <remarks>
 /// Each is added only when absent, and matched on the method rather than an id, so a schedule an admin
@@ -25,6 +26,7 @@ public static class DefaultRecurringJobs
 {
     public const string ImportStallRecoveryJobId = "import-stall-recovery";
     public const string ImportRetentionSweepJobId = "import-retention-sweep";
+    public const string NotificationRetentionSweepJobId = "notification-retention-sweep";
 
     // Its grace periods are 15 and 30 minutes, so checking every five keeps the wait close to them.
     private const string ImportStallRecoveryCron = "*/5 * * * *";
@@ -32,6 +34,9 @@ public static class DefaultRecurringJobs
     // The window is 30 days, so a payload cleared a day late is nothing; once a night, off the working
     // day, is plenty.
     private const string ImportRetentionSweepCron = "0 3 * * *";
+
+    // The window is 90 days; nightly, half an hour after the import sweep to stagger the two.
+    private const string NotificationRetentionSweepCron = "30 3 * * *";
 
     // Methods removed from IJobManager that a deployment may still have scheduled. An entry can be dropped
     // once every deployment has started at least once with it in place.
@@ -46,6 +51,8 @@ public static class DefaultRecurringJobs
             jobManager => () => jobManager.RunImportStallRecovery(CancellationToken.None)),
         (ImportRetentionSweepJobId, nameof(IJobManager.RunImportRetentionSweep), ImportRetentionSweepCron,
             jobManager => () => jobManager.RunImportRetentionSweep(CancellationToken.None)),
+        (NotificationRetentionSweepJobId, nameof(IJobManager.RunNotificationRetentionSweep), NotificationRetentionSweepCron,
+            jobManager => () => jobManager.RunNotificationRetentionSweep(CancellationToken.None)),
     ];
 
     public static void EnsureDefaultRecurringJobs(this IServiceProvider services)

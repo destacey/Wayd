@@ -54,7 +54,7 @@ public sealed class DefaultRecurringJobsTests
     }
 
     [Fact]
-    public void EnsureDefaultRecurringJobs_SchedulesBothImportSweepsWhenNothingRunsThem()
+    public void EnsureDefaultRecurringJobs_SchedulesEverySweepWhenNothingRunsThem()
     {
         // Arrange
         ScheduledJobsAre(new RecurringJobDto { Id = "people-sync", Action = nameof(IJobManager.RunPeopleSync) });
@@ -65,7 +65,8 @@ public sealed class DefaultRecurringJobsTests
         // Assert
         _added.Select(a => a.JobId).Should().BeEquivalentTo(
             DefaultRecurringJobs.ImportStallRecoveryJobId,
-            DefaultRecurringJobs.ImportRetentionSweepJobId);
+            DefaultRecurringJobs.ImportRetentionSweepJobId,
+            DefaultRecurringJobs.NotificationRetentionSweepJobId);
     }
 
     [Fact]
@@ -82,12 +83,26 @@ public sealed class DefaultRecurringJobsTests
     }
 
     [Fact]
+    public void EnsureDefaultRecurringJobs_RunsTheNotificationSweepOnceADayAfterTheImportSweep()
+    {
+        // Arrange
+        ScheduledJobsAre();
+
+        // Act
+        CreateServices().EnsureDefaultRecurringJobs();
+
+        // Assert
+        _added.Single(a => a.JobId == DefaultRecurringJobs.NotificationRetentionSweepJobId).Cron.Should().Be("30 3 * * *");
+    }
+
+    [Fact]
     public void EnsureDefaultRecurringJobs_LeavesAScheduleAnAdminAlreadyMadeAlone()
     {
-        // Arrange — both sweeps, scheduled under names of the admin's own
+        // Arrange — every sweep, scheduled under names of the admin's own
         ScheduledJobsAre(
             new RecurringJobDto { Id = "nightly-import-recovery", Action = nameof(IJobManager.RunImportStallRecovery) },
-            new RecurringJobDto { Id = "weekly-import-purge", Action = nameof(IJobManager.RunImportRetentionSweep) });
+            new RecurringJobDto { Id = "weekly-import-purge", Action = nameof(IJobManager.RunImportRetentionSweep) },
+            new RecurringJobDto { Id = "weekly-notification-purge", Action = nameof(IJobManager.RunNotificationRetentionSweep) });
 
         // Act
         CreateServices().EnsureDefaultRecurringJobs();
@@ -99,13 +114,13 @@ public sealed class DefaultRecurringJobsTests
     [Fact]
     public void EnsureDefaultRecurringJobs_AddsOnlyTheSweepThatIsMissing()
     {
-        // Arrange — a deployment from before the retention sweep had a default
+        // Arrange — a deployment from before the retention sweeps had defaults
         ScheduledJobsAre(new RecurringJobDto { Id = DefaultRecurringJobs.ImportStallRecoveryJobId, Action = nameof(IJobManager.RunImportStallRecovery) });
 
         // Act
         CreateServices().EnsureDefaultRecurringJobs();
 
         // Assert
-        _added.Select(a => a.JobId).Should().Equal(DefaultRecurringJobs.ImportRetentionSweepJobId);
+        _added.Select(a => a.JobId).Should().Equal(DefaultRecurringJobs.ImportRetentionSweepJobId, DefaultRecurringJobs.NotificationRetentionSweepJobId);
     }
 }

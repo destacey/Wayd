@@ -45,6 +45,22 @@ public sealed class FakeNotificationStore(FakeWaydDbContext dbContext) : INotifi
             _dbContext.Notifications.Where(n => n.RecipientEmployeeId == recipientEmployeeId).ToList(),
             readOn));
 
+    public Task<int> DeleteOlderThan(Instant cutoff, int batchSize, CancellationToken cancellationToken)
+    {
+        var batch = _dbContext.Notifications
+            .Where(n => n.OccurredOn < cutoff)
+            .OrderBy(n => n.OccurredOn)
+            .Take(batchSize)
+            .ToList();
+
+        foreach (var notification in batch)
+        {
+            _dbContext.Notifications.Remove(notification);
+        }
+
+        return Task.FromResult(batch.Count);
+    }
+
     /// <summary>Sets <c>ReadOn</c> on the unread ones, as the real store's set-based update does.</summary>
     private static int MarkUnread(List<Notification> notifications, Instant readOn)
     {

@@ -91,4 +91,21 @@ internal sealed class NotificationStore(WaydDbContext dbContext) : INotification
         _dbContext.Notifications
             .Where(n => n.RecipientEmployeeId == recipientEmployeeId && n.ReadOn == null)
             .ExecuteUpdateAsync(u => u.SetProperty(n => n.ReadOn, readOn), cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<int> DeleteOlderThan(Instant cutoff, int batchSize, CancellationToken cancellationToken)
+    {
+        // Batched so a long-neglected table is trimmed in short transactions rather than one that holds
+        // locks on every row it ever stored.
+        var batch = _dbContext.Notifications
+            .Where(n => n.OccurredOn < cutoff)
+            .OrderBy(n => n.OccurredOn)
+            .ThenBy(n => n.Id)
+            .Take(batchSize)
+            .Select(n => n.Id);
+
+        return _dbContext.Notifications
+            .Where(n => batch.Contains(n.Id))
+            .ExecuteDeleteAsync(cancellationToken);
+    }
 }

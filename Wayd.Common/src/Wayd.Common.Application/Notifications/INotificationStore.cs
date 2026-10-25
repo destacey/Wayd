@@ -32,4 +32,11 @@ public interface INotificationStore
     /// <summary>Marks every unread notification the person has read.</summary>
     /// <returns>How many were marked.</returns>
     Task<int> MarkAllRead(Guid recipientEmployeeId, Instant readOn, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes up to <paramref name="batchSize"/> notifications about changes that happened before
+    /// <paramref name="cutoff"/>, read or not, oldest first.
+    /// </summary>
+    /// <returns>How many were deleted; fewer than <paramref name="batchSize"/> means none older remain.</returns>
+    Task<int> DeleteOlderThan(Instant cutoff, int batchSize, CancellationToken cancellationToken);
 }

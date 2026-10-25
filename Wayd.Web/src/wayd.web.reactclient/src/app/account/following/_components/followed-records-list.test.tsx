@@ -9,7 +9,7 @@ import {
 import FollowedRecordsList, {
   FollowedRecordsListProps,
 } from './followed-records-list'
-import { typeLabel } from './following-filters'
+import { typeLabel } from '@/src/components/common/record/record-identity'
 
 jest.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
   useGetProjectHealthCheckQuery: () => ({ data: undefined, isLoading: false }),

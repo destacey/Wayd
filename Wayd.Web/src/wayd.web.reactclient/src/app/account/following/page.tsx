@@ -11,6 +11,10 @@ import {
   useState,
 } from 'react'
 import { PageTitle, WaydEmpty } from '@/src/components/common'
+import {
+  recordId,
+  typeLabel,
+} from '@/src/components/common/record/record-identity'
 import useAuth from '@/src/components/contexts/auth'
 import { requireFeatureFlag } from '@/src/components/hoc'
 import {
@@ -35,8 +39,6 @@ import FollowingFilterBar from './_components/following-filter-bar'
 import {
   FollowingFilter,
   LowCountThreshold,
-  recordId,
-  typeLabel,
 } from './_components/following-filters'
 import FollowingRail from './_components/following-rail'
 import styles from './following.module.css'
@@ -394,7 +396,7 @@ const FollowingPage = () => {
     <div className={styles.page}>
       <PageTitle
         title="Following"
-        subtitle="Records you follow and can still see. Following records your interest; notifications come later."
+        subtitle="Records you follow and can still see. You are told about their changes in Notifications, under the bell."
       />
       <Suspense fallback={<Spin />}>
         <FollowingContent />

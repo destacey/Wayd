@@ -1,0 +1,139 @@
+/* One notification entry and the list of them, shared by the bell's panel and
+ * the Notifications page. */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ant-margin-xs);
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.entry:last-child {
+  border-bottom: 0;
+}
+
+.entry:hover {
+  background: var(--ant-color-fill-quaternary);
+}
+
+.entryUnread {
+  background: var(--ant-color-primary-bg);
+}
+
+.entryUnread:hover {
+  background: var(--ant-color-primary-bg-hover);
+}
+
+/* The unread dot keeps its space when read, so text never shifts. Centred on
+ * the first line of text, whatever the theme's font size and line height. */
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: calc((1em * var(--ant-line-height, 1.5715) - 8px) / 2);
+  border-radius: 50%;
+}
+
+.entryUnread .dot {
+  background: var(--ant-color-primary);
+}
+
+/* The link covers the whole entry; the mark-read button sits above it. */
+.link {
+  flex: 1;
+  min-width: 0;
+  color: var(--ant-color-text);
+  text-decoration: none;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link:hover {
+  color: var(--ant-color-text);
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.link:focus-visible::after {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: -2px;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sentence {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.meta,
+.reason {
+  display: block;
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.reason {
+  color: var(--ant-color-text-tertiary);
+}
+
+.trail {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+}
+
+.trail :global(.ant-tag) {
+  margin-inline-end: 0;
+}
+
+.unreadCount {
+  color: var(--ant-color-primary);
+  font-size: var(--ant-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The small tick is 24px; on a touch screen it grows to a comfortable target. */
+@media (pointer: coarse) {
+  .markRead {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.state {
+  padding: var(--ant-padding-lg) var(--ant-padding-sm);
+  text-align: center;
+}

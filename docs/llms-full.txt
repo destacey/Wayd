@@ -604,6 +604,8 @@ Edits to details, keys and themes, baselines, health-check corrections, objectiv
 
 The list shows one entry per record — the newest change, who made it, every reason, how many changes it collapses and how many are unread — newest first, paged. The unread count counts records, not changes, and is capped at 99. A reader marks one notification, one record's notifications, or all read; nothing is ever deleted by its reader. A nightly job deletes notifications more than 90 days old. API: `/api/me/notifications` (`Me_GetNotifications`, `Me_GetUnreadNotificationCount`, `Me_MarkNotificationRead`, `Me_MarkRecordNotificationsRead`, `Me_MarkAllNotificationsRead`).
 
+In the client, a bell in the header shows the unread count ("99+" past the cap), polled each minute while the tab has focus and refreshed when the tab regains focus, and the newest ten entries in a popover (a full-screen drawer on a phone); `/account/notifications` lists them all, with All/Unread and Mark all read. Both are hidden unless the `following` flag is on and the account has a linked employee. Each entry's sentence is built from the event, the actor's name and the record's current name ("Ada Lovelace changed the status of Apollo and 2 other updates"), with the reasons beneath ("You follow and take part in this"). Opening an entry marks that record's notifications read and goes to the record; viewing the list marks nothing.
+
 ---
 
 ## Product Management Domain

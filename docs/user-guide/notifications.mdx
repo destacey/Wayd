@@ -1,0 +1,65 @@
+---
+title: Notifications
+description: The bell in the header tells you when something changes on a record you follow or take part in, and why you were told.
+sidebar_position: 10
+audience: [user, agent]
+---
+
+# Notifications
+
+The bell at the top right of every page tells you when something changes on a project, program or PI objective you [follow](./following.mdx) or take part in. Notifications are behind the **Following** feature flag; an administrator turns it on in **Settings → Feature Flags**. They are in-app only. Wayd never sends them by email, Teams or push.
+
+The bell needs your account to be linked to an employee. An account with no linked employee does not see it.
+
+## The unread count
+
+The number on the bell counts the records with something you have not read yet. Past 99 it shows **99+**. It refreshes about once a minute while Wayd's tab is in front, and each time you come back to it. Opening the bell refreshes it too.
+
+## Read your notifications
+
+Select the bell to see your newest notifications. On a phone or a narrow window they open full screen. **Unread** shows only what you have not read; **See all notifications** opens the full list, which you can also reach from your profile menu under **Notifications**. The full list loads more as you ask for it.
+
+Each entry is one record, and it says:
+
+- **What happened and who did it**, such as "Ada Lovelace changed the status of Apollo". When the record has changed more than once, the entry adds "and 2 other updates" rather than listing each one. When more than one of those changes is unread, the number beside the entry says how many.
+- **Where**: the kind of record, its key, an objective's planning interval, how long ago, and the record's status now.
+- **Why you were told**: "You follow this", "You take part in this", or both.
+
+| Change | Example |
+|--------|---------|
+| Created | Ada Lovelace created Apollo |
+| Status changed | Ada Lovelace changed the status of Apollo |
+| Lifecycle replaced | Ada Lovelace changed the lifecycle of Apollo |
+| Health check added | Ada Lovelace reported health on Apollo |
+| Dates changed | Ada Lovelace changed the dates of Apollo |
+| Roles changed | Ada Lovelace changed the people on Apollo |
+| Moved to another program or portfolio | Ada Lovelace moved Apollo |
+| Scored | Ada Lovelace scored Apollo |
+
+Entries use the record's name as it is now, so a renamed record never leaves an old name behind. A change made by someone whose account has no linked employee reads "Someone"; a change Wayd made with no person to name reads "Wayd".
+
+## Mark notifications read
+
+Opening the bell or the list marks nothing read. A notification is read when you:
+
+- **Select an entry.** Every notification on that record is marked read, and the record opens.
+- **Select the tick on an unread entry**, to mark its record read without opening it.
+- **Select Mark all read**, in the bell or on the Notifications page.
+
+You cannot delete a notification, only read it.
+
+## Who is told
+
+You are told about a change when you follow the record, and also when you take part in it: you hold a role on a project or program, or you are on the team that owns a PI objective. If both are true you are told once, with both reasons. You are never told about your own changes, or about changes made by an import.
+
+| Record | What tells you |
+|--------|----------------|
+| Project | Created, status changed, lifecycle replaced, health check added, dates changed, roles changed, moved, scored |
+| Program | Created, status changed, dates changed, roles changed |
+| PI objective | Created, status changed, health check added, dates changed |
+
+Nobody can follow a record before it exists, so "Created" reaches only the people taking part in it. A project's first status, the one it starts in, tells nobody.
+
+You see a notification only while you can still see its record. If you lose access to a record, or it is deleted, its notifications leave your list and the unread count. Notifications are kept for 90 days.
+
+An assistant connected to Wayd's [hosted MCP endpoint](../getting-started/mcp-server.mdx) can also list your notifications and mark them read.

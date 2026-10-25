@@ -1,13 +1,9 @@
 'use client'
 
 import { FollowCountsDto } from '@/src/services/wayd-api'
+import { typeLabel } from '@/src/components/common/record/record-identity'
 import styles from '../following.module.css'
-import {
-  FollowingFilter,
-  followViews,
-  typeLabel,
-  viewCount,
-} from './following-filters'
+import { FollowingFilter, followViews, viewCount } from './following-filters'
 
 export interface FollowingRailProps {
   counts: FollowCountsDto

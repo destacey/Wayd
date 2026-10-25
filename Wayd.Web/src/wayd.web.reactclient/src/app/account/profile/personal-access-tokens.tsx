@@ -8,7 +8,7 @@ import {
   useRevokePersonalAccessTokenMutation,
   useDeletePersonalAccessTokenMutation,
 } from '@/src/store/features/user-management/personal-access-tokens-api'
-import { PersonalAccessTokenDto } from '@/src/services/wayd-api'
+import { PersonalAccessTokenDto, TokenScope } from '@/src/services/wayd-api'
 import {
   WaydGrid,
   createActionsColumn,
@@ -177,6 +177,14 @@ const PersonalAccessTokens: FC = () => {
           const status = getValue() as string
           return <Tag color={statusTagColor[status]}>{status}</Tag>
         },
+      },
+      {
+        id: 'scope',
+        accessorFn: (row) =>
+          row.scope === TokenScope.Read ? 'Read-only' : 'Full access',
+        header: 'Access',
+        size: 130,
+        meta: { filterType: 'set' },
       },
       {
         id: 'expiresAt',

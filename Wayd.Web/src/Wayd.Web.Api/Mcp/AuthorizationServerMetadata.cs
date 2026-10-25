@@ -36,13 +36,14 @@ public static class AuthorizationServerMetadata
 
     /// <summary>
     /// Describes the server whose issuer is <paramref name="issuer"/>: the authorization code grant for public
-    /// clients only, with PKCE by S256, clients identified by their Client ID Metadata Documents, and <c>iss</c> in
-    /// every authorization response.
+    /// clients only, with PKCE by S256, clients identified by their Client ID Metadata Documents, <c>iss</c> in
+    /// every authorization response, and Wayd's token scopes.
     /// </summary>
     internal static Document Describe(string issuer) => new(
         Issuer: issuer,
         AuthorizationEndpoint: issuer + AuthorizePath,
         TokenEndpoint: issuer + TokenPath,
+        ScopesSupported: TokenScopes.Supported,
         ResponseTypesSupported: ["code"],
         GrantTypesSupported: ["authorization_code", "refresh_token"],
         CodeChallengeMethodsSupported: ["S256"],
@@ -54,6 +55,7 @@ public static class AuthorizationServerMetadata
     /// <param name="Issuer">The authorization server's identifier, which every token it issues carries as <c>iss</c>.</param>
     /// <param name="AuthorizationEndpoint">Where a client sends the user.</param>
     /// <param name="TokenEndpoint">Where a client gets tokens.</param>
+    /// <param name="ScopesSupported">The scopes a client may ask for: <c>wayd:read</c>, and <c>wayd:write</c>, which includes it. Asking for none asks for <c>wayd:write</c>.</param>
     /// <param name="ResponseTypesSupported">Only <c>code</c>: the implicit flow is not offered.</param>
     /// <param name="GrantTypesSupported">The authorization code and refresh token grants.</param>
     /// <param name="CodeChallengeMethodsSupported">Only <c>S256</c>; a request without PKCE, or with <c>plain</c>, is refused.</param>
@@ -64,6 +66,7 @@ public static class AuthorizationServerMetadata
         [property: JsonPropertyName("issuer")] string Issuer,
         [property: JsonPropertyName("authorization_endpoint")] string AuthorizationEndpoint,
         [property: JsonPropertyName("token_endpoint")] string TokenEndpoint,
+        [property: JsonPropertyName("scopes_supported")] IReadOnlyList<string> ScopesSupported,
         [property: JsonPropertyName("response_types_supported")] IReadOnlyList<string> ResponseTypesSupported,
         [property: JsonPropertyName("grant_types_supported")] IReadOnlyList<string> GrantTypesSupported,
         [property: JsonPropertyName("code_challenge_methods_supported")] IReadOnlyList<string> CodeChallengeMethodsSupported,

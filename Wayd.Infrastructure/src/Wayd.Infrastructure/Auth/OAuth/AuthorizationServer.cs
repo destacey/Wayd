@@ -80,7 +80,7 @@ internal sealed class AuthorizationServer(
         if (clientId.Length > MaxUriLength || redirectUri.Length > MaxUriLength)
             return Refuse($"client_id and redirect_uri must each be at most {MaxUriLength} characters.");
 
-        foreach (var name in new[] { "response_type", "state", "code_challenge", "code_challenge_method", "resource" })
+        foreach (var name in new[] { "response_type", "state", "code_challenge", "code_challenge_method", "resource", "scope" })
         {
             if (query[name].Count > 1)
                 return Refuse($"{name} must not be repeated.");
@@ -138,6 +138,9 @@ internal sealed class AuthorizationServer(
             RedirectUri = redirectUri,
             CodeChallenge = codeChallenge,
             Resource = resource,
+            // Scopes Wayd does not define are ignored rather than refused (RFC 6749 §3.3), so a client that also asks
+            // for, say, offline_access can still connect. Asking for none asks for the default.
+            Scope = TokenScopes.Parse(query["scope"].ToString()) ?? TokenScopes.Default,
             State = state,
             Issuer = issuer,
             Status = OAuthAuthorizationStatus.Pending,
@@ -171,17 +174,24 @@ internal sealed class AuthorizationServer(
             redirectHost,
             redirectHost is not null && !loopback && !string.Equals(redirectHost, clientHost, StringComparison.OrdinalIgnoreCase),
             loopback,
+            authorization.Scope ?? TokenScopes.Default,
             authorization.ExpiresAt);
     }
 
     /// <inheritdoc />
-    public async Task<Result<string>> Approve(string handle, string userId, CancellationToken cancellationToken)
+    public async Task<Result<string>> Approve(string handle, string userId, TokenScope scope, CancellationToken cancellationToken)
     {
+        // An undefined value would pass the clamp below as narrower than any request, and fail only at redemption.
+        if (!Enum.IsDefined(scope))
+            throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown token scope.");
+
         var authorization = await FindPendingRow(handle, tracked: true, cancellationToken);
         if (authorization is null)
             return Result.Failure<string>(NotPending);
 
+        var requested = authorization.Scope ?? TokenScopes.Default;
         var now = _dateTimeProvider.Now;
+        authorization.Scope = scope < requested ? scope : requested;
         var code = OAuthSecrets.Create();
         authorization.Status = OAuthAuthorizationStatus.Approved;
         authorization.UserId = userId;
@@ -302,13 +312,14 @@ internal sealed class AuthorizationServer(
         }
 
         var sessionId = Guid.NewGuid();
+        var scope = authorization.Scope ?? TokenScopes.Default;
         authorization.SessionId = sessionId;
 
         ClientSession session;
         try
         {
             // The store's save commits the authorization's changes with the new session.
-            session = await _refreshTokenStore.IssueForClient(sessionId, user!.Id, clientId, authorization.ClientName, _sessionContext.Current, cancellationToken);
+            session = await _refreshTokenStore.IssueForClient(sessionId, user!.Id, clientId, authorization.ClientName, scope, _sessionContext.Current, cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -316,7 +327,7 @@ internal sealed class AuthorizationServer(
             return Refused("invalid_grant", InvalidCode);
         }
 
-        return IssueAccessToken(user.Id, clientId, sessionId, issuer, resource, session.Token);
+        return IssueAccessToken(user.Id, clientId, sessionId, scope, issuer, resource, session.Token);
     }
 
     /// <summary>
@@ -345,7 +356,11 @@ internal sealed class AuthorizationServer(
             : (null, user);
     }
 
-    /// <summary>Rotates a client's refresh token and issues a new access token with it.</summary>
+    /// <summary>
+    /// Rotates a client's refresh token and issues a new access token with it, carrying the session's scope. A
+    /// <c>scope</c> in the request can narrow that token, never widen it: a wider one is answered with the session's
+    /// own, which the response names (RFC 6749 §6). The session keeps its scope either way.
+    /// </summary>
     private async Task<TokenOutcome> Refresh(IFormCollection form, string clientId, string issuer, string resource, CancellationToken cancellationToken)
     {
         var refreshToken = form["refresh_token"].ToString();
@@ -362,7 +377,10 @@ internal sealed class AuthorizationServer(
         if (rotation.Outcome is not RefreshRotationOutcome.Rotated)
             return Refused("invalid_grant", "The refresh token is invalid or expired, or its user can no longer sign in.");
 
-        return IssueAccessToken(rotation.UserId!, clientId, rotation.SessionId!.Value, issuer, resource, rotation.Token!);
+        var granted = rotation.Scope ?? TokenScopes.Default;
+        var scope = TokenScopes.Parse(form["scope"].ToString()) is { } requested && requested < granted ? requested : granted;
+
+        return IssueAccessToken(rotation.UserId!, clientId, rotation.SessionId!.Value, scope, issuer, resource, rotation.Token!);
     }
 
     /// <summary>
@@ -402,10 +420,10 @@ internal sealed class AuthorizationServer(
     }
 
     /// <summary>
-    /// Issues an access token for <paramref name="userId"/> bound to <paramref name="resource"/>, naming the session it
-    /// belongs to so it stops working when that session is revoked.
+    /// Issues an access token for <paramref name="userId"/> bound to <paramref name="resource"/> and limited to
+    /// <paramref name="scope"/>, naming the session it belongs to so it stops working when that session is revoked.
     /// </summary>
-    private TokenOutcome IssueAccessToken(string userId, string clientId, Guid sessionId, string issuer, string resource, string refreshToken)
+    private TokenOutcome IssueAccessToken(string userId, string clientId, Guid sessionId, TokenScope scope, string issuer, string resource, string refreshToken)
     {
         var settings = OAuthAccessTokens.ReadSettings(_config);
         var now = _dateTimeProvider.Now;
@@ -421,6 +439,7 @@ internal sealed class AuthorizationServer(
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
                 new Claim(OAuthAccessTokens.ClientIdClaim, clientId),
                 new Claim(OAuthAccessTokens.SessionIdClaim, sessionId.ToString("N")),
+                new Claim(TokenScopes.ClaimType, scope.ToScopeString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             ]),
             IssuedAt = now.ToDateTimeUtc(),
@@ -429,7 +448,7 @@ internal sealed class AuthorizationServer(
             SigningCredentials = new SigningCredentials(Local.ConfigureServices.CreateSigningKey(settings.Secret), SecurityAlgorithms.HmacSha256),
         });
 
-        return new TokenOutcome.Issued(token, (int)lifetime.TotalSeconds, refreshToken);
+        return new TokenOutcome.Issued(token, (int)lifetime.TotalSeconds, refreshToken, scope.ToScopeString());
     }
 
     /// <summary>The request <paramref name="handle"/> names, while it is still waiting for a decision; otherwise null.</summary>

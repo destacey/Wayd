@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using CSharpFunctionalExtensions;
+using Wayd.Infrastructure.Auth;
 using ToolAnnotations = ModelContextProtocol.Protocol.ToolAnnotations;
 
 namespace Wayd.Web.Api.Mcp;
@@ -64,9 +65,16 @@ public sealed record McpToolFilter(IReadOnlySet<McpToolset>? Toolsets, bool Read
     /// <summary>Records the filter for the rest of <paramref name="context"/>'s request.</summary>
     public static void Store(HttpContext context, McpToolFilter filter) => context.Items[_itemKey] = filter;
 
-    /// <summary>The filter recorded for <paramref name="context"/>'s request, or every tool when none was.</summary>
-    public static McpToolFilter For(HttpContext context) =>
-        context.Items.TryGetValue(_itemKey, out var filter) && filter is McpToolFilter stored ? stored : All;
+    /// <summary>
+    /// The filter recorded for <paramref name="context"/>'s request, or every tool when none was, limited to read-only
+    /// tools when the caller's token is (<see cref="TokenScopeAccess.IsReadOnly"/>): a tool its scope refuses is not
+    /// offered.
+    /// </summary>
+    public static McpToolFilter For(HttpContext context)
+    {
+        var filter = context.Items.TryGetValue(_itemKey, out var item) && item is McpToolFilter stored ? stored : All;
+        return !filter.ReadOnly && TokenScopeAccess.IsReadOnly(context.User) ? filter with { ReadOnly = true } : filter;
+    }
 
     /// <summary>The query parameter's value, else the header's, with the name of whichever it came from.</summary>
     private static (string? Value, string Source, bool FromQuery) ValueOf(HttpRequest request, string query, string header)

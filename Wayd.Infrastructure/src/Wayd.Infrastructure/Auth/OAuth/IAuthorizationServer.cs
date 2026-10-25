@@ -19,10 +19,11 @@ public interface IAuthorizationServer
     Task<Result<PendingAuthorization>> FindPending(string handle, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Approves the request for <paramref name="userId"/>, issuing a single-use authorization code, and answers the
-    /// URL the browser goes to next. Fails as <see cref="FindPending"/> does.
+    /// Approves the request for <paramref name="userId"/>, granting <paramref name="scope"/>, issuing a single-use
+    /// authorization code, and answers the URL the browser goes to next. A scope wider than the client asked for is
+    /// narrowed to what it asked for: the user can only narrow a request. Fails as <see cref="FindPending"/> does.
     /// </summary>
-    Task<Result<string>> Approve(string handle, string userId, CancellationToken cancellationToken);
+    Task<Result<string>> Approve(string handle, string userId, TokenScope scope, CancellationToken cancellationToken);
 
     /// <summary>Denies the request and answers the URL that tells the client so. Fails as <see cref="FindPending"/> does.</summary>
     Task<Result<string>> Deny(string handle, string userId, CancellationToken cancellationToken);

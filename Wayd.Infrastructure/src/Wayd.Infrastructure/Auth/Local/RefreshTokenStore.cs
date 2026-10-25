@@ -119,6 +119,7 @@ internal sealed class RefreshTokenStore(
         string userId,
         string clientId,
         string clientName,
+        TokenScope scope,
         SessionContext context,
         CancellationToken cancellationToken)
     {
@@ -130,6 +131,7 @@ internal sealed class RefreshTokenStore(
             Id = sessionId,
             UserId = userId,
             ClientId = clientId,
+            Scope = scope,
             TokenHash = RefreshTokenHasher.Hash(token),
             ExpiresAt = now.Plus(Duration.FromDays(RefreshTokenExpirationInDays)),
             DeviceLabel = Truncate(clientName, DeviceLabelMaxLength),
@@ -172,8 +174,8 @@ internal sealed class RefreshTokenStore(
 
         var result = await RotateAmong([session], presentedToken, session.UserId, s => GenerateClientToken(s.Id), cancellationToken);
         return result.Outcome is RefreshRotationOutcome.Rotated
-            ? new ClientRotationResult(result.Outcome, result.Token, session.UserId, session.Id)
-            : new ClientRotationResult(result.Outcome, null, null, null);
+            ? new ClientRotationResult(result.Outcome, result.Token, session.UserId, session.Id, session.Scope ?? TokenScopes.Default)
+            : new ClientRotationResult(result.Outcome, null, null, null, null);
     }
 
     /// <summary>

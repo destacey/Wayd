@@ -3904,7 +3904,7 @@
           "OAuthAuthorizationRequests"
         ],
         "summary": "Approve a pending OAuth connection request.",
-        "description": "Issues a single-use authorization code bound to the signed-in user and answers the URL to send the browser to. Answers 404 as the get does.",
+        "description": "Issues a single-use authorization code bound to the signed-in user, limited to the scope granted, and answers the URL to send the browser to. Answers 404 as the get does.",
         "operationId": "OAuthAuthorizationRequests_Approve",
         "parameters": [
           {
@@ -3918,6 +3918,18 @@
             "x-position": 1
           }
         ],
+        "requestBody": {
+          "description": "The access to grant, which may narrow what the application asked for.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveOAuthAuthorizationRequest"
+              }
+            }
+          },
+          "x-name": "request",
+          "x-position": 2
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -5033,6 +5045,7 @@
           "Profile"
         ],
         "summary": "Get permissions of currently logged in user.",
+        "description": "The permissions this request can use: the user's, narrowed by the scope of the token it was made with.",
         "operationId": "Profile_GetPermissions",
         "responses": {
           "200": {
@@ -45277,6 +45290,22 @@
         },
         "additionalProperties": false
       },
+      "ApproveOAuthAuthorizationRequest": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TokenScope"
+              }
+            ],
+            "description": "The access to grant the application. Omitted, it gets what it asked for; a scope wider than it asked for is\nnarrowed to its request.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The user's approval of a connection request."
+      },
       "AssembleReleasePackageRequest": {
         "required": [
           "version",
@@ -47690,6 +47719,15 @@
             "type": "string",
             "description": "The expiration date for the token. Must be in the future and within 2 years from now.",
             "format": "date-time"
+          },
+          "scope": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TokenScope"
+              }
+            ],
+            "description": "How much of your access the token may use: `Read` for viewing, searching and exporting only, or `Write` for\neverything you may do. Defaults to `Write`. A scope never grants a permission you do not have.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -47699,7 +47737,8 @@
           "id",
           "name",
           "token",
-          "expiresAt"
+          "expiresAt",
+          "scope"
         ],
         "type": "object",
         "properties": {
@@ -47716,6 +47755,9 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/TokenScope"
           }
         },
         "additionalProperties": false,
@@ -55772,6 +55814,7 @@
           "redirectUri",
           "redirectHostDiffers",
           "redirectIsLoopback",
+          "scope",
           "expiresAt"
         ],
         "type": "object",
@@ -55804,6 +55847,14 @@
           "redirectIsLoopback": {
             "type": "boolean",
             "description": "Whether the redirect URI is on this computer's loopback interface, as a desktop app's is."
+          },
+          "scope": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TokenScope"
+              }
+            ],
+            "description": "The access the application asked for: `Read` to view, search and export, or `Write` for everything the user may\ndo. The user may grant it or narrow it, never widen it."
           },
           "expiresAt": {
             "type": "string",
@@ -56399,7 +56450,8 @@
           "expiresAt",
           "isActive",
           "isExpired",
-          "isRevoked"
+          "isRevoked",
+          "scope"
         ],
         "type": "object",
         "properties": {
@@ -56433,9 +56485,13 @@
           "isRevoked": {
             "type": "boolean"
           },
-          "scopes": {
-            "type": "string",
-            "nullable": true
+          "scope": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TokenScope"
+              }
+            ],
+            "description": "How much of its owner's access the token may use."
           }
         },
         "additionalProperties": false,
@@ -69129,6 +69185,13 @@
           }
         },
         "additionalProperties": false
+      },
+      "TokenScope": {
+        "enum": [
+          "Read",
+          "Write"
+        ],
+        "type": "string"
       },
       "TransitionConditionKind": {
         "enum": [

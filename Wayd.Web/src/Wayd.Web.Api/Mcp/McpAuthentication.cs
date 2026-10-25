@@ -74,6 +74,7 @@ public static class McpAuthentication
             Resource = authorizationServer + McpServerSetup.Path,
             AuthorizationServers = [authorizationServer],
             BearerMethodsSupported = ["header"],
+            ScopesSupported = [.. TokenScopes.Supported],
             ResourceName = "Wayd",
         };
 

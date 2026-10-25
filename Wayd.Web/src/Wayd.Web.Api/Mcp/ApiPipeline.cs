@@ -168,8 +168,9 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
             outcome);
 
     /// <summary>
-    /// Exchanges the caller's OAuth access token for a token the API accepts, naming the same user and the client as
-    /// its actor. The <c>/mcp</c> scheme has already checked the access token and its session for this request.
+    /// Exchanges the caller's OAuth access token for a token the API accepts, naming the same user, the client as its
+    /// actor, and the same scope. The <c>/mcp</c> scheme has already checked the access token and its session for this
+    /// request. An access token issued before tokens had scopes carries none and keeps <see cref="TokenScopes.Default"/>.
     /// </summary>
     private static InProcessDelegation Delegate(HttpContext caller, ClaimsIdentity accessToken)
     {
@@ -177,6 +178,9 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
             ?? throw new InvalidOperationException("An OAuth access token names no user.");
         var clientId = accessToken.FindFirst(OAuthAccessTokens.ClientIdClaim)?.Value
             ?? throw new InvalidOperationException("An OAuth access token names no client.");
+        var scope = accessToken.FindFirst(TokenScopes.ClaimType)?.Value is { } named
+            ? TokenScopes.Parse(named) ?? throw new InvalidOperationException("An OAuth access token names no scope Wayd defines.")
+            : TokenScopes.Default;
 
         var services = caller.RequestServices;
         return new InProcessDelegation(DelegatedAccessTokens.Issue(
@@ -184,6 +188,7 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
             services.GetRequiredService<PublicUrl>().For(caller.Request),
             userId,
             clientId,
+            scope,
             services.GetRequiredService<IDateTimeProvider>().Now));
     }
 

@@ -40,10 +40,10 @@ public static class DelegatedAccessTokens
 
     /// <summary>
     /// Mints a token naming <paramref name="userId"/> as its subject and <paramref name="clientId"/> as the client acting
-    /// for them, typed <c>at+jwt</c>, issued by <paramref name="issuer"/> for the API's audience and signed with the web
-    /// app's key.
+    /// for them, limited to <paramref name="scope"/>, typed <c>at+jwt</c>, issued by <paramref name="issuer"/> for the
+    /// API's audience and signed with the web app's key.
     /// </summary>
-    public static string Issue(IConfiguration config, string issuer, string userId, string clientId, Instant now)
+    public static string Issue(IConfiguration config, string issuer, string userId, string clientId, TokenScope scope, Instant now)
     {
         var settings = OAuthAccessTokens.ReadSettings(config);
 
@@ -60,6 +60,7 @@ public static class DelegatedAccessTokens
             Claims = new Dictionary<string, object>
             {
                 [ActorClaim] = new Dictionary<string, object> { [OAuthAccessTokens.ClientIdClaim] = clientId },
+                [TokenScopes.ClaimType] = scope.ToScopeString(),
             },
             IssuedAt = now.ToDateTimeUtc(),
             NotBefore = now.ToDateTimeUtc(),
@@ -124,14 +125,20 @@ public static class DelegatedAccessTokens
 
     /// <summary>
     /// Replaces the token's claims with the user's, as the personal access token scheme builds them, plus the acting
-    /// client. Refuses a token naming no client, and a user who has been deactivated since their client was authorized:
-    /// the <c>/mcp</c> scheme checks only the session.
+    /// client and the scope the user granted it. Refuses a token naming no client or no scope, and a user who has been
+    /// deactivated since their client was authorized: the <c>/mcp</c> scheme checks only the session.
     /// </summary>
     private static async Task ResolveUser(TokenValidatedContext context)
     {
         if (context.SecurityToken is not JsonWebToken token || ActingClientId(token) is not { } clientId)
         {
             context.Fail("The token names no acting client.");
+            return;
+        }
+
+        if (!token.TryGetPayloadValue<string>(TokenScopes.ClaimType, out var scope) || TokenScopes.Parse(scope) is null)
+        {
+            context.Fail("The token names no scope.");
             return;
         }
 
@@ -151,6 +158,7 @@ public static class DelegatedAccessTokens
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Name, user.UserName ?? user.Email ?? "Unknown"),
             new(ActingClientIdClaim, clientId),
+            new(TokenScopes.ClaimType, scope),
         ];
         if (!string.IsNullOrWhiteSpace(user.Email))
             claims.Add(new(ClaimTypes.Email, user.Email));

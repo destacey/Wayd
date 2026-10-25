@@ -26,10 +26,12 @@ public abstract record TokenOutcome
     /// <param name="AccessToken">A JWT bound to the protected resource.</param>
     /// <param name="ExpiresIn">Seconds until the access token expires.</param>
     /// <param name="RefreshToken">The session's new refresh token; the one presented, if any, no longer works.</param>
+    /// <param name="Scope">The scope the access token carries, which may be narrower than the client asked for.</param>
     public sealed record Issued(
         [property: JsonPropertyName("access_token")] string AccessToken,
         [property: JsonPropertyName("expires_in")] int ExpiresIn,
-        [property: JsonPropertyName("refresh_token")] string RefreshToken) : TokenOutcome
+        [property: JsonPropertyName("refresh_token")] string RefreshToken,
+        [property: JsonPropertyName("scope")] string Scope) : TokenOutcome
     {
         /// <summary>Always <c>Bearer</c>.</summary>
         [JsonPropertyName("token_type")]
@@ -55,6 +57,7 @@ public abstract record TokenOutcome
 /// <param name="RedirectHost">The redirect URI's host, or null when it opens an app by its own scheme.</param>
 /// <param name="RedirectHostDiffers">Whether the redirect URI's host is not <see cref="ClientHost"/>.</param>
 /// <param name="RedirectIsLoopback">Whether the redirect URI is on this computer's loopback interface, as a native app's is.</param>
+/// <param name="Scope">The scope the client asked for: the most the user can grant.</param>
 /// <param name="ExpiresAt">When the request stops waiting for a decision.</param>
 public sealed record PendingAuthorization(
     string ClientId,
@@ -64,4 +67,5 @@ public sealed record PendingAuthorization(
     string? RedirectHost,
     bool RedirectHostDiffers,
     bool RedirectIsLoopback,
+    TokenScope Scope,
     Instant ExpiresAt);

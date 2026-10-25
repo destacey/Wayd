@@ -96,6 +96,147 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
+    public async Task CodeFlow_GrantsWrite_WhenTheClientAsksForNoScope()
+    {
+        // Arrange
+        await SetFlag(true);
+
+        // Act
+        var tokens = await Redeem(RegisterClient());
+
+        // Assert
+        Assert.Equal(TokenScopes.Write, tokens.GetProperty("scope").GetString());
+        Assert.Equal(TokenScopes.Write, ScopeOf(tokens));
+    }
+
+    [Theory]
+    [InlineData(null, "Write")]
+    [InlineData("wayd:read", "Read")]
+    [InlineData("wayd:write", "Write")]
+    [InlineData("wayd:read wayd:write", "Write")]
+    [InlineData("offline_access", "Write")]
+    public async Task Consent_ShowsTheScopeTheClientAskedFor(string? requested, string expected)
+    {
+        // Arrange
+        await SetFlag(true);
+        var handle = await StartAuthorization(RegisterClient(), scope: requested);
+        var user = await _factory.CreateAuthenticatedClient();
+
+        // Act
+        var request = await user.Client.GetFromJsonAsync<JsonElement>(
+            $"/api/oauth/authorization-requests/{handle}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(expected, request.GetProperty("scope").GetString());
+    }
+
+    [Fact]
+    public async Task Approve_NarrowedToRead_IssuesReadTokens_ThatARefreshCannotWiden()
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = RegisterClient();
+        var issued = await Redeem(client, TokenScopes.Write, TokenScope.Read);
+
+        // Act
+        var refreshed = await RefreshRequest(client, issued.GetProperty("refresh_token").GetString()!, scope: TokenScopes.Write);
+
+        // Assert
+        Assert.Equal(TokenScopes.Read, ScopeOf(issued));
+        Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
+        var rotated = await refreshed.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        Assert.Equal(TokenScopes.Read, rotated.GetProperty("scope").GetString());
+        Assert.Equal(TokenScopes.Read, ScopeOf(rotated));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(3)]
+    public async Task Approve_RefusesAScopeThatIsNotDefined_AndLeavesTheRequestToAnswer(int scope)
+    {
+        // Arrange — the enum converter accepts a number, and an undefined one would pass the clamp as the narrowest
+        await SetFlag(true);
+        var handle = await StartAuthorization(RegisterClient());
+        var user = await _factory.CreateAuthenticatedClient();
+
+        // Act
+        var refused = await user.Client.PostAsJsonAsync(
+            $"/api/oauth/authorization-requests/{handle}/approve", new { scope }, TestContext.Current.CancellationToken);
+        var approved = await user.Client.PostAsJsonAsync(
+            $"/api/oauth/authorization-requests/{handle}/approve", new { scope = "Read" }, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(refused.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity, refused.StatusCode.ToString());
+        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+    }
+
+    [Fact]
+    public async Task Approve_CannotWidenARequestForRead()
+    {
+        // Arrange
+        await SetFlag(true);
+
+        // Act
+        var tokens = await Redeem(RegisterClient(), TokenScopes.Read, TokenScope.Write);
+
+        // Assert
+        Assert.Equal(TokenScopes.Read, ScopeOf(tokens));
+    }
+
+    [Fact]
+    public async Task Refresh_CanNarrowOneAccessToken_WithoutNarrowingTheSession()
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = RegisterClient();
+        var issued = await Redeem(client);
+        var narrowed = await (await RefreshRequest(client, issued.GetProperty("refresh_token").GetString()!, scope: TokenScopes.Read))
+            .Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+
+        // Act
+        var next = await (await RefreshRequest(client, narrowed.GetProperty("refresh_token").GetString()!))
+            .Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(TokenScopes.Read, ScopeOf(narrowed));
+        Assert.Equal(TokenScopes.Write, ScopeOf(next));
+    }
+
+    [Fact]
+    public async Task Mcp_OffersAReadToken_OnlyReadOnlyTools()
+    {
+        // Arrange
+        await SetFlag(true);
+        var (_, accessToken) = await ConnectedUser(RegisterClient(), TokenScope.Read, CreatePortfolios);
+        await using var mcp = await ConnectToMcp(accessToken);
+
+        // Act
+        var tools = await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotEmpty(tools);
+        Assert.All(tools, t => Assert.True(t.ProtocolTool.Annotations?.ReadOnlyHint, t.Name));
+        Assert.DoesNotContain(tools, t => t.Name == "Portfolios_Create");
+    }
+
+    [Fact]
+    public async Task CallTool_WithAReadToken_ReadsThroughTheDelegatedToken()
+    {
+        // Arrange
+        await SetFlag(true);
+        var view = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.ProjectPortfolios);
+        var (_, accessToken) = await ConnectedUser(RegisterClient(), TokenScope.Read, view);
+        await using var mcp = await ConnectToMcp(accessToken);
+
+        // Act
+        var result = await mcp.CallToolAsync("Portfolios_GetPortfolios", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError is not true, TextOf(result));
+    }
+
+    [Fact]
     public async Task AccessToken_IsRefusedByTheRestOfTheApi()
     {
         // Arrange — the token is for /mcp alone; the API's own endpoints accept only the web app's tokens and PATs
@@ -169,7 +310,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         var client = RegisterClient();
         var (user, _) = await ConnectedUser(client);
         var token = DelegatedAccessTokens.Issue(
-            _factory.Services.GetRequiredService<IConfiguration>(), Issuer, user.UserId, client.ClientId, SystemClock.Instance.GetCurrentInstant());
+            _factory.Services.GetRequiredService<IConfiguration>(), Issuer, user.UserId, client.ClientId, TokenScope.Write, SystemClock.Instance.GetCurrentInstant());
         var api = _factory.CreateClient();
         api.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -188,7 +329,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         var client = RegisterClient();
         var (user, _) = await ConnectedUser(client);
         var token = DelegatedAccessTokens.Issue(
-            _factory.Services.GetRequiredService<IConfiguration>(), Issuer, user.UserId, client.ClientId, SystemClock.Instance.GetCurrentInstant());
+            _factory.Services.GetRequiredService<IConfiguration>(), Issuer, user.UserId, client.ClientId, TokenScope.Write, SystemClock.Instance.GetCurrentInstant());
         var mcp = _factory.CreateClient();
         mcp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -658,10 +799,18 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         return QueryHelpers.AddQueryString(AuthorizationServerMetadata.AuthorizePath, parameters);
     }
 
-    /// <summary>Sends the browser to the authorization endpoint and answers the handle it carries to the consent page.</summary>
-    private async Task<string> StartAuthorization(OAuthClient client, string redirectUri = RedirectUri)
+    /// <summary>
+    /// Sends the browser to the authorization endpoint, asking for <paramref name="scope"/> when given, and answers the
+    /// handle it carries to the consent page.
+    /// </summary>
+    private async Task<string> StartAuthorization(OAuthClient client, string redirectUri = RedirectUri, string? scope = null)
     {
-        var response = await Browser().GetAsync(AuthorizeUrl(client, p => p["redirect_uri"] = redirectUri), TestContext.Current.CancellationToken);
+        var response = await Browser().GetAsync(AuthorizeUrl(client, p =>
+        {
+            p["redirect_uri"] = redirectUri;
+            if (scope is not null)
+                p["scope"] = scope;
+        }), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         return QueryHelpers.ParseQuery(response.Headers.Location!.Query)["request"].ToString();
     }
@@ -670,25 +819,47 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     /// Has a new user holding <paramref name="permissions"/> approve a new request from <paramref name="client"/>, and
     /// answers the code it was given.
     /// </summary>
-    private async Task<(AuthenticatedClient User, string Code)> Approve(OAuthClient client, params string[] permissions)
+    private Task<(AuthenticatedClient User, string Code)> Approve(OAuthClient client, params string[] permissions) =>
+        ApproveScoped(client, null, null, permissions);
+
+    /// <summary>
+    /// Has a new user holding <paramref name="permissions"/> approve a new request from <paramref name="client"/> that
+    /// asks for <paramref name="requested"/>, granting <paramref name="granted"/>, and answers the code it was given.
+    /// A null leaves the parameter out.
+    /// </summary>
+    private async Task<(AuthenticatedClient User, string Code)> ApproveScoped(
+        OAuthClient client, string? requested, TokenScope? granted, params string[] permissions)
     {
-        var handle = await StartAuthorization(client);
+        var handle = await StartAuthorization(client, scope: requested);
         var user = await _factory.CreateAuthenticatedClient(permissions);
-        var approved = await user.Client.PostAsync($"/api/oauth/authorization-requests/{handle}/approve", null, TestContext.Current.CancellationToken);
+        var approved = granted is null
+            ? await user.Client.PostAsync($"/api/oauth/authorization-requests/{handle}/approve", null, TestContext.Current.CancellationToken)
+            : await user.Client.PostAsJsonAsync($"/api/oauth/authorization-requests/{handle}/approve", new { scope = granted.ToString() }, TestContext.Current.CancellationToken);
         approved.EnsureSuccessStatusCode();
         var redirectUrl = (await approved.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken)).GetProperty("redirectUrl").GetString()!;
         return (user, QueryHelpers.ParseQuery(new Uri(redirectUrl).Query)["code"].ToString());
     }
 
     /// <summary>Has a new user holding <paramref name="permissions"/> connect <paramref name="client"/>, and answers its access token.</summary>
-    private async Task<(AuthenticatedClient User, string AccessToken)> ConnectedUser(OAuthClient client, params string[] permissions)
+    private Task<(AuthenticatedClient User, string AccessToken)> ConnectedUser(OAuthClient client, params string[] permissions) =>
+        ConnectedUser(client, null, permissions);
+
+    /// <summary>
+    /// Has a new user holding <paramref name="permissions"/> connect <paramref name="client"/>, granting it
+    /// <paramref name="granted"/>, and answers its access token.
+    /// </summary>
+    private async Task<(AuthenticatedClient User, string AccessToken)> ConnectedUser(OAuthClient client, TokenScope? granted, params string[] permissions)
     {
-        var (user, code) = await Approve(client, permissions);
+        var (user, code) = await ApproveScoped(client, null, granted, permissions);
         var response = await RedeemRequest(client, code);
         response.EnsureSuccessStatusCode();
         var tokens = await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
         return (user, tokens.GetProperty("access_token").GetString()!);
     }
+
+    /// <summary>The <c>scope</c> claim of the access token in a token response.</summary>
+    private static string? ScopeOf(JsonElement tokens) =>
+        new JsonWebToken(tokens.GetProperty("access_token").GetString()!).TryGetPayloadValue<string>(TokenScopes.ClaimType, out var scope) ? scope : null;
 
     private async Task<List<ActivityLogEntry>> ActivityFor(Guid aggregateId)
     {
@@ -701,9 +872,12 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
 
     private static string TextOf(CallToolResult result) => string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
 
-    private async Task<JsonElement> Redeem(OAuthClient client)
+    private Task<JsonElement> Redeem(OAuthClient client) => Redeem(client, null, null);
+
+    /// <summary>Approves a request from <paramref name="client"/> asking for <paramref name="requested"/>, granting <paramref name="granted"/>, and redeems its code.</summary>
+    private async Task<JsonElement> Redeem(OAuthClient client, string? requested, TokenScope? granted)
     {
-        var (_, code) = await Approve(client);
+        var (_, code) = await ApproveScoped(client, requested, granted);
         var response = await RedeemRequest(client, code);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
@@ -721,12 +895,18 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     private Task<HttpResponseMessage> RedeemRequest(OAuthClient client, string code, string verifier = Verifier) =>
         PostToken(RedeemForm(client, code, verifier));
 
-    private Task<HttpResponseMessage> RefreshRequest(OAuthClient client, string refreshToken) => PostToken(new()
+    private Task<HttpResponseMessage> RefreshRequest(OAuthClient client, string refreshToken, string? scope = null)
     {
-        ["grant_type"] = "refresh_token",
-        ["refresh_token"] = refreshToken,
-        ["client_id"] = client.ClientId,
-    });
+        var form = new Dictionary<string, string>
+        {
+            ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refreshToken,
+            ["client_id"] = client.ClientId,
+        };
+        if (scope is not null)
+            form["scope"] = scope;
+        return PostToken(form);
+    }
 
     private Task<HttpResponseMessage> PostToken(Dictionary<string, string> form) =>
         _factory.CreateClient().PostAsync(AuthorizationServerMetadata.TokenPath, new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);

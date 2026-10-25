@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Domain.FeatureManagement;
@@ -44,21 +45,27 @@ public class OAuthAuthorizationRequestsController(IAuthorizationServer authoriza
         return pending.IsSuccess ? Ok(OAuthAuthorizationRequestResponse.From(pending.Value)) : NotFound();
     }
 
+    // The body's <param> stays last: the OpenAPI XML comment generator describes the request body with the last one.
     /// <summary>Approves a connection request for the signed-in user.</summary>
     /// <param name="handle">The handle the authorization endpoint passed to the consent page as `request`.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
+    /// <param name="request">The access to grant, which may narrow what the application asked for.</param>
     [HttpPost("{handle}/approve")]
     [EndpointSummary("Approve a pending OAuth connection request.")]
-    [EndpointDescription("Issues a single-use authorization code bound to the signed-in user and answers the URL to send the browser to. Answers 404 as the get does.")]
+    [EndpointDescription("Issues a single-use authorization code bound to the signed-in user, limited to the scope granted, and answers the URL to send the browser to. Answers 404 as the get does.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<OAuthAuthorizationDecisionResponse>> Approve(string handle, CancellationToken cancellationToken)
+    public async Task<ActionResult<OAuthAuthorizationDecisionResponse>> Approve(
+        string handle,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ApproveOAuthAuthorizationRequest? request,
+        CancellationToken cancellationToken)
     {
         if (!await IsWebAppSession())
             return WebAppSessionRequired();
 
-        var redirect = await _authorizationServer.Approve(handle, _currentUser.GetUserId(), cancellationToken);
+        // Write is clamped to what the client asked for, so an omitted scope grants exactly its request.
+        var redirect = await _authorizationServer.Approve(handle, _currentUser.GetUserId(), request?.Scope ?? TokenScope.Write, cancellationToken);
         return redirect.IsSuccess ? Ok(new OAuthAuthorizationDecisionResponse { RedirectUrl = redirect.Value }) : NotFound();
     }
 

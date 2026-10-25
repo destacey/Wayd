@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Identity;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -594,7 +595,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
         string? askedAbout = null;
 
         // Act
@@ -610,6 +611,28 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
     }
 
+    [Theory]
+    [InlineData(TokenScope.Read)]
+    [InlineData(TokenScope.Write)]
+    public async Task RotateForClient_ShouldAnswerTheScopeTheSessionWasGranted(TokenScope scope)
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+        await using var context = _fixture.CreateContext();
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", scope, TestSession, ct);
+
+        // Act
+        await using var later = _fixture.CreateContext();
+        var rotated = await CreateStore(later, Now.Plus(Duration.FromHours(1))).RotateForClient(ClientId, session.Token, AnyUser, ct);
+
+        // Assert
+        rotated.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+        rotated.Scope.Should().Be(scope);
+        (await later.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.Id == session.SessionId, ct)).Scope.Should().Be(scope);
+    }
+
     [Fact]
     public async Task RotateForClient_ShouldMatchTheClientExactly()
     {
@@ -618,7 +641,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
         var result = await CreateStore(context, Now).RotateForClient(ClientId.ToUpperInvariant(), session.Token, AnyUser, ct);
@@ -636,7 +659,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
         var sessionId = Guid.NewGuid();
-        var session = await CreateStore(context, Now).IssueForClient(sessionId, userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(sessionId, userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
         var result = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
@@ -656,7 +679,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         // Act
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Assert
         var stored = await context.UserRefreshTokens.SingleAsync(t => t.UserId == userId, ct);
@@ -676,10 +699,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var first = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var first = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
-        await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Assert
         (await context.UserRefreshTokens.CountAsync(t => t.UserId == userId && t.RevokedAt == null, ct)).Should().Be(2);
@@ -694,7 +717,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
         var result = await CreateStore(context, Now.Plus(Duration.FromHours(1))).RotateForClient(ClientId, session.Token, AnyUser, ct);
@@ -716,7 +739,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
         var result = await CreateStore(context, Now).RotateForClient("https://other.acme.example/client.json", session.Token, AnyUser, ct);
@@ -753,7 +776,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
         var result = await CreateStore(context, Now).RotateForClient(ClientId, $"{session.SessionId:N}.guessed", AnyUser, ct);
@@ -770,7 +793,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
         var rotated = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
 
         // Act
@@ -792,7 +815,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
         var result = await CreateStore(context, Now).Rotate(userId, session.Token, ct);
@@ -811,7 +834,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
         await CreateStore(context, Now).Issue(userId, TestSession, ct);
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
 
         // Act
         var sessions = await CreateStore(context, Now).ListActive(userId, ct);

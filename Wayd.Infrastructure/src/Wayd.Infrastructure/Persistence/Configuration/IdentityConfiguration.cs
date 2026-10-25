@@ -150,6 +150,7 @@ public class UserRefreshTokenConfig : IEntityTypeConfiguration<UserRefreshToken>
 
         // A Client ID Metadata Document URL; 2048 matches what browsers and proxies reliably carry.
         builder.Property(t => t.ClientId).HasMaxLength(2048);
+        builder.Property(t => t.Scope).HasConversion<string>().HasMaxLength(16);
     }
 }
 
@@ -173,6 +174,7 @@ public class OAuthAuthorizationConfig : IEntityTypeConfiguration<OAuthAuthorizat
         builder.Property(a => a.RedirectUri).HasMaxLength(2048).IsRequired();
         builder.Property(a => a.CodeChallenge).HasMaxLength(43).IsFixedLength().IsRequired();
         builder.Property(a => a.Resource).HasMaxLength(2048).IsRequired();
+        builder.Property(a => a.Scope).HasConversion<string>().HasMaxLength(16);
         builder.Property(a => a.State).HasMaxLength(1024).IsRequired();
         builder.Property(a => a.Issuer).HasMaxLength(2048).IsRequired();
 

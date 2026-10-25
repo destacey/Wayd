@@ -45381,6 +45381,72 @@ export class IntakeDesksClient {
     }
 }
 
+export class IntakeEmployeeOptionsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the active employees a request can name, by name only.
+     * @return OK
+     */
+    getEmployeeOptions( cancelToken?: CancelToken): Promise<EmployeeNavigationDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/employee-options";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEmployeeOptions(_response);
+        });
+    }
+
+    protected processGetEmployeeOptions(response: AxiosResponse): Promise<EmployeeNavigationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeNavigationDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeNavigationDto[]>(null as any);
+    }
+}
+
 export class IntakeRequestsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -45397,12 +45463,17 @@ export class IntakeRequestsClient {
     /**
      * Get the intake requests you can see, as summaries.
      * @param deskId (optional) 
+     * @param mine (optional) 
      * @return OK
      */
-    getIntakeRequests(deskId?: string | null | undefined, cancelToken?: CancelToken): Promise<IntakeRequestSummaryDto[]> {
+    getIntakeRequests(deskId?: string | null | undefined, mine?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestSummaryDto[]> {
         let url_ = this.baseUrl + "/api/demand-management/intake-requests?";
         if (deskId !== undefined && deskId !== null)
             url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
+        if (mine === null)
+            throw new globalThis.Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "mine=" + encodeURIComponent("" + mine) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -54946,6 +55017,9 @@ export interface IntakeRequestDetailsDto {
     canEdit: boolean;
     /** Whether the reader may review the request: Review on its desk, or Administer. */
     canReview: boolean;
+    /** Whether the reader may give someone access to the request as a participant: a reviewer on its desk, or
+its requester or submitter unless the desk is private and does not allow it. */
+    canAddParticipants: boolean;
 }
 
 /** An intake request's need-by date, its basis and what the date rests on. */

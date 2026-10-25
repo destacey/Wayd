@@ -167,6 +167,24 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
+    public async Task EmployeeOptions_AreReadableWithOnlyViewOnIntakeRequests()
+    {
+        // Arrange — a business user holds the intake permissions but not View on employees
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var employeeId = await SeedEmployee();
+        var viewer = await _factory.CreateAuthenticatedClient(View);
+
+        // Act
+        var response = await viewer.Client.GetAsync("/api/demand-management/employee-options", ct);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var options = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        options.EnumerateArray().Should().Contain(o => o.GetProperty("id").GetGuid() == employeeId);
+    }
+
+    [Fact]
     public async Task CreateRequest_WithoutATitle_IsRejectedBeforeTheHandler()
     {
         // Arrange

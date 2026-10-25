@@ -53,6 +53,30 @@ public sealed record IntakeRequestReader(
     public bool CanReview(Guid deskId) => ReviewsEveryDesk || (HoldsReview && ReviewerDeskIds.Contains(deskId));
 
     /// <summary>
+    /// Whether the reader may give someone access to a request as a participant: a reviewer on its desk
+    /// always, and its requester or submitter unless the desk is private and does not allow it. Participants
+    /// cannot add others. Needs a linked employee, because the participant records who added them.
+    /// </summary>
+    /// <param name="request">The request's desk and its own people.</param>
+    /// <param name="deskVisibility">The visibility of the request's desk.</param>
+    /// <param name="requesterMayAddParticipants">The desk's setting for whether a requester may add participants on a private desk.</param>
+    public bool CanAddParticipants(
+        IntakeRequestPeople request,
+        IntakeDeskVisibility deskVisibility,
+        bool requesterMayAddParticipants)
+    {
+        if (EmployeeId is not { } employeeId)
+            return false;
+
+        if (CanReview(request.DeskId))
+            return true;
+
+        var isRequesterOrSubmitter = request.RequesterId == employeeId || request.SubmittedById == employeeId;
+        var deskAllows = deskVisibility != IntakeDeskVisibility.Private || requesterMayAddParticipants;
+        return isRequesterOrSubmitter && deskAllows;
+    }
+
+    /// <summary>
     /// Requests whose summary the reader may see. Every other request is absent for them.
     /// </summary>
     public Expression<Func<IntakeRequest, bool>> CanSeeSummary(IQueryable<IntakeDesk> desks)
@@ -86,3 +110,11 @@ public sealed record IntakeRequestReader(
             || r.Participants.Any(p => p.EmployeeId == employeeId);
     }
 }
+
+/// <summary>
+/// The parts of an intake request that decide what its own people may do on it.
+/// </summary>
+/// <param name="DeskId">The desk the request is on.</param>
+/// <param name="RequesterId">The employee the request is for.</param>
+/// <param name="SubmittedById">The employee who entered the request.</param>
+public sealed record IntakeRequestPeople(Guid DeskId, Guid RequesterId, Guid SubmittedById);

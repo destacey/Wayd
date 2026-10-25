@@ -21,4 +21,10 @@ public sealed record IntakeRequestDetailsDto
 
     /// <summary>Whether the reader may review the request: Review on its desk, or Administer.</summary>
     public bool CanReview { get; init; }
+
+    /// <summary>
+    /// Whether the reader may give someone access to the request as a participant: a reviewer on its desk, or
+    /// its requester or submitter unless the desk is private and does not allow it.
+    /// </summary>
+    public bool CanAddParticipants { get; init; }
 }

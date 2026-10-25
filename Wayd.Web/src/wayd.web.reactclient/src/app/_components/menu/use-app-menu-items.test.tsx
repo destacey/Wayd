@@ -304,6 +304,7 @@ describe('useAppMenuItems', () => {
     mockFlags['product-management'] = true
     mockFlags['planning-poker'] = true
     mockFlags['story-maps'] = true
+    mockFlags['demand-management'] = true
 
     const { result } = renderHook(() => useAppMenuItems())
 

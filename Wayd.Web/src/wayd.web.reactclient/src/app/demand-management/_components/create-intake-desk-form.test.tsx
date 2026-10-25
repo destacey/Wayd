@@ -13,7 +13,8 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 }))
 
 // In Jest, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
-// other form suites do, keep the form instance real and submit straight through.
+// other form suites do, keep the form instance real and submit through validateFields, which, like the real hook,
+// returns only the fields that are mounted.
 jest.mock('@/src/hooks', () => {
   const { Form } = jest.requireActual('antd')
   return {
@@ -34,7 +35,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => {
-          if (await onSubmit(form.getFieldsValue(true), form)) onComplete()
+          if (await onSubmit(await form.validateFields(), form)) onComplete()
         },
         handleCancel: jest.fn(),
       }

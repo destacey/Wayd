@@ -214,4 +214,41 @@ describe('SubmitIntakeRequestPage', () => {
     )
     expect(mockPush).toHaveBeenCalledWith('/demand-management/requests/42')
   })
+
+  it('sends the chosen desk and the person it is for when submitting on their behalf', async () => {
+    // Arrange
+    mockDesks = [
+      desk('d-1', 'IT', 'Laptops, access and software'),
+      desk('d-2', 'Product', 'Changes to what we sell'),
+    ]
+    mockCreate.mockReturnValue({
+      unwrap: () => Promise.resolve({ id: 'r-2', key: 43 }),
+    })
+    await renderPage()
+    await act(() =>
+      userEvent.click(screen.getByText('Changes to what we sell')),
+    )
+    await userEvent.type(await screen.findByLabelText('Title'), 'Bulk export')
+    await userEvent.type(screen.getAllByLabelText('markdown')[0], 'For finance')
+    await act(() =>
+      userEvent.click(screen.getByLabelText('Where did this come from?')),
+    )
+    await act(() => userEvent.click(screen.getByTitle('Security')))
+    const requester = screen
+      .getByText('Who is this request for?')
+      .closest('.ant-form-item')!
+      .querySelector('.ant-select')!
+    await act(() => userEvent.click(requester.querySelector('input')!))
+    await act(() => userEvent.click(screen.getByTitle('Blake Sample')))
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Submit Request' })),
+    )
+
+    // Assert
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ deskId: 'd-2', requesterId: 'e-2' }),
+    )
+  })
 })

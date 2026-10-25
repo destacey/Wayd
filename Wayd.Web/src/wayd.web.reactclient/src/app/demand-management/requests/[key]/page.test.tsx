@@ -135,6 +135,7 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canEdit: false,
   canRemoveParticipants: false,
   canDelete: false,
+  canReroute: false,
   canAddParticipants: false,
   ...overrides,
 })
@@ -212,6 +213,26 @@ describe('IntakeRequestDetailsPage', () => {
     // Assert
     expect(notFound).toHaveBeenCalled()
   })
+
+  it.each([
+    [true, true],
+    [false, false],
+  ])(
+    'offers Move to Another Desk only where the server allows it (canReroute %s)',
+    async (canReroute, expected) => {
+      // Arrange
+      mockRequest = details({ canReroute })
+
+      // Act
+      await renderPage()
+
+      // Assert
+      await screen.findByTestId('page-actions')
+      expect(
+        screen.queryByRole('button', { name: 'Move to Another Desk' }) !== null,
+      ).toBe(expected)
+    },
+  )
 
   describe('people section', () => {
     beforeEach(() => {

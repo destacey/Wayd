@@ -27,6 +27,7 @@ import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
 import IntakeRequestFacts from './_components/intake-request-facts'
 import IntakeRequestParticipants from './_components/intake-request-participants'
+import RerouteIntakeRequestForm from './_components/reroute-intake-request-form'
 import IntakeRequestDetailsLoading from './loading'
 
 enum RequestSection {
@@ -35,7 +36,7 @@ enum RequestSection {
   Activity = 'activity',
 }
 
-type RequestDialog = 'edit' | 'add-participant'
+type RequestDialog = 'edit' | 'add-participant' | 'reroute'
 
 const IntakeRequestDetailsPage = (props: {
   params: Promise<{ key: string }>
@@ -107,10 +108,20 @@ const IntakeRequestDetailsPage = (props: {
     { id: RequestSection.Activity, label: 'Activity' },
   ]
 
-  const actionItems: ItemType[] =
-    request.canEdit && substance
+  const actionItems: ItemType[] = [
+    ...(request.canEdit && substance
       ? [{ key: 'edit', label: 'Edit', onClick: () => setDialog('edit') }]
-      : []
+      : []),
+    ...(request.canReroute
+      ? [
+          {
+            key: 'reroute',
+            label: 'Move to Another Desk',
+            onClick: () => setDialog('reroute'),
+          },
+        ]
+      : []),
+  ]
 
   const sectionActions =
     activeSection === RequestSection.Participants &&
@@ -164,6 +175,13 @@ const IntakeRequestDetailsPage = (props: {
         <EditIntakeRequestForm
           request={request}
           substance={substance}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'reroute' && request.canReroute && (
+        <RerouteIntakeRequestForm
+          request={request}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}
         />

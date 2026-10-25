@@ -18,7 +18,7 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// <param name="IsRequesterSelectable">Whether a requester can pick the desk.</param>
 /// <param name="IsOpen">Whether the desk accepts new requests.</param>
 /// <param name="RequesterMayAddParticipants">On a private desk, whether the requester may add participants themselves.</param>
-// <param name="Members">The employees named on the desk, each with their role.</param>
+/// <param name="Members">The employees named on the desk, each with their role.</param>
 public sealed record CreateIntakeDeskCommand(
     string Name,
     string Description,

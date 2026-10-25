@@ -65,6 +65,7 @@ const mockDesks = [
     isOpen: false,
   }),
   desk('d-other-private', 'Legal', IntakeDeskVisibility.Private),
+  desk('d-summary', 'Finance', IntakeDeskVisibility.SummaryOnly),
 ]
 jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
@@ -234,6 +235,29 @@ describe('RerouteIntakeRequestForm', () => {
       deskId: 'd-open',
       confirmWiderVisibility: true,
     })
+  })
+
+  it('asks again when the mover changes to another less private desk after confirming', async () => {
+    // Arrange — the confirmation covered what Finance exposes; Product delivery exposes more
+    await renderForm()
+    await chooseDesk('Finance')
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'I understand this makes the request visible to more people',
+      }),
+    )
+    await chooseDesk('Product delivery')
+
+    // Act
+    await submit()
+
+    // Assert
+    expect(mockReroute).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'I understand this makes the request visible to more people',
+      }),
+    ).not.toBeChecked()
   })
 
   it('warns that an assignee who does not work the new desk will be unassigned', async () => {

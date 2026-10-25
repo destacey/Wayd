@@ -83772,7 +83772,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create an intake desk with its initial reviewers.
+        /// Create an intake desk with its initial members.
         /// </summary>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -83956,7 +83956,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create an intake desk with its initial reviewers.
+        /// Create an intake desk with its initial members.
         /// </summary>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -84946,7 +84946,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete an intake request.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.
+        /// Needs a Desk Admin on the request's desk. Deleting is a last resort: withdrawing or declining keeps a request on record.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85547,7 +85547,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete an intake request.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.
+        /// Needs a Desk Admin on the request's desk. Deleting is a last resort: withdrawing or declining keeps a request on record.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>

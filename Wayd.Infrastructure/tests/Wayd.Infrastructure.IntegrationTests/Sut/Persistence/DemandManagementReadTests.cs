@@ -271,9 +271,34 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         asOutsider.Single(d => d.Id == scenario.Private.Id).Waiting.Should().BeNull();
     }
 
-    private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true)
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task GetIntakeDesk_ForTheDemandManagementAdmin_OffersChangesOnlyWithATokenThatMayWrite(bool isReadOnly, bool expected)
+    {
+        // Arrange — a read-only token keeps what Administer lets its holder see and loses only the actions
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeDeskQueryHandler(context, Principal(scenario.Agent.Id, holdsAdminister: true, isReadOnly: isReadOnly))
+            .Handle(new GetIntakeDeskQuery(new IdOrKey(scenario.Private.Key)), ct);
+
+        // Assert
+        result!.Waiting!.Count.Should().Be(1);
+        result.CanManage.Should().Be(expected);
+        result.CanAdminister.Should().Be(expected);
+        result.CanDelete.Should().BeFalse();
+    }
+
+    private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true, bool holdsAdminister = false,
+        bool isReadOnly = false)
     {
         var principal = new Mock<ICurrentPrincipal>();
+        principal.Setup(p => p.IsReadOnly).Returns(isReadOnly);
+        principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.AdministerPermission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(holdsAdminister);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ViewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsView);
         principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.ViewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsView);

@@ -33,8 +33,8 @@ interface CreateIntakeDeskFormValues {
 }
 
 /**
- * Creates a desk, so a new install can take requests before desk administration exists. Changing or
- * archiving a desk, and moving requests between desks, are not here.
+ * Creates a desk with its first members. Only the Demand Management Admin creates desks; each is then run
+ * from its own page.
  */
 const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
   onFormComplete,

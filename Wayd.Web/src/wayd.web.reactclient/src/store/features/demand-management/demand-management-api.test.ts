@@ -6,6 +6,9 @@ const getIntakeRequests = jest.fn()
 const getIntakeRequest = jest.fn()
 const update = jest.fn()
 const addParticipant = jest.fn()
+const reroute = jest.fn()
+const create = jest.fn()
+const getIntakeDesk = jest.fn()
 
 jest.mock('@/src/services/clients', () => ({
   getIntakeRequestsClient: () => ({
@@ -13,7 +16,10 @@ jest.mock('@/src/services/clients', () => ({
     getIntakeRequest,
     update,
     addParticipant,
+    reroute,
+    create,
   }),
+  getIntakeDesksClient: () => ({ getIntakeDesk }),
 }))
 
 const createStore = () =>
@@ -94,6 +100,55 @@ describe('demandManagementApi', () => {
       expect(getIntakeRequest).toHaveBeenCalledTimes(2)
       subscription.unsubscribe()
     })
+  })
+
+  describe('a change to where requests are', () => {
+    it.each([
+      [
+        'moving a request',
+        (store: ReturnType<typeof createStore>) =>
+          store.dispatch(
+            demandManagementApi.endpoints.rerouteIntakeRequest.initiate({
+              requestId: 'r-1',
+              deskId: 'd-2',
+              confirmWiderVisibility: false,
+            }),
+          ),
+      ],
+      [
+        'submitting a request',
+        (store: ReturnType<typeof createStore>) =>
+          store.dispatch(
+            demandManagementApi.endpoints.createIntakeRequest.initiate({
+              title: 'An ask',
+              description: 'Something',
+              deskId: 'd-1',
+              channelId: 'c-1',
+            }),
+          ),
+      ],
+    ])(
+      'refreshes a desk page already open after %s, whose waiting count and delete flag move',
+      async (_change, dispatchChange) => {
+        // Arrange
+        getIntakeDesk.mockResolvedValue({ id: 'd-1', key: 1 })
+        reroute.mockResolvedValue(null)
+        create.mockResolvedValue({ id: 'r-2', key: 8 })
+        const store = createStore()
+        const subscription = store.dispatch(
+          demandManagementApi.endpoints.getIntakeDesk.initiate('1'),
+        )
+        await subscription
+
+        // Act
+        await dispatchChange(store)
+        await new Promise((resolve) => setTimeout(resolve, 0))
+
+        // Assert
+        expect(getIntakeDesk).toHaveBeenCalledTimes(2)
+        subscription.unsubscribe()
+      },
+    )
   })
 
   describe('updateIntakeRequest', () => {

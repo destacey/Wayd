@@ -79,8 +79,8 @@ public static class IntakeDeskFakerExtensions
     /// Names the employees on the desk with their roles, replacing any members it had.
     /// </summary>
     /// <remarks>
-    /// Set through the backing list because the domain adds members only at creation until desk
-    /// administration arrives, and tests need desks whose members are known.
+    /// Set through the backing list, so a test can arrange a desk's members without raising the event that
+    /// <c>ChangeMembers</c> would.
     /// </remarks>
     public static IntakeDeskFaker WithMembers(this IntakeDeskFaker faker, params IntakeDeskMemberDetails[] members)
     {

@@ -289,12 +289,15 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         var confirmed = await agentClient.Client.PostAsJsonAsync($"{Requests}/{request.Id}/reroute",
             new { deskId = openDeskId, confirmWiderVisibility = true }, ct);
         var moved = await requesterClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Id}", ct);
+        var toNowhere = await agentClient.Client.PostAsJsonAsync($"{Requests}/{request.Id}/reroute",
+            new { deskId = Guid.NewGuid(), confirmWiderVisibility = true }, ct);
 
         // Assert
         asAgent.GetProperty("canReroute").GetBoolean().Should().BeTrue();
         unconfirmed.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         confirmed.StatusCode.Should().Be(HttpStatusCode.NoContent);
         moved.GetProperty("summary").GetProperty("desk").GetProperty("id").GetGuid().Should().Be(openDeskId);
+        toNowhere.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]

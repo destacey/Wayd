@@ -126,6 +126,11 @@ const RerouteIntakeRequestForm: FC<RerouteIntakeRequestFormProps> = ({
         size="small"
         layout="vertical"
         name="reroute-intake-request-form"
+        onValuesChange={(changed) => {
+          // A confirmation covers what the chosen desk exposes; another desk may expose more.
+          if ('deskId' in changed)
+            form.setFieldValue('confirmWiderVisibility', false)
+        }}
       >
         <Item
           name="deskId"

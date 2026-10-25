@@ -48,7 +48,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Create an intake desk with its initial reviewers.")]
+    [EndpointSummary("Create an intake desk with its initial members.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateIntakeDeskRequest request, CancellationToken cancellationToken)
     {

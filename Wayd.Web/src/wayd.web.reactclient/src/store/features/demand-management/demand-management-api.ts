@@ -138,7 +138,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      invalidatesTags: [listTag],
+      // A new request changes its desk's waiting count and whether the desk can be deleted.
+      invalidatesTags: [listTag, QueryTags.IntakeDesk],
     }),
 
     updateIntakeRequest: builder.mutation<void, UpdateIntakeRequestRequest>({
@@ -194,7 +195,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { requestId }) => [
         ...requestTags(requestId),
         listTag,
-        deskListTag,
+        QueryTags.IntakeDesk,
       ],
     }),
 
@@ -286,11 +287,12 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      // Removing a member unassigns them from the desk's requests, so request lists refresh too.
+      // Removing a member unassigns them from the desk's requests, and a rename shows on every request
+      // on the desk, so every cached request refreshes too.
       invalidatesTags: (_result, _error, { id }) => [
         { type: QueryTags.IntakeDesk, id },
         deskListTag,
-        listTag,
+        QueryTags.IntakeRequest,
       ],
     }),
 

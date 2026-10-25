@@ -15,7 +15,7 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// <remarks>
 /// A request is the ask, not the response: it sits upstream of PPM and Work, and a project does not need
 /// one. It is on exactly one desk from the moment it is created; moving it to another desk is an agent's
-/// decision and arrives with desk administration.
+/// decision, never automatic (<see cref="Reroute"/>).
 /// <para>
 /// Every field belongs to a read tier (<c>IntakeRequestReadTier</c>), and every event to the tier of the
 /// fields it carries, which is why the title and the details change through separate methods.

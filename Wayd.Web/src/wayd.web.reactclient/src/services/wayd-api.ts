@@ -45551,7 +45551,7 @@ export class IntakeDesksClient {
     }
 
     /**
-     * Create an intake desk with its initial reviewers.
+     * Create an intake desk with its initial members.
      * @return Created
      */
     create(request: CreateIntakeDeskRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {

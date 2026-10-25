@@ -39337,7 +39337,7 @@
         "tags": [
           "IntakeDesks"
         ],
-        "summary": "Create an intake desk with its initial reviewers.",
+        "summary": "Create an intake desk with its initial members.",
         "operationId": "IntakeDesks_Create",
         "requestBody": {
           "content": {
@@ -39929,7 +39929,7 @@
           "IntakeRequests"
         ],
         "summary": "Delete an intake request.",
-        "description": "Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.",
+        "description": "Needs a Desk Admin on the request's desk. Deleting is a last resort: withdrawing or declining keeps a request on record.",
         "operationId": "IntakeRequests_Delete",
         "parameters": [
           {

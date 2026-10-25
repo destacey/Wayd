@@ -4,6 +4,7 @@ using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
@@ -140,7 +141,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [HttpDelete("{id}")]
     [Authorize]
     [EndpointSummary("Delete an intake request.")]
-    [EndpointDescription("Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.")]
+    [EndpointDescription("Needs a Desk Admin on the request's desk. Deleting is a last resort: withdrawing or declining keeps a request on record.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -170,7 +171,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     private ActionResult NoContentOrError(Result result) =>
         result.IsSuccess
             ? NoContent()
-            : result.Error == IntakeRequestAuthorization.NotFoundError
+            : result.Error is IntakeRequestAuthorization.NotFoundError or IntakeDeskAccess.NotFoundError
                 ? NotFound()
                 : BadRequest(result.ToBadRequestObject(HttpContext));
 }

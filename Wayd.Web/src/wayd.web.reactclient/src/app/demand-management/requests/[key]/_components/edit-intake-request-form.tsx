@@ -55,7 +55,14 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
   const [updateRequest] = useUpdateIntakeRequestMutation()
   const { data: bases } = useGetNeedByBasesQuery()
   const { data: families } = useGetNeedByBasisFamiliesQuery()
-  const { data: employees } = useGetIntakeEmployeeOptionsQuery()
+  const { data: activeEmployees } = useGetIntakeEmployeeOptionsQuery()
+  // The options are active employees only. A commitment stays a fact about whoever made it after they
+  // leave, so keep them in the list rather than showing their id.
+  const committedBy = request.summary.needBy?.committedBy
+  const employees =
+    committedBy && !activeEmployees?.some((e) => e.id === committedBy.id)
+      ? [...(activeEmployees ?? []), committedBy]
+      : activeEmployees
   // Archived channels too, so a request still on one shows it rather than an empty field.
   const { data: allChannels } = useGetIntakeChannelsQuery({
     includeArchived: true,
@@ -111,7 +118,9 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
       title="Edit Request"
       open={isOpen}
       onOk={handleOk}
-      okButtonProps={{ disabled: !isValid }}
+      // The need-by follow-ups mount only once the bases are known; saving before then would drop a saved
+      // reference and commitment from the update.
+      okButtonProps={{ disabled: !isValid || !bases }}
       okText="Save"
       confirmLoading={isSaving}
       onCancel={handleCancel}

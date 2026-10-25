@@ -54,7 +54,10 @@ const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
             visibility: values.visibility,
             isRequesterSelectable: values.isRequesterSelectable,
             isOpen: values.isOpen,
-            requesterMayAddParticipants: values.requesterMayAddParticipants,
+            // Asked only for a private desk, so on any other the field is unmounted and the form omits
+            // it; send the API's own default rather than nothing.
+            requesterMayAddParticipants:
+              values.requesterMayAddParticipants ?? true,
             reviewerIds: values.reviewerIds ?? [],
           }).unwrap()
           messageApi.success('Desk created.')

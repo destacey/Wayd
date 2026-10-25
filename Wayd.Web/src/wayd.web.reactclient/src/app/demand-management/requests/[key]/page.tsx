@@ -17,6 +17,7 @@ import {
   useGetNeedByBasisFamiliesQuery,
   useLazyGetIntakeRequestActivitiesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
+import { toApiError } from '@/src/utils'
 import { Alert, Button } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useSearchParams } from 'next/navigation'
@@ -67,7 +68,7 @@ const IntakeRequestDetailsPage = (props: {
 
   // A request on a private desk the reader is not part of answers 404, exactly like one that does not
   // exist, so both read as not found.
-  if ((error as { status?: number } | undefined)?.status === 404) {
+  if (error && toApiError(error).status === 404) {
     return notFound()
   }
 

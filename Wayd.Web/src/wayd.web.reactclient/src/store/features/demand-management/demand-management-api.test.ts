@@ -96,7 +96,7 @@ describe('demandManagementApi', () => {
   })
 
   describe('updateIntakeRequest', () => {
-    it('returns a validation failure as status and data, where the form reads its errors', async () => {
+    it('returns a validation failure as the client threw it, where toApiError finds its errors', async () => {
       // Arrange
       const problem = { status: 422, errors: { Title: ['Title is required.'] } }
       update.mockRejectedValue(problem)
@@ -113,7 +113,7 @@ describe('demandManagementApi', () => {
       )
 
       // Assert
-      expect(result.error).toEqual({ status: 422, data: problem })
+      expect(result.error).toEqual(problem)
     })
   })
 })

@@ -21,7 +21,6 @@ import {
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { toHttpError } from '../http-error'
 import { ActivityLogQueryArg } from '@/src/components/common/activities'
 
 export interface IntakeRequestListArgs {
@@ -47,12 +46,10 @@ const requestTags = (requestId: string) => [
 const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
 
 /**
- * Rejects with `{ status, data }` where the API answered, so a page can tell a 404 from a failure and a
- * form can read a 422's `errors`.
+ * Rejects with what the generated client threw, unchanged, so pages and forms read it with `toApiError`:
+ * a documented response arrives as its problem details and an undocumented one as an `ApiException`.
  */
 const toError = (error: unknown) => {
-  const httpError = toHttpError(error)
-  if (httpError) return { error: httpError }
   console.error('API Error:', error)
   return { error }
 }

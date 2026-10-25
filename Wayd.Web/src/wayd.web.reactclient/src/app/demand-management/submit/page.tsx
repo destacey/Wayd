@@ -175,7 +175,10 @@ const SubmitIntakeRequestPage: FC = () => {
               <Button type="primary" htmlType="submit" loading={isSaving}>
                 Submit Request
               </Button>
-              <Button onClick={() => router.back()} disabled={isSaving}>
+              <Button
+                onClick={() => router.push('/demand-management/my-requests')}
+                disabled={isSaving}
+              >
                 Cancel
               </Button>
             </Flex>

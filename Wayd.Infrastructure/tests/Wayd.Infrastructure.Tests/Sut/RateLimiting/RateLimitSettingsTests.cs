@@ -22,7 +22,7 @@ public sealed class RateLimitSettingsTests
         var listed = settings.All().ToList();
 
         // Assert
-        declared.Should().HaveCount(8);
+        declared.Should().HaveCount(9);
         listed.Should().HaveCount(declared.Count);
         declared.Should().OnlyContain(limit => listed.Any(l => ReferenceEquals(l, limit)));
     }
@@ -70,6 +70,42 @@ public sealed class RateLimitSettingsTests
 
         // Assert
         valid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void PerUserElevated_DefaultsToFiveTimesTheStandardBucket()
+    {
+        // Arrange
+        var settings = new RateLimitSettings();
+
+        // Act
+        var (standard, elevated) = (settings.PerUser, settings.PerUserElevated);
+
+        // Assert
+        (elevated.TokenLimit, elevated.TokensPerPeriod, elevated.PeriodSeconds).Should().Be((1000, 25, 1));
+        elevated.TokenLimit.Should().Be(standard.TokenLimit * 5);
+        elevated.TokensPerPeriod.Should().Be(standard.TokensPerPeriod * 5);
+        elevated.PeriodSeconds.Should().Be(standard.PeriodSeconds);
+    }
+
+    [Theory]
+    [InlineData(200, 5, 1, true)]
+    [InlineData(1000, 25, 1, true)]
+    [InlineData(199, 5, 1, false)]
+    [InlineData(200, 4, 1, false)]
+    [InlineData(200, 5, 2, false)]
+    [InlineData(400, 10, 2, true)]
+    public void TokenBucketLimit_IsAtLeast_ComparesTheBurstAndTheRefillRate(int tokenLimit, int tokensPerPeriod, int periodSeconds, bool expected)
+    {
+        // Arrange — against a bucket of 200 refilling 5 per second
+        var standard = new TokenBucketLimit { TokenLimit = 200, TokensPerPeriod = 5, PeriodSeconds = 1 };
+        var limit = new TokenBucketLimit { TokenLimit = tokenLimit, TokensPerPeriod = tokensPerPeriod, PeriodSeconds = periodSeconds };
+
+        // Act
+        var atLeast = limit.IsAtLeast(standard);
+
+        // Assert
+        atLeast.Should().Be(expected);
     }
 
     [Fact]

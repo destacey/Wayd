@@ -11,6 +11,20 @@ import FollowedRecordsList, {
 } from './followed-records-list'
 import { typeLabel } from './following-filters'
 
+jest.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
+  useGetProjectHealthCheckQuery: () => ({ data: undefined, isLoading: false }),
+}))
+
+jest.mock(
+  '@/src/store/features/planning/pi-objective-health-checks-api',
+  () => ({
+    useGetObjectiveHealthCheckQuery: () => ({
+      data: undefined,
+      isLoading: false,
+    }),
+  }),
+)
+
 const record = (
   n: number,
   overrides: Partial<FollowedRecordDto> = {},
@@ -59,6 +73,7 @@ describe('FollowedRecordsList', () => {
       parentName: 'PI 2026.1',
       statusName: 'In Progress',
       health: HealthStatus.Unhealthy,
+      healthCheck: { id: 'hc-1', status: { id: 3, name: 'Unhealthy' } },
       lastChangedOn: new Date(Date.now() - 2 * 60 * 60 * 1000),
     })
 
@@ -75,7 +90,7 @@ describe('FollowedRecordsList', () => {
       'PI Objective · 7 · PI 2026.1 · changed 2 hours ago',
     )
     expect(item).toHaveTextContent('In Progress')
-    expect(item).toHaveTextContent('Unhealthy.')
+    expect(screen.getByLabelText('Health: Unhealthy')).toBeInTheDocument()
     expect(screen.getByRole('listitem')).toHaveAttribute('aria-setsize', '1')
   })
 

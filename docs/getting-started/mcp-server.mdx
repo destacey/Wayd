@@ -179,7 +179,7 @@ Hosted assistants that sign in cannot send headers, so give them the selection o
 
 Read-only mode limits which tools are offered, not what your account may do. For a guarantee, also connect as an account that has view permissions only.
 
-The skills tool, `Skills_Get`, the skill prompts and the `Me_*` tools are offered on every connection, whatever toolsets you chose; read-only mode keeps all of them except `Me_Follow` and `Me_Unfollow`, the two that change something.
+The skills tool, `Skills_Get`, the skill prompts and the `Me_*` tools are offered on every connection, whatever toolsets you chose; read-only mode keeps all of them except the ones that change something: `Me_Follow`, `Me_Unfollow` and the three that mark notifications read.
 
 ### Large Results
 
@@ -196,6 +196,8 @@ Besides every tool in the [tables below](#available-tools), the hosted endpoint 
 | `Me_GetTeamMemberships` / `Me_GetAllocations` / `Me_GetWorkItems` | (every connection) | Your own teams, how your time is allocated to them, and the work items assigned to you, with no id to look up and no View Employees permission |
 | `Me_Follow` / `Me_Unfollow` / `Me_GetFollowStatus` | (every connection) | Follow or stop following a project, program or PI objective you can read, and check whether you follow one (`following` feature flag) |
 | `Me_GetFollows` / `Me_GetFollowCounts` / `Me_GetFollowedRecord` | (every connection) | List what you follow — filtered by kind, by what needs a look (unhealthy, changed this week, closed) or by name — count it, and read one followed record with what has happened since you followed it (`following` feature flag) |
+| `Me_GetNotifications` / `Me_GetUnreadNotificationCount` | (every connection) | Your notifications — one entry per project, program or PI objective that changed, with what happened, who did it and why you were told — and how many records have something unread (`following` feature flag) |
+| `Me_MarkNotificationRead` / `Me_MarkRecordNotificationsRead` / `Me_MarkAllNotificationsRead` | (every connection) | Mark one notification, everything about one record, or all of your notifications read (`following` feature flag) |
 | `Projects_GetHealthCheckEvidence` | `ppm` | Everything needed to recommend a project health check, in one read: the plan summary, overdue tasks, stages past their end, the forecast, the latest check, and activity since it |
 | `PlanningIntervals_GetObjectiveHealthCheckEvidence` | `planning` | Everything needed to recommend a PI objective health check, in one read: schedule, work items and metrics, the forecast, past checks, activity since the last one, and the team's risks |
 | `Portfolios_Patch` / `Programs_Patch` / `Projects_Patch` | `ppm` | Change some of a record's details, roles or strategic themes, leaving the rest as they are |

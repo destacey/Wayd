@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useGetObjectiveHealthCheckQuery } from '@/src/store/features/planning/pi-objective-health-checks-api'
 import HealthCheckTag, {
   HealthCheckStatusTagData,
+  HealthCheckVariant,
 } from '@/src/components/common/health-check/health-check-tag'
 
 export interface PiObjectiveHealthCheckTagProps {
@@ -15,12 +16,14 @@ export interface PiObjectiveHealthCheckTagProps {
    */
   planningIntervalId?: string
   objectiveId?: string
+  variant?: HealthCheckVariant
 }
 
 const PiObjectiveHealthCheckTag = ({
   healthCheck,
   planningIntervalId,
   objectiveId,
+  variant,
 }: PiObjectiveHealthCheckTagProps) => {
   const [hovered, setHovered] = useState(false)
   const canFetchDetails = !!planningIntervalId && !!objectiveId
@@ -42,6 +45,7 @@ const PiObjectiveHealthCheckTag = ({
       healthCheck={healthCheck}
       details={canFetchDetails ? healthCheckData : null}
       isLoading={canFetchDetails ? isLoading : false}
+      variant={variant}
       onOpenChange={setHovered}
     />
   )

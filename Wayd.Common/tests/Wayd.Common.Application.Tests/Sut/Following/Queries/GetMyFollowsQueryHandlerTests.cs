@@ -172,7 +172,11 @@ public sealed class GetMyFollowsQueryHandlerTests
         item.ParentName.Should().Be("Assembly");
         item.StatusName.Should().Be("NotStarted");
         item.Lifecycle.Should().Be(LifecycleCategory.NotStarted);
+        item.ParentId.Should().Be(widget.Id);
         item.Health.Should().Be(HealthStatus.AtRisk);
+        item.HealthCheck.Should().NotBeNull();
+        item.HealthCheck!.Id.Should().Be(widget.Id);
+        item.HealthCheck.Status.Name.Should().Be("At Risk");
         item.FollowedOn.Should().Be(Start.Plus(Duration.FromDays(2)));
     }
 

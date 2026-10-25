@@ -10,7 +10,7 @@ audience: [user, agent]
 Following a record keeps it in your **Following** list, so the projects, programs and planning interval objectives you care about are in one place. Following is behind the **Following** feature flag; an administrator turns it on in **Settings → Feature Flags**.
 
 :::note
-Following does not send notifications yet. It records which records you care about, and in-app notifications will use it when they arrive.
+When something changes on a record you follow — its status, its dates, a new health check — Wayd records an in-app notification for you. The notification bell is not in the app yet; until it is, an assistant connected to Wayd's [hosted MCP endpoint](../getting-started/mcp-server.mdx) can list them for you. Notifications are never sent by email, Teams or push.
 :::
 
 ## Follow a record
@@ -43,3 +43,9 @@ On a phone, the list is the page: tap a record to open its details, with **Open*
 - **It needs an employee.** A follow belongs to the employee your account is linked to. An account with no linked employee does not see the Follow button.
 
 Following is different from being part of a record. Owners, managers and members are given a record and the access that goes with it; a follower chose a record they could already see, and gains nothing by following it.
+
+## Notifications
+
+You are told about a change to a record when you follow it, and also when you take part in it: you hold a role on a project or program, or you are on the team that owns a PI objective. If both are true you are told once, with both reasons. You are never told about your own changes, or about changes made by an import.
+
+Notifications follow the same rule as your list: you see one only while you can still see its record. Notifications are kept for 90 days.

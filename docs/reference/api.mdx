@@ -154,6 +154,7 @@ PATs inherit the permissions of the user who created them. See [Your Profile](..
 Requests are rate limited, and a refused request gets `429 Too Many Requests`:
 
 - **Per user.** Every signed-in user has one budget across the whole API, shared by their session, their personal access tokens and their MCP connections. By default a user can make 200 requests at once, then 5 per second. Creating more tokens does not raise it.
+- **Elevated per user.** A user holding `Permissions.RateLimits.Elevated` gets a larger budget in place of the standard one: by default 1000 requests at once, then 25 per second. Admins hold it, and it can go on a service account's role, so automation that needs the room does not need to be an admin. By default a grant or revoke applies within five minutes.
 - **Per address**, on the endpoints anyone can call before signing in: login, token exchange, refresh, the provider list, first-run setup, and the OAuth authorization and token endpoints MCP clients use.
 - **CSV imports**: at most two submissions in flight per user.
 

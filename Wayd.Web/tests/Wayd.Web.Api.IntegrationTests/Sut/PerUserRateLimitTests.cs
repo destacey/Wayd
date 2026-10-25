@@ -15,6 +15,8 @@ using ModelContextProtocol.Protocol;
 using NodaTime;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.FeatureManagement.Commands;
+using Wayd.Common.Application.Identity.Roles;
+using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Authorization;
@@ -170,6 +172,98 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
         (await Json(response)).GetProperty("status").GetInt32().Should().Be(429);
     }
 
+    [Fact]
+    public async Task ElevatedUser_GetsTheElevatedBucket()
+    {
+        // Arrange — two standard tokens, four elevated
+        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var client = ClientFor(host, await _factory.CreateAuthenticatedClient(ElevatedPermission));
+        for (var i = 0; i < 4; i++)
+            (await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK, $"request {i + 1} is inside the elevated bucket");
+
+        // Act
+        var response = await client.GetAsync(Profile, TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task UserWithoutTheElevatedPermission_IsHeldToTheStandardBucket()
+    {
+        // Arrange
+        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var client = ClientFor(host, await _factory.CreateAuthenticatedClient());
+        for (var i = 0; i < 2; i++)
+            (await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Act
+        var response = await client.GetAsync(Profile, TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task ElevatedUsersPersonalAccessToken_IsElevated()
+    {
+        // Arrange — a personal access token carries no permission claims, so the tier must come from the user's roles
+        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var (_, token) = await CreateUserWithToken(ElevatedPermission);
+        var client = host.CreateClient();
+        client.DefaultRequestHeaders.Add("x-api-key", token);
+        for (var i = 0; i < 4; i++)
+            (await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK, $"request {i + 1} is inside the elevated bucket");
+
+        // Act
+        var response = await client.GetAsync(Profile, TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task ElevatedUsersMcpToolCalls_AreElevated()
+    {
+        // Arrange — the tool calls' inner requests are counted, so they must be resolved to the user's tier
+        await SetMcpFlag(true);
+        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var (_, token) = await CreateUserWithToken(ElevatedPermission);
+        await using var mcp = await Connect(host, token);
+        for (var i = 0; i < 4; i++)
+            (await mcp.CallToolAsync("Me_GetProfile", cancellationToken: TestContext.Current.CancellationToken)).IsError.Should().NotBe(true, $"call {i + 1} is inside the elevated bucket");
+
+        // Act
+        var refused = await mcp.CallToolAsync("Me_GetProfile", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        refused.IsError.Should().BeTrue();
+        refused.Content.OfType<TextContentBlock>().First().Text.Should().Contain("Too many requests. Try again in ");
+    }
+
+    [Fact]
+    public async Task RevokingTheElevatedPermission_AppliesOnceTheTierIsForgotten()
+    {
+        // Arrange — the elevated bucket spent, then the permission revoked; the host remembers no tier, as if the
+        // remembered one had just expired
+        using var host = LimitedByTier(standard: 2, elevated: 4, tierCacheSeconds: 0);
+        var user = await _factory.CreateAuthenticatedClient(ElevatedPermission);
+        var client = ClientFor(host, user);
+        for (var i = 0; i < 4; i++)
+            (await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK, $"request {i + 1} is inside the elevated bucket");
+        await RevokeEveryPermission(user.UserId);
+
+        // Act — a standard bucket is a fresh one, so two pass where the spent elevated bucket would pass none
+        var allowed = new List<HttpStatusCode>();
+        for (var i = 0; i < 2; i++)
+            allowed.Add((await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode);
+        var refused = await client.GetAsync(Profile, TestContext.Current.CancellationToken);
+
+        // Assert
+        allowed.Should().Equal(HttpStatusCode.OK, HttpStatusCode.OK);
+        refused.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
     private const string ThemeImport = "/api/strategic-management/strategic-themes/import";
 
     /// <summary>A host whose per-user bucket holds <paramref name="tokens"/> requests and does not refill within a test.</summary>
@@ -182,6 +276,41 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
                 new KeyValuePair<string, string?>("RateLimitSettings:PerUser:PeriodSeconds", "3600"),
             ])));
 
+    /// <summary>The permission that selects the elevated per-user bucket.</summary>
+    private static readonly string ElevatedPermission =
+        ApplicationPermission.NameFor(ApplicationAction.Elevated, ApplicationResource.RateLimits);
+
+    /// <summary>
+    /// A host whose standard and elevated per-user buckets hold the given numbers of requests and do not refill within a
+    /// test, remembering each user's tier for <paramref name="tierCacheSeconds"/>.
+    /// </summary>
+    private WebApplicationFactory<Program> LimitedByTier(int standard, int elevated, int tierCacheSeconds = 300) =>
+        _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
+            config.AddInMemoryCollection(
+            [
+                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokenLimit", standard.ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokensPerPeriod", "1"),
+                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:PeriodSeconds", "3600"),
+                new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokenLimit", elevated.ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokensPerPeriod", "1"),
+                new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:PeriodSeconds", "3600"),
+                new KeyValuePair<string, string?>("RateLimitSettings:TierCacheSeconds", tierCacheSeconds.ToString(CultureInfo.InvariantCulture)),
+            ])));
+
+    /// <summary>Takes every permission from the roles <paramref name="userId"/> holds.</summary>
+    private async Task RevokeEveryPermission(string userId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        var roles = await scope.ServiceProvider.GetRequiredService<IUserService>().GetRolesAsync(userId, includeUnassigned: false, TestContext.Current.CancellationToken);
+        var roleService = scope.ServiceProvider.GetRequiredService<IRoleService>();
+        foreach (var role in roles.Where(r => r.Enabled))
+        {
+            var revoked = await roleService.UpdatePermissions(new UpdateRolePermissionsCommand(role.RoleId!, []), TestContext.Current.CancellationToken);
+            revoked.IsSuccess.Should().BeTrue(revoked.IsFailure ? revoked.Error : null);
+        }
+    }
+
     /// <summary>A client of <paramref name="host"/> carrying <paramref name="user"/>'s token.</summary>
     private static HttpClient ClientFor(WebApplicationFactory<Program> host, AuthenticatedClient user)
     {
@@ -190,9 +319,9 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
         return client;
     }
 
-    private async Task<(AuthenticatedClient User, string Token)> CreateUserWithToken()
+    private async Task<(AuthenticatedClient User, string Token)> CreateUserWithToken(params string[] permissions)
     {
-        var user = await _factory.CreateAuthenticatedClient();
+        var user = await _factory.CreateAuthenticatedClient(permissions);
         var response = await user.Client.PostAsJsonAsync(
             "/api/user-management/personal-access-tokens",
             new { name = $"Limit test {Guid.NewGuid():N}"[..24], expiresAt = SystemClock.Instance.GetCurrentInstant().Plus(Duration.FromDays(7)).ToString() },

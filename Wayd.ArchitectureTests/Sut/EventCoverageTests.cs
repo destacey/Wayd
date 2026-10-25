@@ -12,6 +12,7 @@ using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Scoring;
@@ -217,6 +218,7 @@ public partial class EventCoverageTests
 
         // A person's own preferences, not history of any record.
         [typeof(Follow)] = "One person's choice to hear about a record; it changes nothing about the record.",
+        [typeof(Notification)] = "A per-person, trimmable view of a change the activity log already records; reading one is not history.",
 
         // Not yet evented: each awaits the issue it names.
         [typeof(Strategy)] = "#951.",

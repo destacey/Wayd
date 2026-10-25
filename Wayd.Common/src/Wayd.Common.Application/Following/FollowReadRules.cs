@@ -52,6 +52,40 @@ internal static class FollowReadRules
     }
 
     /// <summary>
+    /// What each of a page of records looks like now, keyed by owner type and id. A record that no longer
+    /// exists is absent, so a caller drops it rather than showing it unnamed.
+    /// </summary>
+    /// <remarks>
+    /// Asks each owner type's read rule once, for its records on the page. Call it only with records the
+    /// caller's read rules already admitted.
+    /// </remarks>
+    public static async Task<Dictionary<(string OwnerType, Guid Id), RecordSummary>> Describe(
+        IEnumerable<(string OwnerType, Guid Id)> records,
+        IReadOnlyCollection<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
+        CancellationToken cancellationToken)
+    {
+        var summaries = new Dictionary<(string, Guid), RecordSummary>();
+
+        foreach (var group in records.Distinct().GroupBy(r => r.OwnerType, StringComparer.OrdinalIgnoreCase))
+        {
+            var readRule = owners
+                .First(o => string.Equals(o.Descriptor.Key, group.Key, StringComparison.OrdinalIgnoreCase))
+                .ReadRule;
+            var described = await readRule.Describe([.. group.Select(r => r.Id)], cancellationToken);
+
+            foreach (var (ownerType, id) in group)
+            {
+                if (described.TryGetValue(id, out var summary))
+                {
+                    summaries[(ownerType, id)] = summary;
+                }
+            }
+        }
+
+        return summaries;
+    }
+
+    /// <summary>
     /// Whether the caller may read the record, through its owner type's own read rule.
     /// </summary>
     public static async Task<bool> CanRead(IRecordReadRule readRule, Guid ownerId, CancellationToken cancellationToken)

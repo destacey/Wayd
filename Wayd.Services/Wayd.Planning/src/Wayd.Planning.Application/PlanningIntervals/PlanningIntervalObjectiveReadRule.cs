@@ -105,8 +105,9 @@ public sealed class PlanningIntervalObjectiveReadRule(
                     Health = o.HealthChecks
                         .Where(h => h.Expiration > now)
                         .OrderByDescending(h => h.ReportedOn)
-                        .Select(h => (HealthStatus?)h.Status)
+                        .Select(h => new { h.Id, h.Status })
                         .FirstOrDefault(),
+                    PlanningIntervalId = pi.Id,
                     PlanningIntervalKey = pi.Key,
                     PlanningIntervalName = pi.Name,
                 })
@@ -120,9 +121,11 @@ public sealed class PlanningIntervalObjectiveReadRule(
                 Name = o.Name,
                 ParentKey = o.PlanningIntervalKey.ToString(CultureInfo.InvariantCulture),
                 ParentName = o.PlanningIntervalName,
+                ParentId = o.PlanningIntervalId,
                 StatusName = o.Status.GetDisplayName(),
                 Lifecycle = LifecycleOf(o.Status),
-                Health = o.Health,
+                Health = o.Health?.Status,
+                HealthCheckId = o.Health?.Id,
                 Progress = o.Progress,
                 People = [new RecordPerson("Team", o.TeamName, null)],
                 Start = o.StartDate,

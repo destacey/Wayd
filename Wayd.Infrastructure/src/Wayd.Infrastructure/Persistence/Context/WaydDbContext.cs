@@ -9,6 +9,7 @@ using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.Settings;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Links;
@@ -137,11 +138,13 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
 
     #endregion StatusWorkflows
 
-    #region Following
+    #region Notifications
 
     public DbSet<Follow> Follows => Set<Follow>();
 
-    #endregion Following
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+    #endregion Notifications
 
     #region ProductManagement
 

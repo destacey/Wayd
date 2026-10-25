@@ -36,6 +36,12 @@ public static class ApplicationAction
     // Specific
     public const string ManageTeamMemberships = nameof(ManageTeamMemberships);
     public const string ManageProjectWorkItems = nameof(ManageProjectWorkItems);
+
+    /// <summary>
+    /// Holds the user to the elevated per-user rate limit instead of the standard one. Meant for automation and
+    /// service accounts whose steady traffic outgrows what a person needs, without making them admins.
+    /// </summary>
+    public const string Elevated = nameof(Elevated);
 }
 
 public static class ApplicationResource
@@ -53,6 +59,7 @@ public static class ApplicationResource
     public const string RoleClaims = nameof(RoleClaims);
     public const string Permissions = nameof(Permissions);
     public const string OidcProviders = nameof(OidcProviders);
+    public const string RateLimits = nameof(RateLimits);
 
     public const string ScoringModels = nameof(ScoringModels);
 
@@ -207,7 +214,9 @@ public static class ApplicationPermissions
         new("View OIDC Providers", ApplicationAction.View, ApplicationResource.OidcProviders, IdentityCategory),
         new("Create OIDC Providers", ApplicationAction.Create, ApplicationResource.OidcProviders, IdentityCategory),
         new("Update OIDC Providers", ApplicationAction.Update, ApplicationResource.OidcProviders, IdentityCategory),
-        new("Delete OIDC Providers", ApplicationAction.Delete, ApplicationResource.OidcProviders, IdentityCategory)
+        new("Delete OIDC Providers", ApplicationAction.Delete, ApplicationResource.OidcProviders, IdentityCategory),
+
+        new("Elevated Rate Limits", ApplicationAction.Elevated, ApplicationResource.RateLimits, IdentityCategory),
     ];
 
     private const string IntegrationsCategory = "Integrations";

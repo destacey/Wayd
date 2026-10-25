@@ -3,7 +3,6 @@
 import { ArrowLeftOutlined, EyeFilled } from '@ant-design/icons'
 import {
   Alert,
-  Badge,
   Button,
   Flex,
   Progress,
@@ -32,7 +31,7 @@ import { formatCalendarDate, toCalendarDate } from '@/src/utils/calendar-date'
 import { toApiError } from '@/src/utils/problem-details'
 import styles from '../following.module.css'
 import { followedRecordHref } from './followed-record-href'
-import { healthBadgeStatus, healthLabel } from './following-filters'
+import FollowedRecordHealth from './followed-record-health'
 import { formatTimeAgo } from './time-ago'
 
 const { Title, Text } = Typography
@@ -227,10 +226,7 @@ const FollowedRecordDetail = ({
               lifecycleCategory: record.lifecycle,
             }}
           />
-          <Badge
-            status={healthBadgeStatus(record.health)}
-            text={healthLabel(record.health)}
-          />
+          <FollowedRecordHealth record={record} variant="tag" />
         </Flex>
       </div>
 

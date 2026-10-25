@@ -166,6 +166,8 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
                 [
                     new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokenLimit", "100000"),
                     new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokensPerPeriod", "100000"),
+                    new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokenLimit", "100000"),
+                    new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokensPerPeriod", "100000"),
                 ])));
     }
 

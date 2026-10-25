@@ -226,7 +226,7 @@ The flags Wayd defines:
 | MCP Server | `mcp-server` | The hosted MCP endpoint (`/mcp`) that exposes the API as agent tools |
 | Team Capacity Management | `team-capacity-management` | Employee allocation to teams and team capacity planning |
 | Demand Management | `demand-management` | The Demand Management module: intake requests and the desks that review them |
-| Following | `following` | [Following](../following.mdx) projects, programs and PI objectives, and the Following list. Following notifies nobody until in-app notifications ship |
+| Following | `following` | [Following](../following.mdx) projects, programs and PI objectives, the Following list, and in-app notifications about changes to them |
 
 Feature flags gate both backend API endpoints and frontend UI elements. When a flag is disabled:
 - API endpoints return 404 or are unavailable
@@ -536,6 +536,7 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
 - **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).
 - **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window. Scheduled nightly by default as `import-retention-sweep`; like the stall sweep, the schedule can be changed and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#limits-and-rules).
+- **Notification Retention Sweep** — Deletes notifications about changes more than 90 days old, read or not; the activity log keeps what happened. Scheduled nightly by default as `notification-retention-sweep`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Following](../following.mdx#notifications).
 
 **Create Recurring Job** schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule. No sync is scheduled out of the box: to sync connections on a timetable, create a recurring **Work** or **People** sync job here.
 
